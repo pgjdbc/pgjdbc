@@ -22,6 +22,21 @@ import java.sql.SQLException;
 public class PGbytea {
   private static final int MAX_3_BUFF_SIZE = 2 * 1024 * 1024;
 
+  static final byte[] HEX_LOOKUP = new byte[256];
+
+  static {
+    // Initialize lookup table for hex characters
+    for (char c = '0'; c <= '9'; c++) {
+      HEX_LOOKUP[c] = 1;
+    }
+    for (char c = 'a'; c <= 'f'; c++) {
+      HEX_LOOKUP[c] = 1;
+    }
+    for (char c = 'A'; c <= 'F'; c++) {
+      HEX_LOOKUP[c] = 1;
+    }
+  }
+
   /**
    * Lookup table for each of the valid ascii code points (offset by {@code '0'})
    * to the 4 bit numeric value.
@@ -182,6 +197,53 @@ public class PGbytea {
    * @throws IOException in case there's underflow in the input value
    */
   public static String toPGLiteral(Object value, SqlSerializationContext context) throws IOException {
+    if (value instanceof String) {
+      final String str = (String) value;
+      final int length = str.length();
+
+      // Fast fail if string is too short
+      if (length < 2 || str.charAt(0) != '\\' || str.charAt(1) != 'x') {
+        throw new IllegalArgumentException(GT.tr("bytea string parameters must be hex format"));
+      }
+
+      // Pre-calculate capacity: prefix('\x') + actual hex digits + suffix('::bytea')
+      final StringBuilder sb = new StringBuilder(length + 7);  // Conservative estimate
+      sb.append("'\\x");
+
+      int i = 2;
+      while (i < length) {
+        char c = str.charAt(i);
+
+        // Skip whitespace using bitwise operation
+        if ((c <= ' ' && ((1L << c) & ((1L << ' ') | (1L << '\t') | (1L << '\r') | (1L << '\n'))) != 0)) {
+          i++;
+          continue;
+        }
+
+        // Check if we have enough characters left
+        if (i + 2 > length) {
+          throw new IllegalArgumentException(GT.tr("Truncated bytea hex format"));
+        }
+
+        // Get hex digits
+        final char c1 = c;
+        final char c2 = str.charAt(i + 1);
+
+        // Validate hex digits using lookup table
+        if (c1 >= HEX_LOOKUP.length || HEX_LOOKUP[c1] == 0) {
+          throw new IllegalArgumentException(GT.tr("Invalid bytea hex format character {0}", c1));
+        }
+        if (c2 >= HEX_LOOKUP.length || HEX_LOOKUP[c2] == 0) {
+          throw new IllegalArgumentException(GT.tr("Invalid bytea hex format character {0}", c2));
+        }
+
+        sb.append(str,i,i + 2);
+        i += 2;
+      }
+
+      sb.append("'::bytea");
+      return sb.toString();
+    }
     if (value instanceof byte[]) {
       byte[] bytes = (byte[]) value;
       StringBuilder sb = new StringBuilder(bytes.length * 2 + 11);
@@ -253,6 +315,6 @@ public class PGbytea {
     }
 
     throw new IllegalArgumentException(
-        GT.tr("Can't convert {0} to {1} literal", value.getClass(), "bytea"));
+        GT.tr("Cannot convert {0} to {1} literal", value.getClass(), "bytea"));
   }
 }

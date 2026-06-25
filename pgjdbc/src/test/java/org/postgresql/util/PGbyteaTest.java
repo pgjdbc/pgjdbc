@@ -6,11 +6,20 @@
 package org.postgresql.util;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import org.postgresql.core.v3.SqlSerializationContext;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Random;
+import java.util.stream.Stream;
 
 class PGbyteaTest {
 
@@ -51,5 +60,60 @@ class PGbyteaTest {
       encoded[idx + 1] = hexDigits[b & 0x0F];
     }
     return encoded;
+  }
+
+  static Stream<Arguments> validHexStringTestCases() {
+    return Stream.of(
+        Arguments.of("\\xcafebabe", "'\\xcafebabe'::bytea", "lowercase"),
+        Arguments.of("\\xCAFEBABE", "'\\xCAFEBABE'::bytea", "uppercase"),
+        Arguments.of("\\xCaFeBaBe", "'\\xCaFeBaBe'::bytea", "mixed case"),
+        Arguments.of("\\x", "'\\x'::bytea", "empty hex"),
+        Arguments.of("\\xca fe ba be", "'\\xcafebabe'::bytea", "with spaces"),
+        Arguments.of("\\xca\tfe\tba\tbe", "'\\xcafebabe'::bytea", "with tabs"),
+        Arguments.of("\\xca\nfe\nba\nbe", "'\\xcafebabe'::bytea", "with newlines"),
+        Arguments.of("\\xca\rfe\rba\rbe", "'\\xcafebabe'::bytea", "with carriage returns"),
+        Arguments.of("\\x0123456789abcdefABCDEF", "'\\x0123456789abcdefABCDEF'::bytea", "long value"),
+        Arguments.of("\\xcafe ba", "'\\xcafeba'::bytea", "with whitespace at end"),
+        Arguments.of("\\xff", "'\\xff'::bytea", "single byte"),
+        Arguments.of("\\x00", "'\\x00'::bytea", "zero byte")
+    );
+  }
+
+  @ParameterizedTest(name = "toPGLiteral valid hex string: {2}")
+  @MethodSource("validHexStringTestCases")
+  void toPGLiteral_validHexStrings(String input, String expected, String description) throws IOException {
+    String result = PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
+    assertEquals(expected, result);
+  }
+
+  static Stream<Arguments> invalidHexStringTestCases() {
+    return Stream.of(
+        Arguments.of("cafebabe", "bytea string parameters must be hex format", "no hex prefix"),
+        Arguments.of("\\ycafebabe", "bytea string parameters must be hex format", "wrong prefix"),
+        Arguments.of("\\", "bytea string parameters must be hex format", "too short"),
+        Arguments.of("", "bytea string parameters must be hex format", "empty string"),
+        Arguments.of("\\xcafegabe", "Invalid bytea hex format character g", "invalid hex character"),
+        Arguments.of("\\xcafe@abe", "Invalid bytea hex format character @", "invalid hex character symbol"),
+        Arguments.of("\\xcafebab", "Truncated bytea hex format", "odd number of hex digits"),
+        Arguments.of("\\xcafe b", "Truncated bytea hex format", "truncated after whitespace")
+    );
+  }
+
+  @ParameterizedTest(name = "toPGLiteral invalid hex string: {2}")
+  @MethodSource("invalidHexStringTestCases")
+  void toPGLiteral_invalidHexStrings(String input, String expectedMessage, String description) {
+    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+      PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
+    });
+    assertEquals(expectedMessage, exception.getMessage());
+  }
+
+  @Test
+  void toPGLiteral_deprecatedMethod_validString() throws IOException {
+    String input = "\\xcafebabe";
+    String expected = "'\\xcafebabe'::bytea";
+    @SuppressWarnings("deprecation")
+    String result = PGbytea.toPGLiteral(input);
+    assertEquals(expected, result);
   }
 }
