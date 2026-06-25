@@ -1,10 +1,30 @@
 :root {
   --container-width: 62.5rem;
+  --prose-width: 46rem;
 
   --section-spacing: 3.5em;
   --container-spacing: 2.5em;
   --box-spacing: 2em;
   --primary-spacing: 1em;
+
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.5rem;
+  --space-xs:  0.75rem;
+  --space-s:   1rem;
+  --space-m:   1.5rem;
+  --space-l:   2rem;
+  --space-xl:  3rem;
+
+  --radius-s: 0.25rem;
+  --radius-m: 0.5rem;
+
+  --border-subtle: 1px solid var(--clr-neutral-300);
+
+  /* Conservative fallback for the height of the sticky top navbar.
+     The actual measured height is published by static/js/navbar-height.js
+     and overrides this value on load. Other sticky elements (e.g.
+     .param-table thead) read --navbar-height to park flush below it. */
+  --navbar-height: 5rem;
 }
 
 $user: '\01F464';
