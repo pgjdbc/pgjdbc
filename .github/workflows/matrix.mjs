@@ -410,8 +410,9 @@ include.forEach(v => {
   jvmArgs.push(`-Duser.language=${v.locale.language}`);
 
   v.os = v.os.value;
-  v.java_distribution = v.java_distribution.value;
-  v.java_vendor = v.java_distribution.vendor;
+  const {value: javaDistribution, vendor: javaVendor} = v.java_distribution;
+  v.java_distribution = javaDistribution;
+  v.java_vendor = javaVendor;
   if (v.java_distribution === 'oracle') {
       v.oracle_java_website = v.java_version === eaJava ? 'jdk.java.net' : 'oracle.com';
   }
