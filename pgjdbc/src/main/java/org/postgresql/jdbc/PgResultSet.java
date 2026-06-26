@@ -3788,9 +3788,34 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (value == null) {
       updateNull(columnIndex);
     } else {
+      rejectOffsetDateTimeForNoZoneColumn(columnIndex, value);
       PGResultSetMetaData md = (PGResultSetMetaData) getMetaData();
       castNonNull(updateValues, "updateValues")
           .put(md.getBaseColumnName(columnIndex), value);
+    }
+  }
+
+  /**
+   * A {@code timestamp without time zone} or {@code date} column carries no offset, so an
+   * {@link OffsetDateTime} cannot be stored there without silently discarding it.
+   * {@code updateRow()} / {@code insertRow()} bind the value as {@code timestamptz}, so the server
+   * would otherwise shift it into the session time zone (and mangle BC dates with the historical
+   * offset); a {@code date} target would also drop the time. Reject it with an explicit error:
+   * update a {@code timestamptz} column to keep the instant, or pass a {@link LocalDateTime} /
+   * {@link java.time.LocalDate} to store the local value. This mirrors how
+   * {@code setObject(i, value, Types.TIMESTAMP)} and the {@code Types.TIMESTAMP_WITH_TIMEZONE}
+   * branch of {@code setObject} reject a mismatched type.
+   */
+  private void rejectOffsetDateTimeForNoZoneColumn(@Positive int columnIndex, Object value)
+      throws SQLException {
+    if (value instanceof OffsetDateTime) {
+      int oid = fields[columnIndex - 1].getOID();
+      if (oid == Oid.TIMESTAMP || oid == Oid.DATE) {
+        throw new PSQLException(
+            GT.tr("Cannot cast an instance of {0} to type {1}",
+                value.getClass().getName(), getPGType(columnIndex)),
+            PSQLState.INVALID_PARAMETER_TYPE);
+      }
     }
   }
 
