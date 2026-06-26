@@ -8,6 +8,7 @@ package org.postgresql.gss;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.GT;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.ietf.jgss.GSSContext;
@@ -18,12 +19,21 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class GSSInputStream extends InputStream {
+  /**
+   * PostgreSQL libpq ({@code fe-secure-gssapi.c} {@code pg_GSS_read}) and the backend
+   * ({@code be-secure-gssapi.c}) both hard-reject GSS encryption packets whose declared
+   * length exceeds {@code PQ_GSS_RECV_BUFFER_SIZE - sizeof(uint32)} = 16380 bytes. Mirror
+   * that cap here so a desynced or hostile stream cannot trigger a large reallocation of
+   * the {@link #encrypted} buffer.
+   */
+  private static final int MAX_ENCRYPTED_PACKET_LENGTH = 16 * 1024 - 4;
+
   private final GSSContext gssContext;
   private final MessageProp messageProp;
   private final InputStream wrapped;
   // See https://www.postgresql.org/docs/current/protocol-flow.html#PROTOCOL-FLOW-GSSAPI
   // The server can be expected to not send encrypted packets of larger than 16kB to the client
-  private byte[] encrypted = new byte[16 * 1024];
+  private final byte[] encrypted = new byte[16 * 1024];
   private int encryptedPos;
   private int encryptedLength;
 
@@ -115,9 +125,10 @@ public class GSSInputStream extends InputStream {
       }
     }
     encryptedLength = ByteConverter.int4(int4Buf, 0);
-    if (encrypted.length < encryptedLength) {
-      // If the buffer is too small, reallocate
-      encrypted = new byte[encryptedLength];
+    if (encryptedLength <= 0 || encryptedLength > MAX_ENCRYPTED_PACKET_LENGTH) {
+      throw new IOException(GT.tr(
+          "Protocol error. GSS encrypted packet has invalid length {0} (expected 1..{1}).",
+          encryptedLength, MAX_ENCRYPTED_PACKET_LENGTH));
     }
     return 1;
   }

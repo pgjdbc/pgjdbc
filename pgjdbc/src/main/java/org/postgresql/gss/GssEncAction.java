@@ -140,8 +140,11 @@ public class GssEncAction implements PrivilegedAction<@Nullable Exception>, Call
         }
 
         if (!secContext.isEstablished()) {
-          int len = pgStream.receiveInteger4();
-          // should check type = 8
+          // GSS encryption handshake token length is NOT self-inclusive. PostgreSQL caps
+          // this handshake at PQ_GSS_RECV_BUFFER_SIZE - sizeof(uint32) = 16380 bytes in
+          // both libpq (fe-secure-gssapi.c pqsecure_open_gss) and the backend
+          // (be-secure-gssapi.c secure_open_gssapi), so mirror that tight bound here.
+          int len = pgStream.readMessageLength("GSSEncryptionHandshakeToken", 0, 16380);
           inToken = pgStream.receive(len);
         } else {
           established = true;
