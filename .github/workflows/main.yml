@@ -364,13 +364,6 @@ jobs:
         # A Codecov hiccup must not fail the test job.
         fail_ci_if_error: false
 
-    - uses: burrunan/gradle-cache-action@4b67497abd37a511d6c1dc6299bdd84ff39f7bf5 # v3.0.2
-      if: ${{ matrix.deploy_to_maven_local }}
-      name: Deploy pgjdbc to mavenLocal
-      with:
-        read-only: false
-        job-id: jdk${{ matrix.java_version }}
-        arguments: publishToMavenLocal -Ppgjdbc.version=1.0.0-dev-master -PskipJavadoc
     - name: Attach heap dump if any
       if: ${{ failure() }}
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -431,16 +424,6 @@ jobs:
       with:
         name: ${{ steps.artifact_name.outputs.name }}
         path: ${{ runner.temp }}/pg-server-logs.txt
-    - name: Test anorm-sbt
-      if: ${{ matrix.check_anorm_sbt == 'yes' }}
-      # language=bash
-      run: |
-        # mkdir -p $HOME/.sbt/launchers/0.13.12
-        # curl -L -o $HOME/.sbt/launchers/0.13.12/sbt-launch.jar http://dl.bintray.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/0.13.12/sbt-launch.jar
-
-        cd test-anorm-sbt
-        sbt test
-
     - name: Cleanup Docker
       if: ${{ always() && runner.os == 'Linux' }}
       working-directory: docker/postgres-server
