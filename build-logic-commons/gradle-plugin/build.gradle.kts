@@ -14,14 +14,17 @@ dependencies {
     implementation("org.gradle.kotlin.kotlin-dsl:org.gradle.kotlin.kotlin-dsl.gradle.plugin:$expectedKotlinDslPluginsVersion")
 }
 
-// We need to figure out a version that is supported by the current JVM, and by the Kotlin Gradle plugin
-// So we settle on 21, 17, or 11 if the current JVM supports it
-listOf(21, 17, 11)
-    .firstOrNull { JavaVersion.toVersion(it) <= JavaVersion.current() }
-    ?.let { buildScriptJvmTarget ->
-        java {
-            toolchain {
-                languageVersion.set(JavaLanguageVersion.of(buildScriptJvmTarget))
+// jdkBuildVersion=0 means "build with the current JVM" (as in the main build); skip the
+// toolchain so Gradle uses the JVM it already runs on and needs no separate JDK installed.
+// Otherwise pin a Kotlin-supported target (21, 17, or 11) the current JVM can provide.
+if (providers.gradleProperty("jdkBuildVersion").orNull != "0") {
+    listOf(21, 17, 11)
+        .firstOrNull { JavaVersion.toVersion(it) <= JavaVersion.current() }
+        ?.let { buildScriptJvmTarget ->
+            java {
+                toolchain {
+                    languageVersion.set(JavaLanguageVersion.of(buildScriptJvmTarget))
+                }
             }
         }
-    }
+}

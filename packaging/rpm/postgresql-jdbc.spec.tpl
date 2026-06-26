@@ -42,7 +42,10 @@
 # [4] https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc-ci/
 # ============================================================================
 
-%{!?runselftest:%global runselftest 1}
+# Skip the test suite by default: Fedora's packaged JUnit lags pgjdbc master
+# (no JUnit 5.13/5.14 on current releases), so the tests fail to build there.
+# Re-enable once Fedora catches up with --define "runselftest 1".
+%{!?runselftest:%global runselftest 0}
 
 %global section		devel
 %global source_path	pgjdbc/src/main/java/org/postgresql
@@ -60,7 +63,9 @@ Provides:	pgjdbc = %version-%release
 BuildArch:	noarch
 ExclusiveArch:  %{java_arches} noarch
 BuildRequires:	java-devel >= 1.8
-BuildRequires:	maven-local
+# maven-local was split per JDK (the generic provide is gone on Fedora 44+).
+# A boolean dep lets one template span all chroots with versioned packages.
+BuildRequires:	(maven-local-openjdk25 or maven-local-openjdk21)
 BuildRequires:	maven-bundle-plugin
 
 BuildRequires:	mvn(com.ongres.scram:scram-client)
