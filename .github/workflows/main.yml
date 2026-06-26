@@ -321,9 +321,11 @@ jobs:
       # On success jacocoReport already ran as part of the Test step above. When a
       # test fails, that run aborts before the report, so re-run jacocoReport on its
       # own (excluding the test tasks) to merge the coverage that was collected.
+      # Pull requests only: a failed branch build (master, release) skips the upload
+      # below, so rebuilding the report there would be wasted work.
       # `!cancelled()` is required: without a status function the `if` is implicitly
       # wrapped in success(), which never holds after the test step has failed.
-      if: ${{ !cancelled() && matrix.collectCoverage && steps.test.outcome == 'failure' }}
+      if: ${{ !cancelled() && matrix.collectCoverage && steps.test.outcome == 'failure' && github.event_name == 'pull_request' }}
       uses: burrunan/gradle-cache-action@4b67497abd37a511d6c1dc6299bdd84ff39f7bf5 # v3.0.2
       with:
         read-only: false
@@ -331,10 +333,13 @@ jobs:
         arguments: --scan --no-parallel --no-daemon jacocoReport -x test
 
     - name: Upload coverage to Codecov
-      # Run on both success and failure (after the fallback report above); skip jobs that
-      # did not collect coverage. A push to a protected branch (master) needs CODECOV_TOKEN;
-      # pull requests upload tokenlessly, since the secret is not exposed to forks.
-      if: ${{ !cancelled() && matrix.collectCoverage }}
+      # Pull requests always upload, even after a test failure, so the PR shows how much of
+      # the changed code is already covered. Branch builds (master, release) upload only when
+      # tests pass: a failed run reports partial coverage, which would lower the baseline that
+      # PR diffs compare against. Skip jobs that did not collect coverage. A push to a protected
+      # branch needs CODECOV_TOKEN; pull requests upload tokenlessly, since the secret is not
+      # exposed to forks.
+      if: ${{ !cancelled() && matrix.collectCoverage && (github.event_name == 'pull_request' || steps.test.outcome == 'success') }}
       uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
