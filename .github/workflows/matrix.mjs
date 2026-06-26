@@ -218,15 +218,6 @@ matrix.addAxis({
 });
 
 matrix.addAxis({
-  name: 'check_anorm_sbt',
-  values: [
-    // See https://github.com/pgjdbc/pgjdbc/issues/2537
-    // {value: 'yes', title: 'check_anorm_sbt', weight: 30},
-    {value: 'no', title: '', weight: 10},
-  ]
-});
-
-matrix.addAxis({
   name: 'adaptive_fetch',
   title: x => x.value === 'yes' ? 'adaptive_fetch' : '',
   values: [
@@ -283,7 +274,7 @@ function lessThan(minVersion) {
 matrix.setNamePattern([
     'java_version', 'java_distribution', 'pg_version', 'query_mode', 'scram', 'ssl', 'hash', 'os',
     'server_tz', 'tz', 'locale',
-    'check_anorm_sbt', 'gss', 'replication', 'slow_tests',
+    'gss', 'replication', 'slow_tests',
     'adaptive_fetch', 'rewrite_batch_inserts', 'query_timeout',
     'autosave', 'cleanupSavepoints', 'cpu_count', 'assertions'
 ]);
@@ -427,7 +418,6 @@ include.forEach(v => {
   v.gss = v.gss.value;
   v.ssl = v.ssl.value;
   v.scram = v.scram.value;
-  v.check_anorm_sbt = v.check_anorm_sbt.value;
   v.query_mode = v.query_mode.value;
   v.adaptive_fetch = v.adaptive_fetch.value;
   v.rewrite_batch_inserts = v.rewrite_batch_inserts.value;
@@ -450,9 +440,6 @@ include.forEach(v => {
 
   v.includeTestTags = includeTestTags.join(' | ');
 
-  if (v.check_anorm_sbt === 'yes') {
-      v.deploy_to_maven_local = true
-  }
   if (v.hash.value === 'same') {
     // "same hashcode" causes issue for javac, and kotlinc,
     // so we pass it to test execution only
