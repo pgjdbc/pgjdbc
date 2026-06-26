@@ -2541,7 +2541,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // stale, so bump the epoch to force a rebuild. The command tag is always upper-case
           // ("SET"/"RESET"), but the user-supplied SQL may use any case, so the search_path token
           // is matched case-insensitively.
-          if (status.startsWith("SET") || status.startsWith("RESET")) {
+          // PostgreSQL 18+ reports search_path via ParameterStatus (GUC_REPORT), which
+          // receiveParameterStatus turns into a value-based invalidation covering SET, RESET,
+          // RESET ALL and changes the driver cannot see in the command tag (e.g. a SET inside
+          // PL/pgSQL). Once the server has reported search_path (it is then in the parameter status
+          // map) this scan is redundant, so skip it.
+          if ((status.startsWith("SET") || status.startsWith("RESET"))
+              && getParameterStatus("search_path") == null) {
             String nativeSql = currentQuery.getNativeQuery().nativeSql;
             // Scan only the first SEARCH_PATH_SCAN_LIMIT characters to avoid a big overhead for
             // long queries.
@@ -3147,6 +3153,20 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // if the name is empty, there is nothing to do
     if (name.isEmpty()) {
       return;
+    }
+
+    if ("search_path".equals(name)) {
+      // PostgreSQL 18 and later report search_path changes to the client (GUC_REPORT) wherever the
+      // change happens, including inside PL/pgSQL or a function. Invalidate the server-prepared
+      // statement cache only when the value actually changes -- compared against the previously
+      // reported value, which is still in the parameter status map until onParameterStatus updates
+      // it below -- so the next execution re-prepares against the new path. The first report just
+      // records the baseline; from then on the SET/RESET command-tag scan in processResults is
+      // skipped in favour of this report.
+      String previousSearchPath = getParameterStatus(name);
+      if (previousSearchPath != null && !previousSearchPath.equals(value)) {
+        deallocateEpoch++;
+      }
     }
 
     // Update client-visible parameter status map for getParameterStatuses()
