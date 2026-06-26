@@ -166,27 +166,44 @@ public class LargeObject
     if (closed) {
       return;
     }
-    try {
-      // flush any open output streams
-      if (os != null) {
-        try {
-          // we can't call os.close() otherwise we go into an infinite loop!
-          os.flush();
-        } catch (IOException ioe) {
-          throw new PSQLException("Exception flushing output stream", PSQLState.DATA_ERROR, ioe);
-        } finally {
-          os = null;
-        }
+    // Flush while still open: BlobOutputStream.flush() calls back into LargeObject.write(),
+    // which would fail checkClosed() if the object were already marked closed.
+    SQLException error = null;
+    if (os != null) {
+      try {
+        // we can't call os.close() otherwise we go into an infinite loop!
+        os.flush();
+      } catch (IOException ioe) {
+        error = new PSQLException(GT.tr("Exception flushing output stream"),
+            PSQLState.DATA_ERROR, ioe);
+      } finally {
+        os = null;
       }
-    } finally {
-      closed = true;
+    }
+
+    closed = true;
+
+    // Always release the server-side descriptor, but do not let lo_close mask a flush failure.
+    try {
       FastpathArg[] args = new FastpathArg[1];
       args[0] = new FastpathArg(fd);
       fp.fastpath("lo_close", args);
-      BaseConnection conn = this.conn;
-      if (this.commitOnClose && conn != null) {
-        conn.commit();
+    } catch (SQLException e) {
+      if (error != null) {
+        error.addSuppressed(e);
+      } else {
+        error = e;
       }
+    }
+
+    // Commit only when flush and lo_close both succeeded; never commit a half-written object.
+    BaseConnection conn = this.conn;
+    if (error == null && this.commitOnClose && conn != null) {
+      conn.commit();
+    }
+
+    if (error != null) {
+      throw error;
     }
   }
 
