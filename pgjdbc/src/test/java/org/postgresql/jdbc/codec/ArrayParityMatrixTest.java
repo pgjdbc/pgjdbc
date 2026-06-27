@@ -1,0 +1,160 @@
+/*
+ * Copyright (c) 2026, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
+package org.postgresql.jdbc.codec;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.postgresql.jdbc.codec.ParityHarness.NO_PARAMS;
+import static org.postgresql.jdbc.codec.ParityHarness.assertParityEquals;
+
+import org.postgresql.PGConnection;
+import org.postgresql.core.Oid;
+import org.postgresql.jdbc.PreferQueryMode;
+import org.postgresql.test.TestUtil;
+
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestFactory;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Text/binary parity matrix for the array edge cases that historically diverge: a SQL NULL array, an
+ * empty array, NULL elements, multiple dimensions, custom lower bounds, and ragged (non-rectangular)
+ * input.
+ *
+ * <p>Decode cases drive identical server bytes through {@link ParityHarness}'s text and binary
+ * connections via a literal {@code SELECT}; encode cases round-trip a Java array built with
+ * {@link Connection#createArrayOf} back through {@code SELECT ?::int4[]}. Both assert
+ * {@code binary == text == original}.</p>
+ *
+ * <p>{@code int4[]} and {@code text[]} are both in the driver's default binary-receive set, so the
+ * binary connection needs no extra opt-in. The ragged cases live in their own tests because the
+ * expected outcome is a rejection, not a value.</p>
+ */
+class ArrayParityMatrixTest {
+
+  private static Connection text;
+  private static Connection binary;
+
+  @BeforeAll
+  static void setUpClass() throws Exception {
+    text = ParityHarness.openText();
+    // Force binary receive so a single execute exercises the binary array decode rather than the
+    // capability path's text fallback for a cold memo.
+    binary = ParityHarness.openBinary(
+        ParityHarness.oids(Oid.INT4, Oid.INT4_ARRAY, Oid.TEXT, Oid.TEXT_ARRAY));
+    if (binary.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+      assertTrue(ParityHarness.binaryActiveFor(binary, Oid.INT4_ARRAY),
+          "int4[] must be received in binary on the binary connection");
+      assertTrue(ParityHarness.binaryActiveFor(binary, Oid.TEXT_ARRAY),
+          "text[] must be received in binary on the binary connection");
+    }
+  }
+
+  @AfterAll
+  static void tearDownClass() throws Exception {
+    TestUtil.closeDB(text);
+    TestUtil.closeDB(binary);
+  }
+
+  private static DynamicTest decode(String name, String sql, Object expected) {
+    return DynamicTest.dynamicTest(name, () -> assertParityEquals(text, binary, sql, NO_PARAMS, expected));
+  }
+
+  private static DynamicTest encode(String name, String sql, ParityHarness.Binder binder,
+      Object expected) {
+    return DynamicTest.dynamicTest(name, () -> assertParityEquals(text, binary, sql, binder, expected));
+  }
+
+  @TestFactory
+  List<DynamicTest> decodeMatrix() {
+    List<DynamicTest> t = new ArrayList<>();
+
+    // The five matrix cells, on int4[].
+    t.add(decode("int4/null", "SELECT NULL::int4[]", null));
+    t.add(decode("int4/empty", "SELECT '{}'::int4[]", new Integer[0]));
+    t.add(decode("int4/null-elements", "SELECT '{1,NULL,3}'::int4[]", new Integer[]{1, null, 3}));
+    t.add(decode("int4/2d", "SELECT '{{1,2},{3,4}}'::int4[]",
+        new Integer[][]{{1, 2}, {3, 4}}));
+    t.add(decode("int4/3d", "SELECT '{{{1,2},{3,4}},{{5,6},{7,8}}}'::int4[]",
+        new Integer[][][]{{{1, 2}, {3, 4}}, {{5, 6}, {7, 8}}}));
+    // A custom lower bound is dropped by the driver in both formats, leaving a plain 1-based array.
+    t.add(decode("int4/custom-lower-bound", "SELECT '[2:4]={10,20,30}'::int4[]",
+        new Integer[]{10, 20, 30}));
+
+    // Repeat the element-shape cells on text[] to exercise the string leaf, including quoting.
+    t.add(decode("text/null-elements-and-meta", "SELECT '{a,NULL,\"c,d\",\"{e}\"}'::text[]",
+        new String[]{"a", null, "c,d", "{e}"}));
+    t.add(decode("text/2d", "SELECT '{{a,b},{c,d}}'::text[]",
+        new String[][]{{"a", "b"}, {"c", "d"}}));
+
+    return t;
+  }
+
+  @TestFactory
+  List<DynamicTest> encodeMatrix() {
+    List<DynamicTest> t = new ArrayList<>();
+
+    t.add(encode("int4/1d", "SELECT ?::int4[]",
+        ps -> ps.setArray(1, ps.getConnection().createArrayOf("int4", new Integer[]{1, 2, 3})),
+        new Integer[]{1, 2, 3}));
+    t.add(encode("int4/empty", "SELECT ?::int4[]",
+        ps -> ps.setArray(1, ps.getConnection().createArrayOf("int4", new Integer[0])),
+        new Integer[0]));
+    t.add(encode("int4/null-elements", "SELECT ?::int4[]",
+        ps -> ps.setArray(1, ps.getConnection().createArrayOf("int4", new Integer[]{1, null, 3})),
+        new Integer[]{1, null, 3}));
+    t.add(encode("int4/null-param", "SELECT ?::int4[]",
+        ps -> ps.setNull(1, Types.ARRAY), null));
+    t.add(encode("text/meta", "SELECT ?::text[]",
+        ps -> ps.setArray(1, ps.getConnection().createArrayOf("text",
+            new String[]{"a", "b,c", "d\"e", "{f}", null})),
+        new String[]{"a", "b,c", "d\"e", "{f}", null}));
+
+    return t;
+  }
+
+  /**
+   * A ragged array literal is rejected by the server with the same {@code malformed array literal}
+   * error over both wire formats — there is no valid value to disagree on.
+   */
+  @Test
+  void raggedLiteralRejectedOnBothConnections() {
+    String sql = "SELECT '{{1,2},{3}}'::int4[]";
+    for (Connection con : new Connection[]{text, binary}) {
+      SQLException ex = assertThrows(SQLException.class,
+          () -> ParityHarness.decodeFirst(con, sql, NO_PARAMS),
+          () -> "ragged literal should be rejected on " + con);
+      assertNotNull(ex.getMessage(), "rejection should carry a message");
+    }
+  }
+
+  /**
+   * A ragged (non-rectangular) typed Java array is rejected by the driver's array encoder before it
+   * reaches the wire, rather than being silently truncated or padded. The distinct runtime-nested
+   * {@code Object[]} shape is the open C6 item ({@code computeDimensions} reads the dimension count
+   * from the declared class) and is intentionally not asserted here.
+   */
+  @Test
+  void raggedTypedArrayEncodeRejected() {
+    SQLException ex = assertThrows(SQLException.class, () -> {
+      try (PreparedStatement ps = text.prepareStatement("SELECT ?::int4[]")) {
+        ps.setArray(1, text.createArrayOf("int4", new Integer[][]{{1, 2}, {3}}));
+        ps.executeQuery();
+      }
+    });
+    assertNotNull(ex.getMessage(), "rejection should carry a message");
+  }
+}
