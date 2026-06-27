@@ -72,6 +72,19 @@ public interface TypeInfo {
   List<PgField> getFields(int oid) throws SQLException;
 
   /**
+   * Gets the subtype OID of a range type ({@code pg_range.rngsubtype}).
+   *
+   * <p>Range types carry {@code typelem == 0}, so the element the range is over lives in
+   * {@code pg_catalog.pg_range} rather than in {@link PgType#getTypelem()}. The subtype is
+   * loaded lazily on first access and cached on the {@link PgType}.</p>
+   *
+   * @param oid the OID of the range type
+   * @return the subtype OID, or {@link Oid#UNSPECIFIED} if the type is not a range
+   * @throws SQLException if a database error occurs
+   */
+  int getRangeSubtype(int oid) throws SQLException;
+
+  /**
    * Reports whether values of this type can be sent by the server in binary
    * format, recursing into element, field and base types.
    *

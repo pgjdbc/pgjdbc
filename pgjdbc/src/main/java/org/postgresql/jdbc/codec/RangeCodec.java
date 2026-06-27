@@ -94,10 +94,21 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
       boolean lowerInfinite = (flags & FLAG_LOWER_INFINITE) != 0;
       boolean upperInfinite = (flags & FLAG_UPPER_INFINITE) != 0;
 
-      // Get element type codec
-      int elementOid = type.getTypelem();
-      PgType elementType = ctx.getTypeInfo().getPgTypeByOid(elementOid);
-      BinaryCodec elementCodec = ctx.getCodecs().getBinaryCodec(elementOid);
+      // Resolve the subtype codec. pg_type.typelem is 0 for ranges; the real subtype
+      // lives in pg_range.rngsubtype (loaded lazily via TypeInfo).
+      int subtypeOid = resolveSubtypeOid(type, ctx);
+      if (subtypeOid == 0) {
+        throw new PSQLException(GT.tr(
+            "Cannot decode range {0} in binary: its subtype (pg_range.rngsubtype) "
+                + "could not be resolved.", type.getFullName()), PSQLState.DATA_ERROR);
+      }
+      PgType subtypeType = ctx.getTypeInfo().getPgTypeByOid(subtypeOid);
+      BinaryCodec subtypeCodec = ctx.getCodecs().getBinaryCodec(subtypeOid, subtypeType);
+      if (subtypeCodec == null) {
+        throw new PSQLException(GT.tr(
+            "Cannot decode range {0} in binary: no binary codec for subtype OID {1}.",
+            type.getFullName(), subtypeOid), PSQLState.DATA_ERROR);
+      }
 
       int offset = 1;
       Object lower = null;
@@ -116,7 +127,7 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
             throw new PSQLException(GT.tr("Invalid range binary data: lower bound truncated"),
                 PSQLState.DATA_ERROR);
           }
-          lower = elementCodec.decodeBinary(data, offset, lowerLen, elementType, ctx);
+          lower = subtypeCodec.decodeBinary(data, offset, lowerLen, subtypeType, ctx);
           offset += lowerLen;
         }
       }
@@ -134,7 +145,7 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
             throw new PSQLException(GT.tr("Invalid range binary data: upper bound truncated"),
                 PSQLState.DATA_ERROR);
           }
-          upper = elementCodec.decodeBinary(data, offset, upperLen, elementType, ctx);
+          upper = subtypeCodec.decodeBinary(data, offset, upperLen, subtypeType, ctx);
         }
       }
 
@@ -162,10 +173,21 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
         return new byte[]{FLAG_EMPTY};
       }
 
-      // Get element type codec
-      int elementOid = type.getTypelem();
-      PgType elementType = ctx.getTypeInfo().getPgTypeByOid(elementOid);
-      BinaryCodec elementCodec = ctx.getCodecs().getBinaryCodec(elementOid);
+      // Resolve the subtype codec. pg_type.typelem is 0 for ranges; the real subtype
+      // lives in pg_range.rngsubtype (loaded lazily via TypeInfo).
+      int subtypeOid = resolveSubtypeOid(type, ctx);
+      if (subtypeOid == 0) {
+        throw new PSQLException(GT.tr(
+            "Cannot encode range {0} in binary: its subtype (pg_range.rngsubtype) "
+                + "could not be resolved.", type.getFullName()), PSQLState.DATA_ERROR);
+      }
+      PgType subtypeType = ctx.getTypeInfo().getPgTypeByOid(subtypeOid);
+      BinaryCodec subtypeCodec = ctx.getCodecs().getBinaryCodec(subtypeOid, subtypeType);
+      if (subtypeCodec == null) {
+        throw new PSQLException(GT.tr(
+            "Cannot encode range {0} in binary: no binary codec for subtype OID {1}.",
+            type.getFullName(), subtypeOid), PSQLState.DATA_ERROR);
+      }
 
       ByteArrayOutputStream out = new ByteArrayOutputStream();
 
@@ -187,13 +209,13 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
 
       // Write lower bound if not infinite
       if (range.hasLowerBound()) {
-        byte[] lowerData = elementCodec.encodeBinary(castNonNull(range.getLower()), elementType, ctx);
+        byte[] lowerData = subtypeCodec.encodeBinary(castNonNull(range.getLower()), subtypeType, ctx);
         writeLengthPrefixed(out, lowerData);
       }
 
       // Write upper bound if not infinite
       if (range.hasUpperBound()) {
-        byte[] upperData = elementCodec.encodeBinary(castNonNull(range.getUpper()), elementType, ctx);
+        byte[] upperData = subtypeCodec.encodeBinary(castNonNull(range.getUpper()), subtypeType, ctx);
         writeLengthPrefixed(out, upperData);
       }
 
@@ -210,6 +232,22 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
     ByteConverter.int4(lenBytes, 0, data.length);
     out.write(lenBytes);
     out.write(data);
+  }
+
+  /**
+   * Resolves the range's subtype OID from {@code pg_range.rngsubtype}. A range carries
+   * {@code typelem == 0}, so the subtype is taken from the type metadata — preferring the
+   * value already cached on {@link PgType}, otherwise loaded lazily through
+   * {@link org.postgresql.core.TypeInfo#getRangeSubtype(int)}. Returns {@code 0} when no
+   * connection-bound context is available (the codec unit tests pass a {@code null} context)
+   * or the subtype cannot be resolved.
+   */
+  private static int resolveSubtypeOid(PgType type, @Nullable CodecContext ctx) throws SQLException {
+    int subtypeOid = type.getRangeSubtype();
+    if (subtypeOid == 0 && ctx != null && ctx.isConnectionBound()) {
+      subtypeOid = ctx.getTypeInfo().getRangeSubtype(type.getOid());
+    }
+    return subtypeOid;
   }
 
   @Override
@@ -289,15 +327,16 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
 
     CodecDepth.enter();
     try {
-      // pg_type.typelem is zero for range types — the subtype lives in pg_range.
-      // We don't load pg_range yet, so fall back to leaving the bound text values
-      // unparsed when the subtype OID is unknown. Element typing for ranges is
-      // tracked as a follow-up.
-      int elementOid = type.getTypelem();
-      PgType elementType = elementOid != 0 ? ctx.getTypeInfo().getPgTypeByOid(elementOid) : null;
-      Codec elementCodec = elementOid != 0 ? ctx.getCodecs().getByOid(elementOid, elementType) : null;
+      // pg_type.typelem is 0 for ranges; the real subtype lives in pg_range.rngsubtype
+      // (loaded lazily via TypeInfo). With a connection-bound context the bounds are
+      // decoded by the subtype's text codec into typed values; without one (the codec
+      // unit tests, which pass a null context) the subtype stays unresolved and the
+      // bounds are kept as their raw strings.
+      int subtypeOid = resolveSubtypeOid(type, ctx);
+      PgType subtypeType = subtypeOid != 0 ? ctx.getTypeInfo().getPgTypeByOid(subtypeOid) : null;
+      Codec subtypeCodec = subtypeOid != 0 ? ctx.getCodecs().getByOid(subtypeOid, subtypeType) : null;
       TextCodec boundCodec =
-          elementCodec instanceof TextCodec && elementType != null ? (TextCodec) elementCodec : null;
+          subtypeCodec instanceof TextCodec && subtypeType != null ? (TextCodec) subtypeCodec : null;
 
       char open = cur.peek();
       boolean lowerInclusive;
@@ -314,12 +353,12 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
 
       // Lower bound, terminated by the ',' separator.
       cur.readValue(',', ']', ')');
-      Object lower = decodeBound(cur, boundCodec, elementType, ctx);
+      Object lower = decodeBound(cur, boundCodec, subtypeType, ctx);
       cur.expect(',');
 
       // Upper bound, terminated by the ']' or ')' closing bracket.
       cur.readValue(',', ']', ')');
-      Object upper = decodeBound(cur, boundCodec, elementType, ctx);
+      Object upper = decodeBound(cur, boundCodec, subtypeType, ctx);
 
       char close = cur.peek();
       boolean upperInclusive;
@@ -348,13 +387,13 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
    * decoded by the subtype text codec when known, or kept as its raw string.
    */
   private static @Nullable Object decodeBound(LiteralCursor cur, @Nullable TextCodec boundCodec,
-      @Nullable PgType elementType, CodecContext ctx) throws SQLException {
+      @Nullable PgType subtypeType, CodecContext ctx) throws SQLException {
     if (!cur.tokenWasQuoted() && cur.tokenLength() == 0) {
       return null; // infinite / unbounded
     }
-    if (boundCodec != null && elementType != null) {
+    if (boundCodec != null && subtypeType != null) {
       Object decoded = boundCodec.decodeText(cur.tokenChars(), cur.tokenOffset(),
-          cur.tokenLength(), elementType, ctx);
+          cur.tokenLength(), subtypeType, ctx);
       if (decoded != null) {
         return decoded;
       }
