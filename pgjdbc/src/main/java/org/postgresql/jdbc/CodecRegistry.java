@@ -282,6 +282,9 @@ public class CodecRegistry {
    */
   public void registerByName(Codec codec) {
     codecsByName.put(codec.getTypeName(), codec);
+    // A prior getByOid() may have cached a codec (or a typtype-resolved default) for an OID that
+    // resolves to this type name, so drop the OID cache to keep it coherent with the new mapping.
+    oidCache.invalidateAll();
   }
 
   /**
@@ -292,6 +295,8 @@ public class CodecRegistry {
    */
   public void registerAlias(String alias, Codec codec) {
     codecsByName.put(alias, codec);
+    // Keep the OID cache coherent with the new alias (see registerByName).
+    oidCache.invalidateAll();
   }
 
   /**
@@ -485,6 +490,13 @@ public class CodecRegistry {
    * @return the resolved codec, or null if no resolution is possible
    */
   private static @Nullable Codec resolveByTyptype(PgType pgType) {
+    // Domains are checked first: a domain over an array (CREATE DOMAIN d AS int[]) inherits
+    // typcategory='A' from its base type but has typelem=0, so the typcategory-based isArray()
+    // check below would otherwise claim it and ArrayCodec would decode every value as null.
+    // typtype is the authoritative discriminator, and DomainCodec unwraps to the base codec.
+    if (pgType.isDomain()) {
+      return DomainCodec.INSTANCE;
+    }
     // Array types (typcategory='A')
     if (pgType.isArray()) {
       return ArrayCodec.INSTANCE;
@@ -492,10 +504,6 @@ public class CodecRegistry {
     // Composite types (typtype='c')
     if (pgType.isComposite()) {
       return CompositeCodec.INSTANCE;
-    }
-    // Domain types (typtype='d')
-    if (pgType.isDomain()) {
-      return DomainCodec.INSTANCE;
     }
     // Enum types (typtype='e')
     if (pgType.isEnum()) {

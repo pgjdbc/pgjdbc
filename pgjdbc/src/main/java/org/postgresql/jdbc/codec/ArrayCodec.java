@@ -292,28 +292,41 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   @Override
   public void encodeText(Object value, PgType type, CodecContext ctx, Appendable out)
       throws SQLException, IOException {
-    if (value instanceof Array) {
+    if (value instanceof PgArray) {
+      // A PgArray already renders itself as a PostgreSQL array literal; emit it verbatim and
+      // avoid a decode/re-encode round-trip.
       String str = value.toString();
       out.append(str != null ? str : "NULL");
       return;
     }
-    if (value.getClass().isArray()) {
-      ArrayLeafCodec fastLeaf = fastLeafFor(type, ctx);
-      if (fastLeaf != null) {
-        MultiDimArrayText.encode(value, type.getDelimiter(), out, ctx, fastLeaf);
+    Object javaArray;
+    if (value instanceof Array) {
+      // Foreign java.sql.Array: its toString() is not a PostgreSQL array literal, so unwrap the
+      // backing array and render each leaf through the element codec via the shared walker,
+      // mirroring encodeBinary.
+      javaArray = ((Array) value).getArray();
+      if (javaArray == null) {
+        out.append("NULL");
         return;
       }
-      // No primitive fast leaf: render every leaf through the element type's text codec via the
-      // shared walker. Covers reference arrays (String[], UUID[], the temporal types,
-      // BigDecimal[], composite, ...) and boxed primitive leaves (for example an int[] bound to
-      // numeric[]).
-      MultiDimArrayText.encode(value, type.getDelimiter(), out, ctx,
-          getGenericArrayLeafCodec(type, ctx));
+    } else if (value.getClass().isArray()) {
+      javaArray = value;
+    } else {
+      throw new PSQLException(
+          GT.tr("Cannot convert {0} to array", value.getClass().getName()),
+          PSQLState.INVALID_PARAMETER_TYPE);
+    }
+    ArrayLeafCodec fastLeaf = fastLeafFor(type, ctx);
+    if (fastLeaf != null) {
+      MultiDimArrayText.encode(javaArray, type.getDelimiter(), out, ctx, fastLeaf);
       return;
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert {0} to array", value.getClass().getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    // No primitive fast leaf: render every leaf through the element type's text codec via the
+    // shared walker. Covers reference arrays (String[], UUID[], the temporal types,
+    // BigDecimal[], composite, ...) and boxed primitive leaves (for example an int[] bound to
+    // numeric[]).
+    MultiDimArrayText.encode(javaArray, type.getDelimiter(), out, ctx,
+        getGenericArrayLeafCodec(type, ctx));
   }
 
   /**

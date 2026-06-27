@@ -740,29 +740,38 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     if (oid == Oid.UNSPECIFIED) {
       throw new SQLFeatureNotSupportedException();
     }
+    bindArrayValue(parameterIndex, in, oid, typeInfo.getPgTypeByOid(oid));
+  }
 
-    PgType arrayTypeInfo = typeInfo.getPgTypeByOid(oid);
+  /**
+   * Binds {@code value} — a Java array, or the backing array unwrapped from a {@link Array} — as
+   * the array type {@code (oid, arrayType)} through its codec, preferring the binary wire format
+   * when the driver can encode the value and the server can parse it, and otherwise falling back
+   * to the text literal.
+   */
+  private void bindArrayValue(int parameterIndex, Object value, int oid, PgType arrayType)
+      throws SQLException {
     CodecContext ctx = connection.getCodecContext();
     CodecRegistry codecs = ctx.getCodecs();
     if (connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-      BinaryCodec codec = codecs.getBinaryCodec(oid, arrayTypeInfo);
+      BinaryCodec codec = codecs.getBinaryCodec(oid, arrayType);
       // canEncodeBinary checks the driver can encode the value; backendCanReceiveBinary
       // checks the server can parse it (typreceive), recursing into the element type — so
       // a custom array whose element has no binary input stays in text instead of erroring.
-      if (codec != null && codec.canEncodeBinary(in, arrayTypeInfo, ctx)
-          && typeInfo.backendCanReceiveBinary(arrayTypeInfo)) {
-        bindBytes(parameterIndex, codec.encodeBinary(in, arrayTypeInfo, ctx), oid);
+      if (codec != null && codec.canEncodeBinary(value, arrayType, ctx)
+          && connection.getTypeInfo().backendCanReceiveBinary(arrayType)) {
+        bindBytes(parameterIndex, codec.encodeBinary(value, arrayType, ctx), oid);
         return;
       }
     }
 
-    TextCodec codec = codecs.getTextCodec(oid, arrayTypeInfo);
+    TextCodec codec = codecs.getTextCodec(oid, arrayType);
     if (codec == null) {
       throw new PSQLException(
-          GT.tr("No text codec registered for type {0}", arrayTypeInfo.getTypeName()),
+          GT.tr("No text codec registered for type {0}", arrayType.getTypeName()),
           PSQLState.SYSTEM_ERROR);
     }
-    bindString(parameterIndex, codec.encodeText(in, arrayTypeInfo, ctx), oid);
+    bindString(parameterIndex, codec.encodeText(value, arrayType, ctx), oid);
   }
 
   private static int castToInt(final Object in) throws SQLException {
@@ -1051,29 +1060,36 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return;
     }
 
-    int oid;
-    if (x instanceof PgArray) {
-      oid = ((PgArray) x).getOid();
-    } else {
-      String typename = x.getBaseTypeName();
-      PgType arrayType = connection.getTypeInfo().getPgTypeByPgName(typename);
-      oid = arrayType.getOid();
-    }
-
     if (x instanceof PgArray) {
       PgArray arr = (PgArray) x;
+      int oid = arr.getOid();
       byte[] bytes = arr.toBytes();
       if (bytes != null) {
         bindBytes(i, bytes, oid);
         return;
       }
+      // Text-mode PgArray: its toString() is already a valid PostgreSQL array literal, so bind
+      // it directly and avoid a decode/re-encode round-trip.
+      setString(i, arr.toString(), oid);
+      return;
     }
 
-    // This only works for Array implementations that return a valid array
-    // literal from Array.toString(), such as the implementation we return
-    // from ResultSet.getArray(). Eventually we need a proper implementation
-    // here that works for any Array implementation.
-    setString(i, x.toString(), oid);
+    // Foreign java.sql.Array: Array.toString() is not guaranteed to be a PostgreSQL array
+    // literal, so unwrap the backing Java array and bind it through the array codec — the same
+    // path a raw Java-array parameter takes. The array type is resolved from the SQL element
+    // type name (Array.getBaseTypeName, per the JDBC contract).
+    String elementTypeName = x.getBaseTypeName();
+    int oid = connection.getTypeInfo().getPgTypeByPgName(elementTypeName).getArrayOid();
+    if (oid == Oid.UNSPECIFIED) {
+      throw new PSQLException(GT.tr("Unknown type {0}.", elementTypeName),
+          PSQLState.INVALID_PARAMETER_TYPE);
+    }
+    Object javaArray = x.getArray();
+    if (javaArray == null) {
+      setNull(i, Types.ARRAY);
+      return;
+    }
+    bindArrayValue(i, javaArray, oid, connection.getTypeInfo().getPgTypeByOid(oid));
   }
 
   protected long createBlob(InputStream inputStream,

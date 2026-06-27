@@ -595,12 +595,25 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       final List<PgField> fieldList = fields;
       final int expected = fieldList.size();
       final @Nullable Object[] attributes = new @Nullable Object[expected];
+      final int[] seen = {0};
       // Decode each field from its borrowed slice in place: no per-field String,
       // and nested composites/arrays recurse through the child codec's own cursor.
       readCompositeFields(cur, (index, isNull, buf, offset, length) -> {
         if (index >= expected) {
-          return; // tolerate a literal with more fields than the type declares
+          // A named composite (expected > 0) must match its literal exactly: surface a
+          // catalog/literal field-count skew (e.g. after ALTER TYPE ADD ATTRIBUTE) instead of
+          // silently dropping the surplus fields and corrupting the value. The anonymous record
+          // pseudo-type has no catalog attributes (expected == 0) and so cannot be validated;
+          // its fields are tolerated as before, and PgStruct.getValue() keeps the raw literal.
+          if (expected == 0) {
+            return;
+          }
+          throw new PSQLException(
+              GT.tr("Composite type {0} has {1} attribute(s), but its text literal has more",
+                  type.getTypeName(), expected),
+              PSQLState.DATA_ERROR);
         }
+        seen[0] = index + 1;
         if (isNull) {
           attributes[index] = null;
           return;
@@ -615,6 +628,14 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
           attributes[index] = fieldCodec.decodeText(buf, offset, length, fieldType, ctx);
         }
       });
+      if (expected > 0 && seen[0] != expected) {
+        // Fewer literal fields than the type declares is the same catalog/literal skew as the
+        // surplus case above; reject it rather than NULL-filling the missing trailing fields.
+        throw new PSQLException(
+            GT.tr("Composite type {0} has {1} attribute(s), but its text literal has {2}",
+                type.getTypeName(), expected, seen[0]),
+            PSQLState.DATA_ERROR);
+      }
       // Text transfer carries no per-field OIDs, so an anonymous record keeps the
       // fieldless pseudo-type; getValue() still works because the raw server
       // literal is recorded verbatim by the caller.

@@ -5,6 +5,7 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -16,8 +17,11 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
+import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgArray;
+import org.postgresql.jdbc.PgType;
 import org.postgresql.jdbc.PreferQueryMode;
+import org.postgresql.jdbc.codec.ArrayCodec;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 
@@ -40,6 +44,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Map;
 
 @ParameterizedClass
 @MethodSource("data")
@@ -98,6 +103,102 @@ public class ArrayTest extends BaseTest4 {
     pstmt.executeUpdate();
 
     pstmt.close();
+  }
+
+  @Test
+  public void testSetForeignArray() throws SQLException {
+    // A non-PgArray java.sql.Array must bind via its backing array, not via Array.toString().
+    Array foreign = new ForeignArray("int4", Types.INTEGER, new Integer[]{1, 2, 3});
+    try (PreparedStatement ps = conn.prepareStatement("SELECT ?::int[]")) {
+      ps.setArray(1, foreign);
+      try (ResultSet rs = ps.executeQuery()) {
+        assertTrue(rs.next());
+        Array result = rs.getArray(1);
+        assertArrayEquals(new Integer[]{1, 2, 3}, (Integer[]) result.getArray());
+      }
+    }
+  }
+
+  @Test
+  public void testForeignArrayEncodeText() throws SQLException {
+    // ArrayCodec.encodeText must unwrap a foreign java.sql.Array (mirroring encodeBinary) rather
+    // than emitting its toString(); a PgArray still renders itself verbatim.
+    BaseConnection bc = conn.unwrap(BaseConnection.class);
+    CodecContext ctx = bc.getCodecContext();
+    PgType intArrayType = bc.getTypeInfo().getPgTypeByOid(Oid.INT4_ARRAY);
+    Array foreign = new ForeignArray("int4", Types.INTEGER, new Integer[]{1, 2, 3});
+    assertEquals("{1,2,3}", ArrayCodec.INSTANCE.encodeText(foreign, intArrayType, ctx));
+  }
+
+  /**
+   * Minimal foreign {@link Array} (not a {@link PgArray}) used to verify that
+   * {@link PreparedStatement#setArray} and {@link ArrayCodec} bind any JDBC array, not only
+   * pgjdbc's own. Only {@link #getBaseTypeName()} and {@link #getArray()} are exercised.
+   */
+  private static final class ForeignArray implements Array {
+    private final String baseTypeName;
+    private final int baseType;
+    private final Object array;
+
+    ForeignArray(String baseTypeName, int baseType, Object array) {
+      this.baseTypeName = baseTypeName;
+      this.baseType = baseType;
+      this.array = array;
+    }
+
+    @Override
+    public String getBaseTypeName() {
+      return baseTypeName;
+    }
+
+    @Override
+    public int getBaseType() {
+      return baseType;
+    }
+
+    @Override
+    public Object getArray() {
+      return array;
+    }
+
+    @Override
+    public Object getArray(Map<String, Class<?>> map) {
+      return array;
+    }
+
+    @Override
+    public Object getArray(long index, int count) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getArray(long index, int count, Map<String, Class<?>> map) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ResultSet getResultSet() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ResultSet getResultSet(Map<String, Class<?>> map) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ResultSet getResultSet(long index, int count) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void free() {
+    }
   }
 
   @Test

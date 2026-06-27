@@ -5,17 +5,24 @@
 
 package org.postgresql.jdbc.codec;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PGSQLType;
+import org.postgresql.jdbc.PgType;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -349,6 +356,63 @@ public class CodecIntegrationTest {
       ps.setInt(1, 5);
       assertEquals(1, ps.executeUpdate());
     }
+  }
+
+  @Test
+  void getObject_compositeWithDomainOverArrayField_decodesViaBaseArrayCodec() throws SQLException {
+    // A composite field typed as a domain-over-array (CREATE DOMAIN d AS int[]) carries the
+    // domain's OID in the record wire format. The domain keeps typtype='d' but inherits
+    // typcategory='A' from its base array, and its own typelem is 0, so
+    // CodecRegistry.resolveByTyptype must select DomainCodec (by typtype) before ArrayCodec
+    // (by typcategory). Otherwise the field routes through ArrayCodec with typelem 0 and the
+    // array silently decodes as null.
+    //
+    // A top-level domain column does not exercise this: the server reports the *base* type OID
+    // for a domain result column, so only an embedded field preserves the domain OID.
+    TestUtil.createDomain(conn, "codec_dom_intarr", "int[]");
+    try {
+      TestUtil.createCompositeType(conn, "codec_dom_holder", "arr codec_dom_intarr, tag text");
+      try (Statement stmt = conn.createStatement();
+           ResultSet rs = stmt.executeQuery(
+               "SELECT ROW('{1,2,3}'::codec_dom_intarr, 'x')::codec_dom_holder")) {
+        assertTrue(rs.next());
+        Struct struct = assertInstanceOf(Struct.class, rs.getObject(1));
+        Object[] attrs = struct.getAttributes();
+        // DomainCodec forwards to the base int[] codec, so the field yields a readable Array.
+        Array arr = assertInstanceOf(Array.class, attrs[0]);
+        assertArrayEquals(new Integer[]{1, 2, 3}, (Integer[]) arr.getArray());
+        assertEquals("x", attrs[1]);
+      }
+    } finally {
+      TestUtil.dropType(conn, "codec_dom_holder");
+      TestUtil.dropDomain(conn, "codec_dom_intarr");
+    }
+  }
+
+  @Test
+  void decodeText_compositeFieldCountMismatch_throwsClearError() throws SQLException {
+    // The server never emits a record literal whose field count disagrees with the catalog, so a
+    // skew can only arise from stale cached metadata (e.g. ALTER TYPE ADD/DROP ATTRIBUTE between
+    // describe and decode). Drive the text decoder directly with hand-crafted literals to prove it
+    // reports the mismatch instead of silently dropping or NULL-filling fields.
+    BaseConnection bc = conn.unwrap(BaseConnection.class);
+    CodecContext ctx = bc.getCodecContext();
+    // codec_test_address is (street text, city text, zip int) -> three attributes.
+    PgType addr = bc.getTypeInfo().getPgTypeByPgName("codec_test_address");
+
+    // A correctly-shaped literal still decodes.
+    Struct ok = (Struct) CompositeCodec.INSTANCE.decodeText("(Main St,Springfield,62701)", addr, ctx);
+    assertEquals(3, ok.getAttributes().length);
+
+    // Surplus field -> clear DATA_ERROR, not a silent drop.
+    PSQLException tooMany = assertThrows(PSQLException.class,
+        () -> CompositeCodec.INSTANCE.decodeText("(a,b,1,surplus)", addr, ctx));
+    assertEquals(PSQLState.DATA_ERROR.getState(), tooMany.getSQLState());
+
+    // Missing field -> clear DATA_ERROR, not a NULL-filled trailing attribute.
+    PSQLException tooFew = assertThrows(PSQLException.class,
+        () -> CompositeCodec.INSTANCE.decodeText("(a,b)", addr, ctx));
+    assertEquals(PSQLState.DATA_ERROR.getState(), tooFew.getSQLState());
   }
 
   // ==================== setObject with SQLType Tests ====================
