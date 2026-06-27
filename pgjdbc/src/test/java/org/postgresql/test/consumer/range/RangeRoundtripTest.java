@@ -20,21 +20,25 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Struct;
+import java.sql.Timestamp;
 
 /**
  * Live round-trip tests for {@link org.postgresql.jdbc.codec.RangeCodec}, whose
  * text decode now runs on the shared {@code LiteralCursor}.
  *
  * <p>The server emits the range literals and quotes any bound containing a space
- * or comma; these tests assert the cursor un-quotes them correctly. Range
- * subtypes live in {@code pg_range} (not yet loaded), so bounds come back as
- * their raw strings — the behaviour the codec produces today.</p>
+ * or comma; these tests assert the cursor un-quotes them correctly. The range
+ * subtype is loaded from {@code pg_range.rngsubtype} (C2), so bounds decode into
+ * typed values: {@code int4range} yields {@code Integer}, {@code numrange} yields
+ * {@code BigDecimal}, {@code tsrange} yields {@code Timestamp}. A range over a
+ * custom {@code text} subtype keeps its bounds as {@code String}.</p>
  *
  * <p>Coverage: built-in ranges (int4range/numrange/tsrange), a user-defined
  * range type ({@code range-of-custom-type}), and arrays of both
@@ -86,15 +90,15 @@ public class RangeRoundtripTest extends BaseTest4 {
     assertFalse(r.isEmpty());
     assertTrue(r.isLowerInclusive());
     assertFalse(r.isUpperInclusive());
-    assertEquals("1", r.getLower());
-    assertEquals("10", r.getUpper());
+    assertEquals(1, r.getLower());
+    assertEquals(10, r.getUpper());
   }
 
   @Test
   public void numrange_continuousBounds() throws SQLException {
     PGRange<?> r = selectRange("SELECT '[1.5,2.5)'::numrange");
-    assertEquals("1.5", r.getLower());
-    assertEquals("2.5", r.getUpper());
+    assertEquals(new BigDecimal("1.5"), r.getLower());
+    assertEquals(new BigDecimal("2.5"), r.getUpper());
   }
 
   @Test
@@ -103,13 +107,13 @@ public class RangeRoundtripTest extends BaseTest4 {
     assertFalse(r.hasLowerBound());
     assertNull(r.getLower());
     assertTrue(r.isUpperInclusive());
-    assertEquals("5", r.getUpper());
+    assertEquals(new BigDecimal("5"), r.getUpper());
   }
 
   @Test
   public void numrange_infiniteUpperBound() throws SQLException {
     PGRange<?> r = selectRange("SELECT '[10,)'::numrange");
-    assertEquals("10", r.getLower());
+    assertEquals(new BigDecimal("10"), r.getLower());
     assertFalse(r.hasUpperBound());
     assertNull(r.getUpper());
   }
@@ -121,15 +125,14 @@ public class RangeRoundtripTest extends BaseTest4 {
 
   @Test
   public void tsrange_boundsAreQuotedThenUnquoted() throws SQLException {
-    // Timestamps contain a space, so the server quotes each bound; the cursor
-    // must strip those quotes.
+    // Timestamps contain a space, so the server quotes each bound; the cursor must
+    // strip those quotes before the timestamp subtype codec parses them. A correctly
+    // parsed Timestamp value proves the un-quoting happened.
     PGRange<?> r = selectRange(
         "SELECT '[2020-01-01 00:00:00,2020-02-01 00:00:00)'::tsrange");
-    String lower = (String) r.getLower();
-    String upper = (String) r.getUpper();
-    assertFalse(lower.contains("\""), () -> "lower bound should be unquoted: " + lower);
-    assertTrue(lower.startsWith("2020-01-01 00:00:00"), () -> "lower: " + lower);
-    assertTrue(upper.startsWith("2020-02-01 00:00:00"), () -> "upper: " + upper);
+    assertInstanceOf(Timestamp.class, r.getLower(), () -> "lower should be a Timestamp: " + r.getLower());
+    assertEquals(Timestamp.valueOf("2020-01-01 00:00:00"), r.getLower());
+    assertEquals(Timestamp.valueOf("2020-02-01 00:00:00"), r.getUpper());
   }
 
   @Test
@@ -156,11 +159,11 @@ public class RangeRoundtripTest extends BaseTest4 {
     assertEquals(2, elems.length);
     assertInstanceOf(PGRange.class, elems[0]);
     PGRange<?> r0 = (PGRange<?>) elems[0];
-    assertEquals("1", r0.getLower());
-    assertEquals("10", r0.getUpper());
+    assertEquals(1, r0.getLower());
+    assertEquals(10, r0.getUpper());
     PGRange<?> r1 = (PGRange<?>) elems[1];
-    assertEquals("20", r1.getLower());
-    assertEquals("30", r1.getUpper());
+    assertEquals(20, r1.getLower());
+    assertEquals(30, r1.getUpper());
   }
 
   @Test
@@ -186,8 +189,8 @@ public class RangeRoundtripTest extends BaseTest4 {
       assertEquals(2, attrs.length);
       assertInstanceOf(PGRange.class, attrs[1]);
       PGRange<?> span = (PGRange<?>) attrs[1];
-      assertEquals("1", span.getLower());
-      assertEquals("10", span.getUpper());
+      assertEquals(1, span.getLower());
+      assertEquals(10, span.getUpper());
     }
   }
 

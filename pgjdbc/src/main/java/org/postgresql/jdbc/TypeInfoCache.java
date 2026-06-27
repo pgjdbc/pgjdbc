@@ -95,6 +95,7 @@ public class TypeInfoCache implements TypeInfo {
   private @Nullable PreparedStatement findPgTypeByOid;
   private @Nullable PreparedStatement findAllPgTypes;
   private @Nullable PreparedStatement findCompositeFields;
+  private @Nullable PreparedStatement findRangeSubtype;
   private @Nullable PreparedStatement findTypeVisibility;
   private final ResourceLock lock = new ResourceLock();
 
@@ -883,6 +884,50 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  /**
+   * Gets the subtype OID of a range type, loading {@code pg_range.rngsubtype} lazily and
+   * caching it on the {@link PgType}. Mirrors {@link #getFields(int)} for composites.
+   *
+   * @param oid the OID of the range type
+   * @return the subtype OID, or {@link Oid#UNSPECIFIED} if the type is not a range
+   * @throws SQLException if a database error occurs
+   */
+  @Override
+  public int getRangeSubtype(int oid) throws SQLException {
+    PgType pgType = getPgTypeByOid(oid);
+    // Only base ranges (typtype 'r'); multiranges ('m') resolve their subtype differently
+    // and are deferred to a later phase.
+    if (pgType.getTyptype() != 'r') {
+      return Oid.UNSPECIFIED;
+    }
+
+    int subtype = pgType.getRangeSubtype();
+    if (subtype != Oid.UNSPECIFIED) {
+      return subtype;
+    }
+
+    // Subtype not loaded yet, load it now
+    try (ResourceLock ignore = lock.obtain()) {
+      // Double-check after acquiring the lock - check the connection cache first
+      PgType cachedType = typesByOid.get(oid);
+      if (cachedType != null) {
+        int cachedSubtype = cachedType.getRangeSubtype();
+        if (cachedSubtype != Oid.UNSPECIFIED) {
+          return cachedSubtype;
+        }
+      }
+
+      subtype = loadRangeSubtype(oid);
+
+      // Cache the subtype on the type. Use cachedType if available, otherwise the
+      // original pgType (which may be from DEFAULT_TYPES_BY_OID for built-in ranges).
+      PgType baseType = cachedType != null ? cachedType : pgType;
+      typesByOid.put(oid, baseType.withRangeSubtype(subtype));
+
+      return subtype;
+    }
+  }
+
   @Override
   public boolean backendCanSendBinary(PgType type) throws SQLException {
     Boolean cached = binarySendCapable.get(type.getOid());
@@ -1035,9 +1080,9 @@ public class TypeInfoCache implements TypeInfo {
           ? type.hasOwnBinarySend()
           : backendCanSendBinary(getPgTypeByOid(baseOid));
     }
-    // Base, enum, range and multirange types: trust their own typsend. (Ranges
-    // could in principle recurse into the subtype, but the subtype OID is not
-    // loaded into PgType; range_send presence is treated optimistically.)
+    // Base, enum, range and multirange types: trust their own typsend. (A range's
+    // subtype is now resolvable via getRangeSubtype(), but recursing into it for the
+    // capability decision is deferred: range_send presence is treated optimistically.)
     return type.hasOwnBinarySend();
   }
 
@@ -1156,5 +1201,36 @@ public class TypeInfoCache implements TypeInfo {
     }
 
     return fields;
+  }
+
+  private PreparedStatement prepareFindRangeSubtype() throws SQLException {
+    PreparedStatement stmt = this.findRangeSubtype;
+    if (stmt == null) {
+      /* language=PostgreSQL */
+      String sql = "SELECT r.rngsubtype\n"
+          + "FROM pg_catalog.pg_range r\n"
+          + "WHERE r.rngtypid = ?";
+      stmt = conn.prepareStatement(sql);
+      this.findRangeSubtype = stmt;
+    }
+    return stmt;
+  }
+
+  private int loadRangeSubtype(int rangeOid) throws SQLException {
+    PreparedStatement stmt = prepareFindRangeSubtype();
+    stmt.setInt(1, rangeOid);
+
+    // Go through BaseStatement to avoid transaction start.
+    if (!((BaseStatement) stmt).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+      return Oid.UNSPECIFIED;
+    }
+
+    try (ResultSet rs = castNonNull(stmt.getResultSet())) {
+      if (rs.next()) {
+        return rs.getInt("rngsubtype");
+      }
+    }
+
+    return Oid.UNSPECIFIED;
   }
 }

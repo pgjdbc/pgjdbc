@@ -40,6 +40,10 @@ public class PgType {
   // Composite type fields (null for non-composite types, empty list if not yet loaded)
   private final @Nullable List<PgField> fields;
 
+  // Range subtype OID (pg_range.rngsubtype); 0 for non-range types or until loaded.
+  // Ranges carry typelem == 0, so the subtype lives here rather than in typelem.
+  private final int rangeSubtype;
+
   /**
    * Constructs a new PgType for non-composite types.
    *
@@ -175,6 +179,14 @@ public class PgType {
   private PgType(ObjectName typeName, String fullName, int oid, char typtype, char typcategory,
                  int typtypmod, int typelem, int arrayOid, int typbasetype, char delimiter,
                  @Nullable List<PgField> fields, String typsend, String typreceive) {
+    this(typeName, fullName, oid, typtype, typcategory, typtypmod, typelem, arrayOid, typbasetype,
+        delimiter, fields, typsend, typreceive, Oid.UNSPECIFIED);
+  }
+
+  private PgType(ObjectName typeName, String fullName, int oid, char typtype, char typcategory,
+                 int typtypmod, int typelem, int arrayOid, int typbasetype, char delimiter,
+                 @Nullable List<PgField> fields, String typsend, String typreceive,
+                 int rangeSubtype) {
     this.typeName = typeName;
     this.fullName = fullName;
     this.oid = oid;
@@ -188,6 +200,7 @@ public class PgType {
     this.typsend = typsend;
     this.typreceive = typreceive;
     this.fields = fields != null ? Collections.unmodifiableList(fields) : null;
+    this.rangeSubtype = rangeSubtype;
   }
 
   /**
@@ -393,6 +406,22 @@ public class PgType {
   }
 
   /**
+   * Gets the range subtype OID ({@code pg_range.rngsubtype}) for a range type.
+   *
+   * <p>{@link #getTypelem()} is {@code 0} for ranges, so the element the range is over
+   * (for example {@code int4} for {@code int4range}) is carried here instead. The subtype
+   * lives in {@code pg_catalog.pg_range} and is loaded lazily, so this returns
+   * {@link Oid#UNSPECIFIED} for a non-range type or a range whose subtype has not been
+   * loaded yet; call {@link org.postgresql.core.TypeInfo#getRangeSubtype(int)} to force the
+   * load.</p>
+   *
+   * @return the range subtype OID, or {@link Oid#UNSPECIFIED} if not a range or not yet loaded
+   */
+  public int getRangeSubtype() {
+    return rangeSubtype;
+  }
+
+  /**
    * Gets the delimiter used in array string representations.
    *
    * @return the delimiter character
@@ -533,7 +562,21 @@ public class PgType {
    */
   public PgType withFields(List<PgField> fields) {
     return new PgType(typeName, fullName, oid, typtype, typcategory,
-        typtypmod, typelem, arrayOid, typbasetype, delimiter, fields, typsend, typreceive);
+        typtypmod, typelem, arrayOid, typbasetype, delimiter, fields, typsend, typreceive,
+        rangeSubtype);
+  }
+
+  /**
+   * Creates a copy of this PgType carrying the given range subtype OID.
+   * Used to enrich a range type after loading {@code pg_range.rngsubtype}.
+   *
+   * @param rangeSubtype the range subtype OID from {@code pg_range}
+   * @return a new PgType with the range subtype set
+   */
+  public PgType withRangeSubtype(int rangeSubtype) {
+    return new PgType(typeName, fullName, oid, typtype, typcategory,
+        typtypmod, typelem, arrayOid, typbasetype, delimiter, fields, typsend, typreceive,
+        rangeSubtype);
   }
 
   public boolean isCaseSensitive() {

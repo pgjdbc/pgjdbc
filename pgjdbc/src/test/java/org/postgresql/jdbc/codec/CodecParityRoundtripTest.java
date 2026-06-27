@@ -15,6 +15,7 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PGRange;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,15 +35,14 @@ import java.util.UUID;
  * {@code binary-decode == text-decode == original}. The net is a safety harness for the Phase 2 SPI
  * refactor: it pins the current cross-format behaviour, not a new specification.</p>
  *
- * <p>It deliberately omits two families because they diverge by design, not by bug:</p>
- * <ul>
- *   <li><b>Anonymous records</b> ({@code SELECT ROW(1, 'a')}) — text {@code record_out} carries no
- *       field OIDs, so the text path yields untyped strings while binary recovers typed fields. The
- *       binary path is covered by {@code NestedRecordBinaryTransferTest}.</li>
- *   <li><b>Range types</b> — binary range decode is the open C2 item ({@code RangeCodec} resolves
- *       its subtype from {@code typelem}=0 instead of {@code pg_range.rngsubtype}), so a binary range
- *       would fail for a known reason. Ranges stay out until C2 lands.</li>
- * </ul>
+ * <p>It deliberately omits anonymous records ({@code SELECT ROW(1, 'a')}) because they diverge by
+ * design, not by bug: text {@code record_out} carries no field OIDs, so the text path yields untyped
+ * strings while binary recovers typed fields. The binary path is covered by
+ * {@code NestedRecordBinaryTransferTest}.</p>
+ *
+ * <p>Range types are included: now that {@code RangeCodec} resolves its subtype from
+ * {@code pg_range.rngsubtype} (C2), both paths decode the bounds into typed values, so
+ * {@code binary == text} holds.</p>
  */
 class CodecParityRoundtripTest {
 
@@ -51,11 +51,14 @@ class CodecParityRoundtripTest {
   private static Connection setup;
   private static boolean binaryReady;
   private static boolean haveJsonb;
+  private static boolean haveRanges;
+  private static long int4rangeOid;
 
   @BeforeAll
   static void setUpClass() throws Exception {
     setup = TestUtil.openDB();
     haveJsonb = TestUtil.haveMinimumServerVersion(setup, ServerVersion.v9_4);
+    haveRanges = TestUtil.haveMinimumServerVersion(setup, ServerVersion.v9_2);
 
     TestUtil.createCompositeType(setup, "codec_parity_addr", "street text, city text, zip int");
     TestUtil.createCompositeType(setup, "codec_parity_person",
@@ -81,6 +84,16 @@ class CodecParityRoundtripTest {
     if (haveJsonb) {
       enable.append(',').append(Oid.JSON).append(',').append(Oid.JSONB);
     }
+    if (haveRanges) {
+      // Range OIDs are not Oid constants; resolve them by name. The driver defers a range
+      // to text until a result set warms its PgType, so force binary receive explicitly.
+      int4rangeOid = ParityHarness.oidAndArray(setup, "int4range")[0];
+      long int8rangeOid = ParityHarness.oidAndArray(setup, "int8range")[0];
+      long numrangeOid = ParityHarness.oidAndArray(setup, "numrange")[0];
+      long tsrangeOid = ParityHarness.oidAndArray(setup, "tsrange")[0];
+      enable.append(',').append(ParityHarness.oids(int4rangeOid, int8rangeOid, numrangeOid,
+          tsrangeOid));
+    }
 
     text = ParityHarness.openText();
     binary = ParityHarness.openBinary(enable.toString());
@@ -94,6 +107,10 @@ class CodecParityRoundtripTest {
           "numeric must be received in binary on the binary connection");
       assertTrue(ParityHarness.binaryActiveFor(binary, (int) addr[0]),
           "named composite must be received in binary on the binary connection");
+      if (haveRanges) {
+        assertTrue(ParityHarness.binaryActiveFor(binary, (int) int4rangeOid),
+            "int4range must be received in binary on the binary connection");
+      }
     }
   }
 
@@ -243,6 +260,34 @@ class CodecParityRoundtripTest {
     t.add(withExpected("domain/over-array-in-composite",
         "SELECT ROW('{1,2,3}'::codec_parity_intarr, 'x')::codec_parity_holder", NO_PARAMS,
         new Object[]{new Integer[]{1, 2, 3}, "x"}));
+
+    return t;
+  }
+
+  @TestFactory
+  List<DynamicTest> ranges() {
+    List<DynamicTest> t = new ArrayList<>();
+    if (!haveRanges) {
+      return t;
+    }
+
+    // C2 regression: binary range decode used to throw because RangeCodec read the subtype from
+    // typelem (0) instead of pg_range.rngsubtype. With the subtype resolved, the bounds decode into
+    // typed values (Integer/Long/BigDecimal) identically over text and binary.
+    t.add(withExpected("int4range/closed-open", "SELECT '[1,10)'::int4range", NO_PARAMS,
+        new PGRange<>(1, 10, true, false)));
+    t.add(withExpected("int4range/empty", "SELECT 'empty'::int4range", NO_PARAMS,
+        PGRange.empty()));
+    t.add(withExpected("int4range/infinite-upper", "SELECT '[5,)'::int4range", NO_PARAMS,
+        new PGRange<>(5, null, true, false)));
+    t.add(withExpected("int8range/closed-open", "SELECT '[1,10)'::int8range", NO_PARAMS,
+        new PGRange<>(1L, 10L, true, false)));
+    t.add(withExpected("numrange/continuous", "SELECT '[1.5,2.5)'::numrange", NO_PARAMS,
+        new PGRange<>(new BigDecimal("1.5"), new BigDecimal("2.5"), true, false)));
+
+    // tsrange bounds are timestamps, whose getObject mapping depends on the connection's codec
+    // context (java.time vs java.sql), so this is parity-only, like the temporal scalars above.
+    t.add(parityOnly("tsrange", "SELECT '[2020-01-01 00:00:00,2020-02-01 00:00:00)'::tsrange"));
 
     return t;
   }

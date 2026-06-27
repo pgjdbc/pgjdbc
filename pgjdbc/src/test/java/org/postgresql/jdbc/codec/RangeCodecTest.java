@@ -20,12 +20,13 @@ import org.junit.jupiter.api.Test;
 import java.sql.SQLException;
 
 /**
- * Unit tests for {@link RangeCodec}'s text decode path, now driven by the shared
- * {@link LiteralCursor}. The synthetic range type carries {@code typelem == 0}
- * (range subtypes live in {@code pg_range}, not yet loaded), so bounds come back
- * as their raw strings — the same behaviour the previous {@code PGRange.parse}
- * path produced. Bracket inclusivity, {@code empty}, infinite bounds and quoting
- * are exercised here without a live connection.
+ * Unit tests for {@link RangeCodec}'s text decode path, driven by the shared
+ * {@link LiteralCursor}. These run without a live connection: the codec is handed a
+ * {@code null} {@link org.postgresql.jdbc.CodecContext}, so there is no registry to
+ * resolve the range subtype and the bounds come back as their raw strings. This pins
+ * the parser itself — bracket inclusivity, {@code empty}, infinite bounds and quoting —
+ * independently of subtype typing. Typed bounds (resolved from {@code pg_range.rngsubtype})
+ * are covered by the live {@code RangeRoundtripTest}.
  */
 class RangeCodecTest {
 
