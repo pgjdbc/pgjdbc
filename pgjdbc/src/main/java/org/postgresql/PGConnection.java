@@ -409,6 +409,12 @@ public interface PGConnection {
    * This allows applications to customize how specific PostgreSQL types are
    * encoded and decoded.</p>
    *
+   * <p>A codec is bound to a result column when the column's field is first initialized,
+   * so registration affects only queries and result sets started afterwards. A
+   * {@link java.sql.ResultSet} that is already open keeps the codecs it resolved when it
+   * was created. Register codecs before running the queries that should use them — for
+   * example right after opening the connection, or when resetting a pooled one.</p>
+   *
    * @param codec the codec to register
    * @throws SQLException if the codec cannot be registered
    * @since 42.8.0
