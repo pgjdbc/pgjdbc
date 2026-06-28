@@ -13,8 +13,6 @@ import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.CodecDepth;
-import org.postgresql.jdbc.PgCodecContext;
-import org.postgresql.jdbc.PgType;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGRange;
@@ -62,13 +60,6 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
     // Singleton
   }
 
-  // Transitional downcast (slice 2c): the range codec reaches the internal TypeInfo / CodecRegistry
-  // through PgCodecContext until child-type resolution (resolveCodec/resolveType) moves onto the
-  // CodecContext interface.
-  private static PgCodecContext impl(CodecContext ctx) {
-    return (PgCodecContext) ctx;
-  }
-
   @Override
   public String getTypeName() {
     return "range";
@@ -111,8 +102,8 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
             "Cannot decode range {0} in binary: its subtype (pg_range.rngsubtype) "
                 + "could not be resolved.", type.getFullName()), PSQLState.DATA_ERROR);
       }
-      PgType subtypeType = impl(ctx).getTypeInfo().getPgTypeByOid(subtypeOid);
-      BinaryCodec subtypeCodec = impl(ctx).getCodecs().getBinaryCodec(subtypeOid, subtypeType);
+      TypeDescriptor subtypeType = ctx.resolveType(subtypeOid);
+      BinaryCodec subtypeCodec = ctx.resolveBinaryCodec(subtypeOid);
       if (subtypeCodec == null) {
         throw new PSQLException(GT.tr(
             "Cannot decode range {0} in binary: no binary codec for subtype OID {1}.",
@@ -190,8 +181,8 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
             "Cannot encode range {0} in binary: its subtype (pg_range.rngsubtype) "
                 + "could not be resolved.", type.getFullName()), PSQLState.DATA_ERROR);
       }
-      PgType subtypeType = impl(ctx).getTypeInfo().getPgTypeByOid(subtypeOid);
-      BinaryCodec subtypeCodec = impl(ctx).getCodecs().getBinaryCodec(subtypeOid, subtypeType);
+      TypeDescriptor subtypeType = ctx.resolveType(subtypeOid);
+      BinaryCodec subtypeCodec = ctx.resolveBinaryCodec(subtypeOid);
       if (subtypeCodec == null) {
         throw new PSQLException(GT.tr(
             "Cannot encode range {0} in binary: no binary codec for subtype OID {1}.",
@@ -245,16 +236,16 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
 
   /**
    * Resolves the range's subtype OID from {@code pg_range.rngsubtype}. A range carries
-   * {@code typelem == 0}, so the subtype is taken from the type metadata — preferring the
-   * value already cached on {@link TypeDescriptor}, otherwise loaded lazily through
-   * {@link org.postgresql.core.TypeInfo#getRangeSubtype(int)}. Returns {@code 0} when no
-   * connection-bound context is available (the codec unit tests pass a {@code null} context)
-   * or the subtype cannot be resolved.
+   * {@code typelem == 0}, so the subtype is taken from the type metadata: the value already cached
+   * on {@link TypeDescriptor} when present, otherwise from {@link CodecContext#resolveType(int)},
+   * which loads it lazily. Returns {@code 0} when no context is available (the codec unit tests pass
+   * a {@code null} context) or the subtype cannot be resolved, in which case the bounds stay as raw
+   * strings.
    */
   private static int resolveSubtypeOid(TypeDescriptor type, @Nullable CodecContext ctx) throws SQLException {
     int subtypeOid = type.getRangeSubtype();
-    if (subtypeOid == 0 && ctx != null && impl(ctx).isConnectionBound()) {
-      subtypeOid = impl(ctx).getTypeInfo().getRangeSubtype(type.getOid());
+    if (subtypeOid == 0 && ctx != null) {
+      subtypeOid = ctx.resolveType(type.getOid()).getRangeSubtype();
     }
     return subtypeOid;
   }
@@ -342,8 +333,8 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
       // unit tests, which pass a null context) the subtype stays unresolved and the
       // bounds are kept as their raw strings.
       int subtypeOid = resolveSubtypeOid(type, ctx);
-      PgType subtypeType = subtypeOid != 0 ? impl(ctx).getTypeInfo().getPgTypeByOid(subtypeOid) : null;
-      Codec subtypeCodec = subtypeOid != 0 ? impl(ctx).getCodecs().getByOid(subtypeOid, subtypeType) : null;
+      TypeDescriptor subtypeType = subtypeOid != 0 && ctx != null ? ctx.resolveType(subtypeOid) : null;
+      Codec subtypeCodec = subtypeOid != 0 && ctx != null ? ctx.resolveCodec(subtypeOid) : null;
       TextCodec boundCodec =
           subtypeCodec instanceof TextCodec && subtypeType != null ? (TextCodec) subtypeCodec : null;
 
@@ -396,7 +387,7 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
    * decoded by the subtype text codec when known, or kept as its raw string.
    */
   private static @Nullable Object decodeBound(LiteralCursor cur, @Nullable TextCodec boundCodec,
-      @Nullable PgType subtypeType, CodecContext ctx) throws SQLException {
+      @Nullable TypeDescriptor subtypeType, CodecContext ctx) throws SQLException {
     if (!cur.tokenWasQuoted() && cur.tokenLength() == 0) {
       return null; // infinite / unbounded
     }

@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.codec.CompositeCodec;
 
 import java.math.BigDecimal;
@@ -32,9 +33,9 @@ public final class PgSQLOutputBinary extends PgSQLOutput<byte[]> {
   private final BinaryCodec[] cachedCodecs;
 
   /**
-   * Pre-cached PgTypes for each field.
+   * Pre-cached field types.
    */
-  private final PgType[] cachedTypes;
+  private final TypeDescriptor[] cachedTypes;
 
   /**
    * Creates a new PgSQLOutputBinary.
@@ -45,7 +46,7 @@ public final class PgSQLOutputBinary extends PgSQLOutput<byte[]> {
   public PgSQLOutputBinary(PgType type, PgCodecContext ctx) throws SQLException {
     super(type, ctx);
     this.cachedCodecs = new BinaryCodec[fields.size()];
-    this.cachedTypes = new PgType[fields.size()];
+    this.cachedTypes = new TypeDescriptor[fields.size()];
     cacheCodecs();
   }
 
@@ -53,9 +54,8 @@ public final class PgSQLOutputBinary extends PgSQLOutput<byte[]> {
     for (int i = 0; i < fields.size(); i++) {
       PgField field = fields.get(i);
       int oid = field.getTypeOid();
-      PgType fieldType = ctx.getTypeInfo().getPgTypeByOid(oid);
-      cachedTypes[i] = fieldType;
-      cachedCodecs[i] = castNonNull(ctx.getCodecs().getBinaryCodec(oid, fieldType));
+      cachedTypes[i] = ctx.resolveType(oid);
+      cachedCodecs[i] = castNonNull(ctx.resolveBinaryCodec(oid));
     }
   }
 
@@ -63,7 +63,7 @@ public final class PgSQLOutputBinary extends PgSQLOutput<byte[]> {
     return cachedCodecs[fieldIndex - 1];
   }
 
-  private PgType getCurrentType() {
+  private TypeDescriptor getCurrentType() {
     return cachedTypes[fieldIndex - 1];
   }
 

@@ -14,7 +14,6 @@ import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.jdbc.PgArray;
 import org.postgresql.jdbc.PgCodecContext;
-import org.postgresql.jdbc.PgType;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
@@ -47,9 +46,9 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     // Singleton
   }
 
-  // Transitional downcast (slice 2c): the array codec reaches the internal connection / TypeInfo /
-  // CodecRegistry through PgCodecContext until child-type resolution (resolveCodec/resolveType) and
-  // the leaf-context derivation move onto the CodecContext interface.
+  // Phase 3 remnant: the array codec downcasts only to reach getConnection() for the PgArray it
+  // returns from decodeBinary/decodeText, a connection-bound result. Child-type resolution and the
+  // leaf-context derivation go through the CodecContext interface (slice 2c).
   private static PgCodecContext impl(CodecContext ctx) {
     return (PgCodecContext) ctx;
   }
@@ -178,8 +177,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     if (elementOid == 0) {
       return null;
     }
-    PgType elementType = impl(ctx).getTypeInfo().getPgTypeByOid(elementOid);
-    BinaryCodec elementCodec = impl(ctx).getCodecs().getBinaryCodec(elementOid, elementType);
+    BinaryCodec elementCodec = ctx.resolveBinaryCodec(elementOid);
     if (elementCodec instanceof ArrayElementCodec) {
       return ((ArrayElementCodec) elementCodec).arrayLeaf();
     }
@@ -225,8 +223,8 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     if (elementOid == 0) {
       return false;
     }
-    PgType elementType = impl(ctx).getTypeInfo().getPgTypeByOid(elementOid);
-    BinaryCodec elementCodec = impl(ctx).getCodecs().getBinaryCodec(elementOid, elementType);
+    TypeDescriptor elementType = ctx.resolveType(elementOid);
+    BinaryCodec elementCodec = ctx.resolveBinaryCodec(elementOid);
     if (elementCodec == null || !elementCodec.supportsBinaryEncoding()) {
       return false;
     }
@@ -241,7 +239,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
    * cannot binary-encode that boxed value (a type with no real binary codec, such as {@code money}
    * via the fallback codec), the array binds as text instead.
    */
-  private static boolean leavesBinaryEncodable(Object value, PgType elementType,
+  private static boolean leavesBinaryEncodable(Object value, TypeDescriptor elementType,
       BinaryCodec elementCodec, CodecContext ctx) throws SQLException {
     if (value instanceof Object[]) {
       for (Object element : (Object[]) value) {
@@ -264,8 +262,8 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
 
   private static GenericArrayLeafCodec getGenericArrayLeafCodec(TypeDescriptor arrayType, CodecContext ctx) throws SQLException {
     int elementOid = arrayType.getTypelem();
-    PgType elementType = impl(ctx).getTypeInfo().getPgTypeByOid(elementOid);
-    Codec elementCodec = impl(ctx).getCodecs().getByOid(elementOid, elementType);
+    TypeDescriptor elementType = ctx.resolveType(elementOid);
+    Codec elementCodec = ctx.resolveCodec(elementOid);
     return new GenericArrayLeafCodec(elementType, elementCodec);
   }
 
@@ -360,7 +358,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
    * <p>Only returns {@code null} when no element codec is available, which does not happen for a
    * connection-bound context (the registry always resolves at least the fallback codec).</p>
    */
-  private static @Nullable Class<?> genericComponentType(PgType elementType,
+  private static @Nullable Class<?> genericComponentType(TypeDescriptor elementType,
       @Nullable Codec elementCodec) {
     if (elementType.isComposite() || elementType.getTyptype() == 'r') {
       return Object.class;
@@ -404,7 +402,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     if (componentType == java.sql.Date.class
         || componentType == java.sql.Time.class
         || componentType == java.sql.Timestamp.class) {
-      return impl(ctx).withoutJavaTimePreferences();
+      return ctx.withoutJavaTimePreferences();
     }
     return ctx;
   }
@@ -425,8 +423,8 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     if (elementOid == 0) {
       return false;
     }
-    PgType elementType = impl(ctx).getTypeInfo().getPgTypeByOid(elementOid);
-    Codec elementCodec = impl(ctx).getCodecs().getByOid(elementOid, elementType);
+    TypeDescriptor elementType = ctx.resolveType(elementOid);
+    Codec elementCodec = ctx.resolveCodec(elementOid);
     return genericComponentType(elementType, elementCodec) != null;
   }
 
@@ -449,8 +447,8 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     if (fast != null) {
       return MultiDimArrayBinary.decode(data, fast.getBoxedComponentType(), ctx, fast);
     }
-    PgType elementType = impl(ctx).getTypeInfo().getPgTypeByOid(arrayType.getTypelem());
-    Codec elementCodec = impl(ctx).getCodecs().getByOid(arrayType.getTypelem(), elementType);
+    TypeDescriptor elementType = ctx.resolveType(arrayType.getTypelem());
+    Codec elementCodec = ctx.resolveCodec(arrayType.getTypelem());
     Class<?> componentType = genericComponentType(elementType, elementCodec);
     Class<?> componentType1 = componentType != null ? componentType : Object.class;
     return MultiDimArrayBinary.decode(data, componentType1, leafContext(componentType1, ctx),
@@ -473,8 +471,8 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
       return MultiDimArrayText.decode(data, fast.getBoxedComponentType(),
           arrayType.getDelimiter(), ctx, fast);
     }
-    PgType elementType = impl(ctx).getTypeInfo().getPgTypeByOid(arrayType.getTypelem());
-    Codec elementCodec = impl(ctx).getCodecs().getByOid(arrayType.getTypelem(), elementType);
+    TypeDescriptor elementType = ctx.resolveType(arrayType.getTypelem());
+    Codec elementCodec = ctx.resolveCodec(arrayType.getTypelem());
     Class<?> componentType = genericComponentType(elementType, elementCodec);
     Class<?> componentType1 = componentType != null ? componentType : Object.class;
     return MultiDimArrayText.decode(data, componentType1, arrayType.getDelimiter(),

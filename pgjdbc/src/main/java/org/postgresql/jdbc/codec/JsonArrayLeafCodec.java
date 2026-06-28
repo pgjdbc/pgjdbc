@@ -8,8 +8,7 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.TextCodec;
-import org.postgresql.jdbc.PgCodecContext;
-import org.postgresql.jdbc.PgType;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -55,10 +54,8 @@ final class JsonArrayLeafCodec implements ArrayLeafCodec {
     return String.class;
   }
 
-  private PgType elementType(CodecContext ctx) throws SQLException {
-    // Transitional downcast (slice 2c): reach the internal TypeInfo through the implementation
-    // until child-type resolution moves onto the CodecContext interface.
-    return ((PgCodecContext) ctx).getTypeInfo().getPgTypeByOid(elementOid);
+  private TypeDescriptor elementType(CodecContext ctx) throws SQLException {
+    return ctx.resolveType(elementOid);
   }
 
   @Override
@@ -67,7 +64,7 @@ final class JsonArrayLeafCodec implements ArrayLeafCodec {
     if (!(leaf instanceof Object[])) {
       throw unsupportedLeaf(leaf, ctx);
     }
-    PgType elementType = elementType(ctx);
+    TypeDescriptor elementType = elementType(ctx);
     boolean hasNulls = false;
     for (Object element : (Object[]) leaf) {
       if (element == null) {
@@ -87,7 +84,7 @@ final class JsonArrayLeafCodec implements ArrayLeafCodec {
     if (!(leaf instanceof Object[])) {
       throw unsupportedLeaf(leaf, ctx);
     }
-    PgType elementType = elementType(ctx);
+    TypeDescriptor elementType = elementType(ctx);
     @Nullable Object[] arr = (@Nullable Object[]) leaf;
     int pos = cursor[0];
     for (int i = 0; i < arr.length; i++) {
@@ -109,7 +106,7 @@ final class JsonArrayLeafCodec implements ArrayLeafCodec {
     if (!(leaf instanceof Object[])) {
       throw unsupportedLeaf(leaf, ctx);
     }
-    PgType elementType = elementType(ctx);
+    TypeDescriptor elementType = elementType(ctx);
     Object[] arr = (Object[]) leaf;
     for (int i = 0; i < arr.length; i++) {
       if (i > 0) {

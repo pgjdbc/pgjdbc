@@ -11,7 +11,7 @@ import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TextCodec;
-import org.postgresql.jdbc.PgType;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -33,11 +33,11 @@ import java.sql.SQLException;
  */
 final class GenericArrayLeafCodec implements ArrayLeafCodec {
 
-  private final PgType elementType;
+  private final TypeDescriptor elementType;
   private final @Nullable BinaryCodec binaryCodec;
   private final @Nullable TextCodec textCodec;
 
-  GenericArrayLeafCodec(PgType elementType, Codec elementCodec) {
+  GenericArrayLeafCodec(TypeDescriptor elementType, Codec elementCodec) {
     this.elementType = elementType;
     this.binaryCodec = elementCodec instanceof BinaryCodec ? (BinaryCodec) elementCodec : null;
     this.textCodec = elementCodec instanceof TextCodec ? (TextCodec) elementCodec : null;

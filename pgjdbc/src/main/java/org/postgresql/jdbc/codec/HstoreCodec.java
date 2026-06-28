@@ -40,8 +40,9 @@ public final class HstoreCodec implements BinaryCodec, TextCodec {
     // Singleton
   }
 
-  // Transitional downcast (slice 2c): hstore reaches the connection Encoding through the
-  // implementation until the wire encoding is read from the CodecContext interface.
+  // Wire-encoding access (not child-resolve): hstore reaches the connection Encoding through the
+  // implementation for HStoreConverter. Exposing the wire encoding on the CodecContext interface is
+  // a separate slice-2 follow-up; slice 2c moved only child-type resolution onto the interface.
   private static PgCodecContext impl(CodecContext ctx) {
     return (PgCodecContext) ctx;
   }

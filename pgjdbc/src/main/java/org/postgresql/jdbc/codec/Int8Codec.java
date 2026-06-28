@@ -145,9 +145,10 @@ public final class Int8Codec implements BinaryCodec, TextCodec, ArrayElementCode
 
   @Override
   public long decodeTextBytesAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    // Fast path for ASCII-encoded longs
-    // Transitional downcast (slice 2c): read the wire Encoding through the implementation until it
-    // is exposed on the CodecContext interface.
+    // Fast path for ASCII-encoded longs.
+    // Wire-encoding access (not child-resolve): reads the connection Encoding through the
+    // implementation. Exposing the wire encoding on the CodecContext interface is a separate
+    // slice-2 follow-up; slice 2c moved only child-type resolution onto the interface.
     if (((PgCodecContext) ctx).getEncoding().hasAsciiNumbers()) {
       try {
         return NumberParser.getFastLong(data, Long.MIN_VALUE, Long.MAX_VALUE);
