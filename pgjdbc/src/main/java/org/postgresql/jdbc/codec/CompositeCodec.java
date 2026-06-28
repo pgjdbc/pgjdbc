@@ -59,9 +59,10 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
   }
 
   // Phase 3 / internal-infra remnant: after slice 2c the composite codec resolves child field types
-  // and codecs through the CodecContext interface. It still downcasts to reach getConnection() for
-  // the PgStruct it returns (a connection-bound result, Phase 3) and to hand the concrete PgType and
-  // PgCodecContext to the internal SQLData adapters (PgSQLInput*/PgSQLOutput*).
+  // and codecs through the CodecContext interface. It still downcasts to reach the connection for the
+  // PgStruct it returns (a connection-bound result, Phase 3) and to hand the concrete PgType and
+  // PgCodecContext to the internal SQLData adapters (PgSQLInput*/PgSQLOutput*). requireConnection(type)
+  // reports a clear error on an offline context rather than dereferencing a null connection.
   private static PgCodecContext impl(CodecContext ctx) {
     return (PgCodecContext) ctx;
   }
@@ -523,7 +524,8 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
           attributes[i] = field.decode(fieldCodec, fieldType, ctx);
         }
       }
-      return new PgStruct(structTypeFor(type, binaryFields), attributes, impl(ctx).getConnection());
+      return new PgStruct(structTypeFor(type, binaryFields), attributes,
+          impl(ctx).requireConnection(type));
     } finally {
       CodecDepth.exit();
     }
@@ -666,7 +668,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       // fieldless pseudo-type; getValue() still works because the raw server
       // literal is recorded verbatim by the caller. The SPI type reaching this codec is
       // the driver's own PgType, which PgStruct (internal) carries.
-      return new PgStruct((PgType) type, attributes, impl(ctx).getConnection());
+      return new PgStruct((PgType) type, attributes, impl(ctx).requireConnection(type));
     } finally {
       CodecDepth.exit();
     }

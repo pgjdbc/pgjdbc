@@ -15,13 +15,18 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Oid;
 import org.postgresql.core.TypeInfo;
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 
@@ -49,6 +54,9 @@ public final class PgCodecContext implements CodecContext {
   private final @Nullable TypeInfo typeInfo;
   private final @Nullable CodecRegistry codecs;
   private final @Nullable JavaTypeRegistry javaTypes;
+  // Offline (connectionless) type source: resolveType/resolveCodec consult it when typeInfo is null.
+  // Empty for a connection-bound context, which resolves child types through typeInfo instead.
+  private final Map<Integer, TypeDescriptor> typesByOid;
   private final Map<String, Class<?>> typeMap;
   private final @Nullable Encoding encoding;
   private final Charset charset;
@@ -136,6 +144,7 @@ public final class PgCodecContext implements CodecContext {
     this.typeInfo = connection.getTypeInfo();
     this.codecs = codecs;
     this.javaTypes = javaTypes;
+    this.typesByOid = Collections.emptyMap();
     this.typeMap = typeMap == null || typeMap.isEmpty()
         ? Collections.emptyMap()
         : Collections.unmodifiableMap(
@@ -189,6 +198,7 @@ public final class PgCodecContext implements CodecContext {
     this.typeInfo = null;
     this.codecs = null;
     this.javaTypes = null;
+    this.typesByOid = Collections.emptyMap();
     this.typeMap = Collections.emptyMap();
     this.encoding = null;
     this.charset = charset;
@@ -200,6 +210,53 @@ public final class PgCodecContext implements CodecContext {
     this.prefersJavaTimeForTimestamp = prefersJavaTimeForTimestamp;
     this.prefersJavaTimeForTimestamptz = prefersJavaTimeForTimestamptz;
     this.convertBooleanToNumeric = convertBooleanToNumeric;
+  }
+
+  /**
+   * Constructs a connectionless context for offline encoding and decoding. The wire settings come
+   * from {@code timestampUtils} and {@code charset} rather than a live connection; {@code codecs}
+   * resolves codecs by OID and {@code typesByOid} resolves child type descriptors. Built through
+   * {@link OfflineBuilder}.
+   */
+  private PgCodecContext(TimestampUtils timestampUtils, Charset charset,
+      CodecRegistry codecs, Map<Integer, TypeDescriptor> typesByOid,
+      boolean prefersJavaTimeForDate,
+      boolean prefersJavaTimeForTime,
+      boolean prefersJavaTimeForTimetz,
+      boolean prefersJavaTimeForTimestamp,
+      boolean prefersJavaTimeForTimestamptz,
+      boolean convertBooleanToNumeric) {
+    this.connection = null;
+    this.typeInfo = null;
+    this.codecs = codecs;
+    this.javaTypes = null;
+    this.typesByOid = typesByOid;
+    this.typeMap = Collections.emptyMap();
+    this.encoding = null;
+    this.charset = charset;
+    this.timestampUtils = timestampUtils;
+    this.calendar = null;
+    this.prefersJavaTimeForDate = prefersJavaTimeForDate;
+    this.prefersJavaTimeForTime = prefersJavaTimeForTime;
+    this.prefersJavaTimeForTimetz = prefersJavaTimeForTimetz;
+    this.prefersJavaTimeForTimestamp = prefersJavaTimeForTimestamp;
+    this.prefersJavaTimeForTimestamptz = prefersJavaTimeForTimestamptz;
+    this.convertBooleanToNumeric = convertBooleanToNumeric;
+  }
+
+  /**
+   * Returns a builder for a connectionless {@link CodecContext} that encodes and decodes offline.
+   *
+   * <p>Supply the wire settings (charset, time zone, integer-datetime mode), the
+   * {@link CodecRegistry} that resolves codecs, and descriptors for any child types a container
+   * would resolve. The result drives {@link org.postgresql.api.codec.Codecs#encode} and
+   * {@link org.postgresql.api.codec.Codecs#decode} for scalar and temporal types with no
+   * connection.</p>
+   *
+   * @return a new offline builder
+   */
+  public static OfflineBuilder offlineBuilder() {
+    return new OfflineBuilder();
   }
 
   /**
@@ -265,6 +322,7 @@ public final class PgCodecContext implements CodecContext {
     this.typeInfo = source.typeInfo;
     this.codecs = source.codecs;
     this.javaTypes = source.javaTypes;
+    this.typesByOid = source.typesByOid;
     this.typeMap = source.typeMap;
     this.encoding = source.encoding;
     this.charset = source.charset;
@@ -322,6 +380,7 @@ public final class PgCodecContext implements CodecContext {
     this.typeInfo = source.typeInfo;
     this.codecs = source.codecs;
     this.javaTypes = source.javaTypes;
+    this.typesByOid = source.typesByOid;
     this.typeMap = source.typeMap;
     this.encoding = source.encoding;
     this.charset = source.charset;
@@ -343,6 +402,7 @@ public final class PgCodecContext implements CodecContext {
     this.typeInfo = source.typeInfo;
     this.codecs = source.codecs;
     this.javaTypes = source.javaTypes;
+    this.typesByOid = source.typesByOid;
     this.typeMap = source.typeMap;
     this.encoding = source.encoding;
     this.charset = source.charset;
@@ -368,6 +428,31 @@ public final class PgCodecContext implements CodecContext {
   public BaseConnection getConnection() {
     return castNonNull(connection,
         "PgCodecContext has no connection (constructed for unit testing only)");
+  }
+
+  /**
+   * Returns the live connection, or fails with a clear message when this context is connectionless.
+   *
+   * <p>The container codecs build a connection-bound {@link PgArray} / {@link PgStruct} and call this
+   * so an offline context reports the limitation instead of dereferencing a null connection (which
+   * {@link #getConnection()} would do, since {@code castNonNull} is a no-op without assertions).
+   * Offline encode and decode currently covers scalar and temporal types; materialising a container
+   * value still needs a connection.</p>
+   *
+   * @param type the type being decoded, named in the error
+   * @return the live connection
+   * @throws SQLException if this context has no connection
+   */
+  public BaseConnection requireConnection(TypeDescriptor type) throws SQLException {
+    BaseConnection conn = connection;
+    if (conn == null) {
+      throw new PSQLException(
+          GT.tr("Cannot decode {0} without a database connection. Offline (connectionless) encoding "
+              + "and decoding currently supports scalar and temporal types; container types such as "
+              + "arrays and composites still require an active connection.", type.getFullName()),
+          PSQLState.NOT_IMPLEMENTED);
+    }
+    return conn;
   }
 
   /**
@@ -420,17 +505,29 @@ public final class PgCodecContext implements CodecContext {
    */
   @Override
   public TypeDescriptor resolveType(int oid) throws SQLException {
-    TypeInfo ti = getTypeInfo();
-    PgType type = ti.getPgTypeByOid(oid);
-    if (type.isComposite() && type.getFields() == null) {
-      // getFields caches the attributes on a new PgType; re-fetch so the descriptor carries them.
-      ti.getFields(oid);
-      type = ti.getPgTypeByOid(oid);
-    } else if (type.getTyptype() == 'r' && type.getRangeSubtype() == Oid.UNSPECIFIED) {
-      ti.getRangeSubtype(oid);
-      type = ti.getPgTypeByOid(oid);
+    TypeInfo ti = typeInfo;
+    if (ti != null) {
+      PgType type = ti.getPgTypeByOid(oid);
+      if (type.isComposite() && type.getFields() == null) {
+        // getFields caches the attributes on a new PgType; re-fetch so the descriptor carries them.
+        ti.getFields(oid);
+        type = ti.getPgTypeByOid(oid);
+      } else if (type.getTyptype() == 'r' && type.getRangeSubtype() == Oid.UNSPECIFIED) {
+        ti.getRangeSubtype(oid);
+        type = ti.getPgTypeByOid(oid);
+      }
+      return type;
     }
-    return type;
+    // Offline: the caller-supplied descriptor map is the only type source.
+    TypeDescriptor offline = typesByOid.get(oid);
+    if (offline != null) {
+      return offline;
+    }
+    throw new PSQLException(
+        GT.tr("This offline codec context has no type descriptor for OID {0}. Register it through "
+            + "the offline builder, or resolve the type on a live connection.",
+            String.valueOf(oid)),
+        PSQLState.INVALID_PARAMETER_TYPE);
   }
 
   /**
@@ -440,7 +537,18 @@ public final class PgCodecContext implements CodecContext {
    */
   @Override
   public Codec resolveCodec(int oid) throws SQLException {
-    return getCodecs().getByOid(oid, getTypeInfo().getPgTypeByOid(oid));
+    TypeInfo ti = typeInfo;
+    if (ti != null) {
+      return getCodecs().getByOid(oid, ti.getPgTypeByOid(oid));
+    }
+    CodecRegistry registry = codecs;
+    if (registry == null) {
+      throw new PSQLException(
+          GT.tr("This codec context has no codec registry, so it cannot resolve a codec for OID "
+              + "{0}.", String.valueOf(oid)),
+          PSQLState.INVALID_PARAMETER_TYPE);
+    }
+    return registry.getByOid(oid, typesByOid.get(oid));
   }
 
   /**
@@ -611,5 +719,150 @@ public final class PgCodecContext implements CodecContext {
   @Override
   public boolean getConvertBooleanToNumeric() {
     return convertBooleanToNumeric;
+  }
+
+  /**
+   * Builds a connectionless {@link CodecContext} for offline encoding and decoding. Obtain one from
+   * {@link PgCodecContext#offlineBuilder()}.
+   *
+   * <p>Defaults: UTF-8, UTC, integer datetimes, a fresh {@link CodecRegistry} with the built-in
+   * codecs, no {@code getObject} java.time preferences, and no boolean-to-numeric coercion.</p>
+   */
+  @Experimental("Codec API is experimental and may change in future releases")
+  public static final class OfflineBuilder {
+    private Charset charset = StandardCharsets.UTF_8;
+    private TimeZone timeZone = TimeZone.getTimeZone("UTC");
+    private boolean integerDateTimes = true;
+    private @Nullable CodecRegistry registry;
+    private final Map<Integer, TypeDescriptor> typesByOid = new HashMap<>();
+    private boolean prefersJavaTimeForDate;
+    private boolean prefersJavaTimeForTime;
+    private boolean prefersJavaTimeForTimetz;
+    private boolean prefersJavaTimeForTimestamp;
+    private boolean prefersJavaTimeForTimestamptz;
+    private boolean convertBooleanToNumeric;
+
+    private OfflineBuilder() {
+    }
+
+    /**
+     * Sets the character set for text values. Defaults to UTF-8.
+     *
+     * @param charset the character set
+     * @return this builder
+     */
+    public OfflineBuilder charset(Charset charset) {
+      this.charset = charset;
+      return this;
+    }
+
+    /**
+     * Sets the session time zone temporal codecs render {@code timetz}/{@code timestamptz} against.
+     * Defaults to UTC.
+     *
+     * @param timeZone the session time zone
+     * @return this builder
+     */
+    public OfflineBuilder timeZone(TimeZone timeZone) {
+      this.timeZone = timeZone;
+      return this;
+    }
+
+    /**
+     * Sets whether the backend encodes binary {@code time}/{@code timestamp} payloads as 64-bit
+     * integers ({@code true}, the modern default) rather than doubles.
+     *
+     * @param integerDateTimes true for integer datetimes
+     * @return this builder
+     */
+    public OfflineBuilder integerDateTimes(boolean integerDateTimes) {
+      this.integerDateTimes = integerDateTimes;
+      return this;
+    }
+
+    /**
+     * Sets the codec registry that resolves codecs by OID and name. Defaults to a fresh
+     * {@link CodecRegistry} with the built-in codecs.
+     *
+     * @param registry the codec registry
+     * @return this builder
+     */
+    public OfflineBuilder registry(CodecRegistry registry) {
+      this.registry = registry;
+      return this;
+    }
+
+    /**
+     * Registers {@code type} under its own OID so a container can resolve it as a child type.
+     *
+     * @param type the type descriptor
+     * @return this builder
+     */
+    public OfflineBuilder type(TypeDescriptor type) {
+      this.typesByOid.put(type.getOid(), type);
+      return this;
+    }
+
+    /**
+     * Registers every descriptor in {@code types}, keyed by OID.
+     *
+     * @param types the type descriptors by OID
+     * @return this builder
+     */
+    public OfflineBuilder types(Map<Integer, ? extends TypeDescriptor> types) {
+      this.typesByOid.putAll(types);
+      return this;
+    }
+
+    /**
+     * Sets the {@code getObject} java.time preferences, matching the per-type connection properties.
+     * Each flag makes {@code decode(..., Object.class)} on that type yield the java.time class rather
+     * than the {@code java.sql} one.
+     *
+     * @param date true to prefer {@link java.time.LocalDate} for {@code date}
+     * @param time true to prefer {@link java.time.LocalTime} for {@code time}
+     * @param timetz true to prefer {@link java.time.OffsetTime} for {@code timetz}
+     * @param timestamp true to prefer {@link java.time.LocalDateTime} for {@code timestamp}
+     * @param timestamptz true to prefer {@link java.time.OffsetDateTime} for {@code timestamptz}
+     * @return this builder
+     */
+    public OfflineBuilder prefersJavaTime(boolean date, boolean time, boolean timetz,
+        boolean timestamp, boolean timestamptz) {
+      this.prefersJavaTimeForDate = date;
+      this.prefersJavaTimeForTime = time;
+      this.prefersJavaTimeForTimetz = timetz;
+      this.prefersJavaTimeForTimestamp = timestamp;
+      this.prefersJavaTimeForTimestamptz = timestamptz;
+      return this;
+    }
+
+    /**
+     * Sets whether numeric getters on a {@code bool} value coerce it to {@code 1}/{@code 0} instead
+     * of throwing.
+     *
+     * @param convertBooleanToNumeric true to enable the coercion
+     * @return this builder
+     */
+    public OfflineBuilder convertBooleanToNumeric(boolean convertBooleanToNumeric) {
+      this.convertBooleanToNumeric = convertBooleanToNumeric;
+      return this;
+    }
+
+    /**
+     * Builds the connectionless context.
+     *
+     * @return a {@link CodecContext} that encodes and decodes without a connection
+     */
+    public CodecContext build() {
+      CodecRegistry codecs = registry != null ? registry : new CodecRegistry();
+      TimeZone tz = timeZone;
+      TimestampUtils timestampUtils = new TimestampUtils(!integerDateTimes, () -> tz);
+      Map<Integer, TypeDescriptor> types = typesByOid.isEmpty()
+          ? Collections.<Integer, TypeDescriptor>emptyMap()
+          : Collections.unmodifiableMap(new HashMap<>(typesByOid));
+      return new PgCodecContext(timestampUtils, charset, codecs, types,
+          prefersJavaTimeForDate, prefersJavaTimeForTime, prefersJavaTimeForTimetz,
+          prefersJavaTimeForTimestamp, prefersJavaTimeForTimestamptz, convertBooleanToNumeric);
+    }
   }
 }
