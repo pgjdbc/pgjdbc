@@ -29,7 +29,6 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.sql.Array;
 import java.sql.SQLException;
-import java.sql.Struct;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -73,15 +72,13 @@ class OfflineCodecRoundtripTest {
   private static final PgType TIMESTAMPTZ =
       base("timestamptz", "timestamp with time zone", Oid.TIMESTAMPTZ, 'D');
 
-  // Container descriptors: not pinned by OID, so the offline builder must carry them for resolveCodec
-  // to reach the array/composite codec by typcategory/typtype.
+  // A built-in array type. Its codec resolves offline through the driver's built-in catalog, so the
+  // builder need not carry it; the descriptor's typelem drives element decoding.
   private static final PgType INT4_ARRAY = new PgType(
       new ObjectName("pg_catalog", "_int4"), "integer[]", Oid.INT4_ARRAY, 'b', 'A', -1,
       Oid.INT4, 0, 0);
+  // A user composite OID with no built-in or registered descriptor, for the unregistered-type case.
   private static final int COMPOSITE_OID = 99_999;
-  private static final PgType COMPOSITE = new PgType(
-      new ObjectName("public", "my_composite"), "public.my_composite", COMPOSITE_OID, 'c', 'C', -1,
-      0, 0, 0);
 
   private static PgType base(String name, String fullName, int oid, char typcategory) {
     return new PgType(new ObjectName("pg_catalog", name), fullName, oid, 'b', typcategory, -1, 0,
@@ -172,30 +169,25 @@ class OfflineCodecRoundtripTest {
   }
 
   @Test
-  void arrayDecodeOfflineReportsClearError() {
-    CodecContext ctx = PgCodecContext.offlineBuilder().type(INT4_ARRAY).build();
-
-    PSQLException binary = assertThrows(PSQLException.class,
-        () -> Codecs.decode(RawValue.binary(new byte[0]), INT4_ARRAY, ctx, Array.class));
-    assertEquals(PSQLState.NOT_IMPLEMENTED.getState(), binary.getSQLState(),
-        "offline array decode should report 'feature not supported'");
-
-    PSQLException text = assertThrows(PSQLException.class,
-        () -> Codecs.decode(RawValue.text("{1,2}".getBytes(UTF_8)), INT4_ARRAY, ctx, Array.class));
-    assertEquals(PSQLState.NOT_IMPLEMENTED.getState(), text.getSQLState());
+  void arrayDecodeOfflineProducesJavaArray() throws SQLException {
+    CodecContext ctx = offline();
+    Integer[] values = {1, 2, 3};
+    RawValue raw = Codecs.encode(values, INT4_ARRAY, ctx, Format.BINARY);
+    // A typed array target decodes element-for-element with no connection.
+    assertArrayEquals(values, Codecs.decode(raw, INT4_ARRAY, ctx, Integer[].class));
+    // Object.class also yields a Java array offline (a connection-bound context gives a PgArray).
+    assertArrayEquals(values, (Integer[]) Codecs.decode(raw, INT4_ARRAY, ctx, Object.class));
   }
 
   @Test
-  void compositeDecodeOfflineReportsClearError() {
-    CodecContext ctx = PgCodecContext.offlineBuilder().type(COMPOSITE).build();
-    // Composite binary wire form with a field count of 0; decoding reaches the connection-bound
-    // PgStruct construction, which is where the offline limitation surfaces.
-    byte[] zeroFields = {0, 0, 0, 0};
-
+  void arrayDecodeOfflineToSqlArrayReportsClearError() {
+    CodecContext ctx = offline();
+    // A java.sql.Array needs connection-bound lazy operations, so an explicit Array target reports a
+    // clear error offline rather than handing back a Java array of a different type.
     PSQLException ex = assertThrows(PSQLException.class,
-        () -> Codecs.decode(RawValue.binary(zeroFields), COMPOSITE, ctx, Struct.class));
+        () -> Codecs.decode(RawValue.binary(new byte[0]), INT4_ARRAY, ctx, Array.class));
     assertEquals(PSQLState.NOT_IMPLEMENTED.getState(), ex.getSQLState(),
-        "offline composite decode should report 'feature not supported'");
+        "offline java.sql.Array decode should report 'feature not supported'");
   }
 
   @Test

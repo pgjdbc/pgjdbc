@@ -7,6 +7,7 @@ package org.postgresql.jdbc;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -60,9 +61,19 @@ public abstract class PgSQLOutput<BufferType> implements SQLOutput {
     this.compositeType = type;
     this.ctx = ctx;
     List<PgField> typeFields = type.getFields();
-    // Fields are loaded lazily for composite types: fall back to the type info
-    // cache when the PgType instance hasn't materialized them yet.
-    this.fields = typeFields != null ? typeFields : ctx.getTypeInfo().getFields(type.getOid());
+    if (typeFields != null) {
+      this.fields = typeFields;
+    } else if (ctx.isConnectionBound()) {
+      // Fields are loaded lazily for composite types: fall back to the type info cache.
+      this.fields = ctx.getTypeInfo().getFields(type.getOid());
+    } else {
+      // Offline contexts have no type cache to load attributes from, so the caller must register
+      // the composite type with its fields.
+      throw new PSQLException(
+          GT.tr("Offline composite access for {0} needs its attributes; register the type with its "
+              + "fields in the offline codec context.", type.getFullName()),
+          PSQLState.INVALID_PARAMETER_TYPE);
+    }
   }
 
   /**
@@ -84,7 +95,13 @@ public abstract class PgSQLOutput<BufferType> implements SQLOutput {
    * Gets the PgType for a field.
    */
   protected PgType getFieldType(PgField field) throws SQLException {
-    return ctx.getTypeInfo().getPgTypeByOid(field.getTypeOid());
+    if (ctx.isConnectionBound()) {
+      return ctx.getTypeInfo().getPgTypeByOid(field.getTypeOid());
+    }
+    // Offline: the result is discarded by every concrete encoder (they read the cached per-field
+    // type), so resolve through the context without a type cache. Offline descriptors are PgType.
+    TypeDescriptor resolved = ctx.resolveType(field.getTypeOid());
+    return resolved instanceof PgType ? (PgType) resolved : compositeType;
   }
 
   /**
