@@ -41,18 +41,85 @@ final class MultiDimArraySupport {
    * a multidimensional array may not. The outermost level is always a dimension,
    * so a bare {@code byte[]} stays one-dimensional. A {@code null} or non-array
    * {@code leafElementClass} reproduces the plain syntactic count.</p>
+   *
+   * <p>When the declared component type is an {@code Object}-like reference type
+   * ({@code Object}, {@link java.io.Serializable} or {@link Cloneable}) — the
+   * only non-array types that can hold an array instance — the static walk
+   * cannot see further nesting, yet the runtime elements may themselves be
+   * arrays. A {@code createArrayOf("int4", new Object[]{new Object[]{1, 2}})}
+   * value is an {@code Object[]} by class but a two-dimensional {@code int4[][]}
+   * at runtime. The count is then resumed at runtime by following the first
+   * element down to the declared-leaf level and on through any further array
+   * nesting (stopping at {@code leafElementClass}). Typed reference arrays
+   * ({@code Integer[]}, {@code String[]}, ...) and primitive arrays never reach
+   * this branch, so they keep the cheap by-class count.</p>
    */
   static int computeDimensions(Object array, @Nullable Class<?> leafElementClass) {
     int dims = 0;
     Class<?> cls = array.getClass();
     while (cls.isArray()) {
       if (dims >= 1 && cls == leafElementClass) {
-        break;
+        // An array-typed SQL element (a byte[] for bytea): stop, it is a leaf.
+        return dims;
       }
       dims++;
       cls = cls.getComponentType();
     }
+    if (dims >= 1
+        && (cls == Object.class || cls == Cloneable.class || cls == java.io.Serializable.class)) {
+      dims += runtimeNestingDepth(array, dims, leafElementClass);
+    }
     return dims;
+  }
+
+  /**
+   * Counts array nesting that an {@code Object}-like declared element type hides.
+   * Descends {@code knownDims} levels to the first declared-leaf element, then
+   * keeps following the first element while it is itself an array other than
+   * {@code leafElementClass}. Returns the number of extra dimensions; {@code 0}
+   * when the leaf is a scalar, a probed array is empty, or a probed element is
+   * {@code null} (the shape cannot be observed any deeper, and such values are
+   * either genuinely one-dimensional or get rejected later by
+   * {@link #validateRectangular}).
+   */
+  private static int runtimeNestingDepth(Object array, int knownDims,
+      @Nullable Class<?> leafElementClass) {
+    Object cursor = array;
+    for (int d = 0; d < knownDims; d++) {
+      Object first = firstElementOrNull(cursor);
+      if (first == null) {
+        return 0;
+      }
+      cursor = first;
+    }
+    int extra = 0;
+    Class<?> cls = cursor.getClass();
+    while (cls.isArray() && cls != leafElementClass) {
+      extra++;
+      Object first = firstElementOrNull(cursor);
+      if (first == null) {
+        break;
+      }
+      cursor = first;
+      cls = cursor.getClass();
+    }
+    return extra;
+  }
+
+  /**
+   * Returns element {@code [0]} of the array {@code array}, or {@code null} when it is empty or its
+   * first element is {@code null} (both meaning the shape cannot be probed deeper). The descent runs
+   * only on {@code Object}-like reference arrays, whose levels are themselves {@code Object[]}, so the
+   * direct cast avoids the cost of {@link java.lang.reflect.Array}; a primitive leaf array reached as
+   * an element ({@code int[]} inside an {@code Object[]}) takes the reflective fallback.
+   */
+  private static @Nullable Object firstElementOrNull(Object array) {
+    if (array instanceof Object[]) {
+      Object[] a = (Object[]) array;
+      return a.length == 0 ? null : a[0];
+    }
+    return java.lang.reflect.Array.getLength(array) == 0
+        ? null : java.lang.reflect.Array.get(array, 0);
   }
 
   static @Nullable Object unwrapArrayValue(Object value) throws SQLException {

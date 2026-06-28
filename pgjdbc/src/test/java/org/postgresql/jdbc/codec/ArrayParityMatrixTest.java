@@ -118,6 +118,12 @@ class ArrayParityMatrixTest {
         new Integer[]{1, null, 3}));
     t.add(encode("int4/null-param", "SELECT ?::int4[]",
         ps -> ps.setNull(1, Types.ARRAY), null));
+    // Runtime-nested Object[]: createArrayOf("int4", new Object[]{new Object[]{...}}) is an Object[]
+    // by class but a 2-D int4[][] at runtime, so it must round-trip like a typed Integer[][].
+    t.add(encode("int4/runtime-nested-object", "SELECT ?::int4[]",
+        ps -> ps.setArray(1, ps.getConnection().createArrayOf("int4",
+            new Object[]{new Object[]{1, 2}, new Object[]{3, 4}})),
+        new Integer[][]{{1, 2}, {3, 4}}));
     t.add(encode("text/meta", "SELECT ?::text[]",
         ps -> ps.setArray(1, ps.getConnection().createArrayOf("text",
             new String[]{"a", "b,c", "d\"e", "{f}", null})),
@@ -142,16 +148,22 @@ class ArrayParityMatrixTest {
   }
 
   /**
-   * A ragged (non-rectangular) typed Java array is rejected by the driver's array encoder before it
-   * reaches the wire, rather than being silently truncated or padded. The distinct runtime-nested
-   * {@code Object[]} shape is the open C6 item ({@code computeDimensions} reads the dimension count
-   * from the declared class) and is intentionally not asserted here.
+   * A ragged (non-rectangular) Java array is rejected by the driver's array encoder before it reaches
+   * the wire, rather than being silently truncated or padded. This holds both for a statically typed
+   * {@code Integer[][]} and for the runtime-nested {@code Object[]} shape, whose dimensions
+   * {@code computeDimensions} discovers at runtime ({@code validateRectangular} then enforces a
+   * rectangular shape).
    */
   @Test
   void raggedTypedArrayEncodeRejected() {
+    assertRaggedRejected(new Integer[][]{{1, 2}, {3}});
+    assertRaggedRejected(new Object[]{new Object[]{1, 2}, new Object[]{3}});
+  }
+
+  private static void assertRaggedRejected(Object ragged) {
     SQLException ex = assertThrows(SQLException.class, () -> {
       try (PreparedStatement ps = text.prepareStatement("SELECT ?::int4[]")) {
-        ps.setArray(1, text.createArrayOf("int4", new Integer[][]{{1, 2}, {3}}));
+        ps.setArray(1, text.createArrayOf("int4", (Object[]) ragged));
         ps.executeQuery();
       }
     });
