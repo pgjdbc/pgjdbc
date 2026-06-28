@@ -42,6 +42,45 @@ class MultiDimArraySupportTest {
     assertEquals(1, MultiDimArraySupport.computeDimensions(new String[3], String.class));
   }
 
+  @Test
+  void computeDimensions_runtimeNestingUnderObjectComponent() {
+    // The declared type is Object[], but the runtime elements are arrays, so the value is
+    // multidimensional at runtime (as createArrayOf("int4", new Object[]{new Object[]{1, 2}}) makes).
+    assertEquals(2, MultiDimArraySupport.computeDimensions(
+        new Object[]{new Object[]{1, 2}}, Integer.class));
+    assertEquals(2, MultiDimArraySupport.computeDimensions(
+        new Object[]{new Integer[]{1, 2}}, Integer.class));
+    assertEquals(3, MultiDimArraySupport.computeDimensions(
+        new Object[]{new Object[]{new Object[]{1}}}, Integer.class));
+    // Ragged runtime nesting still reports the first-element depth; rectangularity is enforced
+    // separately by validateRectangular.
+    assertEquals(2, MultiDimArraySupport.computeDimensions(
+        new Object[]{new Object[]{1, 2}, new Object[]{3}}, Integer.class));
+    // Serializable[]/Cloneable[] are the other reference types an array instance fits into.
+    assertEquals(2, MultiDimArraySupport.computeDimensions(
+        new java.io.Serializable[]{new Integer[]{1, 2}}, Integer.class));
+  }
+
+  @Test
+  void computeDimensions_objectComponentScalarsStayOneDimensional() {
+    // Object[] of scalars (the common createArrayOf("int4", new Object[]{1, 2, 3}) shape) is 1-D.
+    assertEquals(1, MultiDimArraySupport.computeDimensions(new Object[]{1, 2, 3}, Integer.class));
+    // Empty or null-first arrays cannot be probed deeper and stay at the by-class count.
+    assertEquals(1, MultiDimArraySupport.computeDimensions(new Object[0], Integer.class));
+    assertEquals(1, MultiDimArraySupport.computeDimensions(
+        new Object[]{null, new Object[]{1}}, Integer.class));
+  }
+
+  @Test
+  void computeDimensions_runtimeNestingRespectsByteaLeaf() {
+    // An Object[] of byte[] is a 1-D bytea[]: the byte[] elements are leaves, not a dimension.
+    assertEquals(1, MultiDimArraySupport.computeDimensions(
+        new Object[]{new byte[]{1}, new byte[]{2, 3}}, byte[].class));
+    // An Object[] of Object[] of byte[] is a 2-D bytea[][].
+    assertEquals(2, MultiDimArraySupport.computeDimensions(
+        new Object[]{new Object[]{new byte[]{1}}}, byte[].class));
+  }
+
   // ---------------- validateJavaArray ----------------
 
   @Test
