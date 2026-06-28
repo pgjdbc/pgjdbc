@@ -10,6 +10,7 @@ import org.postgresql.api.Experimental;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.nio.charset.Charset;
+import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Map;
 import java.util.TimeZone;
@@ -130,4 +131,66 @@ public interface CodecContext {
    * @return the mapped Java class, or null if not mapped
    */
   @Nullable Class<?> getMappedClass(String typeName);
+
+  /**
+   * Resolves a child type by OID so a container codec (array, composite, domain, range) can decode
+   * its elements without reaching into the driver's type cache.
+   *
+   * <p>The returned descriptor is self-contained: composite attributes and the range subtype
+   * ({@code pg_range.rngsubtype}, which {@code typelem} does not carry) are loaded so that
+   * {@link TypeDescriptor#getFields()} and {@link TypeDescriptor#getRangeSubtype()} are populated.
+   * Unknown OIDs resolve to a descriptor for the unknown type rather than null.</p>
+   *
+   * @param oid the PostgreSQL type OID
+   * @return the resolved type descriptor
+   * @throws SQLException if the type metadata cannot be loaded
+   */
+  TypeDescriptor resolveType(int oid) throws SQLException;
+
+  /**
+   * Resolves the codec registered for a child type by OID. Returns the fallback codec for an
+   * unknown OID, so the result is never null.
+   *
+   * @param oid the PostgreSQL type OID
+   * @return the codec for the type
+   * @throws SQLException if the type metadata cannot be loaded
+   */
+  Codec resolveCodec(int oid) throws SQLException;
+
+  /**
+   * Resolves the binary codec for a child type by OID, or null when the registered codec does not
+   * support the binary wire format.
+   *
+   * @param oid the PostgreSQL type OID
+   * @return the binary codec, or null if the type has no binary codec
+   * @throws SQLException if the type metadata cannot be loaded
+   */
+  default @Nullable BinaryCodec resolveBinaryCodec(int oid) throws SQLException {
+    Codec codec = resolveCodec(oid);
+    return codec instanceof BinaryCodec ? (BinaryCodec) codec : null;
+  }
+
+  /**
+   * Resolves the text codec for a child type by OID, or null when the registered codec does not
+   * support the text wire format.
+   *
+   * @param oid the PostgreSQL type OID
+   * @return the text codec, or null if the type has no text codec
+   * @throws SQLException if the type metadata cannot be loaded
+   */
+  default @Nullable TextCodec resolveTextCodec(int oid) throws SQLException {
+    Codec codec = resolveCodec(oid);
+    return codec instanceof TextCodec ? (TextCodec) codec : null;
+  }
+
+  /**
+   * Returns a context with the {@code getObject} java.time preferences cleared, so temporal codecs
+   * yield the {@code java.sql} types ({@code Date}/{@code Time}/{@code Timestamp}) rather than
+   * {@code LocalDate}/{@code LocalTime}/… The array codec uses it when decoding temporal array
+   * elements, which return the SQL types regardless of the per-{@code getObject} preferences.
+   *
+   * @return a context that decodes temporal values as the {@code java.sql} types, or {@code this}
+   *     when no preference is set
+   */
+  CodecContext withoutJavaTimePreferences();
 }

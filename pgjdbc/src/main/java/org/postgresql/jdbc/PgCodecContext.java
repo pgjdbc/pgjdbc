@@ -8,9 +8,12 @@ package org.postgresql.jdbc;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.api.Experimental;
+import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Encoding;
+import org.postgresql.core.Oid;
 import org.postgresql.core.TypeInfo;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -302,6 +305,7 @@ public final class PgCodecContext implements CodecContext {
    *
    * @return a context that decodes temporal values as the {@code java.sql} types
    */
+  @Override
   public PgCodecContext withoutJavaTimePreferences() {
     if (!prefersJavaTimeForDate && !prefersJavaTimeForTime && !prefersJavaTimeForTimetz
         && !prefersJavaTimeForTimestamp && !prefersJavaTimeForTimestamptz) {
@@ -406,6 +410,37 @@ public final class PgCodecContext implements CodecContext {
   public JavaTypeRegistry getJavaTypes() {
     return castNonNull(javaTypes,
         "PgCodecContext has no JavaTypeRegistry (constructed for unit testing only)");
+  }
+
+  /**
+   * Resolves a child type by OID, loading the lazily-cached structure the container codecs read off
+   * the descriptor: composite attributes ({@code pg_attribute}) and the range subtype
+   * ({@code pg_range.rngsubtype}), which {@code pg_type.typelem} does not carry. Other types resolve
+   * to the plain {@link TypeInfo#getPgTypeByOid(int)} lookup.
+   */
+  @Override
+  public TypeDescriptor resolveType(int oid) throws SQLException {
+    TypeInfo ti = getTypeInfo();
+    PgType type = ti.getPgTypeByOid(oid);
+    if (type.isComposite() && type.getFields() == null) {
+      // getFields caches the attributes on a new PgType; re-fetch so the descriptor carries them.
+      ti.getFields(oid);
+      type = ti.getPgTypeByOid(oid);
+    } else if (type.getTyptype() == 'r' && type.getRangeSubtype() == Oid.UNSPECIFIED) {
+      ti.getRangeSubtype(oid);
+      type = ti.getPgTypeByOid(oid);
+    }
+    return type;
+  }
+
+  /**
+   * Resolves the codec for a child type by OID. The lookup dispatches by type name and, failing
+   * that, by {@code typtype}/{@code typcategory}; it does not need the descriptor's structure, so it
+   * uses the plain {@link TypeInfo#getPgTypeByOid(int)} lookup rather than {@link #resolveType(int)}.
+   */
+  @Override
+  public Codec resolveCodec(int oid) throws SQLException {
+    return getCodecs().getByOid(oid, getTypeInfo().getPgTypeByOid(oid));
   }
 
   /**

@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.codec.CompositeCodec;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -37,9 +38,9 @@ public final class PgSQLInputBinary extends PgSQLInput<byte[]> {
   private final BinaryCodec[] cachedCodecs;
 
   /**
-   * Pre-cached PgTypes for each field, indexed by field position.
+   * Pre-cached field types, indexed by field position.
    */
-  private final PgType[] cachedTypes;
+  private final TypeDescriptor[] cachedTypes;
 
   /**
    * Creates a new PgSQLInputBinary from raw composite binary data.
@@ -52,7 +53,7 @@ public final class PgSQLInputBinary extends PgSQLInput<byte[]> {
       throws SQLException {
     super(parseCompositeData(compositeData), type, ctx);
     this.cachedCodecs = new BinaryCodec[fields.size()];
-    this.cachedTypes = new PgType[fields.size()];
+    this.cachedTypes = new TypeDescriptor[fields.size()];
     cacheCodecs();
   }
 
@@ -68,7 +69,7 @@ public final class PgSQLInputBinary extends PgSQLInput<byte[]> {
       throws SQLException {
     super(attributeValues, type, ctx);
     this.cachedCodecs = new BinaryCodec[fields.size()];
-    this.cachedTypes = new PgType[fields.size()];
+    this.cachedTypes = new TypeDescriptor[fields.size()];
     cacheCodecs();
   }
 
@@ -79,9 +80,8 @@ public final class PgSQLInputBinary extends PgSQLInput<byte[]> {
     for (int i = 0; i < fields.size(); i++) {
       PgField field = fields.get(i);
       int oid = field.getTypeOid();
-      PgType fieldType = ctx.getTypeInfo().getPgTypeByOid(oid);
-      cachedTypes[i] = fieldType;
-      cachedCodecs[i] = castNonNull(ctx.getCodecs().getBinaryCodec(oid, fieldType));
+      cachedTypes[i] = ctx.resolveType(oid);
+      cachedCodecs[i] = castNonNull(ctx.resolveBinaryCodec(oid));
     }
   }
 
@@ -121,7 +121,7 @@ public final class PgSQLInputBinary extends PgSQLInput<byte[]> {
   /**
    * Gets the type for the current field.
    */
-  private PgType getCurrentType() {
+  private TypeDescriptor getCurrentType() {
     return cachedTypes[fieldIndex - 1];
   }
 
@@ -169,7 +169,7 @@ public final class PgSQLInputBinary extends PgSQLInput<byte[]> {
 
   @Override
   protected @Nullable Date decodeDate(byte[] data, PgType fieldType) throws SQLException {
-    PgType type = getCurrentType();
+    TypeDescriptor type = getCurrentType();
     Object value = getCodec().decodeBinary(data, type, ctx);
     if (value instanceof Date) {
       return (Date) value;
@@ -182,7 +182,7 @@ public final class PgSQLInputBinary extends PgSQLInput<byte[]> {
 
   @Override
   protected @Nullable Time decodeTime(byte[] data, PgType fieldType) throws SQLException {
-    PgType type = getCurrentType();
+    TypeDescriptor type = getCurrentType();
     Object value = getCodec().decodeBinary(data, type, ctx);
     if (value instanceof Time) {
       return (Time) value;
@@ -196,7 +196,7 @@ public final class PgSQLInputBinary extends PgSQLInput<byte[]> {
   @Override
   protected @Nullable Timestamp decodeTimestamp(byte[] data, PgType fieldType)
       throws SQLException {
-    PgType type = getCurrentType();
+    TypeDescriptor type = getCurrentType();
     Object value = getCodec().decodeBinary(data, type, ctx);
     if (value instanceof Timestamp) {
       return (Timestamp) value;
@@ -213,7 +213,7 @@ public final class PgSQLInputBinary extends PgSQLInput<byte[]> {
     // present, return the codec's default Java type so SPI-provided codecs can
     // surface their own Java objects instead of being forced through the
     // legacy PGobject registry.
-    PgType currentType = getCurrentType();
+    TypeDescriptor currentType = getCurrentType();
     Class<?> mapped = ctx.getTypeMap().get(currentType.getFullName());
     if (mapped == null) {
       mapped = ctx.getTypeMap().get(currentType.getTypeName().getName());

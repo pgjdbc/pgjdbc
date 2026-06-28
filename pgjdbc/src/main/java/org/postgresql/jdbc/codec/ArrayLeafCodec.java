@@ -6,10 +6,8 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
-import org.postgresql.core.TypeInfo;
-import org.postgresql.jdbc.PgCodecContext;
-import org.postgresql.jdbc.PgType;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -50,14 +48,11 @@ interface ArrayLeafCodec extends MultiDimArrayBinary.LeafBinaryWriter,
 
   default String getArrayTypeDescription(CodecContext ctx) {
     try {
-      // Transitional downcast (slice 2c): reach the internal TypeInfo through the implementation
-      // until child-type resolution moves onto the CodecContext interface.
-      TypeInfo typeInfo = ((PgCodecContext) ctx).getTypeInfo();
-      PgType elementType = typeInfo.getPgTypeByOid(getElementOid());
+      TypeDescriptor elementType = ctx.resolveType(getElementOid());
       return elementType.getFullName() + "[]";
     } catch (RuntimeException | SQLException e) {
-      // Fall through to built-in Oid names when context has no TypeInfo,
-      // for instance in unit tests that pass a test CodecContext.
+      // Fall through to built-in Oid names when the context has no type cache,
+      // for instance in unit tests that pass a connectionless CodecContext.
     }
     String elementName = Oid.toString(getElementOid());
     if (elementName.startsWith("<unknown:")) {

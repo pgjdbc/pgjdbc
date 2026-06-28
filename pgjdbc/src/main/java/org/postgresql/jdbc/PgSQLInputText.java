@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.codec.CompositeCodec;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -35,9 +36,9 @@ public final class PgSQLInputText extends PgSQLInput<String> {
   private final TextCodec[] cachedCodecs;
 
   /**
-   * Pre-cached PgTypes for each field, indexed by field position.
+   * Pre-cached field types, indexed by field position.
    */
-  private final PgType[] cachedTypes;
+  private final TypeDescriptor[] cachedTypes;
 
   /**
    * Creates a new PgSQLInputText from a composite text string.
@@ -50,7 +51,7 @@ public final class PgSQLInputText extends PgSQLInput<String> {
       throws SQLException {
     super(CompositeCodec.parseCompositeText(compositeData), type, ctx);
     this.cachedCodecs = new TextCodec[fields.size()];
-    this.cachedTypes = new PgType[fields.size()];
+    this.cachedTypes = new TypeDescriptor[fields.size()];
     cacheCodecs();
   }
 
@@ -65,7 +66,7 @@ public final class PgSQLInputText extends PgSQLInput<String> {
       throws SQLException {
     super(attributeValues, type, ctx);
     this.cachedCodecs = new TextCodec[fields.size()];
-    this.cachedTypes = new PgType[fields.size()];
+    this.cachedTypes = new TypeDescriptor[fields.size()];
     cacheCodecs();
   }
 
@@ -76,9 +77,8 @@ public final class PgSQLInputText extends PgSQLInput<String> {
     for (int i = 0; i < fields.size(); i++) {
       PgField field = fields.get(i);
       int oid = field.getTypeOid();
-      PgType fieldType = ctx.getTypeInfo().getPgTypeByOid(oid);
-      cachedTypes[i] = fieldType;
-      cachedCodecs[i] = castNonNull(ctx.getCodecs().getTextCodec(oid, fieldType));
+      cachedTypes[i] = ctx.resolveType(oid);
+      cachedCodecs[i] = castNonNull(ctx.resolveTextCodec(oid));
     }
   }
 
@@ -92,7 +92,7 @@ public final class PgSQLInputText extends PgSQLInput<String> {
   /**
    * Gets the type for the current field.
    */
-  private PgType getCurrentType() {
+  private TypeDescriptor getCurrentType() {
     return cachedTypes[fieldIndex - 1];
   }
 
@@ -134,7 +134,7 @@ public final class PgSQLInputText extends PgSQLInput<String> {
 
   @Override
   protected byte @Nullable [] decodeBytes(String data, PgType fieldType) throws SQLException {
-    PgType type = getCurrentType();
+    TypeDescriptor type = getCurrentType();
     Object value = getCodec().decodeText(data, type, ctx);
     if (value instanceof byte[]) {
       return (byte[]) value;
@@ -150,7 +150,7 @@ public final class PgSQLInputText extends PgSQLInput<String> {
 
   @Override
   protected @Nullable Date decodeDate(String data, PgType fieldType) throws SQLException {
-    PgType type = getCurrentType();
+    TypeDescriptor type = getCurrentType();
     Object value = getCodec().decodeText(data, type, ctx);
     if (value instanceof Date) {
       return (Date) value;
@@ -163,7 +163,7 @@ public final class PgSQLInputText extends PgSQLInput<String> {
 
   @Override
   protected @Nullable Time decodeTime(String data, PgType fieldType) throws SQLException {
-    PgType type = getCurrentType();
+    TypeDescriptor type = getCurrentType();
     Object value = getCodec().decodeText(data, type, ctx);
     if (value instanceof Time) {
       return (Time) value;
@@ -177,7 +177,7 @@ public final class PgSQLInputText extends PgSQLInput<String> {
   @Override
   protected @Nullable Timestamp decodeTimestamp(String data, PgType fieldType)
       throws SQLException {
-    PgType type = getCurrentType();
+    TypeDescriptor type = getCurrentType();
     Object value = getCodec().decodeText(data, type, ctx);
     if (value instanceof Timestamp) {
       return (Timestamp) value;
@@ -194,7 +194,7 @@ public final class PgSQLInputText extends PgSQLInput<String> {
     // present, return the codec's default Java type so SPI-provided codecs can
     // surface their own Java objects instead of being forced through the
     // legacy PGobject registry.
-    PgType currentType = getCurrentType();
+    TypeDescriptor currentType = getCurrentType();
     Class<?> mapped = ctx.getTypeMap().get(currentType.getFullName());
     if (mapped == null) {
       mapped = ctx.getTypeMap().get(currentType.getTypeName().getName());

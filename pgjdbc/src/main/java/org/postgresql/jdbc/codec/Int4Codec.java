@@ -142,9 +142,10 @@ public final class Int4Codec implements StreamingBinaryCodec, StreamingTextCodec
 
   @Override
   public int decodeTextBytesAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    // Fast path for ASCII-encoded integers
-    // Transitional downcast (slice 2c): read the wire Encoding through the implementation until it
-    // is exposed on the CodecContext interface.
+    // Fast path for ASCII-encoded integers.
+    // Wire-encoding access (not child-resolve): reads the connection Encoding through the
+    // implementation. Exposing the wire encoding on the CodecContext interface is a separate
+    // slice-2 follow-up; slice 2c moved only child-type resolution onto the interface.
     if (((PgCodecContext) ctx).getEncoding().hasAsciiNumbers()) {
       try {
         return (int) NumberParser.getFastLong(data, Integer.MIN_VALUE, Integer.MAX_VALUE);

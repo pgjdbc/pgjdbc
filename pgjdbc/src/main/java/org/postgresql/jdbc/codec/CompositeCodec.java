@@ -13,7 +13,6 @@ import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.CodecDepth;
-import org.postgresql.jdbc.CodecRegistry;
 import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.jdbc.PgField;
 import org.postgresql.jdbc.PgSQLInputBinary;
@@ -38,6 +37,7 @@ import java.sql.SQLInput;
 import java.sql.Struct;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -58,11 +58,27 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
     // Singleton for composite handling
   }
 
-  // Transitional downcast (slice 2c): the composite codec reaches the internal connection / TypeInfo
-  // / CodecRegistry (and the SQLData adapters) through PgCodecContext until child-type resolution
-  // (resolveCodec/resolveType) moves onto the CodecContext interface.
+  // Phase 3 / internal-infra remnant: after slice 2c the composite codec resolves child field types
+  // and codecs through the CodecContext interface. It still downcasts to reach getConnection() for
+  // the PgStruct it returns (a connection-bound result, Phase 3) and to hand the concrete PgType and
+  // PgCodecContext to the internal SQLData adapters (PgSQLInput*/PgSQLOutput*).
   private static PgCodecContext impl(CodecContext ctx) {
     return (PgCodecContext) ctx;
+  }
+
+  /**
+   * Returns the composite's attribute fields, loading them through the context when the descriptor
+   * does not already carry them. The anonymous RECORD pseudo-type has no catalog attributes, so its
+   * fields resolve to an empty list.
+   */
+  private static List<? extends org.postgresql.api.codec.PgField> resolveFields(
+      TypeDescriptor type, CodecContext ctx) throws SQLException {
+    List<? extends org.postgresql.api.codec.PgField> fields = type.getFields();
+    if (fields != null) {
+      return fields;
+    }
+    fields = ctx.resolveType(type.getOid()).getFields();
+    return fields != null ? fields : Collections.emptyList();
   }
 
   // =========================================================================
@@ -499,8 +515,8 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
           continue;
         }
         int fieldOid = field.getTypeOid();
-        PgType fieldType = impl(ctx).getTypeInfo().getPgTypeByOid(fieldOid);
-        BinaryCodec fieldCodec = impl(ctx).getCodecs().getBinaryCodec(fieldOid, fieldType);
+        TypeDescriptor fieldType = ctx.resolveType(fieldOid);
+        BinaryCodec fieldCodec = ctx.resolveBinaryCodec(fieldOid);
         if (fieldCodec == null) {
           attributes[i] = field.getData();
         } else {
@@ -602,11 +618,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       throws SQLException {
     CodecDepth.enter();
     try {
-      List<? extends org.postgresql.api.codec.PgField> fields = type.getFields();
-      if (fields == null) {
-        fields = impl(ctx).getTypeInfo().getFields(type.getOid());
-      }
-      final List<? extends org.postgresql.api.codec.PgField> fieldList = fields;
+      final List<? extends org.postgresql.api.codec.PgField> fieldList = resolveFields(type, ctx);
       final int expected = fieldList.size();
       final @Nullable Object[] attributes = new @Nullable Object[expected];
       final int[] seen = {0};
@@ -634,8 +646,8 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
         }
         org.postgresql.api.codec.PgField field = fieldList.get(index);
         int fieldOid = field.getTypeOid();
-        PgType fieldType = impl(ctx).getTypeInfo().getPgTypeByOid(fieldOid);
-        TextCodec fieldCodec = impl(ctx).getCodecs().getTextCodec(fieldOid, fieldType);
+        TypeDescriptor fieldType = ctx.resolveType(fieldOid);
+        TextCodec fieldCodec = ctx.resolveTextCodec(fieldOid);
         if (fieldCodec == null) {
           attributes[index] = new String(buf, offset, length);
         } else {
@@ -736,17 +748,13 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       TypeDescriptor compositeType,
       CodecContext ctx,
       Appendable out) throws SQLException, IOException {
-    List<? extends org.postgresql.api.codec.PgField> fields = compositeType.getFields();
-    if (fields == null) {
-      fields = impl(ctx).getTypeInfo().getFields(compositeType.getOid());
-    }
+    List<? extends org.postgresql.api.codec.PgField> fields = resolveFields(compositeType, ctx);
     if (fields.size() != attributes.length) {
       throw new PSQLException(
           GT.tr("Composite type {0} expects {1} attribute(s), but {2} were provided",
               compositeType.getTypeName(), fields.size(), attributes.length),
           PSQLState.DATA_ERROR);
     }
-    CodecRegistry codecs = impl(ctx).getCodecs();
     out.append('(');
     for (int i = 0; i < attributes.length; i++) {
       if (i > 0) {
@@ -758,8 +766,8 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       }
       org.postgresql.api.codec.PgField field = fields.get(i);
       int fieldOid = field.getTypeOid();
-      PgType fieldType = impl(ctx).getTypeInfo().getPgTypeByOid(fieldOid);
-      TextCodec codec = codecs.getTextCodec(fieldOid, fieldType);
+      TypeDescriptor fieldType = ctx.resolveType(fieldOid);
+      TextCodec codec = ctx.resolveTextCodec(fieldOid);
       if (codec == null) {
         throw new PSQLException(
             GT.tr("No text codec registered for type OID {0} (field {1} of {2})",
@@ -803,17 +811,13 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       TypeDescriptor compositeType,
       CodecContext ctx,
       BackpatchByteArrayOutputStream out) throws SQLException, IOException {
-    List<? extends org.postgresql.api.codec.PgField> fields = compositeType.getFields();
-    if (fields == null) {
-      fields = impl(ctx).getTypeInfo().getFields(compositeType.getOid());
-    }
+    List<? extends org.postgresql.api.codec.PgField> fields = resolveFields(compositeType, ctx);
     if (fields.size() != attributes.length) {
       throw new PSQLException(
           GT.tr("Composite type {0} expects {1} attribute(s), but {2} were provided",
               compositeType.getTypeName(), fields.size(), attributes.length),
           PSQLState.DATA_ERROR);
     }
-    CodecRegistry codecs = impl(ctx).getCodecs();
     byte[] buf = new byte[4];
     // field count
     ByteConverter.int4(buf, 0, fields.size());
@@ -830,8 +834,8 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
         out.write(buf);
         continue;
       }
-      PgType fieldType = impl(ctx).getTypeInfo().getPgTypeByOid(fieldOid);
-      BinaryCodec codec = codecs.getBinaryCodec(fieldOid, fieldType);
+      TypeDescriptor fieldType = ctx.resolveType(fieldOid);
+      BinaryCodec codec = ctx.resolveBinaryCodec(fieldOid);
       if (codec == null) {
         throw new PSQLException(
             GT.tr("No binary codec registered for type OID {0} (field {1} of {2})",

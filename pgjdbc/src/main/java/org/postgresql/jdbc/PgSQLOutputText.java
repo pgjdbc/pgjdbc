@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.codec.CompositeCodec;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -34,9 +35,9 @@ public final class PgSQLOutputText extends PgSQLOutput<String> {
   private final TextCodec[] cachedCodecs;
 
   /**
-   * Pre-cached PgTypes for each field.
+   * Pre-cached field types.
    */
-  private final PgType[] cachedTypes;
+  private final TypeDescriptor[] cachedTypes;
 
   /**
    * Creates a new PgSQLOutputText.
@@ -47,7 +48,7 @@ public final class PgSQLOutputText extends PgSQLOutput<String> {
   public PgSQLOutputText(PgType type, PgCodecContext ctx) throws SQLException {
     super(type, ctx);
     this.cachedCodecs = new TextCodec[fields.size()];
-    this.cachedTypes = new PgType[fields.size()];
+    this.cachedTypes = new TypeDescriptor[fields.size()];
     cacheCodecs();
   }
 
@@ -55,12 +56,11 @@ public final class PgSQLOutputText extends PgSQLOutput<String> {
     for (int i = 0; i < fields.size(); i++) {
       PgField field = fields.get(i);
       int oid = field.getTypeOid();
-      PgType fieldType = ctx.getTypeInfo().getPgTypeByOid(oid);
-      cachedTypes[i] = fieldType;
-      // Pass the resolved PgType so CodecRegistry can dispatch composite/array/
-      // domain/range/enum types by typtype/typcategory when the OID isn't
-      // explicitly registered (dynamic OIDs for user-defined types).
-      cachedCodecs[i] = castNonNull(ctx.getCodecs().getTextCodec(oid, fieldType));
+      // resolveType/resolveTextCodec dispatch composite/array/domain/range/enum types by
+      // typtype/typcategory when the OID is not explicitly registered (dynamic OIDs for
+      // user-defined types).
+      cachedTypes[i] = ctx.resolveType(oid);
+      cachedCodecs[i] = castNonNull(ctx.resolveTextCodec(oid));
     }
   }
 
@@ -68,7 +68,7 @@ public final class PgSQLOutputText extends PgSQLOutput<String> {
     return cachedCodecs[fieldIndex - 1];
   }
 
-  private PgType getCurrentType() {
+  private TypeDescriptor getCurrentType() {
     return cachedTypes[fieldIndex - 1];
   }
 
