@@ -8,8 +8,8 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.CodecContext;
-import org.postgresql.jdbc.PgType;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGbytea;
 import org.postgresql.util.PSQLException;
@@ -49,40 +49,40 @@ public final class ByteaCodec implements BinaryCodec, TextCodec, ArrayElementCod
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsBytes(data, type, ctx);
   }
 
   @Override
-  public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return toBytes(value);
   }
 
   @Override
-  public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return PGbytea.toBytes(data.getBytes(ctx.getCharset()));
   }
 
   @Override
-  public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     byte[] bytes = toBytes(value);
     return PGbytea.toPGString(bytes);
   }
 
   @Override
-  public byte @Nullable [] decodeAsBytes(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public byte @Nullable [] decodeAsBytes(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     // Return a copy to prevent modification
     return Arrays.copyOf(data, data.length);
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return PGbytea.toPGString(data);
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     if (targetClass == byte[].class || targetClass == Object.class) {
       return (T) decodeAsBytes(data, type, ctx);
@@ -99,7 +99,7 @@ public final class ByteaCodec implements BinaryCodec, TextCodec, ArrayElementCod
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeTextAs(String data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     if (targetClass == byte[].class || targetClass == Object.class) {
       return (T) decodeText(data, type, ctx);
@@ -116,42 +116,42 @@ public final class ByteaCodec implements BinaryCodec, TextCodec, ArrayElementCod
   }
 
   @Override
-  public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert bytea to int"),
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert bytea to int"),
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert bytea to long"),
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert bytea to long"),
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert bytea to double"),
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert bytea to double"),
         PSQLState.DATA_TYPE_MISMATCH);

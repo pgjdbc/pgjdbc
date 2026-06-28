@@ -10,6 +10,7 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.CodecDepth;
 import org.postgresql.jdbc.PgType;
@@ -73,7 +74,7 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
   // ==================== Binary Codec Methods ====================
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (data == null || data.length == 0) {
       return null;
     }
@@ -158,7 +159,7 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (!(value instanceof PGRange)) {
       throw new PSQLException(GT.tr("Cannot encode {0} as range type", value.getClass().getName()),
           PSQLState.DATA_TYPE_MISMATCH);
@@ -237,12 +238,12 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
   /**
    * Resolves the range's subtype OID from {@code pg_range.rngsubtype}. A range carries
    * {@code typelem == 0}, so the subtype is taken from the type metadata — preferring the
-   * value already cached on {@link PgType}, otherwise loaded lazily through
+   * value already cached on {@link TypeDescriptor}, otherwise loaded lazily through
    * {@link org.postgresql.core.TypeInfo#getRangeSubtype(int)}. Returns {@code 0} when no
    * connection-bound context is available (the codec unit tests pass a {@code null} context)
    * or the subtype cannot be resolved.
    */
-  private static int resolveSubtypeOid(PgType type, @Nullable CodecContext ctx) throws SQLException {
+  private static int resolveSubtypeOid(TypeDescriptor type, @Nullable CodecContext ctx) throws SQLException {
     int subtypeOid = type.getRangeSubtype();
     if (subtypeOid == 0 && ctx != null && ctx.isConnectionBound()) {
       subtypeOid = ctx.getTypeInfo().getRangeSubtype(type.getOid());
@@ -251,34 +252,34 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert range to int"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert range to long"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert range to double"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert range to BigDecimal"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Object range = decodeBinary(data, type, ctx);
     return range != null ? range.toString() : null;
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     if (targetClass == PGRange.class || targetClass == Object.class) {
       return (T) decodeBinary(data, type, ctx);
@@ -294,7 +295,7 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
   // ==================== Text Codec Methods ====================
 
   @Override
-  public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (data == null || data.isEmpty()) {
       return null;
     }
@@ -302,7 +303,7 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable Object decodeText(char[] data, int offset, int length, PgType type,
+  public @Nullable Object decodeText(char[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (length == 0) {
       return null;
@@ -316,7 +317,7 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
    * Parses a range literal off {@code cur}, driving the shared {@link LiteralCursor}
    * so the same code serves the String and slice forms.
    */
-  private static @Nullable Object decodeRange(LiteralCursor cur, PgType type, CodecContext ctx)
+  private static @Nullable Object decodeRange(LiteralCursor cur, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     cur.skipWhitespace();
     if (cur.consumeKeyword("empty")) {
@@ -402,7 +403,7 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (value instanceof PGRange) {
       return value.toString();
     }
@@ -412,7 +413,7 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeTextAs(String data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     if (targetClass == PGRange.class || targetClass == Object.class) {
       return (T) decodeText(data, type, ctx);
@@ -426,27 +427,27 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert range to int"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert range to long"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert range to double"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert range to BigDecimal"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public @Nullable String decodeAsString(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return data;
   }
 }

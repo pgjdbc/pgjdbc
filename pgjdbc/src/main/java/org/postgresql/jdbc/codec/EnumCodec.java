@@ -8,8 +8,8 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.CodecContext;
-import org.postgresql.jdbc.PgType;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -48,41 +48,41 @@ public final class EnumCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     // Binary format for enum is the text representation as bytes
     return new String(data, ctx.getCharset());
   }
 
   @Override
-  public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     String stringValue = toEnumString(value);
     return stringValue.getBytes(ctx.getCharset());
   }
 
   @Override
-  public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     // Text format - return as String directly
     return data;
   }
 
   @Override
-  public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return toEnumString(value);
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return new String(data, ctx.getCharset());
   }
 
   @Override
-  public @Nullable String decodeAsString(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return data;
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     if (targetClass == String.class || targetClass == Object.class) {
       return (T) decodeAsString(data, type, ctx);
@@ -92,7 +92,7 @@ public final class EnumCodec implements BinaryCodec, TextCodec {
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeTextAs(String data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     if (targetClass == String.class || targetClass == Object.class) {
       return (T) data;
@@ -101,56 +101,56 @@ public final class EnumCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert enum to int"),
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert enum to int"),
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert enum to long"),
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert enum to long"),
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert enum to double"),
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert enum to double"),
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public boolean decodeAsBoolean(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public boolean decodeAsBoolean(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert enum to boolean"),
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public boolean decodeAsBoolean(String data, PgType type, CodecContext ctx) throws SQLException {
+  public boolean decodeAsBoolean(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert enum to boolean"),
         PSQLState.DATA_TYPE_MISMATCH);

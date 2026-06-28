@@ -7,7 +7,6 @@ package org.postgresql.api.codec;
 
 import org.postgresql.api.Experimental;
 import org.postgresql.jdbc.CodecContext;
-import org.postgresql.jdbc.PgType;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -58,7 +57,7 @@ public interface BinaryCodec extends Codec {
    * @return the decoded Java object
    * @throws SQLException if decoding fails
    */
-  @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException;
+  @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException;
 
   /**
    * Decodes a value from a slice of a larger binary buffer, without copying the
@@ -67,7 +66,7 @@ public interface BinaryCodec extends Codec {
    * <p>Container codecs (arrays, ranges, composites) call this so each element,
    * bound, or field is decoded in place instead of through a per-element
    * {@link java.util.Arrays#copyOfRange}. The default copies the slice and
-   * delegates to {@link #decodeBinary(byte[], PgType, CodecContext)}, so codecs
+   * delegates to {@link #decodeBinary(byte[], TypeDescriptor, CodecContext)}, so codecs
    * that do not override it keep the existing single-copy behaviour. Fixed-width
    * and string codecs override it to read directly at {@code offset}.</p>
    *
@@ -79,7 +78,7 @@ public interface BinaryCodec extends Codec {
    * @return the decoded Java object
    * @throws SQLException if decoding fails
    */
-  default @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+  default @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (offset == 0 && length == data.length) {
       return decodeBinary(data, type, ctx);
@@ -96,7 +95,7 @@ public interface BinaryCodec extends Codec {
    * @return the binary representation
    * @throws SQLException if encoding fails
    */
-  byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException;
+  byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException;
 
   /**
    * Whether {@link #encodeBinary} produces a true PostgreSQL binary representation. Codecs whose
@@ -129,7 +128,7 @@ public interface BinaryCodec extends Codec {
    * @return true if {@code value} can be encoded as a real binary representation
    * @throws SQLException if type metadata cannot be resolved
    */
-  default boolean canEncodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+  default boolean canEncodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return supportsBinaryEncoding();
   }
 
@@ -148,7 +147,7 @@ public interface BinaryCodec extends Codec {
    * @return the int value
    * @throws SQLException if decoding fails or value overflows int range
    */
-  default int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  default int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Object value = decodeBinary(data, type, ctx);
     if (value instanceof Number) {
       return ((Number) value).intValue();
@@ -171,7 +170,7 @@ public interface BinaryCodec extends Codec {
    * @return the long value
    * @throws SQLException if decoding fails or value overflows long range
    */
-  default long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  default long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Object value = decodeBinary(data, type, ctx);
     if (value instanceof Number) {
       return ((Number) value).longValue();
@@ -191,7 +190,7 @@ public interface BinaryCodec extends Codec {
    * @return the float value
    * @throws SQLException if decoding fails
    */
-  default float decodeAsFloat(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  default float decodeAsFloat(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Object value = decodeBinary(data, type, ctx);
     if (value instanceof Number) {
       return ((Number) value).floatValue();
@@ -211,7 +210,7 @@ public interface BinaryCodec extends Codec {
    * @return the double value
    * @throws SQLException if decoding fails
    */
-  default double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  default double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Object value = decodeBinary(data, type, ctx);
     if (value instanceof Number) {
       return ((Number) value).doubleValue();
@@ -230,7 +229,7 @@ public interface BinaryCodec extends Codec {
    * @return the boolean value
    * @throws SQLException if decoding fails
    */
-  default boolean decodeAsBoolean(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  default boolean decodeAsBoolean(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Object value = decodeBinary(data, type, ctx);
     return org.postgresql.jdbc.BooleanTypeUtil.castAndCheck(
         value, () -> decodeAsString(data, type, ctx));
@@ -247,7 +246,7 @@ public interface BinaryCodec extends Codec {
    * @return the string value, or null if the decoded value is null
    * @throws SQLException if decoding fails
    */
-  default @Nullable String decodeAsString(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  default @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Object value = decodeBinary(data, type, ctx);
     return value == null ? null : value.toString();
   }
@@ -263,7 +262,7 @@ public interface BinaryCodec extends Codec {
    * @return the BigDecimal value
    * @throws SQLException if decoding fails
    */
-  default @Nullable BigDecimal decodeAsBigDecimal(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  default @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Object value = decodeBinary(data, type, ctx);
     if (value == null) {
       return null;
@@ -291,7 +290,7 @@ public interface BinaryCodec extends Codec {
    * @return the byte array
    * @throws SQLException if decoding fails or value is not a byte array
    */
-  default byte @Nullable [] decodeAsBytes(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  default byte @Nullable [] decodeAsBytes(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Object value = decodeBinary(data, type, ctx);
     if (value == null) {
       return null;
@@ -320,7 +319,7 @@ public interface BinaryCodec extends Codec {
    * @return the decoded object as the target type
    * @throws SQLException if conversion to the target class is not supported
    */
-  default <T> @Nullable T decodeBinaryAs(byte[] data, PgType type, Class<T> targetClass, CodecContext ctx)
+  default <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     Object value = decodeBinary(data, type, ctx);
     if (value == null) {

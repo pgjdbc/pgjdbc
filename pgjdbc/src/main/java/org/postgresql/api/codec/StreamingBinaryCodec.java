@@ -7,7 +7,6 @@ package org.postgresql.api.codec;
 
 import org.postgresql.api.Experimental;
 import org.postgresql.jdbc.CodecContext;
-import org.postgresql.jdbc.PgType;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -26,7 +25,7 @@ import java.sql.SQLException;
  * of asking the element codec for a per-element {@code byte[]} that's
  * immediately copied into the array buffer.</p>
  *
- * <p>The {@link #encodeBinary(Object, PgType, CodecContext)} byte-array form
+ * <p>The {@link #encodeBinary(Object, TypeDescriptor, CodecContext)} byte-array form
  * is provided as a default adapter that buffers into a
  * {@link ByteArrayOutputStream}.</p>
  *
@@ -45,16 +44,16 @@ public interface StreamingBinaryCodec extends BinaryCodec {
    * @throws SQLException if encoding fails
    * @throws IOException if {@code out} throws
    */
-  void encodeBinary(Object value, PgType type, CodecContext ctx, OutputStream out)
+  void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx, OutputStream out)
       throws SQLException, IOException;
 
   /**
    * Default {@code byte[]}-returning form: buffers into a
    * {@link ByteArrayOutputStream} and delegates to
-   * {@link #encodeBinary(Object, PgType, CodecContext, OutputStream)}.
+   * {@link #encodeBinary(Object, TypeDescriptor, CodecContext, OutputStream)}.
    */
   @Override
-  default byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+  default byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     try {
       encodeBinary(value, type, ctx, baos);

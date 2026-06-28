@@ -8,8 +8,8 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.CodecContext;
-import org.postgresql.jdbc.PgType;
 import org.postgresql.jdbc.TemporalCodecs;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGUnknownBinary;
@@ -49,18 +49,18 @@ public final class FallbackCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     // Use PGUnknownBinary to preserve raw binary data without hex conversion
     return new PGUnknownBinary(type.getTypeName().getName(), data);
   }
 
   @Override
-  public boolean canEncodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public boolean canEncodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return value instanceof PGUnknownBinary || value instanceof String;
   }
 
   @Override
-  public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (value instanceof PGUnknownBinary) {
       byte[] bytes = ((PGUnknownBinary) value).getBytes();
       return bytes != null ? bytes : new byte[0];
@@ -72,7 +72,7 @@ public final class FallbackCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     PGobject obj = new PGobject();
     obj.setType(type.getTypeName().getName());
     obj.setValue(data);
@@ -80,7 +80,7 @@ public final class FallbackCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (value instanceof PGobject) {
       String strValue = ((PGobject) value).getValue();
       return strValue != null ? strValue : "";
@@ -92,13 +92,13 @@ public final class FallbackCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return new String(data, ctx.getCharset());
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     if (targetClass == PGUnknownBinary.class || targetClass == Object.class) {
       return (T) decodeBinary(data, type, ctx);
@@ -120,7 +120,7 @@ public final class FallbackCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public <T> @Nullable T decodeTextAs(String data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     if (targetClass == PGobject.class || targetClass == Object.class) {
       return (T) decodeText(data, type, ctx);
@@ -145,7 +145,7 @@ public final class FallbackCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     String s = decodeAsString(data, type, ctx);
     if (s == null) {
       return 0;
@@ -160,7 +160,7 @@ public final class FallbackCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     try {
       return Integer.parseInt(data.trim());
     } catch (NumberFormatException e) {
@@ -171,7 +171,7 @@ public final class FallbackCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     String s = decodeAsString(data, type, ctx);
     if (s == null) {
       return 0;
@@ -186,7 +186,7 @@ public final class FallbackCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     try {
       return Long.parseLong(data.trim());
     } catch (NumberFormatException e) {
@@ -197,7 +197,7 @@ public final class FallbackCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     String s = decodeAsString(data, type, ctx);
     if (s == null) {
       return 0;
@@ -212,7 +212,7 @@ public final class FallbackCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     try {
       return Double.parseDouble(data.trim());
     } catch (NumberFormatException e) {
