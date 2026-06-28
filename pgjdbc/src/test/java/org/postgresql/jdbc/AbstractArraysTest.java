@@ -288,10 +288,10 @@ public abstract class AbstractArraysTest<A> {
     }
 
     @Override
-    public CodecContext getCodecContext() throws SQLException {
+    public PgCodecContext getCodecContext() throws SQLException {
       // A connection-bound context so the array codec walker can resolve element
       // types and codecs through the connection's TypeInfo / CodecRegistry.
-      return new CodecContext(this, typeInfo.getCodecRegistry(), new JavaTypeRegistry());
+      return new PgCodecContext(this, typeInfo.getCodecRegistry(), new JavaTypeRegistry());
     }
 
     @Override

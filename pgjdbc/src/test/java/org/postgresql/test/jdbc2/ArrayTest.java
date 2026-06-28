@@ -13,11 +13,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGConnection;
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
-import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgArray;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.jdbc.PreferQueryMode;

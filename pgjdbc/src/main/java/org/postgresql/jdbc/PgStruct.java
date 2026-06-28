@@ -131,7 +131,7 @@ public class PgStruct extends org.postgresql.util.PGobject implements Struct {
       PgType type = pgType != null
           ? pgType
           : connection.getTypeInfo().getPgTypeByPgName(typeName);
-      CodecContext ctx = connection.getCodecContext();
+      PgCodecContext ctx = connection.getCodecContext();
       String text = CompositeCodec.encodeAttributesAsText(attributes, type, ctx);
       super.setValue(text);
       return text;
@@ -163,7 +163,7 @@ public class PgStruct extends org.postgresql.util.PGobject implements Struct {
         // Convert nested struct to SQLData using CompositeCodec.
         PgType pgType = connection.getTypeInfo().getPgTypeByPgName(nestedTypeName);
         Object[] nestedAttrs = nestedStruct.getAttributes();
-        CodecContext ctx = connection.getCodecContext();
+        PgCodecContext ctx = connection.getCodecContext();
         String textValue = CompositeCodec.encodeAttributesAsText(nestedAttrs, pgType, ctx);
         return CompositeCodec.INSTANCE.decodeTextAs(
             textValue, pgType, (Class<? extends SQLData>) nestedClass, ctx);

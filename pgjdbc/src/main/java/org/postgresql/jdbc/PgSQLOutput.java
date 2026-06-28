@@ -46,7 +46,7 @@ public abstract class PgSQLOutput<BufferType> implements SQLOutput {
 
   protected final List<@Nullable BufferType> attributeValues = new ArrayList<>();
   protected final PgType compositeType;
-  protected final CodecContext ctx;
+  protected final PgCodecContext ctx;
   protected final List<PgField> fields;
   protected int fieldIndex = 0;
 
@@ -56,7 +56,7 @@ public abstract class PgSQLOutput<BufferType> implements SQLOutput {
    * @param type the composite type
    * @param ctx the codec context
    */
-  protected PgSQLOutput(PgType type, CodecContext ctx) throws SQLException {
+  protected PgSQLOutput(PgType type, PgCodecContext ctx) throws SQLException {
     this.compositeType = type;
     this.ctx = ctx;
     List<PgField> typeFields = type.getFields();

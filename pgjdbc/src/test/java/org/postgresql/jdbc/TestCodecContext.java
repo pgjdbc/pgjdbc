@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import org.postgresql.api.codec.CodecContext;
+
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.TimeZone;
@@ -48,7 +50,7 @@ public final class TestCodecContext {
       boolean prefersJavaTimeForTimestamp,
       boolean prefersJavaTimeForTimestamptz) {
     TimestampUtils timestampUtils = new TimestampUtils(false, () -> TimeZone.getTimeZone("UTC"));
-    return new CodecContext(timestampUtils, charset,
+    return new PgCodecContext(timestampUtils, charset,
         prefersJavaTimeForDate, prefersJavaTimeForTime, prefersJavaTimeForTimetz,
         prefersJavaTimeForTimestamp, prefersJavaTimeForTimestamptz);
   }
@@ -59,7 +61,7 @@ public final class TestCodecContext {
    */
   public static CodecContext withConvertBooleanToNumeric(boolean convertBooleanToNumeric) {
     TimestampUtils timestampUtils = new TimestampUtils(false, () -> TimeZone.getTimeZone("UTC"));
-    return new CodecContext(timestampUtils, StandardCharsets.UTF_8,
+    return new PgCodecContext(timestampUtils, StandardCharsets.UTF_8,
         false, false, false, false, false, convertBooleanToNumeric);
   }
 

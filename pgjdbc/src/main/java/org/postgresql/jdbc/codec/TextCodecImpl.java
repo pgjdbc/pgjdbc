@@ -8,11 +8,11 @@ package org.postgresql.jdbc.codec;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.api.codec.Codec;
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.BooleanTypeUtil;
-import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.TemporalCodecs;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;

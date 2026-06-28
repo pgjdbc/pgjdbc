@@ -6,8 +6,9 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.TextCodec;
-import org.postgresql.jdbc.CodecContext;
+import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.util.ByteConverter;
 
@@ -55,7 +56,9 @@ final class JsonArrayLeafCodec implements ArrayLeafCodec {
   }
 
   private PgType elementType(CodecContext ctx) throws SQLException {
-    return ctx.getTypeInfo().getPgTypeByOid(elementOid);
+    // Transitional downcast (slice 2c): reach the internal TypeInfo through the implementation
+    // until child-type resolution moves onto the CodecContext interface.
+    return ((PgCodecContext) ctx).getTypeInfo().getPgTypeByOid(elementOid);
   }
 
   @Override

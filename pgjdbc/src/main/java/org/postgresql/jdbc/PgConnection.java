@@ -858,7 +858,7 @@ public class PgConnection implements BaseConnection {
         @SuppressWarnings("unchecked")
         Class<? extends SQLData> sqlDataClass = (Class<? extends SQLData>) c;
         PgType pgType = typeCache.getPgTypeByPgName(type);
-        CodecContext ctx = getCodecContext();
+        PgCodecContext ctx = getCodecContext();
         // decodeBinaryAs/decodeTextAs may return null only for an empty payload,
         // which BaseConnection#getObject's non-null contract treats as
         // "construct an empty PGobject" — fall through to the PGobject path in
@@ -2174,17 +2174,17 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * Returns a CodecContext for this connection.
+   * Returns a PgCodecContext for this connection.
    *
-   * <p>The CodecContext provides access to codecs and type information
+   * <p>The PgCodecContext provides access to codecs and type information
    * needed for encoding and decoding values.</p>
    *
    * @return the codec context
    * @throws SQLException if the context cannot be created
    */
   @Override
-  public CodecContext getCodecContext() throws SQLException {
-    return new CodecContext(this, codecRegistry, javaTypeRegistry, typemap,
+  public PgCodecContext getCodecContext() throws SQLException {
+    return new PgCodecContext(this, codecRegistry, javaTypeRegistry, typemap,
         prefersJavaTimeForDate, prefersJavaTimeForTime, prefersJavaTimeForTimetz,
         prefersJavaTimeForTimestamp, prefersJavaTimeForTimestamptz, convertBooleanToNumeric);
   }

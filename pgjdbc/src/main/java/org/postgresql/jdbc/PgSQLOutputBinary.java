@@ -42,7 +42,7 @@ public final class PgSQLOutputBinary extends PgSQLOutput<byte[]> {
    * @param type the composite type
    * @param ctx the codec context
    */
-  public PgSQLOutputBinary(PgType type, CodecContext ctx) throws SQLException {
+  public PgSQLOutputBinary(PgType type, PgCodecContext ctx) throws SQLException {
     super(type, ctx);
     this.cachedCodecs = new BinaryCodec[fields.size()];
     this.cachedTypes = new PgType[fields.size()];

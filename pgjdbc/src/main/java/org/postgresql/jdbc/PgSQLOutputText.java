@@ -44,7 +44,7 @@ public final class PgSQLOutputText extends PgSQLOutput<String> {
    * @param type the composite type
    * @param ctx the codec context
    */
-  public PgSQLOutputText(PgType type, CodecContext ctx) throws SQLException {
+  public PgSQLOutputText(PgType type, PgCodecContext ctx) throws SQLException {
     super(type, ctx);
     this.cachedCodecs = new TextCodec[fields.size()];
     this.cachedTypes = new PgType[fields.size()];

@@ -7,10 +7,10 @@ package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TextCodec;
-import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;

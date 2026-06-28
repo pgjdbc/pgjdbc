@@ -6,6 +6,7 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.PGStatement;
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;

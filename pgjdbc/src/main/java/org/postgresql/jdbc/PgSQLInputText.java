@@ -46,7 +46,7 @@ public final class PgSQLInputText extends PgSQLInput<String> {
    * @param type the composite type
    * @param ctx the codec context
    */
-  public PgSQLInputText(String compositeData, PgType type, CodecContext ctx)
+  public PgSQLInputText(String compositeData, PgType type, PgCodecContext ctx)
       throws SQLException {
     super(CompositeCodec.parseCompositeText(compositeData), type, ctx);
     this.cachedCodecs = new TextCodec[fields.size()];
@@ -61,7 +61,7 @@ public final class PgSQLInputText extends PgSQLInput<String> {
    * @param type the composite type
    * @param ctx the codec context
    */
-  public PgSQLInputText(@Nullable String[] attributeValues, PgType type, CodecContext ctx)
+  public PgSQLInputText(@Nullable String[] attributeValues, PgType type, PgCodecContext ctx)
       throws SQLException {
     super(attributeValues, type, ctx);
     this.cachedCodecs = new TextCodec[fields.size()];

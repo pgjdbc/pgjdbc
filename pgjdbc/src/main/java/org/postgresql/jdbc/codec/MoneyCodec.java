@@ -6,9 +6,9 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
-import org.postgresql.jdbc.CodecContext;
 import org.postgresql.util.PGmoney;
 import org.postgresql.util.PGobject;
 

@@ -751,7 +751,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    */
   private void bindArrayValue(int parameterIndex, Object value, int oid, PgType arrayType)
       throws SQLException {
-    CodecContext ctx = connection.getCodecContext();
+    PgCodecContext ctx = connection.getCodecContext();
     CodecRegistry codecs = ctx.getCodecs();
     if (connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
       BinaryCodec codec = codecs.getBinaryCodec(oid, arrayType);
@@ -983,7 +983,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   private void encodeViaCodec(@Positive int parameterIndex, Object value, TextCodec codec, int oid)
       throws SQLException {
     PgType pgType = connection.getTypeInfo().getPgTypeByOid(oid);
-    CodecContext ctx = connection.getCodecContext();
+    PgCodecContext ctx = connection.getCodecContext();
     String text = codec.encodeText(value, pgType, ctx);
     bindString(parameterIndex, text, oid);
   }
@@ -1492,7 +1492,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   private void bindViaCodec(@Positive int parameterIndex,
       Object value, PgType pgType) throws SQLException {
     int oid = pgType.getOid();
-    CodecContext ctx = connection.getCodecContext();
+    PgCodecContext ctx = connection.getCodecContext();
     CodecRegistry codecs = ctx.getCodecs();
     if (connection.binaryTransferSend(oid)
         && connection.getTypeInfo().backendCanReceiveBinary(pgType)) {

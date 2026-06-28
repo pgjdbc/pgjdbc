@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.api.Experimental;
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.TypeInfo;
@@ -22,25 +23,24 @@ import java.util.Map;
 import java.util.TimeZone;
 
 /**
- * Immutable context passed to all codec operations.
+ * Connection-bound implementation of {@link CodecContext}.
  *
- * <p>CodecContext provides access to connection-scoped resources needed for encoding
- * and decoding PostgreSQL values:</p>
+ * <p>Beyond the public {@link CodecContext} surface, this class exposes the driver internals the
+ * built-in container codecs and SQLData adapters need:</p>
  * <ul>
  *   <li>{@link TypeInfo} - PostgreSQL type metadata cache</li>
  *   <li>{@link CodecRegistry} - Codec lookup and registration</li>
  *   <li>{@link JavaTypeRegistry} - Java class to PostgreSQL type mappings</li>
- *   <li>Connection settings (timezone, encoding)</li>
- *   <li>Type map for custom type mappings</li>
+ *   <li>{@link BaseConnection} and {@link Encoding}</li>
  * </ul>
  *
- * <p>CodecContext is immutable. Use {@link #withTypeMap(Map)} to create a new
- * context with a different type map for per-call customization.</p>
+ * <p>Instances are immutable. Use {@link #withTypeMap(Map)} (and the other {@code with*} methods) to
+ * derive a context with a different per-call setting.</p>
  *
  * @since 42.8.0
  */
 @Experimental("Codec API is experimental and may change in future releases")
-public final class CodecContext {
+public final class PgCodecContext implements CodecContext {
 
   private final @Nullable BaseConnection connection;
   private final @Nullable TypeInfo typeInfo;
@@ -68,21 +68,21 @@ public final class CodecContext {
   private final boolean convertBooleanToNumeric;
 
   /**
-   * Creates a new CodecContext from a connection with default preferences.
+   * Creates a new PgCodecContext from a connection with default preferences.
    *
    * @param connection the database connection
    * @param codecs the codec registry
    * @param javaTypes the Java type registry
    * @throws SQLException if the encoding cannot be retrieved
    */
-  public CodecContext(BaseConnection connection, CodecRegistry codecs,
+  public PgCodecContext(BaseConnection connection, CodecRegistry codecs,
       JavaTypeRegistry javaTypes) throws SQLException {
     this(connection, codecs, javaTypes, Collections.emptyMap(),
         false, false, false, false, false, false);
   }
 
   /**
-   * Creates a new CodecContext with date/time preferences.
+   * Creates a new PgCodecContext with date/time preferences.
    *
    * @param connection the database connection
    * @param codecs the codec registry
@@ -94,7 +94,7 @@ public final class CodecContext {
    * @param prefersJavaTimeForTimestamptz true if getObject(TIMESTAMPTZ) should return OffsetDateTime
    * @throws SQLException if the encoding cannot be retrieved
    */
-  public CodecContext(BaseConnection connection, CodecRegistry codecs,
+  public PgCodecContext(BaseConnection connection, CodecRegistry codecs,
       JavaTypeRegistry javaTypes,
       boolean prefersJavaTimeForDate,
       boolean prefersJavaTimeForTime,
@@ -107,7 +107,7 @@ public final class CodecContext {
   }
 
   /**
-   * Creates a new CodecContext with a specific type map and date/time preferences.
+   * Creates a new PgCodecContext with a specific type map and date/time preferences.
    *
    * @param connection the database connection
    * @param codecs the codec registry
@@ -121,7 +121,7 @@ public final class CodecContext {
    * @param convertBooleanToNumeric true if numeric getters on a BOOL column convert 't'/'f' to 1/0
    * @throws SQLException if the encoding cannot be retrieved
    */
-  public CodecContext(BaseConnection connection, CodecRegistry codecs,
+  public PgCodecContext(BaseConnection connection, CodecRegistry codecs,
       JavaTypeRegistry javaTypes, Map<String, Class<?>> typeMap,
       boolean prefersJavaTimeForDate,
       boolean prefersJavaTimeForTime,
@@ -160,7 +160,7 @@ public final class CodecContext {
    * @param prefersJavaTimeForTimestamp true if getObject(TIMESTAMP) should return LocalDateTime
    * @param prefersJavaTimeForTimestamptz true if getObject(TIMESTAMPTZ) should return OffsetDateTime
    */
-  CodecContext(TimestampUtils timestampUtils, Charset charset,
+  PgCodecContext(TimestampUtils timestampUtils, Charset charset,
       boolean prefersJavaTimeForDate,
       boolean prefersJavaTimeForTime,
       boolean prefersJavaTimeForTimetz,
@@ -175,7 +175,7 @@ public final class CodecContext {
    * Package-private constructor for unit testing without a database connection,
    * allowing the {@code convertBooleanToNumeric} flag to be configured.
    */
-  CodecContext(TimestampUtils timestampUtils, Charset charset,
+  PgCodecContext(TimestampUtils timestampUtils, Charset charset,
       boolean prefersJavaTimeForDate,
       boolean prefersJavaTimeForTime,
       boolean prefersJavaTimeForTimetz,
@@ -200,16 +200,16 @@ public final class CodecContext {
   }
 
   /**
-   * Returns a new CodecContext with the specified type map.
+   * Returns a new PgCodecContext with the specified type map.
    *
    * <p>This is used for operations that accept a type map parameter,
    * such as {@code getArray(Map)} or {@code getObject(int, Map)}.</p>
    *
    * @param typeMap the new type map
-   * @return a new CodecContext with the specified type map
+   * @return a new PgCodecContext with the specified type map
    * @throws SQLException if the encoding cannot be retrieved
    */
-  public CodecContext withTypeMap(Map<String, Class<?>> typeMap) throws SQLException {
+  public PgCodecContext withTypeMap(Map<String, Class<?>> typeMap) throws SQLException {
     if (typeMap == null || typeMap.isEmpty()) {
       if (this.typeMap.isEmpty()) {
         return this;
@@ -224,9 +224,9 @@ public final class CodecContext {
     CodecRegistry registries = codecs;
     JavaTypeRegistry javaTypeReg = javaTypes;
     if (conn == null || registries == null || javaTypeReg == null) {
-      throw new SQLException("withTypeMap is not supported on a connectionless CodecContext");
+      throw new SQLException("withTypeMap is not supported on a connectionless PgCodecContext");
     }
-    CodecContext copy = new CodecContext(conn, registries, javaTypeReg, typeMap,
+    PgCodecContext copy = new PgCodecContext(conn, registries, javaTypeReg, typeMap,
         prefersJavaTimeForDate, prefersJavaTimeForTime, prefersJavaTimeForTimetz,
         prefersJavaTimeForTimestamp, prefersJavaTimeForTimestamptz, convertBooleanToNumeric);
     if (timestampUtils != null) {
@@ -236,28 +236,28 @@ public final class CodecContext {
   }
 
   /**
-   * Returns a new CodecContext that uses the given TimestampUtils instance
+   * Returns a new PgCodecContext that uses the given TimestampUtils instance
    * for date/time conversions. This is meant for callers like PgResultSet
    * that maintain a per-instance TimestampUtils (so timezone caching is
    * scoped to the result set rather than shared at the connection level).
    *
    * @param utils the TimestampUtils to use, or null to fall through to the
    *     connection-level default
-   * @return a new CodecContext bound to {@code utils} for {@code usesDoubleDateTime()} and
+   * @return a new PgCodecContext bound to {@code utils} for {@code usesDoubleDateTime()} and
    *     {@code getClientTimeZone()}
    */
   @SuppressWarnings("ReferenceEquality")
-  public CodecContext withTimestampUtils(@Nullable TimestampUtils utils) {
+  public PgCodecContext withTimestampUtils(@Nullable TimestampUtils utils) {
     if (utils == this.timestampUtils) {
       return this;
     }
-    return new CodecContext(this, utils);
+    return new PgCodecContext(this, utils);
   }
 
   /**
    * Copy constructor with a custom TimestampUtils.
    */
-  private CodecContext(CodecContext source, @Nullable TimestampUtils utils) {
+  private PgCodecContext(PgCodecContext source, @Nullable TimestampUtils utils) {
     this.connection = source.connection;
     this.typeInfo = source.typeInfo;
     this.codecs = source.codecs;
@@ -276,7 +276,7 @@ public final class CodecContext {
   }
 
   /**
-   * Returns a new CodecContext carrying the supplied {@link Calendar} for the next
+   * Returns a new PgCodecContext carrying the supplied {@link Calendar} for the next
    * decode. {@code getDate/getTime/getTimestamp(col, Calendar)} use this to thread the
    * caller's Calendar to the temporal codecs without changing the codec method
    * signatures. The Calendar is borrowed, not copied: it is consumed synchronously
@@ -286,11 +286,11 @@ public final class CodecContext {
    * @return a context that returns {@code cal} from {@link #getCalendar()}
    */
   @SuppressWarnings("ReferenceEquality")
-  public CodecContext withCalendar(@Nullable Calendar cal) {
+  public PgCodecContext withCalendar(@Nullable Calendar cal) {
     if (cal == this.calendar) {
       return this;
     }
-    return new CodecContext(this, cal);
+    return new PgCodecContext(this, cal);
   }
 
   /**
@@ -302,18 +302,18 @@ public final class CodecContext {
    *
    * @return a context that decodes temporal values as the {@code java.sql} types
    */
-  public CodecContext withoutJavaTimePreferences() {
+  public PgCodecContext withoutJavaTimePreferences() {
     if (!prefersJavaTimeForDate && !prefersJavaTimeForTime && !prefersJavaTimeForTimetz
         && !prefersJavaTimeForTimestamp && !prefersJavaTimeForTimestamptz) {
       return this;
     }
-    return new CodecContext(this);
+    return new PgCodecContext(this);
   }
 
   /**
    * Copy constructor that clears the java.time {@code getObject} preferences.
    */
-  private CodecContext(CodecContext source) {
+  private PgCodecContext(PgCodecContext source) {
     this.connection = source.connection;
     this.typeInfo = source.typeInfo;
     this.codecs = source.codecs;
@@ -334,7 +334,7 @@ public final class CodecContext {
   /**
    * Copy constructor with a per-call Calendar.
    */
-  private CodecContext(CodecContext source, @Nullable Calendar cal) {
+  private PgCodecContext(PgCodecContext source, @Nullable Calendar cal) {
     this.connection = source.connection;
     this.typeInfo = source.typeInfo;
     this.codecs = source.codecs;
@@ -357,13 +357,13 @@ public final class CodecContext {
    *
    * <p>Note: Prefer using specific accessors like {@link #getTypeInfo()},
    * {@link #getEncoding()}, etc. Direct connection access should be limited
-   * to operations not available through CodecContext.</p>
+   * to operations not available through PgCodecContext.</p>
    *
    * @return the database connection
    */
   public BaseConnection getConnection() {
     return castNonNull(connection,
-        "CodecContext has no connection (constructed for unit testing only)");
+        "PgCodecContext has no connection (constructed for unit testing only)");
   }
 
   /**
@@ -385,7 +385,7 @@ public final class CodecContext {
    */
   public TypeInfo getTypeInfo() {
     return castNonNull(typeInfo,
-        "CodecContext has no TypeInfo (constructed for unit testing only)");
+        "PgCodecContext has no TypeInfo (constructed for unit testing only)");
   }
 
   /**
@@ -395,7 +395,7 @@ public final class CodecContext {
    */
   public CodecRegistry getCodecs() {
     return castNonNull(codecs,
-        "CodecContext has no CodecRegistry (constructed for unit testing only)");
+        "PgCodecContext has no CodecRegistry (constructed for unit testing only)");
   }
 
   /**
@@ -405,7 +405,7 @@ public final class CodecContext {
    */
   public JavaTypeRegistry getJavaTypes() {
     return castNonNull(javaTypes,
-        "CodecContext has no JavaTypeRegistry (constructed for unit testing only)");
+        "PgCodecContext has no JavaTypeRegistry (constructed for unit testing only)");
   }
 
   /**
@@ -416,6 +416,7 @@ public final class CodecContext {
    *
    * @return the type map (never null, may be empty)
    */
+  @Override
   public Map<String, Class<?>> getTypeMap() {
     return typeMap;
   }
@@ -427,7 +428,7 @@ public final class CodecContext {
    */
   public Encoding getEncoding() {
     return castNonNull(encoding,
-        "CodecContext has no Encoding (constructed for unit testing only)");
+        "PgCodecContext has no Encoding (constructed for unit testing only)");
   }
 
   /**
@@ -435,6 +436,7 @@ public final class CodecContext {
    *
    * @return the character set
    */
+  @Override
   public Charset getCharset() {
     return charset;
   }
@@ -445,6 +447,7 @@ public final class CodecContext {
    *
    * @return true if the backend uses {@code float8} timestamps
    */
+  @Override
   public boolean usesDoubleDateTime() {
     TimestampUtils tu = timestampUtils;
     if (tu != null) {
@@ -459,6 +462,7 @@ public final class CodecContext {
    *
    * @return the default time zone
    */
+  @Override
   public TimeZone getDefaultTimeZone() {
     return TimeZone.getDefault();
   }
@@ -470,6 +474,7 @@ public final class CodecContext {
    *
    * @return the client time zone
    */
+  @Override
   public TimeZone getClientTimeZone() {
     TimestampUtils tu = timestampUtils;
     if (tu != null) {
@@ -486,6 +491,7 @@ public final class CodecContext {
    *
    * @return the per-call Calendar, or null
    */
+  @Override
   public @Nullable Calendar getCalendar() {
     return calendar;
   }
@@ -499,6 +505,7 @@ public final class CodecContext {
    * @param typeName the PostgreSQL type name
    * @return the mapped Java class, or null if not mapped
    */
+  @Override
   public @Nullable Class<?> getMappedClass(String typeName) {
     Class<?> clazz = typeMap.get(typeName);
     if (clazz != null) {
@@ -513,6 +520,7 @@ public final class CodecContext {
    *
    * @return true if java.time is preferred for DATE
    */
+  @Override
   public boolean prefersJavaTimeForDate() {
     return prefersJavaTimeForDate;
   }
@@ -522,6 +530,7 @@ public final class CodecContext {
    *
    * @return true if java.time is preferred for TIME
    */
+  @Override
   public boolean prefersJavaTimeForTime() {
     return prefersJavaTimeForTime;
   }
@@ -531,6 +540,7 @@ public final class CodecContext {
    *
    * @return true if java.time is preferred for TIMETZ
    */
+  @Override
   public boolean prefersJavaTimeForTimetz() {
     return prefersJavaTimeForTimetz;
   }
@@ -540,6 +550,7 @@ public final class CodecContext {
    *
    * @return true if java.time is preferred for TIMESTAMP
    */
+  @Override
   public boolean prefersJavaTimeForTimestamp() {
     return prefersJavaTimeForTimestamp;
   }
@@ -549,6 +560,7 @@ public final class CodecContext {
    *
    * @return true if java.time is preferred for TIMESTAMPTZ
    */
+  @Override
   public boolean prefersJavaTimeForTimestamptz() {
     return prefersJavaTimeForTimestamptz;
   }
@@ -561,6 +573,7 @@ public final class CodecContext {
    *
    * @return true if BOOL→numeric conversion is enabled
    */
+  @Override
   public boolean getConvertBooleanToNumeric() {
     return convertBooleanToNumeric;
   }

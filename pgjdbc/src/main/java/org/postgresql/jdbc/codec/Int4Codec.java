@@ -6,10 +6,11 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.Codec;
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
-import org.postgresql.jdbc.CodecContext;
+import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.NumberParser;
@@ -142,7 +143,9 @@ public final class Int4Codec implements StreamingBinaryCodec, StreamingTextCodec
   @Override
   public int decodeTextBytesAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     // Fast path for ASCII-encoded integers
-    if (ctx.getEncoding().hasAsciiNumbers()) {
+    // Transitional downcast (slice 2c): read the wire Encoding through the implementation until it
+    // is exposed on the CodecContext interface.
+    if (((PgCodecContext) ctx).getEncoding().hasAsciiNumbers()) {
       try {
         return (int) NumberParser.getFastLong(data, Integer.MIN_VALUE, Integer.MAX_VALUE);
       } catch (NumberFormatException ignored) {

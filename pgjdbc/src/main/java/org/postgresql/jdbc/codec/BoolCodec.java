@@ -7,10 +7,10 @@ package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.BooleanTypeUtil;
-import org.postgresql.jdbc.CodecContext;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;

@@ -165,7 +165,7 @@ public class TimestampUtils {
 
   /**
    * Whether the backend uses doubles (rather than longs) for time values. Read by
-   * {@link CodecContext#usesDoubleDateTime()} for connectionless test contexts.
+   * {@link PgCodecContext#usesDoubleDateTime()} for connectionless test contexts.
    *
    * @return true if the backend uses doubles for time values
    */
@@ -175,7 +175,7 @@ public class TimestampUtils {
 
   /**
    * Returns the client/session time zone (the backend's {@code TimeZone} setting). Read by
-   * {@link CodecContext#getClientTimeZone()} so the codecs can render {@code timetz}/
+   * {@link PgCodecContext#getClientTimeZone()} so the codecs can render {@code timetz}/
    * {@code timestamptz} binary values the same way text mode does.
    *
    * @return the client time zone

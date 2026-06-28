@@ -709,7 +709,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     // If the target is an SQLData implementation, decode using CompositeCodec
     if (java.sql.SQLData.class.isAssignableFrom(targetClass)) {
       PgType pgType = connection.getTypeInfo().getPgTypeByPgName(typeName);
-      CodecContext ctx = connection.getCodecContext().withTypeMap(map);
+      PgCodecContext ctx = connection.getCodecContext().withTypeMap(map);
       @SuppressWarnings("unchecked")
       Class<? extends java.sql.SQLData> sqlDataClass = (Class<? extends java.sql.SQLData>) targetClass;
 
@@ -1046,7 +1046,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
           typeName = pgo.getType();
         }
         PgType pgType = connection.getTypeInfo().getPgTypeByPgName(typeName);
-        CodecContext ctx = connection.getCodecContext();
+        PgCodecContext ctx = connection.getCodecContext();
         @SuppressWarnings("unchecked")
         Class<? extends java.sql.SQLData> sqlDataClass = (Class<? extends java.sql.SQLData>) type;
         return type.cast(org.postgresql.jdbc.codec.CompositeCodec.INSTANCE.decodeTextAs(
@@ -1057,7 +1057,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
           typeName = struct.getSQLTypeName();
         }
         PgType pgType = connection.getTypeInfo().getPgTypeByPgName(typeName);
-        CodecContext ctx = connection.getCodecContext();
+        PgCodecContext ctx = connection.getCodecContext();
         // Encode struct as text via per-field codecs, then decode to SQLData.
         String textValue = org.postgresql.jdbc.codec.CompositeCodec.encodeAttributesAsText(
             struct.getAttributes(), pgType, ctx);

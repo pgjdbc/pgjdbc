@@ -22,7 +22,7 @@ import java.sql.SQLException;
 /**
  * Unit tests for {@link RangeCodec}'s text decode path, driven by the shared
  * {@link LiteralCursor}. These run without a live connection: the codec is handed a
- * {@code null} {@link org.postgresql.jdbc.CodecContext}, so there is no registry to
+ * {@code null} {@link org.postgresql.api.codec.CodecContext}, so there is no registry to
  * resolve the range subtype and the bounds come back as their raw strings. This pins
  * the parser itself — bracket inclusivity, {@code empty}, infinite bounds and quoting —
  * independently of subtype typing. Typed bounds (resolved from {@code pg_range.rngsubtype})

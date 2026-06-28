@@ -56,10 +56,10 @@ public class PgArray implements Array {
   private final int oid;
 
   /**
-   * Snapshot of CodecContext at array creation time.
+   * Snapshot of PgCodecContext at array creation time.
    * This ensures consistent type mappings during array operations.
    */
-  private final CodecContext codecContext;
+  private final PgCodecContext codecContext;
 
   /**
    * Field value as String.
@@ -264,7 +264,7 @@ public class PgArray implements Array {
     if (array == null) {
       return;
     }
-    CodecContext ctx = codecContext.withTypeMap(map);
+    PgCodecContext ctx = codecContext.withTypeMap(map);
     for (int i = 0; i < array.length; i++) {
       Object element = array[i];
       if (element instanceof PGobject) {

@@ -15,7 +15,7 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGpoint;
-import org.postgresql.jdbc.CodecContext;
+import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGInterval;
@@ -41,7 +41,7 @@ import java.sql.Statement;
 public class ArrayWalkerCatchAllTest {
 
   private static Connection conn;
-  private static CodecContext ctx;
+  private static PgCodecContext ctx;
 
   @BeforeAll
   public static void setUp() throws Exception {
