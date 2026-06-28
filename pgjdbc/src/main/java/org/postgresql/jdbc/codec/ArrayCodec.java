@@ -46,9 +46,10 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     // Singleton
   }
 
-  // Phase 3 remnant: the array codec downcasts only to reach getConnection() for the PgArray it
-  // returns from decodeBinary/decodeText, a connection-bound result. Child-type resolution and the
-  // leaf-context derivation go through the CodecContext interface (slice 2c).
+  // Phase 3 remnant: the array codec downcasts only to reach the connection for the PgArray it
+  // returns from decodeBinary/decodeText, a connection-bound result. requireConnection(type) reports
+  // a clear error on an offline context rather than dereferencing a null connection. Child-type
+  // resolution and the leaf-context derivation already go through the CodecContext interface (2c).
   private static PgCodecContext impl(CodecContext ctx) {
     return (PgCodecContext) ctx;
   }
@@ -104,7 +105,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   @Override
   public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     // Return a PgArray wrapping the binary data for lazy decoding
-    BaseConnection conn = impl(ctx).getConnection();
+    BaseConnection conn = impl(ctx).requireConnection(type);
     return new PgArray(conn, type.getOid(), data);
   }
 
@@ -270,7 +271,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   @Override
   public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     // Return a PgArray wrapping the text data for lazy decoding
-    BaseConnection conn = impl(ctx).getConnection();
+    BaseConnection conn = impl(ctx).requireConnection(type);
     return new PgArray(conn, type.getOid(), data);
   }
 
