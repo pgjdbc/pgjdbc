@@ -145,6 +145,9 @@ dependencies {
     testKitSourcesWithoutAnnotations(projects.testkit)
 
     testImplementation(projects.testkit)
+    testImplementation("com.tngtech.archunit:archunit:1.4.2") {
+        because("Guards the org.postgresql.api codec SPI boundary against dependencies on jdbc/core")
+    }
 }
 
 val skipReplicationTests by props()
