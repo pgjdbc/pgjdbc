@@ -232,7 +232,9 @@ public final class PgCodecContext implements CodecContext {
     this.javaTypes = null;
     this.typesByOid = typesByOid;
     this.typeMap = Collections.emptyMap();
-    this.encoding = null;
+    // Derive a wire Encoding from the charset so the encoding readers (hstore, and the int4/int8
+    // text byte fast paths) work offline; getEncoding() would otherwise be null without a connection.
+    this.encoding = Encoding.getJVMEncoding(charset.name());
     this.charset = charset;
     this.timestampUtils = timestampUtils;
     this.calendar = null;
@@ -518,10 +520,15 @@ public final class PgCodecContext implements CodecContext {
       }
       return type;
     }
-    // Offline: the caller-supplied descriptor map is the only type source.
+    // Offline: consult the caller-supplied map first, then the driver's built-in type catalog (so
+    // built-in scalar, temporal and array OIDs resolve without registration), then fail clearly.
     TypeDescriptor offline = typesByOid.get(oid);
     if (offline != null) {
       return offline;
+    }
+    PgType builtin = TypeInfoCache.getDefaultType(oid);
+    if (builtin != null) {
+      return builtin;
     }
     throw new PSQLException(
         GT.tr("This offline codec context has no type descriptor for OID {0}. Register it through "
@@ -548,7 +555,13 @@ public final class PgCodecContext implements CodecContext {
               + "{0}.", String.valueOf(oid)),
           PSQLState.INVALID_PARAMETER_TYPE);
     }
-    return registry.getByOid(oid, typesByOid.get(oid));
+    // Offline: pass the caller-supplied descriptor, falling back to the built-in catalog, so the
+    // registry can dispatch a container codec by typtype/typcategory for a built-in array/composite.
+    TypeDescriptor pgType = typesByOid.get(oid);
+    if (pgType == null) {
+      pgType = TypeInfoCache.getDefaultType(oid);
+    }
+    return registry.getByOid(oid, pgType);
   }
 
   /**

@@ -246,6 +246,19 @@ public class TypeInfoCache implements TypeInfo {
     // TODO: do we need something like DEFAULT_arrayOid?
   }
 
+  /**
+   * Returns the built-in {@link PgType} for a well-known OID, or {@code null} when the OID is not a
+   * driver-known built-in type. This is the static catalog seeded into every cache, exposed so the
+   * connectionless (offline) codec context can resolve built-in scalar, temporal and array types
+   * without a live type cache.
+   *
+   * @param oid the type OID
+   * @return the built-in type descriptor, or {@code null} if the OID is not a built-in type
+   */
+  static @Nullable PgType getDefaultType(int oid) {
+    return DEFAULT_TYPES_BY_OID.get(oid);
+  }
+
   @SuppressWarnings("method.invocation")
   public TypeInfoCache(BaseConnection conn, int unknownLength) {
     this.conn = conn;

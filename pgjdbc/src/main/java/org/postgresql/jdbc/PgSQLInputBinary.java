@@ -233,6 +233,7 @@ public final class PgSQLInputBinary extends PgSQLInput<byte[]> {
 
   @Override
   protected Array decodeArray(byte[] data, PgType fieldType) throws SQLException {
-    return new PgArray(ctx.getConnection(), getCurrentType().getOid(), data);
+    // A nested array materializes a connection-bound PgArray; offline reports a clear limitation.
+    return new PgArray(ctx.requireConnection(getCurrentType()), getCurrentType().getOid(), data);
   }
 }

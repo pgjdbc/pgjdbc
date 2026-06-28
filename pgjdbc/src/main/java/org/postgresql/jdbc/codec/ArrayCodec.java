@@ -11,7 +11,6 @@ import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
-import org.postgresql.core.BaseConnection;
 import org.postgresql.jdbc.PgArray;
 import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.util.GT;
@@ -46,10 +45,11 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     // Singleton
   }
 
-  // Phase 3 remnant: the array codec downcasts only to reach the connection for the PgArray it
-  // returns from decodeBinary/decodeText, a connection-bound result. requireConnection(type) reports
-  // a clear error on an offline context rather than dereferencing a null connection. Child-type
-  // resolution and the leaf-context derivation already go through the CodecContext interface (2c).
+  // The array codec downcasts to PgCodecContext to branch on whether a connection backs a lazy
+  // PgArray. Offline (connectionless) it decodes eagerly to a Java array instead; only an explicit
+  // java.sql.Array/PgArray target, which needs connection-bound lazy ops (getResultSet), reports a
+  // clear error via requireConnection. Child-type resolution and the leaf-context derivation go
+  // through the CodecContext interface (slice 2c).
   private static PgCodecContext impl(CodecContext ctx) {
     return (PgCodecContext) ctx;
   }
@@ -104,9 +104,13 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
 
   @Override
   public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    // Return a PgArray wrapping the binary data for lazy decoding
-    BaseConnection conn = impl(ctx).requireConnection(type);
-    return new PgArray(conn, type.getOid(), data);
+    PgCodecContext impl = impl(ctx);
+    if (impl.isConnectionBound()) {
+      // Lazy PgArray over the binary payload; elements decode on access through the connection.
+      return new PgArray(impl.getConnection(), type.getOid(), data);
+    }
+    // Offline: no connection to back a lazy java.sql.Array, so decode eagerly to a Java array.
+    return decodeBinaryArray(data, type, ctx);
   }
 
   @Override
@@ -270,9 +274,13 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
 
   @Override
   public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    // Return a PgArray wrapping the text data for lazy decoding
-    BaseConnection conn = impl(ctx).requireConnection(type);
-    return new PgArray(conn, type.getOid(), data);
+    PgCodecContext impl = impl(ctx);
+    if (impl.isConnectionBound()) {
+      // Lazy PgArray over the text literal; elements decode on access through the connection.
+      return new PgArray(impl.getConnection(), type.getOid(), data);
+    }
+    // Offline: no connection to back a lazy java.sql.Array, so decode eagerly to a Java array.
+    return decodeTextArray(data, type, ctx);
   }
 
   @Override
@@ -547,8 +555,14 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   @SuppressWarnings("unchecked")
   public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
-    if (targetClass == Array.class || targetClass == PgArray.class || targetClass == Object.class) {
+    if (targetClass == Object.class) {
+      // Connection-bound: a lazy PgArray; offline: an eagerly decoded Java array.
       return (T) decodeBinary(data, type, ctx);
+    }
+    if (targetClass == Array.class || targetClass == PgArray.class) {
+      // A java.sql.Array is connection-bound (lazy getResultSet); offline cannot back one, so this
+      // reports a clear error rather than silently handing back a Java array of a different type.
+      return (T) new PgArray(impl(ctx).requireConnection(type), type.getOid(), data);
     }
     if (targetClass.isArray()) {
       ArrayLeafCodec fastLeaf = fastLeafFor(type, ctx);
@@ -572,8 +586,13 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   @SuppressWarnings("unchecked")
   public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
-    if (targetClass == Array.class || targetClass == PgArray.class || targetClass == Object.class) {
+    if (targetClass == Object.class) {
+      // Connection-bound: a lazy PgArray; offline: an eagerly decoded Java array.
       return (T) decodeText(data, type, ctx);
+    }
+    if (targetClass == Array.class || targetClass == PgArray.class) {
+      // A java.sql.Array is connection-bound (lazy getResultSet); offline cannot back one.
+      return (T) new PgArray(impl(ctx).requireConnection(type), type.getOid(), data);
     }
     if (targetClass.isArray()) {
       ArrayLeafCodec fastLeaf = fastLeafFor(type, ctx);
