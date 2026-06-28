@@ -5,16 +5,22 @@
 
 package org.postgresql.jdbc.codec;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
+import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.CodecRegistry;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -39,6 +45,34 @@ class CodecRegistryTest {
     @Override
     public Class<?> getDefaultJavaType() {
       return Object.class;
+    }
+  }
+
+  /** A binary codec that opts out of binary reads, exercising the read-side capability gate. */
+  private static final class BinaryReadOptOutCodec implements BinaryCodec {
+    @Override
+    public String getTypeName() {
+      return "binary_read_optout";
+    }
+
+    @Override
+    public Class<?> getDefaultJavaType() {
+      return Object.class;
+    }
+
+    @Override
+    public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) {
+      return null;
+    }
+
+    @Override
+    public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) {
+      return new byte[0];
+    }
+
+    @Override
+    public boolean supportsBinaryRead() {
+      return false;
     }
   }
 
@@ -128,5 +162,34 @@ class CodecRegistryTest {
     assertSame(HstoreCodec.INSTANCE, registry.getByName("hstore"));
     // No codec is registered for the array type name.
     assertNull(registry.getByName("_int4"));
+  }
+
+  @Test
+  void canDecodeBinary_followsCodecCapability() {
+    CodecRegistry registry = new CodecRegistry();
+    // point has a binary codec; the text-only circle codec does not.
+    assertTrue(registry.canDecodeBinary(Oid.POINT, builtinType("point", Oid.POINT)));
+    assertFalse(registry.canDecodeBinary(Oid.CIRCLE, builtinType("circle", Oid.CIRCLE)));
+
+    // A binary codec that opts out of binary reads is gated by the capability, not instanceof.
+    Codec optOut = new BinaryReadOptOutCodec();
+    registry.registerByName(optOut);
+    PgType type = userType("binary_read_optout", 990_200);
+    assertSame(optOut, registry.getByOid(type.getOid(), type));
+    assertFalse(registry.canDecodeBinary(type.getOid(), type));
+  }
+
+  @Test
+  void canDecodeText_followsCodecCapability() {
+    CodecRegistry registry = new CodecRegistry();
+    // Both the binary point codec and the text-only circle codec can read text.
+    assertTrue(registry.canDecodeText(Oid.POINT, builtinType("point", Oid.POINT)));
+    assertTrue(registry.canDecodeText(Oid.CIRCLE, builtinType("circle", Oid.CIRCLE)));
+
+    // A binary-only codec cannot decode text.
+    Codec optOut = new BinaryReadOptOutCodec();
+    registry.registerByName(optOut);
+    PgType type = userType("binary_read_optout", 990_201);
+    assertFalse(registry.canDecodeText(type.getOid(), type));
   }
 }

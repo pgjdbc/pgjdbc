@@ -132,6 +132,20 @@ public interface BinaryCodec extends Codec {
   }
 
   /**
+   * Whether {@link #decodeBinary} reads the real PostgreSQL binary wire format for this type. This
+   * is the read-side counterpart to {@link #supportsBinaryEncoding()}, and the capability the driver
+   * gates binary <em>receive</em> on: only a type whose codec returns {@code true} is requested in
+   * binary, so a codec that implements {@link BinaryCodec} only for the bind/encode direction (or
+   * that cannot parse the server's binary representation) returns {@code false} and stays in text.
+   * The default is {@code true}, so a codec that decodes binary needs no override.
+   *
+   * @return true if {@link #decodeBinary} reads the real binary representation (the default)
+   */
+  default boolean supportsBinaryRead() {
+    return true;
+  }
+
+  /**
    * Decodes binary data as an int value.
    *
    * <p>Default implementation boxes via {@link #decodeBinary} and unboxes.

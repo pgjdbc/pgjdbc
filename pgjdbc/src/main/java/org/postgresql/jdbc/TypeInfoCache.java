@@ -1153,14 +1153,16 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   /**
-   * Whether the driver has a binary decoder for this exact type (non-recursive).
-   * {@code FallbackCodec} is a {@link org.postgresql.api.codec.BinaryCodec}, so an
-   * unmapped type still counts and is received as {@code PGUnknownBinary}; a
-   * text-only codec (such as the {@code circle}/{@code line} geometric codec) does
-   * not, so the type stays in text.
+   * Whether the driver can decode this exact type from binary (non-recursive).
+   * Asks the resolved codec's read-side capability
+   * ({@link org.postgresql.api.codec.BinaryCodec#supportsBinaryRead()}) rather than
+   * testing {@code instanceof} alone. {@code FallbackCodec} reports binary-read, so an
+   * unmapped type still counts and is received as {@code PGUnknownBinary}; a text-only
+   * codec (such as the {@code circle}/{@code line} geometric codec) does not, so the
+   * type stays in text.
    */
   private boolean hasOwnBinaryCodec(PgType type) {
-    return getCodecRegistry().getBinaryCodec(type.getOid(), type) != null;
+    return getCodecRegistry().canDecodeBinary(type.getOid(), type);
   }
 
   private PreparedStatement prepareFindCompositeFields() throws SQLException {
