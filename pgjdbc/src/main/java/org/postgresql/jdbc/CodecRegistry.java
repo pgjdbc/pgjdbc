@@ -10,6 +10,7 @@ import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
+import org.postgresql.core.Oid;
 import org.postgresql.jdbc.codec.ArrayCodec;
 import org.postgresql.jdbc.codec.BitCodec;
 import org.postgresql.jdbc.codec.BoolCodec;
@@ -50,9 +51,13 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
+import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Registry for codec instances.
@@ -61,13 +66,32 @@ import java.util.concurrent.ConcurrentHashMap;
  * connection-scoped to allow per-connection codec customization.</p>
  *
  * <h2>Codec Resolution Order</h2>
+ *
+ * <p>A type's codec is resolved by OID first and by name second, with explicit
+ * layering so a custom or service-loaded codec never silently shadows a built-in
+ * type. {@link #getByOid(int, TypeDescriptor)} consults, in order:</p>
  * <ol>
- *   <li>Explicit OID registration (per-connection)</li>
- *   <li>Type name lookup (per-connection)</li>
- *   <li>SPI-loaded codecs (driver-scoped)</li>
- *   <li>Built-in codecs</li>
- *   <li>Fallback codec for unknown types</li>
+ *   <li>a per-connection codec bound to the exact OID ({@link #registerByOid});</li>
+ *   <li>a per-connection codec registered by name ({@link #registerByName} /
+ *       {@link #registerCustomCodec}), matched by {@code (namespace, name)} and
+ *       then by bare name;</li>
+ *   <li>a built-in codec bound to the type's canonical OID — the primary identity
+ *       for built-in scalar types, so a same-named user or service-loaded codec
+ *       cannot grab, say, {@code pg_catalog.point} across every schema;</li>
+ *   <li>a {@link ServiceLoader}-provided codec, matched by name;</li>
+ *   <li>a built-in codec matched by name (aliases, and types without a pinned OID
+ *       such as {@code hstore});</li>
+ *   <li>a built-in container codec selected from {@code typtype}/{@code typcategory}
+ *       (array, composite, domain, enum, range);</li>
+ *   <li>the {@link FallbackCodec} for unknown types.</li>
  * </ol>
+ *
+ * <p>Name resolution is layered <em>user &gt; SPI &gt; built-in</em>, while the OID
+ * identity of a built-in type takes precedence over a service-loaded name match.
+ * Name lookups are keyed by {@code (namespace, name)}: a codec registered with a
+ * bare name still matches a type in any schema, but a built-in type is reached by
+ * its OID before any bare-name service-loaded match, which removes the cross-schema
+ * shadowing the old bare-name map allowed.</p>
  *
  * <h2>Caching</h2>
  *
@@ -79,27 +103,48 @@ import java.util.concurrent.ConcurrentHashMap;
 @Experimental("Codec API is experimental and may change in future releases")
 public class CodecRegistry {
 
+  private static final Logger LOGGER = Logger.getLogger(CodecRegistry.class.getName());
+
   /** Maximum number of OID → Codec mappings to cache. */
   private static final int OID_CACHE_SIZE = 1000;
 
-  // Type name -> codec mapping (primary registry)
-  private final Map<String, Codec> codecsByName = new ConcurrentHashMap<>();
+  /** Namespace of built-in PostgreSQL types. */
+  private static final String PG_CATALOG = "pg_catalog";
 
-  // Java class -> codec mapping (for encoding)
+  // ---- User layer (per-connection, highest precedence) --------------------
+
+  // User OID registrations: an explicit binding for an exact OID.
+  private final Map<Integer, Codec> userOidCodecs = new ConcurrentHashMap<>();
+
+  // User name registrations (registerByName / registerAlias / registerCustomCodec).
+  private final Map<NameKey, Codec> userCodecsByName = new ConcurrentHashMap<>();
+
+  // ---- Built-in layer (driver-provided, lowest precedence) ----------------
+
+  // Built-in codecs bound to their canonical OID: the primary identity for
+  // built-in scalar types (int4 → 23, point → 600, ...).
+  private final Map<Integer, Codec> builtinCodecsByOid = new ConcurrentHashMap<>();
+
+  // Built-in codecs and aliases by name; the fallback for types without a pinned
+  // OID (such as hstore) and for bare-name lookups.
+  private final Map<NameKey, Codec> builtinCodecsByName = new ConcurrentHashMap<>();
+
+  // ---- Cross-layer maps ---------------------------------------------------
+
+  // Java class -> codec mapping (for encoding). Built-in entries are inserted
+  // first; user registrations override them, service-loaded ones fill gaps only.
   private final Map<Class<?>, Codec> codecsByClass = new ConcurrentHashMap<>();
 
-  // OID -> codec cache (Caffeine LRU cache)
+  // OID -> codec cache (Caffeine LRU cache).
   private final Cache<Integer, Codec> oidCache;
 
-  // Explicit OID registrations (override cache)
-  private final Map<Integer, Codec> explicitOidCodecs = new ConcurrentHashMap<>();
+  // Track custom codec names for reset functionality.
+  private final Set<NameKey> customCodecNames = ConcurrentHashMap.newKeySet();
 
-  // Track custom codec names for reset functionality
-  private final Set<String> customCodecNames = ConcurrentHashMap.newKeySet();
+  // ---- SPI layer (driver-scoped, shared across registries) ----------------
 
-  // SPI-loaded codecs (loaded once per driver)
   private static volatile boolean spiLoaded = false;
-  private static final Map<String, Codec> spiCodecs = new ConcurrentHashMap<>();
+  private static final Map<NameKey, Codec> spiCodecsByName = new ConcurrentHashMap<>();
 
   /**
    * Creates a new CodecRegistry with default codecs.
@@ -117,12 +162,17 @@ public class CodecRegistry {
     // point (oidCache is set above; the registration maps are final and assigned
     // in their declarations), so the constructor escape is safe.
     registerBuiltinCodecs();
+    registerBuiltinOids();
     registerSpiCodecs();
   }
 
   /**
-   * Loads codecs via ServiceLoader (SPI).
-   * This is called once per driver initialization.
+   * Loads codecs via {@link ServiceLoader} (SPI).
+   *
+   * <p>This is called once per driver initialization. Codecs are loaded with an
+   * explicit class loader (the thread context loader, falling back to this
+   * class's loader), and any provider that fails to load is logged and skipped
+   * rather than aborting the rest of the SPI scan.</p>
    */
   private static synchronized void loadSpiCodecs() {
     if (spiLoaded) {
@@ -130,123 +180,141 @@ public class CodecRegistry {
     }
     spiLoaded = true;
 
+    ClassLoader loader = Thread.currentThread().getContextClassLoader();
+    if (loader == null) {
+      loader = CodecRegistry.class.getClassLoader();
+    }
+
     try {
-      ServiceLoader<Codec> loader = ServiceLoader.load(Codec.class);
-      Iterator<Codec> it = loader.iterator();
+      ServiceLoader<Codec> serviceLoader = ServiceLoader.load(Codec.class, loader);
+      Iterator<Codec> it = serviceLoader.iterator();
       while (it.hasNext()) {
+        Codec codec;
         try {
-          Codec codec = it.next();
-          spiCodecs.put(codec.getTypeName(), codec);
-        } catch (Exception e) {
-          // Log and continue - don't let one bad codec break everything
-          // In production, this should use the driver's logging infrastructure
+          codec = it.next();
+        } catch (ServiceConfigurationError | RuntimeException e) {
+          // A single bad provider must not break the whole scan. Previously the
+          // error was swallowed; surface it so misconfigured codecs are diagnosable.
+          LOGGER.log(Level.WARNING, "Failed to load a codec via ServiceLoader; skipping it", e);
+          continue;
+        }
+        NameKey key = new NameKey(null, codec.getTypeName());
+        Codec previous = spiCodecsByName.putIfAbsent(key, codec);
+        if (previous != null) {
+          LOGGER.log(Level.WARNING,
+              "Duplicate service-loaded codec for type name {0}: keeping {1}, ignoring {2}",
+              new Object[]{key, previous.getClass().getName(), codec.getClass().getName()});
         }
       }
-    } catch (Exception e) {
-      // ServiceLoader failed - continue with built-in codecs only
+    } catch (ServiceConfigurationError | RuntimeException e) {
+      // ServiceLoader failed - continue with built-in codecs only.
+      LOGGER.log(Level.WARNING,
+          "Codec ServiceLoader failed; continuing with built-in codecs only", e);
     }
   }
 
   /**
-   * Registers all built-in codecs.
+   * Registers all built-in codecs by name and Java class.
    */
   private void registerBuiltinCodecs() {
     // Numeric types
-    registerByName(Int2Codec.INSTANCE);
-    registerByName(Int4Codec.INSTANCE);
-    registerByName(Int8Codec.INSTANCE);
-    registerByName(Float4Codec.INSTANCE);
-    registerByName(Float8Codec.INSTANCE);
-    registerByName(NumericCodec.INSTANCE);
-    registerByName(MoneyCodec.INSTANCE);
-    registerByName(OidCodec.INSTANCE);
+    registerBuiltin(Int2Codec.INSTANCE);
+    registerBuiltin(Int4Codec.INSTANCE);
+    registerBuiltin(Int8Codec.INSTANCE);
+    registerBuiltin(Float4Codec.INSTANCE);
+    registerBuiltin(Float8Codec.INSTANCE);
+    registerBuiltin(NumericCodec.INSTANCE);
+    registerBuiltin(MoneyCodec.INSTANCE);
+    registerBuiltin(OidCodec.INSTANCE);
 
     // String types
-    registerByName(TextCodecImpl.INSTANCE);
-    registerByName(VarcharCodec.INSTANCE);
-    registerByName(BpcharCodec.INSTANCE);
-    registerByName(NameCodec.INSTANCE);
-    registerByName(BoolCodec.INSTANCE);
+    registerBuiltin(TextCodecImpl.INSTANCE);
+    registerBuiltin(VarcharCodec.INSTANCE);
+    registerBuiltin(BpcharCodec.INSTANCE);
+    registerBuiltin(NameCodec.INSTANCE);
+    registerBuiltin(BoolCodec.INSTANCE);
 
     // Date/time types
-    registerByName(DateCodec.INSTANCE);
-    registerByName(TimeCodec.INSTANCE);
-    registerByName(TimetzCodec.INSTANCE);
-    registerByName(TimestampCodec.INSTANCE);
-    registerByName(TimestamptzCodec.INSTANCE);
-    registerByName(IntervalCodec.INSTANCE);
+    registerBuiltin(DateCodec.INSTANCE);
+    registerBuiltin(TimeCodec.INSTANCE);
+    registerBuiltin(TimetzCodec.INSTANCE);
+    registerBuiltin(TimestampCodec.INSTANCE);
+    registerBuiltin(TimestamptzCodec.INSTANCE);
+    registerBuiltin(IntervalCodec.INSTANCE);
 
     // Binary types
-    registerByName(ByteaCodec.INSTANCE);
-    registerByName(UuidCodec.INSTANCE);
+    registerBuiltin(ByteaCodec.INSTANCE);
+    registerBuiltin(UuidCodec.INSTANCE);
 
     // Bit string types
-    registerByName(BitCodec.INSTANCE);
-    registerAlias("bit varying", BitCodec.INSTANCE);
-    registerAlias("varbit", BitCodec.INSTANCE);
+    registerBuiltin(BitCodec.INSTANCE);
+    registerBuiltinAlias("bit varying", BitCodec.INSTANCE);
+    registerBuiltinAlias("varbit", BitCodec.INSTANCE);
 
     // JSON/XML types
-    registerByName(JsonCodec.INSTANCE);
-    registerByName(JsonbCodec.INSTANCE);
-    registerByName(XmlCodec.INSTANCE);
+    registerBuiltin(JsonCodec.INSTANCE);
+    registerBuiltin(JsonbCodec.INSTANCE);
+    registerBuiltin(XmlCodec.INSTANCE);
 
     // Composite types
-    registerByName(ArrayCodec.INSTANCE);
-    registerByName(CompositeCodec.INSTANCE);
-    registerByName(DomainCodec.INSTANCE);
+    registerBuiltin(ArrayCodec.INSTANCE);
+    registerBuiltin(CompositeCodec.INSTANCE);
+    registerBuiltin(DomainCodec.INSTANCE);
 
     // Range types
-    registerByName(RangeCodec.INSTANCE);
+    registerBuiltin(RangeCodec.INSTANCE);
 
-    // Extension types (built-in support)
-    registerByName(HstoreCodec.INSTANCE);
+    // Extension types (built-in support). hstore has an installation-dependent OID
+    // and lives in a user schema, so it is registered by bare name rather than
+    // pinned by OID or qualified with pg_catalog.
+    registerBuiltinExtension(HstoreCodec.INSTANCE);
 
     // Geometric types
-    registerByName(GeometricCodec.POINT);
-    registerByName(GeometricCodec.BOX);
-    registerByName(GeometricCodec.CIRCLE);
-    registerByName(GeometricCodec.LINE);
-    registerByName(GeometricCodec.LSEG);
-    registerByName(GeometricCodec.PATH);
-    registerByName(GeometricCodec.POLYGON);
+    registerBuiltin(GeometricCodec.POINT);
+    registerBuiltin(GeometricCodec.BOX);
+    registerBuiltin(GeometricCodec.CIRCLE);
+    registerBuiltin(GeometricCodec.LINE);
+    registerBuiltin(GeometricCodec.LSEG);
+    registerBuiltin(GeometricCodec.PATH);
+    registerBuiltin(GeometricCodec.POLYGON);
 
     // Type aliases
-    registerAlias("int2", Int2Codec.INSTANCE);
-    registerAlias("smallint", Int2Codec.INSTANCE);
-    registerAlias("int4", Int4Codec.INSTANCE);
-    registerAlias("integer", Int4Codec.INSTANCE);
-    registerAlias("int", Int4Codec.INSTANCE);
-    registerAlias("serial", Int4Codec.INSTANCE);
-    registerAlias("int8", Int8Codec.INSTANCE);
-    registerAlias("bigint", Int8Codec.INSTANCE);
-    registerAlias("bigserial", Int8Codec.INSTANCE);
-    registerAlias("float4", Float4Codec.INSTANCE);
-    registerAlias("real", Float4Codec.INSTANCE);
-    registerAlias("float8", Float8Codec.INSTANCE);
-    registerAlias("double precision", Float8Codec.INSTANCE);
-    registerAlias("numeric", NumericCodec.INSTANCE);
-    registerAlias("decimal", NumericCodec.INSTANCE);
-    registerAlias("varchar", VarcharCodec.INSTANCE);
-    registerAlias("character varying", VarcharCodec.INSTANCE);
-    registerAlias("bpchar", BpcharCodec.INSTANCE);
-    registerAlias("character", BpcharCodec.INSTANCE);
-    registerAlias("char", BpcharCodec.INSTANCE);
-    registerAlias("bool", BoolCodec.INSTANCE);
-    registerAlias("boolean", BoolCodec.INSTANCE);
-    registerAlias("timetz", TimetzCodec.INSTANCE);
-    registerAlias("time with time zone", TimetzCodec.INSTANCE);
-    registerAlias("time without time zone", TimeCodec.INSTANCE);
-    registerAlias("timestamptz", TimestamptzCodec.INSTANCE);
-    registerAlias("timestamp with time zone", TimestamptzCodec.INSTANCE);
-    registerAlias("timestamp without time zone", TimestampCodec.INSTANCE);
+    registerBuiltinAlias("int2", Int2Codec.INSTANCE);
+    registerBuiltinAlias("smallint", Int2Codec.INSTANCE);
+    registerBuiltinAlias("int4", Int4Codec.INSTANCE);
+    registerBuiltinAlias("integer", Int4Codec.INSTANCE);
+    registerBuiltinAlias("int", Int4Codec.INSTANCE);
+    registerBuiltinAlias("serial", Int4Codec.INSTANCE);
+    registerBuiltinAlias("int8", Int8Codec.INSTANCE);
+    registerBuiltinAlias("bigint", Int8Codec.INSTANCE);
+    registerBuiltinAlias("bigserial", Int8Codec.INSTANCE);
+    registerBuiltinAlias("float4", Float4Codec.INSTANCE);
+    registerBuiltinAlias("real", Float4Codec.INSTANCE);
+    registerBuiltinAlias("float8", Float8Codec.INSTANCE);
+    registerBuiltinAlias("double precision", Float8Codec.INSTANCE);
+    registerBuiltinAlias("numeric", NumericCodec.INSTANCE);
+    registerBuiltinAlias("decimal", NumericCodec.INSTANCE);
+    registerBuiltinAlias("varchar", VarcharCodec.INSTANCE);
+    registerBuiltinAlias("character varying", VarcharCodec.INSTANCE);
+    registerBuiltinAlias("bpchar", BpcharCodec.INSTANCE);
+    registerBuiltinAlias("character", BpcharCodec.INSTANCE);
+    registerBuiltinAlias("char", BpcharCodec.INSTANCE);
+    registerBuiltinAlias("bool", BoolCodec.INSTANCE);
+    registerBuiltinAlias("boolean", BoolCodec.INSTANCE);
+    registerBuiltinAlias("timetz", TimetzCodec.INSTANCE);
+    registerBuiltinAlias("time with time zone", TimetzCodec.INSTANCE);
+    registerBuiltinAlias("time without time zone", TimeCodec.INSTANCE);
+    registerBuiltinAlias("timestamptz", TimestamptzCodec.INSTANCE);
+    registerBuiltinAlias("timestamp with time zone", TimestamptzCodec.INSTANCE);
+    registerBuiltinAlias("timestamp without time zone", TimestampCodec.INSTANCE);
 
     // Range type aliases
-    registerAlias("int4range", RangeCodec.INSTANCE);
-    registerAlias("int8range", RangeCodec.INSTANCE);
-    registerAlias("numrange", RangeCodec.INSTANCE);
-    registerAlias("tsrange", RangeCodec.INSTANCE);
-    registerAlias("tstzrange", RangeCodec.INSTANCE);
-    registerAlias("daterange", RangeCodec.INSTANCE);
+    registerBuiltinAlias("int4range", RangeCodec.INSTANCE);
+    registerBuiltinAlias("int8range", RangeCodec.INSTANCE);
+    registerBuiltinAlias("numrange", RangeCodec.INSTANCE);
+    registerBuiltinAlias("tsrange", RangeCodec.INSTANCE);
+    registerBuiltinAlias("tstzrange", RangeCodec.INSTANCE);
+    registerBuiltinAlias("daterange", RangeCodec.INSTANCE);
 
     // Register codecs by their default Java types
     registerByClass(Short.class, Int2Codec.INSTANCE);
@@ -266,37 +334,126 @@ public class CodecRegistry {
   }
 
   /**
-   * Applies SPI-loaded codecs to this registry after built-ins so a consumer
-   * can override default codecs from the test/application classpath.
+   * Pins built-in scalar codecs to their canonical OID.
+   *
+   * <p>This is the primary identity for built-in types: resolution matches a
+   * pinned OID before any service-loaded name, so a third-party codec named, say,
+   * {@code point} cannot shadow the built-in {@code pg_catalog.point} (OID 600).
+   * Types whose OID is installation-dependent (for example {@code hstore}) are not
+   * pinned and resolve by name instead.</p>
+   */
+  private void registerBuiltinOids() {
+    // Numeric types
+    pinBuiltinOid(Oid.INT2, Int2Codec.INSTANCE);
+    pinBuiltinOid(Oid.INT4, Int4Codec.INSTANCE);
+    pinBuiltinOid(Oid.INT8, Int8Codec.INSTANCE);
+    pinBuiltinOid(Oid.FLOAT4, Float4Codec.INSTANCE);
+    pinBuiltinOid(Oid.FLOAT8, Float8Codec.INSTANCE);
+    pinBuiltinOid(Oid.NUMERIC, NumericCodec.INSTANCE);
+    pinBuiltinOid(Oid.MONEY, MoneyCodec.INSTANCE);
+    pinBuiltinOid(Oid.OID, OidCodec.INSTANCE);
+
+    // String types
+    pinBuiltinOid(Oid.TEXT, TextCodecImpl.INSTANCE);
+    pinBuiltinOid(Oid.VARCHAR, VarcharCodec.INSTANCE);
+    pinBuiltinOid(Oid.BPCHAR, BpcharCodec.INSTANCE);
+    pinBuiltinOid(Oid.NAME, NameCodec.INSTANCE);
+    pinBuiltinOid(Oid.BOOL, BoolCodec.INSTANCE);
+
+    // Date/time types
+    pinBuiltinOid(Oid.DATE, DateCodec.INSTANCE);
+    pinBuiltinOid(Oid.TIME, TimeCodec.INSTANCE);
+    pinBuiltinOid(Oid.TIMETZ, TimetzCodec.INSTANCE);
+    pinBuiltinOid(Oid.TIMESTAMP, TimestampCodec.INSTANCE);
+    pinBuiltinOid(Oid.TIMESTAMPTZ, TimestamptzCodec.INSTANCE);
+    pinBuiltinOid(Oid.INTERVAL, IntervalCodec.INSTANCE);
+
+    // Binary types
+    pinBuiltinOid(Oid.BYTEA, ByteaCodec.INSTANCE);
+    pinBuiltinOid(Oid.UUID, UuidCodec.INSTANCE);
+
+    // Bit string types
+    pinBuiltinOid(Oid.BIT, BitCodec.INSTANCE);
+    pinBuiltinOid(Oid.VARBIT, BitCodec.INSTANCE);
+
+    // JSON/XML types
+    pinBuiltinOid(Oid.JSON, JsonCodec.INSTANCE);
+    pinBuiltinOid(Oid.JSONB, JsonbCodec.INSTANCE);
+    pinBuiltinOid(Oid.XML, XmlCodec.INSTANCE);
+
+    // Geometric types
+    pinBuiltinOid(Oid.POINT, GeometricCodec.POINT);
+    pinBuiltinOid(Oid.BOX, GeometricCodec.BOX);
+    pinBuiltinOid(Oid.CIRCLE, GeometricCodec.CIRCLE);
+    pinBuiltinOid(Oid.LINE, GeometricCodec.LINE);
+    pinBuiltinOid(Oid.LSEG, GeometricCodec.LSEG);
+    pinBuiltinOid(Oid.PATH, GeometricCodec.PATH);
+    pinBuiltinOid(Oid.POLYGON, GeometricCodec.POLYGON);
+  }
+
+  /**
+   * Applies service-loaded codecs to this registry.
+   *
+   * <p>Service-loaded codecs are kept in their own layer (see the class-level
+   * resolution order); this only fills in their Java-class mappings for encoding,
+   * without overwriting a built-in class mapping. A service-loaded codec that
+   * shares a name with a built-in is logged: built-in types still resolve by OID,
+   * so the service-loaded codec applies only to non-built-in types of that name.</p>
    */
   private void registerSpiCodecs() {
-    for (Codec codec : spiCodecs.values()) {
-      registerByName(codec);
-      registerByClass(codec.getDefaultJavaType(), codec);
+    for (Map.Entry<NameKey, Codec> entry : spiCodecsByName.entrySet()) {
+      Codec codec = entry.getValue();
+      Class<?> javaType = codec.getDefaultJavaType();
+      Codec previous = codecsByClass.putIfAbsent(javaType, codec);
+      if (previous != null && previous != codec) {
+        LOGGER.log(Level.FINE,
+            "Service-loaded codec {0} not bound to Java class {1}; built-in codec {2} keeps it",
+            new Object[]{codec.getClass().getName(), javaType.getName(), previous.getClass().getName()});
+      }
+      if (hasBuiltinName(codec.getTypeName())) {
+        LOGGER.log(Level.FINE,
+            "Service-loaded codec {0} shares type name {1} with a built-in codec; built-in types "
+                + "resolve by OID, so the service-loaded codec applies only to non-built-in types "
+                + "of that name",
+            new Object[]{codec.getClass().getName(), codec.getTypeName()});
+      }
     }
   }
 
   /**
    * Registers a codec by its type name.
    *
+   * <p>This is a per-connection (user-layer) registration: it takes precedence
+   * over service-loaded and built-in codecs of the same name. It does not affect
+   * fields that were already initialized; see {@link #getByOid(int, TypeDescriptor)}.</p>
+   *
    * @param codec the codec to register
    */
   public void registerByName(Codec codec) {
-    codecsByName.put(codec.getTypeName(), codec);
-    // A prior getByOid() may have cached a codec (or a typtype-resolved default) for an OID that
-    // resolves to this type name, so drop the OID cache to keep it coherent with the new mapping.
-    oidCache.invalidateAll();
+    putUserName(new NameKey(null, codec.getTypeName()), codec);
   }
 
   /**
    * Registers an alias for a codec.
    *
+   * <p>This is a per-connection (user-layer) registration; see {@link #registerByName(Codec)}.</p>
+   *
    * @param alias the alias name
    * @param codec the codec
    */
   public void registerAlias(String alias, Codec codec) {
-    codecsByName.put(alias, codec);
-    // Keep the OID cache coherent with the new alias (see registerByName).
+    putUserName(new NameKey(null, alias), codec);
+  }
+
+  private void putUserName(NameKey key, Codec codec) {
+    if (LOGGER.isLoggable(Level.FINE)
+        && (hasBuiltinName(key.name) || spiCodecsByName.containsKey(key))) {
+      LOGGER.log(Level.FINE, "User codec {0} overrides an existing codec for type name {1}",
+          new Object[]{codec.getClass().getName(), key});
+    }
+    userCodecsByName.put(key, codec);
+    // A prior getByOid() may have cached a codec (or a typtype-resolved default) for an OID that
+    // resolves to this name, so drop the OID cache to keep it coherent with the new mapping.
     oidCache.invalidateAll();
   }
 
@@ -313,13 +470,14 @@ public class CodecRegistry {
   /**
    * Registers a codec for a specific OID.
    *
-   * <p>This creates an explicit binding that overrides type-name based lookup.</p>
+   * <p>This creates an explicit per-connection binding that overrides every other
+   * layer for that OID.</p>
    *
    * @param oid the PostgreSQL type OID
    * @param codec the codec to register
    */
   public void registerByOid(int oid, Codec codec) {
-    explicitOidCodecs.put(oid, codec);
+    userOidCodecs.put(oid, codec);
     oidCache.put(oid, codec);
   }
 
@@ -332,10 +490,9 @@ public class CodecRegistry {
    * @param codec the codec to register
    */
   public void registerCustomCodec(Codec codec) {
-    String typeName = codec.getTypeName();
-    customCodecNames.add(typeName);
-    codecsByName.put(typeName, codec);
-    oidCache.invalidateAll();
+    NameKey key = new NameKey(null, codec.getTypeName());
+    customCodecNames.add(key);
+    putUserName(key, codec);
   }
 
   /**
@@ -344,8 +501,9 @@ public class CodecRegistry {
    * @param typeName the type name to unregister
    */
   public void unregisterCustomCodec(String typeName) {
-    if (customCodecNames.remove(typeName)) {
-      codecsByName.remove(typeName);
+    NameKey key = new NameKey(null, typeName);
+    if (customCodecNames.remove(key)) {
+      userCodecsByName.remove(key);
       oidCache.invalidateAll();
     }
   }
@@ -357,73 +515,98 @@ public class CodecRegistry {
    * reset scenarios.</p>
    */
   public void resetCustomCodecs() {
-    for (String typeName : customCodecNames) {
-      codecsByName.remove(typeName);
+    for (NameKey key : customCodecNames) {
+      userCodecsByName.remove(key);
     }
     customCodecNames.clear();
-    explicitOidCodecs.clear();
+    userOidCodecs.clear();
     oidCache.invalidateAll();
   }
 
   /**
    * Gets the codec for a specific type name.
    *
+   * <p>The bare name is resolved across the user, service-loaded and built-in
+   * layers in that order.</p>
+   *
    * @param typeName the PostgreSQL type name
    * @return the codec, or null if not found
    */
   public @Nullable Codec getByName(String typeName) {
-    // First check connection-scoped registry
-    Codec codec = codecsByName.get(typeName);
+    NameKey key = new NameKey(null, typeName);
+    Codec codec = userCodecsByName.get(key);
     if (codec != null) {
       return codec;
     }
-
-    // Then check SPI-loaded codecs
-    codec = spiCodecs.get(typeName);
+    codec = spiCodecsByName.get(key);
     if (codec != null) {
       return codec;
     }
-
-    return null;
+    codec = builtinCodecsByName.get(key);
+    if (codec != null) {
+      return codec;
+    }
+    // Built-in pg_catalog types are keyed by (pg_catalog, name); accept the bare
+    // name here as a convenience.
+    return builtinCodecsByName.get(new NameKey(PG_CATALOG, typeName));
   }
 
   /**
    * Gets the codec for a specific OID, using type information for resolution.
    *
-   * <p>This method uses Caffeine caching for performance. The resolution order is:</p>
-   * <ol>
-   *   <li>Explicit OID registration</li>
-   *   <li>Type name lookup via the type metadata</li>
-   *   <li>Fallback codec</li>
-   * </ol>
+   * <p>This method uses Caffeine caching for performance. The full resolution
+   * order is documented on the {@linkplain CodecRegistry class}.</p>
    *
    * @param oid the PostgreSQL type OID
    * @param pgType the type information (may be null for cache-only lookup)
    * @return the codec (never null - returns FallbackCodec for unknown types)
    */
   public Codec getByOid(int oid, @Nullable TypeDescriptor pgType) {
-    // Check explicit registrations first
-    Codec explicit = explicitOidCodecs.get(oid);
-    if (explicit != null) {
-      return explicit;
+    // 1. User OID registration: an explicit per-connection binding wins outright.
+    Codec userOid = userOidCodecs.get(oid);
+    if (userOid != null) {
+      return userOid;
     }
 
-    // Check cache
+    // 2. Memoized resolution.
     Codec cached = oidCache.getIfPresent(oid);
     if (cached != null) {
       return cached;
     }
 
-    // Resolve via type name
+    // 3. User name registration (user layer beats SPI and built-in).
     if (pgType != null) {
-      String typeName = pgType.getTypeName().getName();
-      Codec codec = getByName(typeName);
-      if (codec != null) {
-        oidCache.put(oid, codec);
-        return codec;
+      Codec userName = lookupByName(userCodecsByName, pgType);
+      if (userName != null) {
+        oidCache.put(oid, userName);
+        return userName;
+      }
+    }
+
+    // 4. Built-in by canonical OID: the primary identity, so a same-named SPI
+    // codec cannot shadow a built-in type.
+    Codec builtinOid = builtinCodecsByOid.get(oid);
+    if (builtinOid != null) {
+      oidCache.put(oid, builtinOid);
+      return builtinOid;
+    }
+
+    if (pgType != null) {
+      // 5. Service-loaded codec by name.
+      Codec spi = lookupByName(spiCodecsByName, pgType);
+      if (spi != null) {
+        oidCache.put(oid, spi);
+        return spi;
       }
 
-      // Resolve by typtype/typcategory for user-defined types
+      // 6. Built-in by name (aliases, and types without a pinned OID such as hstore).
+      Codec builtinName = lookupByName(builtinCodecsByName, pgType);
+      if (builtinName != null) {
+        oidCache.put(oid, builtinName);
+        return builtinName;
+      }
+
+      // 7. Built-in container codec from typtype/typcategory.
       Codec resolved = resolveByTyptype(pgType);
       if (resolved != null) {
         oidCache.put(oid, resolved);
@@ -431,8 +614,25 @@ public class CodecRegistry {
       }
     }
 
-    // Fallback for unknown types
+    // 8. Fallback for unknown types.
     return FallbackCodec.INSTANCE;
+  }
+
+  /**
+   * Resolves a codec by {@code (namespace, name)} within a single layer, falling
+   * back to a bare-name match so a codec registered without a namespace still
+   * applies to a type in any schema.
+   */
+  private static @Nullable Codec lookupByName(Map<NameKey, Codec> layer, TypeDescriptor pgType) {
+    String namespace = pgType.getTypeName().getNamespace();
+    String name = pgType.getTypeName().getName();
+    if (namespace != null) {
+      Codec exact = layer.get(new NameKey(namespace, name));
+      if (exact != null) {
+        return exact;
+      }
+    }
+    return layer.get(new NameKey(null, name));
   }
 
   /**
@@ -584,7 +784,7 @@ public class CodecRegistry {
    */
   public void invalidateOid(int oid) {
     oidCache.invalidate(oid);
-    explicitOidCodecs.remove(oid);
+    userOidCodecs.remove(oid);
   }
 
   /**
@@ -594,7 +794,11 @@ public class CodecRegistry {
    * @return true if a codec is registered
    */
   public boolean hasCodecForName(String typeName) {
-    return codecsByName.containsKey(typeName) || spiCodecs.containsKey(typeName);
+    NameKey key = new NameKey(null, typeName);
+    return userCodecsByName.containsKey(key)
+        || spiCodecsByName.containsKey(key)
+        || builtinCodecsByName.containsKey(key)
+        || builtinCodecsByName.containsKey(new NameKey(PG_CATALOG, typeName));
   }
 
   /**
@@ -605,5 +809,81 @@ public class CodecRegistry {
    */
   public boolean hasCodecForClass(Class<?> javaClass) {
     return codecsByClass.containsKey(javaClass);
+  }
+
+  /**
+   * Registers a built-in {@code pg_catalog} codec by its type name.
+   */
+  private void registerBuiltin(Codec codec) {
+    builtinCodecsByName.put(new NameKey(PG_CATALOG, codec.getTypeName()), codec);
+  }
+
+  /**
+   * Registers a built-in {@code pg_catalog} alias for a codec.
+   */
+  private void registerBuiltinAlias(String alias, Codec codec) {
+    builtinCodecsByName.put(new NameKey(PG_CATALOG, alias), codec);
+  }
+
+  /**
+   * Registers a built-in codec for an extension type whose schema and OID are
+   * installation-dependent (for example {@code hstore}). It is keyed by bare name,
+   * so it matches the type in whatever schema the extension was installed.
+   */
+  private void registerBuiltinExtension(Codec codec) {
+    builtinCodecsByName.put(new NameKey(null, codec.getTypeName()), codec);
+  }
+
+  /**
+   * Pins a built-in codec to a canonical OID.
+   */
+  private void pinBuiltinOid(int oid, Codec codec) {
+    builtinCodecsByOid.put(oid, codec);
+  }
+
+  /**
+   * Whether a built-in codec is registered under the given bare type name, either
+   * as a {@code pg_catalog} type or as a bare-name extension type.
+   */
+  private boolean hasBuiltinName(String name) {
+    return builtinCodecsByName.containsKey(new NameKey(PG_CATALOG, name))
+        || builtinCodecsByName.containsKey(new NameKey(null, name));
+  }
+
+  /**
+   * A codec registry key: an optional namespace (schema) plus a type name. A
+   * {@code null} namespace is an unqualified key that matches a type in any
+   * schema during the bare-name fallback of {@link #lookupByName}.
+   */
+  private static final class NameKey {
+    final @Nullable String namespace;
+    final String name;
+
+    NameKey(@Nullable String namespace, String name) {
+      this.namespace = namespace;
+      this.name = name;
+    }
+
+    @Override
+    public boolean equals(@Nullable Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof NameKey)) {
+        return false;
+      }
+      NameKey that = (NameKey) o;
+      return Objects.equals(namespace, that.namespace) && name.equals(that.name);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hashCode(namespace) * 31 + name.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return namespace == null ? name : namespace + "." + name;
+    }
   }
 }
