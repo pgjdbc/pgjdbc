@@ -14,9 +14,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
-import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PGSQLType;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.test.TestUtil;

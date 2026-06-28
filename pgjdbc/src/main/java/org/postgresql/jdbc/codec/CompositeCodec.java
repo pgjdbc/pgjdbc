@@ -6,14 +6,15 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
-import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.CodecDepth;
 import org.postgresql.jdbc.CodecRegistry;
+import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.jdbc.PgField;
 import org.postgresql.jdbc.PgSQLInputBinary;
 import org.postgresql.jdbc.PgSQLInputText;
@@ -55,6 +56,13 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
 
   private CompositeCodec() {
     // Singleton for composite handling
+  }
+
+  // Transitional downcast (slice 2c): the composite codec reaches the internal connection / TypeInfo
+  // / CodecRegistry (and the SQLData adapters) through PgCodecContext until child-type resolution
+  // (resolveCodec/resolveType) moves onto the CodecContext interface.
+  private static PgCodecContext impl(CodecContext ctx) {
+    return (PgCodecContext) ctx;
   }
 
   // =========================================================================
@@ -491,15 +499,15 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
           continue;
         }
         int fieldOid = field.getTypeOid();
-        PgType fieldType = ctx.getTypeInfo().getPgTypeByOid(fieldOid);
-        BinaryCodec fieldCodec = ctx.getCodecs().getBinaryCodec(fieldOid, fieldType);
+        PgType fieldType = impl(ctx).getTypeInfo().getPgTypeByOid(fieldOid);
+        BinaryCodec fieldCodec = impl(ctx).getCodecs().getBinaryCodec(fieldOid, fieldType);
         if (fieldCodec == null) {
           attributes[i] = field.getData();
         } else {
           attributes[i] = field.decode(fieldCodec, fieldType, ctx);
         }
       }
-      return new PgStruct(structTypeFor(type, binaryFields), attributes, ctx.getConnection());
+      return new PgStruct(structTypeFor(type, binaryFields), attributes, impl(ctx).getConnection());
     } finally {
       CodecDepth.exit();
     }
@@ -535,7 +543,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       try {
         // The SPI type reaching this codec is the driver's own PgType; the SQLData output
         // adapter is internal machinery keyed on the concrete composite type.
-        PgSQLOutputBinary output = new PgSQLOutputBinary((PgType) type, ctx);
+        PgSQLOutputBinary output = new PgSQLOutputBinary((PgType) type, impl(ctx));
         ((SQLData) value).writeSQL(output);
         return output.toBytes();
       } finally {
@@ -596,7 +604,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
     try {
       List<? extends org.postgresql.api.codec.PgField> fields = type.getFields();
       if (fields == null) {
-        fields = ctx.getTypeInfo().getFields(type.getOid());
+        fields = impl(ctx).getTypeInfo().getFields(type.getOid());
       }
       final List<? extends org.postgresql.api.codec.PgField> fieldList = fields;
       final int expected = fieldList.size();
@@ -626,8 +634,8 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
         }
         org.postgresql.api.codec.PgField field = fieldList.get(index);
         int fieldOid = field.getTypeOid();
-        PgType fieldType = ctx.getTypeInfo().getPgTypeByOid(fieldOid);
-        TextCodec fieldCodec = ctx.getCodecs().getTextCodec(fieldOid, fieldType);
+        PgType fieldType = impl(ctx).getTypeInfo().getPgTypeByOid(fieldOid);
+        TextCodec fieldCodec = impl(ctx).getCodecs().getTextCodec(fieldOid, fieldType);
         if (fieldCodec == null) {
           attributes[index] = new String(buf, offset, length);
         } else {
@@ -646,7 +654,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       // fieldless pseudo-type; getValue() still works because the raw server
       // literal is recorded verbatim by the caller. The SPI type reaching this codec is
       // the driver's own PgType, which PgStruct (internal) carries.
-      return new PgStruct((PgType) type, attributes, ctx.getConnection());
+      return new PgStruct((PgType) type, attributes, impl(ctx).getConnection());
     } finally {
       CodecDepth.exit();
     }
@@ -658,7 +666,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       CodecDepth.enter();
       try {
         // See encodeBinary: the SQLData output adapter needs the driver's concrete PgType.
-        PgSQLOutputText output = new PgSQLOutputText((PgType) type, ctx);
+        PgSQLOutputText output = new PgSQLOutputText((PgType) type, impl(ctx));
         ((SQLData) value).writeSQL(output);
         return output.toCompositeString();
       } finally {
@@ -730,7 +738,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       Appendable out) throws SQLException, IOException {
     List<? extends org.postgresql.api.codec.PgField> fields = compositeType.getFields();
     if (fields == null) {
-      fields = ctx.getTypeInfo().getFields(compositeType.getOid());
+      fields = impl(ctx).getTypeInfo().getFields(compositeType.getOid());
     }
     if (fields.size() != attributes.length) {
       throw new PSQLException(
@@ -738,7 +746,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
               compositeType.getTypeName(), fields.size(), attributes.length),
           PSQLState.DATA_ERROR);
     }
-    CodecRegistry codecs = ctx.getCodecs();
+    CodecRegistry codecs = impl(ctx).getCodecs();
     out.append('(');
     for (int i = 0; i < attributes.length; i++) {
       if (i > 0) {
@@ -750,7 +758,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       }
       org.postgresql.api.codec.PgField field = fields.get(i);
       int fieldOid = field.getTypeOid();
-      PgType fieldType = ctx.getTypeInfo().getPgTypeByOid(fieldOid);
+      PgType fieldType = impl(ctx).getTypeInfo().getPgTypeByOid(fieldOid);
       TextCodec codec = codecs.getTextCodec(fieldOid, fieldType);
       if (codec == null) {
         throw new PSQLException(
@@ -797,7 +805,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       BackpatchByteArrayOutputStream out) throws SQLException, IOException {
     List<? extends org.postgresql.api.codec.PgField> fields = compositeType.getFields();
     if (fields == null) {
-      fields = ctx.getTypeInfo().getFields(compositeType.getOid());
+      fields = impl(ctx).getTypeInfo().getFields(compositeType.getOid());
     }
     if (fields.size() != attributes.length) {
       throw new PSQLException(
@@ -805,7 +813,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
               compositeType.getTypeName(), fields.size(), attributes.length),
           PSQLState.DATA_ERROR);
     }
-    CodecRegistry codecs = ctx.getCodecs();
+    CodecRegistry codecs = impl(ctx).getCodecs();
     byte[] buf = new byte[4];
     // field count
     ByteConverter.int4(buf, 0, fields.size());
@@ -822,7 +830,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
         out.write(buf);
         continue;
       }
-      PgType fieldType = ctx.getTypeInfo().getPgTypeByOid(fieldOid);
+      PgType fieldType = impl(ctx).getTypeInfo().getPgTypeByOid(fieldOid);
       BinaryCodec codec = codecs.getBinaryCodec(fieldOid, fieldType);
       if (codec == null) {
         throw new PSQLException(
@@ -858,7 +866,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       try {
         Class<? extends SQLData> sqlDataClass = (Class<? extends SQLData>) targetClass;
         SQLData sqlData = createSQLDataInstance(sqlDataClass);
-        SQLInput input = new PgSQLInputBinary(data, (PgType) type, ctx);
+        SQLInput input = new PgSQLInputBinary(data, (PgType) type, impl(ctx));
         sqlData.readSQL(input, type.getFullName());
         return (T) sqlData;
       } finally {
@@ -895,7 +903,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       try {
         Class<? extends SQLData> sqlDataClass = (Class<? extends SQLData>) targetClass;
         SQLData sqlData = createSQLDataInstance(sqlDataClass);
-        SQLInput input = new PgSQLInputText(data, (PgType) type, ctx);
+        SQLInput input = new PgSQLInputText(data, (PgType) type, impl(ctx));
         sqlData.readSQL(input, type.getFullName());
         return (T) sqlData;
       } finally {

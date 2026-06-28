@@ -45,7 +45,7 @@ public abstract class PgSQLInput<BufferType> implements SQLInput {
 
   protected final @Nullable BufferType[] attributeValues;
   protected final PgType compositeType;
-  protected final CodecContext ctx;
+  protected final PgCodecContext ctx;
   protected final List<PgField> fields;
   protected int fieldIndex = 0;
   protected boolean lastWasNull = false;
@@ -57,7 +57,7 @@ public abstract class PgSQLInput<BufferType> implements SQLInput {
    * @param type the composite type
    * @param ctx the codec context
    */
-  protected PgSQLInput(@Nullable BufferType[] attributeValues, PgType type, CodecContext ctx)
+  protected PgSQLInput(@Nullable BufferType[] attributeValues, PgType type, PgCodecContext ctx)
       throws SQLException {
     this.attributeValues = attributeValues;
     this.compositeType = type;

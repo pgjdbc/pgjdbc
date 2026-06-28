@@ -30,7 +30,7 @@ public class PgParameterMetaData implements ParameterMetaData {
   public String getParameterClassName(@Positive int param) throws SQLException {
     checkParamIndex(param);
     int oid = oids[param - 1];
-    CodecContext ctx = connection.getCodecContext();
+    PgCodecContext ctx = connection.getCodecContext();
     // Resolve PgType so codec lookup can fall through to typename / typtype
     // resolution rather than returning FallbackCodec.
     PgType pgType = connection.getTypeInfo().getPgTypeByOid(oid);

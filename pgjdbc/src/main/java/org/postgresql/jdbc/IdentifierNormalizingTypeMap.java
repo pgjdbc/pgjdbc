@@ -49,7 +49,7 @@ final class IdentifierNormalizingTypeMap implements Map<String, Class<?>> {
    * Returns {@code map} wrapped in an {@code IdentifierNormalizingTypeMap},
    * or {@code map} unchanged when it is empty or already a wrapper. Use at
    * JDBC-API entry points (e.g. {@code ResultSet.getObject(int, Map)}) and at
-   * the {@code CodecContext} boundary to route the user-supplied map through
+   * the {@code PgCodecContext} boundary to route the user-supplied map through
    * identifier-form normalization without ever double-wrapping.
    */
   static Map<String, Class<?>> of(Map<String, Class<?>> map, TypeInfo typeInfo) {

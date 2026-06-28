@@ -6,7 +6,6 @@
 package org.postgresql.api.codec;
 
 import org.postgresql.api.Experimental;
-import org.postgresql.jdbc.CodecContext;
 
 import java.io.IOException;
 import java.sql.SQLException;

@@ -5,9 +5,9 @@
 
 package org.postgresql.jdbc.codec;
 
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.BooleanTypeUtil;
-import org.postgresql.jdbc.CodecContext;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;

@@ -144,7 +144,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   private final ResourceLock lock = new ResourceLock();
 
   // Codec support
-  private @Nullable CodecContext codecContext;
+  private @Nullable PgCodecContext codecContext;
 
   /**
    * Gets the codec context for this result set.
@@ -153,8 +153,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    * @return the codec context
    * @throws SQLException if the context cannot be created
    */
-  protected CodecContext getCodecContext() throws SQLException {
-    CodecContext ctx = codecContext;
+  protected PgCodecContext getCodecContext() throws SQLException {
+    PgCodecContext ctx = codecContext;
     if (ctx == null) {
       // Defer to the connection so the codec context picks up the current
       // typeMap and java.time / convertBooleanToNumeric preferences. Then
@@ -608,7 +608,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   private <T> @Nullable T decodeColumnViaCodec(int i, byte[] value, Class<T> targetClass,
       Calendar cal) throws SQLException {
     Field field = getFieldWithCodec(i);
-    CodecContext ctx = getCodecContext().withCalendar(cal);
+    PgCodecContext ctx = getCodecContext().withCalendar(cal);
     if (isBinary(i)) {
       BinaryCodec codec = field.getBinaryCodec();
       if (codec != null) {
@@ -755,7 +755,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       PgType pgType = field.getPgType();
       @SuppressWarnings("unchecked")
       Class<? extends SQLData> sqlDataClass = (Class<? extends SQLData>) targetClass;
-      CodecContext ctx = getCodecContext().withTypeMap(map);
+      PgCodecContext ctx = getCodecContext().withTypeMap(map);
       if (isBinary(i)) {
         return CompositeCodec.INSTANCE.decodeBinaryAs(value, pgType, sqlDataClass, ctx);
       } else {
@@ -2136,7 +2136,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    */
   private void encodeRowBufferColumnViaCodec(
       Tuple rowBuffer, int columnIndex, Object valueObject) throws SQLException {
-    CodecContext ctx = getCodecContext();
+    PgCodecContext ctx = getCodecContext();
     int oid = fields[columnIndex].getOID();
     PgType pgType = connection.getTypeInfo().getPgTypeByOid(oid);
     if (isBinary(columnIndex + 1)) {
@@ -2396,7 +2396,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       BinaryCodec codec = field.getBinaryCodec();
       if (codec != null) {
         PgType pgType = field.getPgType();
-        CodecContext ctx = getCodecContext();
+        PgCodecContext ctx = getCodecContext();
         return codec.decodeAsString(value, pgType, ctx);
       }
       // Fallback for types without a binary codec
@@ -2456,7 +2456,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     Field field = getFieldWithCodec(columnIndex);
     PgType pgType = field.getPgType();
-    CodecContext ctx = getCodecContext();
+    PgCodecContext ctx = getCodecContext();
 
     if (isBinary(columnIndex)) {
       BinaryCodec codec = field.getBinaryCodec();
@@ -2485,7 +2485,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     Field field = getFieldWithCodec(columnIndex);
     PgType pgType = field.getPgType();
-    CodecContext ctx = getCodecContext();
+    PgCodecContext ctx = getCodecContext();
 
     if (isBinary(columnIndex)) {
       BinaryCodec codec = field.getBinaryCodec();
@@ -2524,7 +2524,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     Field field = getFieldWithCodec(columnIndex);
     PgType pgType = field.getPgType();
-    CodecContext ctx = getCodecContext();
+    PgCodecContext ctx = getCodecContext();
 
     if (isBinary(columnIndex)) {
       BinaryCodec codec = field.getBinaryCodec();
@@ -2564,7 +2564,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     Field field = getFieldWithCodec(columnIndex);
     PgType pgType = field.getPgType();
-    CodecContext ctx = getCodecContext();
+    PgCodecContext ctx = getCodecContext();
 
     if (isBinary(columnIndex)) {
       BinaryCodec codec = field.getBinaryCodec();
@@ -2594,7 +2594,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     Field field = getFieldWithCodec(columnIndex);
     PgType pgType = field.getPgType();
-    CodecContext ctx = getCodecContext();
+    PgCodecContext ctx = getCodecContext();
 
     if (isBinary(columnIndex)) {
       BinaryCodec codec = field.getBinaryCodec();
@@ -2703,7 +2703,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     Field field = getFieldWithCodec(columnIndex);
     PgType pgType = field.getPgType();
-    CodecContext ctx = getCodecContext();
+    PgCodecContext ctx = getCodecContext();
 
     if (isBinary(columnIndex)) {
       BinaryCodec codec = field.getBinaryCodec();
@@ -2733,7 +2733,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     Field field = getFieldWithCodec(columnIndex);
     PgType pgType = field.getPgType();
-    CodecContext ctx = getCodecContext();
+    PgCodecContext ctx = getCodecContext();
 
     if (isBinary(columnIndex)) {
       BinaryCodec codec = field.getBinaryCodec();
@@ -3135,7 +3135,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     // Use codec for all other types
     field = getFieldWithCodec(columnIndex);
     PgType pgType = field.getPgType();
-    CodecContext ctx = getCodecContext();
+    PgCodecContext ctx = getCodecContext();
 
     // Honor the connection-level type map: if the user has registered a Java
     // class for this PostgreSQL type, route through decodeBinaryAs/decodeTextAs
@@ -3338,7 +3338,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
     Field field = getFieldWithCodec(columnIndex);
     PgType pgType = field.getPgType();
-    CodecContext ctx = getCodecContext();
+    PgCodecContext ctx = getCodecContext();
     if (isBinary(columnIndex)) {
       BinaryCodec codec = field.getBinaryCodec();
       if (codec != null) {
@@ -3846,7 +3846,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     Field field = getFieldWithCodec(columnIndex);
     PgType pgType = field.getPgType();
-    CodecContext ctx = getCodecContext();
+    PgCodecContext ctx = getCodecContext();
 
     if (isBinary(columnIndex)) {
       BinaryCodec codec = field.getBinaryCodec();

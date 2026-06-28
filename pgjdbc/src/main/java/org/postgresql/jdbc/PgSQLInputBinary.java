@@ -48,7 +48,7 @@ public final class PgSQLInputBinary extends PgSQLInput<byte[]> {
    * @param type the composite type
    * @param ctx the codec context
    */
-  public PgSQLInputBinary(byte[] compositeData, PgType type, CodecContext ctx)
+  public PgSQLInputBinary(byte[] compositeData, PgType type, PgCodecContext ctx)
       throws SQLException {
     super(parseCompositeData(compositeData), type, ctx);
     this.cachedCodecs = new BinaryCodec[fields.size()];
@@ -64,7 +64,7 @@ public final class PgSQLInputBinary extends PgSQLInput<byte[]> {
    * @param ctx the codec context
    */
   @SuppressWarnings("argument")
-  public PgSQLInputBinary(byte @Nullable [][] attributeValues, PgType type, CodecContext ctx)
+  public PgSQLInputBinary(byte @Nullable [][] attributeValues, PgType type, PgCodecContext ctx)
       throws SQLException {
     super(attributeValues, type, ctx);
     this.cachedCodecs = new BinaryCodec[fields.size()];

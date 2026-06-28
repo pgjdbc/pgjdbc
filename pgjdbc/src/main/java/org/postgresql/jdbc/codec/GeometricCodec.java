@@ -6,6 +6,7 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.geometric.PGbox;
@@ -15,7 +16,6 @@ import org.postgresql.geometric.PGlseg;
 import org.postgresql.geometric.PGpath;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.geometric.PGpolygon;
-import org.postgresql.jdbc.CodecContext;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGobject;

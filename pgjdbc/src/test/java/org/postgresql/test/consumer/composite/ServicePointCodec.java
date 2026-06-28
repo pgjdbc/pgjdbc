@@ -5,9 +5,9 @@
 
 package org.postgresql.test.consumer.composite;
 
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
-import org.postgresql.jdbc.CodecContext;
 
 import java.sql.SQLException;
 

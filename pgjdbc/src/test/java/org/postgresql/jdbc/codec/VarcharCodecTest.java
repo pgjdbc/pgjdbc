@@ -8,8 +8,8 @@ package org.postgresql.jdbc.codec;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.core.Oid;
-import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.jdbc.TestCodecContext;

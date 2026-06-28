@@ -453,7 +453,7 @@ public final class ArrayDecoding {
     Object parseValue(int length, ByteBuffer bytes, BaseConnection connection) throws SQLException {
       final byte[] copy = new byte[length];
       bytes.get(copy);
-      CodecContext ctx = connection.getCodecContext();
+      PgCodecContext ctx = connection.getCodecContext();
       BinaryCodec codec = ctx.getCodecs().getBinaryCodec(elementOid, elementType);
       if (codec == null) {
         throw new PSQLException(
@@ -469,7 +469,7 @@ public final class ArrayDecoding {
      */
     @Override
     Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
-      CodecContext ctx = connection.getCodecContext();
+      PgCodecContext ctx = connection.getCodecContext();
       TextCodec codec = ctx.getCodecs().getTextCodec(elementOid, elementType);
       if (codec == null) {
         throw new PSQLException(

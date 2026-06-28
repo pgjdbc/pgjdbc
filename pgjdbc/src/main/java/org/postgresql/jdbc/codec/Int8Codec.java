@@ -7,9 +7,10 @@ package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
-import org.postgresql.jdbc.CodecContext;
+import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.NumberParser;
@@ -145,7 +146,9 @@ public final class Int8Codec implements BinaryCodec, TextCodec, ArrayElementCode
   @Override
   public long decodeTextBytesAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     // Fast path for ASCII-encoded longs
-    if (ctx.getEncoding().hasAsciiNumbers()) {
+    // Transitional downcast (slice 2c): read the wire Encoding through the implementation until it
+    // is exposed on the CodecContext interface.
+    if (((PgCodecContext) ctx).getEncoding().hasAsciiNumbers()) {
       try {
         return NumberParser.getFastLong(data, Long.MIN_VALUE, Long.MAX_VALUE);
       } catch (NumberFormatException ignored) {

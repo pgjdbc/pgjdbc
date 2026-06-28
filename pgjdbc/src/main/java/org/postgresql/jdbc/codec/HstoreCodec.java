@@ -6,9 +6,10 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
-import org.postgresql.jdbc.CodecContext;
+import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.util.GT;
 import org.postgresql.util.HStoreConverter;
 import org.postgresql.util.PSQLException;
@@ -39,6 +40,12 @@ public final class HstoreCodec implements BinaryCodec, TextCodec {
     // Singleton
   }
 
+  // Transitional downcast (slice 2c): hstore reaches the connection Encoding through the
+  // implementation until the wire encoding is read from the CodecContext interface.
+  private static PgCodecContext impl(CodecContext ctx) {
+    return (PgCodecContext) ctx;
+  }
+
   @Override
   public String getTypeName() {
     return "hstore";
@@ -54,13 +61,13 @@ public final class HstoreCodec implements BinaryCodec, TextCodec {
     if (data == null || data.length == 0) {
       return null;
     }
-    return HStoreConverter.fromBytes(data, ctx.getEncoding());
+    return HStoreConverter.fromBytes(data, impl(ctx).getEncoding());
   }
 
   @Override
   public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (value instanceof Map) {
-      return HStoreConverter.toBytes((Map<?, ?>) value, ctx.getEncoding());
+      return HStoreConverter.toBytes((Map<?, ?>) value, impl(ctx).getEncoding());
     }
     throw new PSQLException(GT.tr("Cannot encode {0} as hstore", value.getClass().getName()),
         PSQLState.DATA_TYPE_MISMATCH);

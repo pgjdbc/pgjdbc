@@ -5,9 +5,10 @@
 
 package org.postgresql.jdbc.codec;
 
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.core.Oid;
 import org.postgresql.core.TypeInfo;
-import org.postgresql.jdbc.CodecContext;
+import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -49,7 +50,9 @@ interface ArrayLeafCodec extends MultiDimArrayBinary.LeafBinaryWriter,
 
   default String getArrayTypeDescription(CodecContext ctx) {
     try {
-      TypeInfo typeInfo = ctx.getTypeInfo();
+      // Transitional downcast (slice 2c): reach the internal TypeInfo through the implementation
+      // until child-type resolution moves onto the CodecContext interface.
+      TypeInfo typeInfo = ((PgCodecContext) ctx).getTypeInfo();
       PgType elementType = typeInfo.getPgTypeByOid(getElementOid());
       return elementType.getFullName() + "[]";
     } catch (RuntimeException | SQLException e) {

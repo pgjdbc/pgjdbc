@@ -7,10 +7,11 @@ package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
-import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.CodecDepth;
+import org.postgresql.jdbc.PgCodecContext;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -59,6 +60,13 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
     // Singleton
   }
 
+  // Transitional downcast (slice 2c): container codecs reach the internal TypeInfo / CodecRegistry
+  // through PgCodecContext until child-type resolution (resolveCodec/resolveType) moves onto the
+  // CodecContext interface.
+  private static PgCodecContext impl(CodecContext ctx) {
+    return (PgCodecContext) ctx;
+  }
+
   /**
    * Gets the base type codec for the given domain type.
    */
@@ -68,8 +76,8 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
       // Not a domain, fall back to default behavior
       return FallbackCodec.INSTANCE;
     }
-    TypeDescriptor baseType = ctx.getTypeInfo().getPgTypeByOid(baseTypeOid);
-    return ctx.getCodecs().getByOid(baseTypeOid, baseType);
+    TypeDescriptor baseType = impl(ctx).getTypeInfo().getPgTypeByOid(baseTypeOid);
+    return impl(ctx).getCodecs().getByOid(baseTypeOid, baseType);
   }
 
   /**
@@ -80,7 +88,7 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
     if (baseTypeOid == 0) {
       return domainType;
     }
-    return ctx.getTypeInfo().getPgTypeByOid(baseTypeOid);
+    return impl(ctx).getTypeInfo().getPgTypeByOid(baseTypeOid);
   }
 
   @Override

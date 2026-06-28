@@ -7,8 +7,8 @@ package org.postgresql.core;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
-import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.FieldMetadata;
+import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.LruCache;
 import org.postgresql.xml.PGXmlFactoryFactory;
@@ -256,15 +256,15 @@ public interface BaseConnection extends PGConnection, Connection {
   boolean getConvertBooleanToNumeric();
 
   /**
-   * Returns a CodecContext for this connection.
+   * Returns a PgCodecContext for this connection.
    *
-   * <p>The CodecContext provides access to codecs and type information
+   * <p>The PgCodecContext provides access to codecs and type information
    * needed for encoding and decoding values.</p>
    *
    * @return the codec context
    * @throws SQLException if the context cannot be created
    */
-  CodecContext getCodecContext() throws SQLException;
+  PgCodecContext getCodecContext() throws SQLException;
 
   /**
    * Returns whether PostgreSQL boolean should map to JDBC BOOLEAN type.

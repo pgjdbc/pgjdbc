@@ -6,7 +6,6 @@
 package org.postgresql.api.codec;
 
 import org.postgresql.api.Experimental;
-import org.postgresql.jdbc.CodecContext;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -214,7 +213,7 @@ public interface TextCodec extends Codec {
    */
   default boolean decodeAsBoolean(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Object value = decodeText(data, type, ctx);
-    return org.postgresql.jdbc.BooleanTypeUtil.castAndCheck(
+    return BooleanCoercion.castAndCheck(
         value, () -> decodeAsString(data, type, ctx));
   }
 
