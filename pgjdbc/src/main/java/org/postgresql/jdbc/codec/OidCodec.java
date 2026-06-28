@@ -8,8 +8,8 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.CodecContext;
-import org.postgresql.jdbc.PgType;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.NumberParser;
@@ -57,12 +57,12 @@ public final class OidCodec implements BinaryCodec, TextCodec, ArrayElementCodec
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsLong(data, type, ctx);
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (length != 4) {
       throw new PSQLException(
@@ -74,7 +74,7 @@ public final class OidCodec implements BinaryCodec, TextCodec, ArrayElementCodec
   }
 
   @Override
-  public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     long v = toLong(value);
     byte[] result = new byte[4];
     ByteConverter.int4(result, 0, (int) v);
@@ -82,12 +82,12 @@ public final class OidCodec implements BinaryCodec, TextCodec, ArrayElementCodec
   }
 
   @Override
-  public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsLong(data, type, ctx);
   }
 
   @Override
-  public @Nullable Object decodeText(char[] data, int offset, int length, PgType type,
+  public @Nullable Object decodeText(char[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     // Long bounds, not 0..2^32-1: decodeText(String) parses the full signed long
     // without masking to unsigned 32-bit, and the slice form has to match it.
@@ -101,12 +101,12 @@ public final class OidCodec implements BinaryCodec, TextCodec, ArrayElementCodec
   }
 
   @Override
-  public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return String.valueOf(toLong(value));
   }
 
   @Override
-  public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (data.length != 4) {
       throw new PSQLException(
           GT.tr("Invalid oid binary data length: {0}", data.length),
@@ -116,7 +116,7 @@ public final class OidCodec implements BinaryCodec, TextCodec, ArrayElementCodec
   }
 
   @Override
-  public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     try {
       long v = Long.parseLong(data.trim());
       return (int) v;
@@ -128,7 +128,7 @@ public final class OidCodec implements BinaryCodec, TextCodec, ArrayElementCodec
   }
 
   @Override
-  public long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (data.length != 4) {
       throw new PSQLException(
           GT.tr("Invalid oid binary data length: {0}", data.length),
@@ -139,7 +139,7 @@ public final class OidCodec implements BinaryCodec, TextCodec, ArrayElementCodec
   }
 
   @Override
-  public long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     try {
       return Long.parseLong(data.trim());
     } catch (NumberFormatException e) {
@@ -150,23 +150,23 @@ public final class OidCodec implements BinaryCodec, TextCodec, ArrayElementCodec
   }
 
   @Override
-  public double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsLong(data, type, ctx);
   }
 
   @Override
-  public double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsLong(data, type, ctx);
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return BigDecimal.valueOf(decodeAsLong(data, type, ctx));
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     long value = decodeAsLong(data, type, ctx);
     if (targetClass == Long.class || targetClass == Object.class) {
@@ -188,7 +188,7 @@ public final class OidCodec implements BinaryCodec, TextCodec, ArrayElementCodec
   }
 
   @Override
-  public <T> @Nullable T decodeTextAs(String data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     long value = decodeAsLong(data, type, ctx);
     byte[] bytes = new byte[4];

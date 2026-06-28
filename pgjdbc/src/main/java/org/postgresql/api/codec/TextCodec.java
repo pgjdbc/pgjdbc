@@ -7,7 +7,6 @@ package org.postgresql.api.codec;
 
 import org.postgresql.api.Experimental;
 import org.postgresql.jdbc.CodecContext;
-import org.postgresql.jdbc.PgType;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -39,7 +38,7 @@ public interface TextCodec extends Codec {
    * @return the decoded Java object
    * @throws SQLException if decoding fails
    */
-  @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException;
+  @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException;
 
   /**
    * Decodes a value from a slice of a larger text literal, without copying the
@@ -53,7 +52,7 @@ public interface TextCodec extends Codec {
    * valid only during the call; implementations must not retain it.</p>
    *
    * <p>The default copies the slice and delegates to
-   * {@link #decodeText(String, PgType, CodecContext)}, so codecs that do not
+   * {@link #decodeText(String, TypeDescriptor, CodecContext)}, so codecs that do not
    * override it keep the existing behaviour.</p>
    *
    * @param data backing buffer; only {@code [offset, offset + length)} is this value
@@ -64,7 +63,7 @@ public interface TextCodec extends Codec {
    * @return the decoded Java object
    * @throws SQLException if decoding fails
    */
-  default @Nullable Object decodeText(char[] data, int offset, int length, PgType type,
+  default @Nullable Object decodeText(char[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     return decodeText(new String(data, offset, length), type, ctx);
   }
@@ -78,7 +77,7 @@ public interface TextCodec extends Codec {
    * @return the text representation
    * @throws SQLException if encoding fails
    */
-  String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException;
+  String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException;
 
   /**
    * Whether this codec's {@link #encodeText} output can contain characters that require quoting
@@ -106,7 +105,7 @@ public interface TextCodec extends Codec {
    * @return the int value
    * @throws SQLException if decoding fails or value overflows int range
    */
-  default int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
+  default int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Object value = decodeText(data, type, ctx);
     if (value instanceof Number) {
       return ((Number) value).intValue();
@@ -120,7 +119,7 @@ public interface TextCodec extends Codec {
    * <p>This method provides a fast path for numeric codecs that can parse
    * ASCII-encoded numbers directly from bytes without String conversion.</p>
    *
-   * <p>Default implementation converts to String and delegates to {@link #decodeAsInt(String, PgType, CodecContext)}.</p>
+   * <p>Default implementation converts to String and delegates to {@link #decodeAsInt(String, TypeDescriptor, CodecContext)}.</p>
    *
    * @param data the raw text bytes
    * @param type the PostgreSQL type information
@@ -128,7 +127,7 @@ public interface TextCodec extends Codec {
    * @return the int value
    * @throws SQLException if decoding fails or value overflows int range
    */
-  default int decodeTextBytesAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  default int decodeTextBytesAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsInt(new String(data, java.nio.charset.StandardCharsets.UTF_8), type, ctx);
   }
 
@@ -144,7 +143,7 @@ public interface TextCodec extends Codec {
    * @return the long value
    * @throws SQLException if decoding fails or value overflows long range
    */
-  default long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
+  default long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Object value = decodeText(data, type, ctx);
     if (value instanceof Number) {
       return ((Number) value).longValue();
@@ -158,7 +157,7 @@ public interface TextCodec extends Codec {
    * <p>This method provides a fast path for numeric codecs that can parse
    * ASCII-encoded numbers directly from bytes without String conversion.</p>
    *
-   * <p>Default implementation converts to String and delegates to {@link #decodeAsLong(String, PgType, CodecContext)}.</p>
+   * <p>Default implementation converts to String and delegates to {@link #decodeAsLong(String, TypeDescriptor, CodecContext)}.</p>
    *
    * @param data the raw text bytes
    * @param type the PostgreSQL type information
@@ -166,7 +165,7 @@ public interface TextCodec extends Codec {
    * @return the long value
    * @throws SQLException if decoding fails or value overflows long range
    */
-  default long decodeTextBytesAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  default long decodeTextBytesAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsLong(new String(data, java.nio.charset.StandardCharsets.UTF_8), type, ctx);
   }
 
@@ -179,7 +178,7 @@ public interface TextCodec extends Codec {
    * @return the float value
    * @throws SQLException if decoding fails
    */
-  default float decodeAsFloat(String data, PgType type, CodecContext ctx) throws SQLException {
+  default float decodeAsFloat(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Object value = decodeText(data, type, ctx);
     if (value instanceof Number) {
       return ((Number) value).floatValue();
@@ -196,7 +195,7 @@ public interface TextCodec extends Codec {
    * @return the double value
    * @throws SQLException if decoding fails
    */
-  default double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
+  default double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Object value = decodeText(data, type, ctx);
     if (value instanceof Number) {
       return ((Number) value).doubleValue();
@@ -213,7 +212,7 @@ public interface TextCodec extends Codec {
    * @return the boolean value
    * @throws SQLException if decoding fails
    */
-  default boolean decodeAsBoolean(String data, PgType type, CodecContext ctx) throws SQLException {
+  default boolean decodeAsBoolean(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Object value = decodeText(data, type, ctx);
     return org.postgresql.jdbc.BooleanTypeUtil.castAndCheck(
         value, () -> decodeAsString(data, type, ctx));
@@ -230,7 +229,7 @@ public interface TextCodec extends Codec {
    * @return the string value
    * @throws SQLException if decoding fails
    */
-  default @Nullable String decodeAsString(String data, PgType type, CodecContext ctx) throws SQLException {
+  default @Nullable String decodeAsString(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Object value = decodeText(data, type, ctx);
     return value == null ? null : value.toString();
   }
@@ -244,7 +243,7 @@ public interface TextCodec extends Codec {
    * @return the BigDecimal value
    * @throws SQLException if decoding fails
    */
-  default @Nullable BigDecimal decodeAsBigDecimal(String data, PgType type, CodecContext ctx) throws SQLException {
+  default @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Object value = decodeText(data, type, ctx);
     if (value == null) {
       return null;
@@ -276,7 +275,7 @@ public interface TextCodec extends Codec {
    * @return the decoded object as the target type
    * @throws SQLException if conversion to the target class is not supported
    */
-  default <T> @Nullable T decodeTextAs(String data, PgType type, Class<T> targetClass, CodecContext ctx)
+  default <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     Object value = decodeText(data, type, ctx);
     if (value == null) {

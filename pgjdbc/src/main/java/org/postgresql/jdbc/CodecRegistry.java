@@ -9,6 +9,7 @@ import org.postgresql.api.Experimental;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.codec.ArrayCodec;
 import org.postgresql.jdbc.codec.BitCodec;
 import org.postgresql.jdbc.codec.BoolCodec;
@@ -392,7 +393,7 @@ public class CodecRegistry {
    * <p>This method uses Caffeine caching for performance. The resolution order is:</p>
    * <ol>
    *   <li>Explicit OID registration</li>
-   *   <li>Type name lookup via PgType</li>
+   *   <li>Type name lookup via the type metadata</li>
    *   <li>Fallback codec</li>
    * </ol>
    *
@@ -400,7 +401,7 @@ public class CodecRegistry {
    * @param pgType the type information (may be null for cache-only lookup)
    * @return the codec (never null - returns FallbackCodec for unknown types)
    */
-  public Codec getByOid(int oid, @Nullable PgType pgType) {
+  public Codec getByOid(int oid, @Nullable TypeDescriptor pgType) {
     // Check explicit registrations first
     Codec explicit = explicitOidCodecs.get(oid);
     if (explicit != null) {
@@ -489,7 +490,7 @@ public class CodecRegistry {
    * @param pgType the type information
    * @return the resolved codec, or null if no resolution is possible
    */
-  private static @Nullable Codec resolveByTyptype(PgType pgType) {
+  private static @Nullable Codec resolveByTyptype(TypeDescriptor pgType) {
     // Domains are checked first: a domain over an array (CREATE DOMAIN d AS int[]) inherits
     // typcategory='A' from its base type but has typelem=0, so the typcategory-based isArray()
     // check below would otherwise claim it and ArrayCodec would decode every value as null.
@@ -523,7 +524,7 @@ public class CodecRegistry {
    * @param pgType the type information
    * @return the binary codec, or null if the codec doesn't support binary
    */
-  public @Nullable BinaryCodec getBinaryCodec(int oid, @Nullable PgType pgType) {
+  public @Nullable BinaryCodec getBinaryCodec(int oid, @Nullable TypeDescriptor pgType) {
     Codec codec = getByOid(oid, pgType);
     return codec instanceof BinaryCodec ? (BinaryCodec) codec : null;
   }
@@ -535,7 +536,7 @@ public class CodecRegistry {
    * @param pgType the type information
    * @return the text codec, or null if the codec doesn't support text
    */
-  public @Nullable TextCodec getTextCodec(int oid, @Nullable PgType pgType) {
+  public @Nullable TextCodec getTextCodec(int oid, @Nullable TypeDescriptor pgType) {
     Codec codec = getByOid(oid, pgType);
     return codec instanceof TextCodec ? (TextCodec) codec : null;
   }

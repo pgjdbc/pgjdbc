@@ -9,6 +9,7 @@ import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgArray;
@@ -94,14 +95,14 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     // Return a PgArray wrapping the binary data for lazy decoding
     BaseConnection conn = ctx.getConnection();
     return new PgArray(conn, type.getOid(), data);
   }
 
   @Override
-  public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (value instanceof PgArray) {
       PgArray pgArray = (PgArray) value;
       if (pgArray.isBinary()) {
@@ -133,7 +134,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
         PSQLState.INVALID_PARAMETER_TYPE);
   }
 
-  private static byte[] encodeBinaryJavaArray(Object javaArray, PgType type, CodecContext ctx) throws SQLException {
+  private static byte[] encodeBinaryJavaArray(Object javaArray, TypeDescriptor type, CodecContext ctx) throws SQLException {
     ArrayLeafCodec fastLeaf = fastLeafFor(type, ctx);
     if (fastLeaf != null) {
       return MultiDimArrayBinary.encode(javaArray, ctx, fastLeaf);
@@ -163,7 +164,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
    * keeps the per-element loop typed (for example {@code int[]} / {@code Integer[]})
    * so primitive arrays avoid boxing.</p>
    */
-  private static @Nullable ArrayLeafCodec fastLeafFor(PgType arrayType, CodecContext ctx)
+  private static @Nullable ArrayLeafCodec fastLeafFor(TypeDescriptor arrayType, CodecContext ctx)
       throws SQLException {
     int elementOid = arrayType.getTypelem();
     if (elementOid == 0) {
@@ -193,7 +194,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
    * @throws SQLException if type metadata cannot be resolved
    */
   @Override
-  public boolean canEncodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public boolean canEncodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Object javaArray;
     if (value instanceof PgArray) {
       PgArray pgArray = (PgArray) value;
@@ -253,7 +254,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     return elementCodec.canEncodeBinary(value, elementType, ctx);
   }
 
-  private static GenericArrayLeafCodec getGenericArrayLeafCodec(PgType arrayType, CodecContext ctx) throws SQLException {
+  private static GenericArrayLeafCodec getGenericArrayLeafCodec(TypeDescriptor arrayType, CodecContext ctx) throws SQLException {
     int elementOid = arrayType.getTypelem();
     PgType elementType = ctx.getTypeInfo().getPgTypeByOid(elementOid);
     Codec elementCodec = ctx.getCodecs().getByOid(elementOid, elementType);
@@ -261,14 +262,14 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   }
 
   @Override
-  public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     // Return a PgArray wrapping the text data for lazy decoding
     BaseConnection conn = ctx.getConnection();
     return new PgArray(conn, type.getOid(), data);
   }
 
   @Override
-  public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     StringBuilder sb = new StringBuilder();
     try {
       encodeText(value, type, ctx, sb);
@@ -279,7 +280,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   }
 
   @Override
-  public void encodeBinary(Object value, PgType type, CodecContext ctx, OutputStream out)
+  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx, OutputStream out)
       throws SQLException, IOException {
     // Defer to the non-streaming path for unwrap/native-encoder dispatch;
     // the via-codec branch internally back-patches lengths via
@@ -290,7 +291,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   }
 
   @Override
-  public void encodeText(Object value, PgType type, CodecContext ctx, Appendable out)
+  public void encodeText(Object value, TypeDescriptor type, CodecContext ctx, Appendable out)
       throws SQLException, IOException {
     if (value instanceof PgArray) {
       // A PgArray already renders itself as a PostgreSQL array literal; emit it verbatim and
@@ -407,7 +408,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
    * string element decoded into {@code String[]}. Element types with none of these
    * still use the legacy decoder.
    */
-  public static boolean canDecodeArrayViaWalker(PgType arrayType, CodecContext ctx)
+  public static boolean canDecodeArrayViaWalker(TypeDescriptor arrayType, CodecContext ctx)
       throws SQLException {
     if (fastLeafFor(arrayType, ctx) != null) {
       return true;
@@ -434,7 +435,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
    * @return the decoded array
    * @throws SQLException if decoding fails
    */
-  public static Object decodeBinaryArray(byte[] data, PgType arrayType, CodecContext ctx)
+  public static Object decodeBinaryArray(byte[] data, TypeDescriptor arrayType, CodecContext ctx)
       throws SQLException {
     ArrayLeafCodec fast = fastLeafFor(arrayType, ctx);
     if (fast != null) {
@@ -457,7 +458,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
    * @return the decoded array
    * @throws SQLException if decoding fails
    */
-  public static Object decodeTextArray(String data, PgType arrayType, CodecContext ctx)
+  public static Object decodeTextArray(String data, TypeDescriptor arrayType, CodecContext ctx)
       throws SQLException {
     ArrayLeafCodec fast = fastLeafFor(arrayType, ctx);
     if (fast != null) {
@@ -537,7 +538,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     if (targetClass == Array.class || targetClass == PgArray.class || targetClass == Object.class) {
       return (T) decodeBinary(data, type, ctx);
@@ -562,7 +563,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeTextAs(String data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     if (targetClass == Array.class || targetClass == PgArray.class || targetClass == Object.class) {
       return (T) decodeText(data, type, ctx);
@@ -588,39 +589,39 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   }
 
   @Override
-  public @Nullable String decodeAsString(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     // Preserve the PostgreSQL text representation (e.g. {{1,0},{0,1}});
     // PgArray.toString() would re-emit elements with quotes.
     return data;
   }
 
   @Override
-  public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw Codec.cannotDecode("array", "int");
   }
 
   @Override
-  public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw Codec.cannotDecode("array", "int");
   }
 
   @Override
-  public long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw Codec.cannotDecode("array", "long");
   }
 
   @Override
-  public long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw Codec.cannotDecode("array", "long");
   }
 
   @Override
-  public double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw Codec.cannotDecode("array", "double");
   }
 
   @Override
-  public double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw Codec.cannotDecode("array", "double");
   }
 }

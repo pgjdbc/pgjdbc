@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.ObjectName;
@@ -159,12 +160,12 @@ class BinaryCodecSliceTest {
       }
 
       @Override
-      public Object decodeBinary(byte[] data, PgType type, CodecContext ctx) {
+      public Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) {
         return new String(data, StandardCharsets.UTF_8);
       }
 
       @Override
-      public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) {
+      public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) {
         return new byte[0];
       }
     };

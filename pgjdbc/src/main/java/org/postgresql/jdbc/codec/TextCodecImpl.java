@@ -10,9 +10,9 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.BooleanTypeUtil;
 import org.postgresql.jdbc.CodecContext;
-import org.postgresql.jdbc.PgType;
 import org.postgresql.jdbc.TemporalCodecs;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -51,35 +51,35 @@ public final class TextCodecImpl implements StreamingBinaryCodec, StreamingTextC
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsString(data, type, ctx);
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     return new String(data, offset, length, ctx.getCharset());
   }
 
   @Override
-  public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     String s = toString(value);
     Charset encoding = ctx.getCharset();
     return s.getBytes(encoding);
   }
 
   @Override
-  public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return data;
   }
 
   @Override
-  public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return toString(value);
   }
 
   @Override
-  public void encodeBinary(Object value, PgType type, CodecContext ctx, OutputStream out)
+  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx, OutputStream out)
       throws SQLException, IOException {
     String s = toString(value);
     Charset encoding = ctx.getCharset();
@@ -87,81 +87,81 @@ public final class TextCodecImpl implements StreamingBinaryCodec, StreamingTextC
   }
 
   @Override
-  public void encodeText(Object value, PgType type, CodecContext ctx, Appendable out)
+  public void encodeText(Object value, TypeDescriptor type, CodecContext ctx, Appendable out)
       throws SQLException, IOException {
     out.append(toString(value));
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Charset encoding = ctx.getCharset();
     return new String(data, encoding);
   }
 
   @Override
-  public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     String s = castNonNull(decodeAsString(data, type, ctx));
     return parseAsInt(s);
   }
 
   @Override
-  public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return parseAsInt(data);
   }
 
   @Override
-  public long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     String s = castNonNull(decodeAsString(data, type, ctx));
     return parseAsLong(s);
   }
 
   @Override
-  public long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return parseAsLong(data);
   }
 
   @Override
-  public double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     String s = castNonNull(decodeAsString(data, type, ctx));
     return parseAsDouble(s);
   }
 
   @Override
-  public double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return parseAsDouble(data);
   }
 
   @Override
-  public float decodeAsFloat(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public float decodeAsFloat(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     String s = castNonNull(decodeAsString(data, type, ctx));
     return (float) parseAsDouble(s);
   }
 
   @Override
-  public float decodeAsFloat(String data, PgType type, CodecContext ctx) throws SQLException {
+  public float decodeAsFloat(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return (float) parseAsDouble(data);
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     String s = castNonNull(decodeAsString(data, type, ctx));
     return parseAsBigDecimal(s);
   }
 
   @Override
-  public boolean decodeAsBoolean(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public boolean decodeAsBoolean(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     String s = castNonNull(decodeAsString(data, type, ctx));
     return parseAsBoolean(s);
   }
 
   @Override
-  public boolean decodeAsBoolean(String data, PgType type, CodecContext ctx) throws SQLException {
+  public boolean decodeAsBoolean(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return parseAsBoolean(data);
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     String value = decodeAsString(data, type, ctx);
     if (value == null) {
@@ -219,7 +219,7 @@ public final class TextCodecImpl implements StreamingBinaryCodec, StreamingTextC
   }
 
   @Override
-  public <T> @Nullable T decodeTextAs(String data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     Charset encoding = ctx.getCharset();
     return decodeBinaryAs(data.getBytes(encoding), type, targetClass, ctx);

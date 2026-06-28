@@ -8,9 +8,9 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.BooleanTypeUtil;
 import org.postgresql.jdbc.CodecContext;
-import org.postgresql.jdbc.PgType;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -56,12 +56,12 @@ public final class BoolCodec implements BinaryCodec, TextCodec, ArrayElementCode
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsBoolean(data, type, ctx);
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (length != 1) {
       throw new PSQLException(
@@ -72,24 +72,24 @@ public final class BoolCodec implements BinaryCodec, TextCodec, ArrayElementCode
   }
 
   @Override
-  public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     boolean b = toBoolean(value);
     return new byte[]{(byte) (b ? 1 : 0)};
   }
 
   @Override
-  public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsBoolean(data, type, ctx);
   }
 
   @Override
-  public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     boolean b = toBoolean(value);
     return b ? "t" : "f";
   }
 
   @Override
-  public boolean decodeAsBoolean(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public boolean decodeAsBoolean(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (data.length != 1) {
       throw new PSQLException(
           GT.tr("Invalid bool binary data length: {0}", data.length),
@@ -99,66 +99,66 @@ public final class BoolCodec implements BinaryCodec, TextCodec, ArrayElementCode
   }
 
   @Override
-  public boolean decodeAsBoolean(String data, PgType type, CodecContext ctx) throws SQLException {
+  public boolean decodeAsBoolean(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return BooleanTypeUtil.fromString(data);
   }
 
   @Override
-  public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     requireBooleanToNumeric(ctx, "int");
     return decodeAsBoolean(data, type, ctx) ? 1 : 0;
   }
 
   @Override
-  public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     requireBooleanToNumeric(ctx, "int");
     return decodeAsBoolean(data, type, ctx) ? 1 : 0;
   }
 
   @Override
-  public long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     requireBooleanToNumeric(ctx, "long");
     return decodeAsBoolean(data, type, ctx) ? 1L : 0L;
   }
 
   @Override
-  public long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     requireBooleanToNumeric(ctx, "long");
     return decodeAsBoolean(data, type, ctx) ? 1L : 0L;
   }
 
   @Override
-  public double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     requireBooleanToNumeric(ctx, "double");
     return decodeAsBoolean(data, type, ctx) ? 1.0 : 0.0;
   }
 
   @Override
-  public double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     requireBooleanToNumeric(ctx, "double");
     return decodeAsBoolean(data, type, ctx) ? 1.0 : 0.0;
   }
 
   @Override
-  public float decodeAsFloat(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public float decodeAsFloat(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     requireBooleanToNumeric(ctx, "float");
     return decodeAsBoolean(data, type, ctx) ? 1.0f : 0.0f;
   }
 
   @Override
-  public float decodeAsFloat(String data, PgType type, CodecContext ctx) throws SQLException {
+  public float decodeAsFloat(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     requireBooleanToNumeric(ctx, "float");
     return decodeAsBoolean(data, type, ctx) ? 1.0f : 0.0f;
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     requireBooleanToNumeric(ctx, "BigDecimal");
     return decodeAsBoolean(data, type, ctx) ? BigDecimal.ONE : BigDecimal.ZERO;
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     requireBooleanToNumeric(ctx, "BigDecimal");
     return decodeAsBoolean(data, type, ctx) ? BigDecimal.ONE : BigDecimal.ZERO;
   }
@@ -181,7 +181,7 @@ public final class BoolCodec implements BinaryCodec, TextCodec, ArrayElementCode
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     boolean value = decodeAsBoolean(data, type, ctx);
     if (targetClass == Boolean.class || targetClass == Object.class) {
@@ -215,7 +215,7 @@ public final class BoolCodec implements BinaryCodec, TextCodec, ArrayElementCode
   }
 
   @Override
-  public <T> @Nullable T decodeTextAs(String data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     boolean value = decodeAsBoolean(data, type, ctx);
     byte[] bytes = new byte[]{(byte) (value ? 1 : 0)};

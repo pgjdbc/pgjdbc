@@ -8,9 +8,9 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.CodecContext;
-import org.postgresql.jdbc.PgType;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
@@ -59,7 +59,7 @@ public final class JsonbCodec implements BinaryCodec, TextCodec, ArrayElementCod
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (data == null || data.length == 0) {
       return null;
     }
@@ -78,7 +78,7 @@ public final class JsonbCodec implements BinaryCodec, TextCodec, ArrayElementCod
   }
 
   @Override
-  public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     String str = value.toString();
     byte[] jsonBytes = str.getBytes(StandardCharsets.UTF_8);
     // Add version byte prefix
@@ -89,17 +89,17 @@ public final class JsonbCodec implements BinaryCodec, TextCodec, ArrayElementCod
   }
 
   @Override
-  public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return wrap(data);
   }
 
   @Override
-  public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return value.toString();
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (data == null || data.length == 0) {
       return null;
     }
@@ -111,43 +111,43 @@ public final class JsonbCodec implements BinaryCodec, TextCodec, ArrayElementCod
   }
 
   @Override
-  public String decodeAsString(String data, PgType type, CodecContext ctx) throws SQLException {
+  public String decodeAsString(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return data;
   }
 
   @Override
-  public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert jsonb to int"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert jsonb to int"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert jsonb to long"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert jsonb to long"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert jsonb to double"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert jsonb to double"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     if (data == null || data.length == 0) {
       return null;
@@ -167,7 +167,7 @@ public final class JsonbCodec implements BinaryCodec, TextCodec, ArrayElementCod
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeTextAs(String data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     if (data == null || data.isEmpty()) {
       return null;

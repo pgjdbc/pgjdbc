@@ -12,7 +12,7 @@ import java.util.Objects;
 /**
  * Represents a PostgreSQL object name, which consists of a namespace and a name.
  */
-public class ObjectName {
+public class ObjectName implements org.postgresql.api.codec.ObjectName {
   final @Nullable String namespace;
   final String name;
 
@@ -49,6 +49,7 @@ public class ObjectName {
    *
    * @return the namespace, or null for unqualified names
    */
+  @Override
   public @Nullable String getNamespace() {
     return namespace;
   }
@@ -58,6 +59,7 @@ public class ObjectName {
    *
    * @return the name
    */
+  @Override
   public String getName() {
     return name;
   }

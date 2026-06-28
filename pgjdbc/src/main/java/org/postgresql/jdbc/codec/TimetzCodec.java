@@ -8,8 +8,8 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.CodecContext;
-import org.postgresql.jdbc.PgType;
 import org.postgresql.jdbc.TemporalCodecs;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -48,12 +48,12 @@ public final class TimetzCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeBinary(data, 0, data.length, type, ctx);
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (ctx.prefersJavaTimeForTimetz()) {
       return TemporalCodecs.decodeOffsetTimeBin(data, offset, length, ctx);
@@ -63,12 +63,12 @@ public final class TimetzCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return TemporalCodecs.encodeTimetzBin(value, ctx);
   }
 
   @Override
-  public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (ctx.prefersJavaTimeForTimetz()) {
       return TemporalCodecs.decodeOffsetTimeText(data, ctx);
     }
@@ -76,7 +76,7 @@ public final class TimetzCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (value instanceof Time) {
       return TemporalCodecs.formatTime((Time) value, ctx);
     }
@@ -98,19 +98,19 @@ public final class TimetzCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Time t = (Time) decodeBinary(data, type, ctx);
     return t != null ? t.getTime() : 0;
   }
 
   @Override
-  public long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Time t = (Time) decodeText(data, type, ctx);
     return t != null ? t.getTime() : 0;
   }
 
   @Override
-  public <T> @Nullable T decodeBinaryAs(byte[] data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     if (targetClass == Time.class || targetClass == Object.class) {
       return targetClass.cast(TemporalCodecs.decodeTimeBin(data, 0, data.length, ctx));
@@ -151,7 +151,7 @@ public final class TimetzCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public <T> @Nullable T decodeTextAs(String data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     if (targetClass == Time.class || targetClass == Object.class) {
       return targetClass.cast(TemporalCodecs.decodeTimeText(data, ctx));
@@ -189,41 +189,41 @@ public final class TimetzCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return TemporalCodecs.formatOffsetTimeBin(data, ctx);
   }
 
   @Override
-  public @Nullable String decodeAsString(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return data;
   }
 
   @Override
-  public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert timetz to int"),
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert timetz to int"),
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsLong(data, type, ctx);
   }
 
   @Override
-  public double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsLong(data, type, ctx);
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return BigDecimal.valueOf(decodeAsLong(data, type, ctx));
   }
 }

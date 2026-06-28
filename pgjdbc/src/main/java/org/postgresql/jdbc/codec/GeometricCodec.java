@@ -7,6 +7,7 @@ package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGcircle;
 import org.postgresql.geometric.PGline;
@@ -15,7 +16,6 @@ import org.postgresql.geometric.PGpath;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.geometric.PGpolygon;
 import org.postgresql.jdbc.CodecContext;
-import org.postgresql.jdbc.PgType;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGobject;
@@ -69,7 +69,7 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
   }
 
   @Override
-  public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (data == null || data.isEmpty()) {
       return null;
     }
@@ -79,7 +79,7 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
   }
 
   @Override
-  public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (javaType.isInstance(value)) {
       String val = ((PGobject) value).getValue();
       return val != null ? val : "";
@@ -90,7 +90,7 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
 
   @Override
   @SuppressWarnings("unchecked")
-  public <R> @Nullable R decodeTextAs(String data, PgType type, Class<R> targetClass, CodecContext ctx)
+  public <R> @Nullable R decodeTextAs(String data, TypeDescriptor type, Class<R> targetClass, CodecContext ctx)
       throws SQLException {
     if (targetClass == javaType || targetClass == Object.class || targetClass == PGobject.class) {
       return (R) decodeText(data, type, ctx);
@@ -101,27 +101,27 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
   }
 
   @Override
-  public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert {0} to int", typeName), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert {0} to long", typeName), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert {0} to double", typeName), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert {0} to BigDecimal", typeName), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public @Nullable String decodeAsString(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return data;
   }
 
@@ -152,7 +152,7 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
     }
 
     @Override
-    public @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+    public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
       if (data == null || data.length == 0) {
         return null;
       }
@@ -162,7 +162,7 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
     }
 
     @Override
-    public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+    public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
       if (javaType.isInstance(value)) {
         @SuppressWarnings("unchecked")
         T obj = (T) value;
@@ -175,7 +175,7 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
     }
 
     @Override
-    public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
+    public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
       if (data == null || data.isEmpty()) {
         return null;
       }
@@ -185,7 +185,7 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
     }
 
     @Override
-    public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
+    public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
       if (javaType.isInstance(value)) {
         String val = ((PGobject) value).getValue();
         return val != null ? val : "";
@@ -196,7 +196,7 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <R> @Nullable R decodeBinaryAs(byte[] data, PgType type, Class<R> targetClass, CodecContext ctx)
+    public <R> @Nullable R decodeBinaryAs(byte[] data, TypeDescriptor type, Class<R> targetClass, CodecContext ctx)
         throws SQLException {
       if (targetClass == javaType || targetClass == Object.class || targetClass == PGobject.class) {
         return (R) decodeBinary(data, type, ctx);
@@ -218,7 +218,7 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <R> @Nullable R decodeTextAs(String data, PgType type, Class<R> targetClass, CodecContext ctx)
+    public <R> @Nullable R decodeTextAs(String data, TypeDescriptor type, Class<R> targetClass, CodecContext ctx)
         throws SQLException {
       if (targetClass == javaType || targetClass == Object.class || targetClass == PGobject.class) {
         return (R) decodeText(data, type, ctx);
@@ -265,53 +265,53 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
     }
 
     @Override
-    public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+    public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
       throw new PSQLException(GT.tr("Cannot convert {0} to int", typeName), PSQLState.DATA_TYPE_MISMATCH);
     }
 
     @Override
-    public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
+    public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
       throw new PSQLException(GT.tr("Cannot convert {0} to int", typeName), PSQLState.DATA_TYPE_MISMATCH);
     }
 
     @Override
-    public long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+    public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
       throw new PSQLException(GT.tr("Cannot convert {0} to long", typeName), PSQLState.DATA_TYPE_MISMATCH);
     }
 
     @Override
-    public long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
+    public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
       throw new PSQLException(GT.tr("Cannot convert {0} to long", typeName), PSQLState.DATA_TYPE_MISMATCH);
     }
 
     @Override
-    public double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+    public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
       throw new PSQLException(GT.tr("Cannot convert {0} to double", typeName), PSQLState.DATA_TYPE_MISMATCH);
     }
 
     @Override
-    public double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
+    public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
       throw new PSQLException(GT.tr("Cannot convert {0} to double", typeName), PSQLState.DATA_TYPE_MISMATCH);
     }
 
     @Override
-    public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+    public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
       throw new PSQLException(GT.tr("Cannot convert {0} to BigDecimal", typeName), PSQLState.DATA_TYPE_MISMATCH);
     }
 
     @Override
-    public @Nullable BigDecimal decodeAsBigDecimal(String data, PgType type, CodecContext ctx) throws SQLException {
+    public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
       throw new PSQLException(GT.tr("Cannot convert {0} to BigDecimal", typeName), PSQLState.DATA_TYPE_MISMATCH);
     }
 
     @Override
-    public @Nullable String decodeAsString(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+    public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
       PGobject obj = (PGobject) decodeBinary(data, type, ctx);
       return obj != null ? obj.getValue() : null;
     }
 
     @Override
-    public @Nullable String decodeAsString(String data, PgType type, CodecContext ctx) throws SQLException {
+    public @Nullable String decodeAsString(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
       return data;
     }
   }

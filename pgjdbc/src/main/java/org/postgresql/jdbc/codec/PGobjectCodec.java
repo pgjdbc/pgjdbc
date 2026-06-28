@@ -8,8 +8,8 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.CodecContext;
-import org.postgresql.jdbc.PgType;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGobject;
@@ -69,12 +69,12 @@ public final class PGobjectCodec implements BinaryCodec, TextCodec {
   // ---- Decode: produce the registered PGobject subclass --------------------
 
   @Override
-  public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return fromText(data, type);
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (binaryObject) {
       return fromBinary(data, type);
     }
@@ -88,7 +88,7 @@ public final class PGobjectCodec implements BinaryCodec, TextCodec {
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeTextAs(String data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     if (targetClass.isAssignableFrom(pgObjectClass)) {
       return (T) fromText(data, type);
@@ -101,7 +101,7 @@ public final class PGobjectCodec implements BinaryCodec, TextCodec {
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     if (targetClass.isAssignableFrom(pgObjectClass)) {
       return (T) decodeBinary(data, type, ctx);
@@ -115,7 +115,7 @@ public final class PGobjectCodec implements BinaryCodec, TextCodec {
   // ---- Encode and coercions: forward to the delegate -----------------------
 
   @Override
-  public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (delegate instanceof TextCodec) {
       return ((TextCodec) delegate).encodeText(value, type, ctx);
     }
@@ -123,7 +123,7 @@ public final class PGobjectCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (delegate instanceof BinaryCodec) {
       return ((BinaryCodec) delegate).encodeBinary(value, type, ctx);
     }
@@ -136,7 +136,7 @@ public final class PGobjectCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public boolean canEncodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public boolean canEncodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return delegate instanceof BinaryCodec && ((BinaryCodec) delegate).canEncodeBinary(value, type, ctx);
   }
 
@@ -146,7 +146,7 @@ public final class PGobjectCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable String decodeAsString(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (delegate instanceof TextCodec) {
       return ((TextCodec) delegate).decodeAsString(data, type, ctx);
     }
@@ -154,7 +154,7 @@ public final class PGobjectCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (delegate instanceof BinaryCodec) {
       return ((BinaryCodec) delegate).decodeAsString(data, type, ctx);
     }
@@ -163,7 +163,7 @@ public final class PGobjectCodec implements BinaryCodec, TextCodec {
 
   // ---- Materialization -----------------------------------------------------
 
-  private PGobject newInstance(PgType type) throws SQLException {
+  private PGobject newInstance(TypeDescriptor type) throws SQLException {
     PGobject obj;
     try {
       obj = pgObjectClass.getConstructor().newInstance();
@@ -177,13 +177,13 @@ public final class PGobjectCodec implements BinaryCodec, TextCodec {
     return obj;
   }
 
-  private PGobject fromText(String text, PgType type) throws SQLException {
+  private PGobject fromText(String text, TypeDescriptor type) throws SQLException {
     PGobject obj = newInstance(type);
     obj.setValue(text);
     return obj;
   }
 
-  private PGobject fromBinary(byte[] data, PgType type) throws SQLException {
+  private PGobject fromBinary(byte[] data, TypeDescriptor type) throws SQLException {
     PGobject obj = newInstance(type);
     ((PGBinaryObject) obj).setByteValue(data, 0);
     return obj;

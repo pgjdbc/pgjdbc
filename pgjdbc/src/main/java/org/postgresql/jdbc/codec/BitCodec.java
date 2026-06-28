@@ -8,9 +8,9 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.BooleanTypeUtil;
 import org.postgresql.jdbc.CodecContext;
-import org.postgresql.jdbc.PgType;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
@@ -62,22 +62,22 @@ public final class BitCodec implements BinaryCodec, TextCodec {
   // ----------------------------- decode -----------------------------
 
   @Override
-  public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return toPGobject(type, data);
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return toPGobject(type, binaryToBitString(data, 0, data.length));
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     return toPGobject(type, binaryToBitString(data, offset, length));
   }
 
-  private static PGobject toPGobject(PgType type, String bits) throws SQLException {
+  private static PGobject toPGobject(TypeDescriptor type, String bits) throws SQLException {
     PGobject obj = new PGobject();
     obj.setType(type.getTypeName().getName());
     obj.setValue(bits);
@@ -85,28 +85,28 @@ public final class BitCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public String decodeAsString(String data, PgType type, CodecContext ctx) throws SQLException {
+  public String decodeAsString(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return data;
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return binaryToBitString(data, 0, data.length);
   }
 
   @Override
-  public boolean decodeAsBoolean(String data, PgType type, CodecContext ctx) throws SQLException {
+  public boolean decodeAsBoolean(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return BooleanTypeUtil.fromString(data);
   }
 
   @Override
-  public boolean decodeAsBoolean(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public boolean decodeAsBoolean(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return BooleanTypeUtil.fromString(binaryToBitString(data, 0, data.length));
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeTextAs(String data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     if (targetClass == String.class) {
       return (T) data;
@@ -122,7 +122,7 @@ public final class BitCodec implements BinaryCodec, TextCodec {
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     String bits = binaryToBitString(data, 0, data.length);
     if (targetClass == String.class) {
@@ -140,12 +140,12 @@ public final class BitCodec implements BinaryCodec, TextCodec {
   // ----------------------------- encode -----------------------------
 
   @Override
-  public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return toBitString(value);
   }
 
   @Override
-  public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return bitStringToBinary(toBitString(value));
   }
 

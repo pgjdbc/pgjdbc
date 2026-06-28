@@ -8,9 +8,9 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.CodecDepth;
-import org.postgresql.jdbc.PgType;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -30,7 +30,7 @@ import java.sql.SQLException;
  * <h2>Contract: a domain is unwrapped transparently to its base type</h2>
  *
  * <p>This codec resolves the domain to its base type ({@code pg_type.typbasetype}) and forwards
- * the wire bytes to the base type's codec, passing the <em>base</em> {@link PgType}. Two
+ * the wire bytes to the base type's codec, passing the <em>base</em> {@link TypeDescriptor}. Two
  * consequences follow, and both are intentional:</p>
  *
  * <ul>
@@ -43,12 +43,12 @@ import java.sql.SQLException;
  *
  *   <li><strong>The domain's type modifier is not propagated.</strong> A domain may pin a typmod
  *   on its base type (for example {@code CREATE DOMAIN price AS numeric(10,2)}), stored in
- *   {@code pg_type.typtypmod}. The base codec is handed the base {@link PgType}, so it does not
- *   observe that typmod. This is currently harmless: the numeric codecs encode from the value's
+ *   {@code pg_type.typtypmod}. The base codec is handed the base {@link TypeDescriptor}, so it does
+ *   not observe that typmod. This is currently harmless: the numeric codecs encode from the value's
  *   own scale and precision and do not apply a typmod on encode, and the server enforces the
  *   domain constraint on input regardless. Code that needs the domain typmod — column-size
- *   reporting, for instance — must read it from the domain {@link PgType} via
- *   {@link PgType#getTyptypmod()}, not from anything this codec forwards.</li>
+ *   reporting, for instance — must read it from the domain {@link TypeDescriptor} via
+ *   {@link TypeDescriptor#getTyptypmod()}, not from anything this codec forwards.</li>
  * </ul>
  */
 public final class DomainCodec implements BinaryCodec, TextCodec {
@@ -62,20 +62,20 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
   /**
    * Gets the base type codec for the given domain type.
    */
-  private static Codec getBaseCodec(PgType domainType, CodecContext ctx) throws SQLException {
+  private static Codec getBaseCodec(TypeDescriptor domainType, CodecContext ctx) throws SQLException {
     int baseTypeOid = domainType.getTypbasetype();
     if (baseTypeOid == 0) {
       // Not a domain, fall back to default behavior
       return FallbackCodec.INSTANCE;
     }
-    PgType baseType = ctx.getTypeInfo().getPgTypeByOid(baseTypeOid);
+    TypeDescriptor baseType = ctx.getTypeInfo().getPgTypeByOid(baseTypeOid);
     return ctx.getCodecs().getByOid(baseTypeOid, baseType);
   }
 
   /**
    * Gets the base type for the given domain type.
    */
-  private static PgType getBaseType(PgType domainType, CodecContext ctx) throws SQLException {
+  private static TypeDescriptor getBaseType(TypeDescriptor domainType, CodecContext ctx) throws SQLException {
     int baseTypeOid = domainType.getTypbasetype();
     if (baseTypeOid == 0) {
       return domainType;
@@ -95,11 +95,11 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
-      PgType baseType = getBaseType(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
       if (baseCodec instanceof BinaryCodec) {
         return ((BinaryCodec) baseCodec).decodeBinary(data, baseType, ctx);
       }
@@ -110,11 +110,11 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
-      PgType baseType = getBaseType(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
       if (baseCodec instanceof BinaryCodec) {
         return ((BinaryCodec) baseCodec).encodeBinary(value, baseType, ctx);
       }
@@ -125,11 +125,11 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
-      PgType baseType = getBaseType(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
       if (baseCodec instanceof TextCodec) {
         return ((TextCodec) baseCodec).decodeText(data, baseType, ctx);
       }
@@ -140,11 +140,11 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
-      PgType baseType = getBaseType(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
       if (baseCodec instanceof TextCodec) {
         return ((TextCodec) baseCodec).encodeText(value, baseType, ctx);
       }
@@ -155,12 +155,12 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public <T> @Nullable T decodeBinaryAs(byte[] data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
-      PgType baseType = getBaseType(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
       if (baseCodec instanceof BinaryCodec) {
         return ((BinaryCodec) baseCodec).decodeBinaryAs(data, baseType, targetClass, ctx);
       }
@@ -171,12 +171,12 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public <T> @Nullable T decodeTextAs(String data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
-      PgType baseType = getBaseType(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
       if (baseCodec instanceof TextCodec) {
         return ((TextCodec) baseCodec).decodeTextAs(data, baseType, targetClass, ctx);
       }
@@ -187,11 +187,11 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
-      PgType baseType = getBaseType(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
       if (baseCodec instanceof BinaryCodec) {
         return ((BinaryCodec) baseCodec).decodeAsInt(data, baseType, ctx);
       }
@@ -202,11 +202,11 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
-      PgType baseType = getBaseType(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
       if (baseCodec instanceof TextCodec) {
         return ((TextCodec) baseCodec).decodeAsInt(data, baseType, ctx);
       }
@@ -217,11 +217,11 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
-      PgType baseType = getBaseType(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
       if (baseCodec instanceof BinaryCodec) {
         return ((BinaryCodec) baseCodec).decodeAsLong(data, baseType, ctx);
       }
@@ -232,11 +232,11 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
-      PgType baseType = getBaseType(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
       if (baseCodec instanceof TextCodec) {
         return ((TextCodec) baseCodec).decodeAsLong(data, baseType, ctx);
       }
@@ -247,11 +247,11 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
-      PgType baseType = getBaseType(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
       if (baseCodec instanceof BinaryCodec) {
         return ((BinaryCodec) baseCodec).decodeAsDouble(data, baseType, ctx);
       }
@@ -262,11 +262,11 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
-      PgType baseType = getBaseType(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
       if (baseCodec instanceof TextCodec) {
         return ((TextCodec) baseCodec).decodeAsDouble(data, baseType, ctx);
       }
@@ -277,11 +277,11 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
-      PgType baseType = getBaseType(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
       if (baseCodec instanceof BinaryCodec) {
         return ((BinaryCodec) baseCodec).decodeAsBigDecimal(data, baseType, ctx);
       }
@@ -292,11 +292,11 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
-      PgType baseType = getBaseType(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
       if (baseCodec instanceof TextCodec) {
         return ((TextCodec) baseCodec).decodeAsBigDecimal(data, baseType, ctx);
       }
@@ -307,11 +307,11 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
-      PgType baseType = getBaseType(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
       if (baseCodec instanceof BinaryCodec) {
         return ((BinaryCodec) baseCodec).decodeAsString(data, baseType, ctx);
       }
@@ -322,11 +322,11 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable String decodeAsString(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
-      PgType baseType = getBaseType(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
       if (baseCodec instanceof TextCodec) {
         return ((TextCodec) baseCodec).decodeAsString(data, baseType, ctx);
       }

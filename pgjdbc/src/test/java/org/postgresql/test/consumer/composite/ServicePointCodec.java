@@ -6,8 +6,8 @@
 package org.postgresql.test.consumer.composite;
 
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.CodecContext;
-import org.postgresql.jdbc.PgType;
 
 import java.sql.SQLException;
 
@@ -26,7 +26,7 @@ public final class ServicePointCodec implements TextCodec {
   }
 
   @Override
-  public Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
+  public Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     String trimmed = data.trim();
     if (!trimmed.startsWith("(") || !trimmed.endsWith(")")) {
       throw new SQLException("Unexpected point format: " + data);
@@ -39,7 +39,7 @@ public final class ServicePointCodec implements TextCodec {
   }
 
   @Override
-  public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (!(value instanceof ServicePoint)) {
       throw new SQLException("Unsupported point value: " + value);
     }

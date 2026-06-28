@@ -7,7 +7,6 @@ package org.postgresql.api.codec;
 
 import org.postgresql.api.Experimental;
 import org.postgresql.jdbc.CodecContext;
-import org.postgresql.jdbc.PgType;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -24,7 +23,7 @@ import java.sql.SQLException;
  * {@code String} that the non-streaming path materializes only to walk it
  * once for escape characters.</p>
  *
- * <p>The {@link #encodeText(Object, PgType, CodecContext)} String-returning
+ * <p>The {@link #encodeText(Object, TypeDescriptor, CodecContext)} String-returning
  * form is provided as a default adapter that buffers into a
  * {@link StringBuilder}, so existing callers continue to work and codecs may
  * opt in to streaming incrementally.</p>
@@ -44,16 +43,16 @@ public interface StreamingTextCodec extends TextCodec {
    * @throws SQLException if encoding fails
    * @throws IOException if {@code out} throws
    */
-  void encodeText(Object value, PgType type, CodecContext ctx, Appendable out)
+  void encodeText(Object value, TypeDescriptor type, CodecContext ctx, Appendable out)
       throws SQLException, IOException;
 
   /**
    * Default {@code String}-returning form: buffers into a
    * {@link StringBuilder} and delegates to
-   * {@link #encodeText(Object, PgType, CodecContext, Appendable)}.
+   * {@link #encodeText(Object, TypeDescriptor, CodecContext, Appendable)}.
    */
   @Override
-  default String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
+  default String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     StringBuilder sb = new StringBuilder();
     try {
       encodeText(value, type, ctx, sb);

@@ -8,8 +8,8 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.CodecContext;
-import org.postgresql.jdbc.PgType;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -57,12 +57,12 @@ public final class Float8Codec implements BinaryCodec, TextCodec, ArrayElementCo
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsDouble(data, type, ctx);
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (length != 8) {
       throw new PSQLException(
@@ -73,7 +73,7 @@ public final class Float8Codec implements BinaryCodec, TextCodec, ArrayElementCo
   }
 
   @Override
-  public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     double v = toDouble(value);
     byte[] result = new byte[8];
     ByteConverter.float8(result, 0, v);
@@ -81,17 +81,17 @@ public final class Float8Codec implements BinaryCodec, TextCodec, ArrayElementCo
   }
 
   @Override
-  public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsDouble(data, type, ctx);
   }
 
   @Override
-  public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
+  public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return String.valueOf(toDouble(value));
   }
 
   @Override
-  public double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (data.length != 8) {
       throw new PSQLException(
           GT.tr("Invalid float8 binary data length: {0}", data.length),
@@ -101,7 +101,7 @@ public final class Float8Codec implements BinaryCodec, TextCodec, ArrayElementCo
   }
 
   @Override
-  public double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     try {
       return Double.parseDouble(data.trim());
     } catch (NumberFormatException e) {
@@ -112,17 +112,17 @@ public final class Float8Codec implements BinaryCodec, TextCodec, ArrayElementCo
   }
 
   @Override
-  public float decodeAsFloat(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public float decodeAsFloat(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return (float) decodeAsDouble(data, type, ctx);
   }
 
   @Override
-  public float decodeAsFloat(String data, PgType type, CodecContext ctx) throws SQLException {
+  public float decodeAsFloat(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return (float) decodeAsDouble(data, type, ctx);
   }
 
   @Override
-  public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     double value = decodeAsDouble(data, type, ctx);
     if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
       throw new PSQLException(
@@ -133,7 +133,7 @@ public final class Float8Codec implements BinaryCodec, TextCodec, ArrayElementCo
   }
 
   @Override
-  public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     double value = decodeAsDouble(data, type, ctx);
     if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
       throw new PSQLException(
@@ -144,7 +144,7 @@ public final class Float8Codec implements BinaryCodec, TextCodec, ArrayElementCo
   }
 
   @Override
-  public long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     double value = decodeAsDouble(data, type, ctx);
     if (value < LONG_MIN_DOUBLE || value > LONG_MAX_DOUBLE) {
       throw new PSQLException(
@@ -155,7 +155,7 @@ public final class Float8Codec implements BinaryCodec, TextCodec, ArrayElementCo
   }
 
   @Override
-  public long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     double value = decodeAsDouble(data, type, ctx);
     if (value < LONG_MIN_DOUBLE || value > LONG_MAX_DOUBLE) {
       throw new PSQLException(
@@ -166,7 +166,7 @@ public final class Float8Codec implements BinaryCodec, TextCodec, ArrayElementCo
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     double value = decodeAsDouble(data, type, ctx);
     if (Double.isNaN(value) || Double.isInfinite(value)) {
       throw new PSQLException(
@@ -178,7 +178,7 @@ public final class Float8Codec implements BinaryCodec, TextCodec, ArrayElementCo
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     double value = decodeAsDouble(data, type, ctx);
     if (targetClass == Double.class || targetClass == Object.class) {
@@ -237,7 +237,7 @@ public final class Float8Codec implements BinaryCodec, TextCodec, ArrayElementCo
   }
 
   @Override
-  public <T> @Nullable T decodeTextAs(String data, PgType type, Class<T> targetClass, CodecContext ctx)
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     double value = decodeAsDouble(data, type, ctx);
     byte[] bytes = new byte[8];

@@ -6,6 +6,7 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.api.Experimental;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -20,7 +21,7 @@ import java.util.List;
  * @since 42.8.0
  */
 @Experimental("PgType API is experimental and may change in future releases")
-public class PgType {
+public class PgType implements TypeDescriptor {
   private final ObjectName typeName;
   private final String fullName;
   private final int oid;
@@ -341,10 +342,12 @@ public class PgType {
    *
    * @return the OID
    */
+  @Override
   public int getOid() {
     return oid;
   }
 
+  @Override
   public int getTyptypmod() {
     return typtypmod;
   }
@@ -354,6 +357,7 @@ public class PgType {
    *
    * @return the typtype ('b'=base, 'c'=composite, 'e'=enum, 'd'=domain, 'p'=pseudo, 'r'=range, 'm'=multirange)
    */
+  @Override
   public char getTyptype() {
     return typtype;
   }
@@ -363,6 +367,7 @@ public class PgType {
    *
    * @return the typcategory ('A'=array, 'B'=boolean, 'N'=numeric, 'S'=string, etc.)
    */
+  @Override
   public char getTypcategory() {
     return typcategory;
   }
@@ -372,6 +377,7 @@ public class PgType {
    *
    * @return the base type OID, or 0 if this is not a domain type
    */
+  @Override
   public int getTypbasetype() {
     return typbasetype;
   }
@@ -392,6 +398,7 @@ public class PgType {
    *
    * @return the element type OID, or Oid.UNSPECIFIED if this is not an array type
    */
+  @Override
   public int getTypelem() {
     return typelem;
   }
@@ -401,6 +408,7 @@ public class PgType {
    *
    * @return the array type OID, or Oid.UNSPECIFIED if there is no corresponding array type
    */
+  @Override
   public int getArrayOid() {
     return arrayOid;
   }
@@ -417,6 +425,7 @@ public class PgType {
    *
    * @return the range subtype OID, or {@link Oid#UNSPECIFIED} if not a range or not yet loaded
    */
+  @Override
   public int getRangeSubtype() {
     return rangeSubtype;
   }
@@ -426,6 +435,7 @@ public class PgType {
    *
    * @return the delimiter character
    */
+  @Override
   public char getDelimiter() {
     return delimiter;
   }
@@ -483,6 +493,7 @@ public class PgType {
    *
    * @return the type name
    */
+  @Override
   public ObjectName getTypeName() {
     return typeName;
   }
@@ -492,6 +503,7 @@ public class PgType {
    *
    * @return the full name
    */
+  @Override
   public String getFullName() {
     return fullName;
   }
@@ -501,6 +513,7 @@ public class PgType {
    *
    * @return true if this is a composite type (typtype='c')
    */
+  @Override
   public boolean isComposite() {
     return typtype == 'c';
   }
@@ -510,6 +523,7 @@ public class PgType {
    *
    * @return true if this is a domain type (typtype='d')
    */
+  @Override
   public boolean isDomain() {
     return typtype == 'd';
   }
@@ -519,6 +533,7 @@ public class PgType {
    *
    * @return true if this is an enum type (typtype='e')
    */
+  @Override
   public boolean isEnum() {
     return typtype == 'e';
   }
@@ -528,6 +543,7 @@ public class PgType {
    *
    * @return true if this is an array type (typcategory='A')
    */
+  @Override
   public boolean isArray() {
     return typcategory == 'A';
   }
@@ -539,6 +555,7 @@ public class PgType {
    *
    * @return the list of fields, or null if not a composite type or fields not loaded
    */
+  @Override
   public @Nullable List<PgField> getFields() {
     return fields;
   }

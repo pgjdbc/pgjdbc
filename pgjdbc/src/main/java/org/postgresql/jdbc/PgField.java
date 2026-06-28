@@ -9,7 +9,7 @@ package org.postgresql.jdbc;
  * Represents a field in a PostgreSQL composite type.
  * Fields are loaded eagerly when a composite type is first accessed.
  */
-public final class PgField {
+public final class PgField implements org.postgresql.api.codec.PgField {
   private final String name;
   private final int typeOid;
   private final int position;
@@ -35,6 +35,7 @@ public final class PgField {
    *
    * @return the field name
    */
+  @Override
   public String getName() {
     return name;
   }
@@ -45,6 +46,7 @@ public final class PgField {
    *
    * @return the type OID
    */
+  @Override
   public int getTypeOid() {
     return typeOid;
   }
