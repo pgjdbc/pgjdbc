@@ -768,6 +768,41 @@ public class CodecRegistry {
   }
 
   /**
+   * Whether the driver can decode this type from the binary wire format.
+   *
+   * <p>This resolves the codec and asks its read-side capability
+   * ({@link BinaryCodec#supportsBinaryRead()}) rather than testing {@code instanceof}
+   * alone, so a codec that implements {@link BinaryCodec} only for the encode direction
+   * is not mistaken for a binary decoder. The format-negotiation layer gates binary
+   * receive on this.</p>
+   *
+   * @param oid the PostgreSQL type OID
+   * @param pgType the type information
+   * @return true if the resolved codec can decode the binary representation
+   */
+  public boolean canDecodeBinary(int oid, @Nullable TypeDescriptor pgType) {
+    Codec codec = getByOid(oid, pgType);
+    return codec instanceof BinaryCodec && ((BinaryCodec) codec).supportsBinaryRead();
+  }
+
+  /**
+   * Whether the driver can decode this type from the text wire format.
+   *
+   * <p>The text counterpart to {@link #canDecodeBinary(int, TypeDescriptor)}, consulting
+   * {@link TextCodec#supportsTextRead()}. Text is the universal receive format, so this is
+   * true for almost every type; it is exposed for callers (offline and {@code COPY}) that
+   * choose a format from codec capability rather than format negotiation.</p>
+   *
+   * @param oid the PostgreSQL type OID
+   * @param pgType the type information
+   * @return true if the resolved codec can decode the text representation
+   */
+  public boolean canDecodeText(int oid, @Nullable TypeDescriptor pgType) {
+    Codec codec = getByOid(oid, pgType);
+    return codec instanceof TextCodec && ((TextCodec) codec).supportsTextRead();
+  }
+
+  /**
    * Invalidates the OID cache.
    *
    * <p>Call this when type mappings may have changed (e.g., after DDL operations
