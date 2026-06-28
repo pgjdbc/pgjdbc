@@ -98,6 +98,14 @@ import java.util.logging.Logger;
  * <p>OID → Codec lookups are cached using Caffeine for performance.
  * The cache is size-bounded (default 1000 entries) with LRU eviction.</p>
  *
+ * <h2>Registration Timing</h2>
+ *
+ * <p>A codec is bound to a result column when the column's {@link org.postgresql.core.Field}
+ * is first initialized ({@code Field.initializeCodec}). Registering a codec invalidates the
+ * OID cache but does not rebind fields that are already initialized, so a registration affects
+ * only queries and result sets started afterwards; a {@link java.sql.ResultSet} that is already
+ * open keeps the codecs it resolved when it was created.</p>
+ *
  * @since 42.8.0
  */
 @Experimental("Codec API is experimental and may change in future releases")
