@@ -247,6 +247,61 @@ public class ResultSetMetaDataTest extends BaseTest4 {
   }
 
   @Test
+  public void testDomainColumnSize() throws SQLException {
+    // PostgreSQL flattens a domain to its base type in the row description and carries the base
+    // type modifier (numeric(10,2) -> typmod 655366, varchar(5) -> 9), even though
+    // pg_attribute.atttypmod is -1 for a domain column. So ResultSetMetaData already reports the
+    // same precision/scale/display size as a plain base-type column, with no domain unwrapping in
+    // the driver. This locks in that behaviour for the size-metadata path.
+    TestUtil.createDomain(con, "rsmd_price", "numeric(10,2)");
+    TestUtil.createDomain(con, "rsmd_shortstr", "varchar(5)");
+    // A domain over a domain flattens through to the same base type and modifier.
+    TestUtil.createDomain(con, "rsmd_price2", "rsmd_price");
+    TestUtil.createTable(con, "domain_rsmd",
+        "d_num rsmd_price, p_num numeric(10,2), "
+            + "d_vc rsmd_shortstr, p_vc varchar(5), d_dd rsmd_price2");
+    try {
+      Statement stmt = con.createStatement();
+      // The last column casts a value to the domain, to confirm an expression-produced domain
+      // flattens the same way a stored column does.
+      ResultSet rs = stmt.executeQuery(
+          "SELECT d_num, p_num, d_vc, p_vc, d_dd, 1.5::rsmd_price AS c_num FROM domain_rsmd");
+      ResultSetMetaData rsmd = rs.getMetaData();
+
+      // numeric(10,2): the domain column matches the plain base-type column.
+      assertEquals(10, rsmd.getPrecision(1));
+      assertEquals(2, rsmd.getScale(1));
+      assertEquals(12, rsmd.getColumnDisplaySize(1));
+      assertEquals(rsmd.getPrecision(2), rsmd.getPrecision(1));
+      assertEquals(rsmd.getScale(2), rsmd.getScale(1));
+      assertEquals(rsmd.getColumnDisplaySize(2), rsmd.getColumnDisplaySize(1));
+
+      // varchar(5): the domain column matches the plain base-type column.
+      assertEquals(5, rsmd.getPrecision(3));
+      assertEquals(0, rsmd.getScale(3));
+      assertEquals(5, rsmd.getColumnDisplaySize(3));
+      assertEquals(rsmd.getPrecision(4), rsmd.getPrecision(3));
+      assertEquals(rsmd.getColumnDisplaySize(4), rsmd.getColumnDisplaySize(3));
+
+      // Domain over a domain resolves through to numeric(10,2).
+      assertEquals(10, rsmd.getPrecision(5));
+      assertEquals(2, rsmd.getScale(5));
+
+      // A cast to the domain flattens to numeric(10,2) as well.
+      assertEquals(10, rsmd.getPrecision(6));
+      assertEquals(2, rsmd.getScale(6));
+
+      rs.close();
+      stmt.close();
+    } finally {
+      TestUtil.dropTable(con, "domain_rsmd");
+      TestUtil.dropDomain(con, "rsmd_price2");
+      TestUtil.dropDomain(con, "rsmd_shortstr");
+      TestUtil.dropDomain(con, "rsmd_price");
+    }
+  }
+
+  @Test
   public void testIsAutoIncrement() throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT c,b,a FROM serialtest");
