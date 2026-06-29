@@ -5,6 +5,7 @@
 
 package org.postgresql.jdbc.codec;
 
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.postgresql.jdbc.codec.ParityHarness.NO_PARAMS;
 import static org.postgresql.jdbc.codec.ParityHarness.assertParity;
@@ -151,6 +152,31 @@ class CodecParityRoundtripTest {
 
   private static DynamicTest parityOnly(String name, String sql) {
     return DynamicTest.dynamicTest(name, () -> assertParity(text, binary, sql, NO_PARAMS));
+  }
+
+  /**
+   * Asserts that {@code getObject(1, type)} decodes to {@code expected} over the text connection and
+   * identically over the binary connection, and that both results are instances of {@code type}.
+   * This is the typed-overload companion to {@link #withExpected}: it pins the
+   * {@code getObject(int, Class)} dispatch for codec-managed {@code PGobject} subclasses such as
+   * {@code PGRange} and {@code PGmultirange}, which once threw {@code ClassCastException} here.
+   */
+  private static DynamicTest withTypedExpected(String name, String sql, Class<?> type,
+      Object expected) {
+    return DynamicTest.dynamicTest(name, () -> {
+      Object t = ParityHarness.decodeFirstAs(text, sql, type);
+      Object b = ParityHarness.decodeFirstAs(binary, sql, type);
+      assertInstanceOf(type, t,
+          () -> "text getObject(1, " + type.getSimpleName() + ".class) for [" + sql + "]");
+      assertInstanceOf(type, b,
+          () -> "binary getObject(1, " + type.getSimpleName() + ".class) for [" + sql + "]");
+      assertTrue(ParityHarness.deepEquals(expected, t),
+          () -> "text typed-get for [" + sql + "]: expected=" + ParityHarness.render(expected)
+              + " got=" + ParityHarness.render(t));
+      assertTrue(ParityHarness.deepEquals(t, b),
+          () -> "text/binary typed-get parity for [" + sql + "]: text=" + ParityHarness.render(t)
+              + " binary=" + ParityHarness.render(b));
+    });
   }
 
   @TestFactory
@@ -305,6 +331,13 @@ class CodecParityRoundtripTest {
     // context (java.time vs java.sql), so this is parity-only, like the temporal scalars above.
     t.add(parityOnly("tsrange", "SELECT '[2020-01-01 00:00:00,2020-02-01 00:00:00)'::tsrange"));
 
+    // Typed getObject(int, Class): getObject(1, PGRange.class) once threw ClassCastException
+    // because the PGobject branch routed every PGobject subclass through connection.getObject,
+    // which hands back a plain PGobject for a codec-managed range. It now decodes through the codec
+    // over both formats.
+    t.add(withTypedExpected("int4range/getObject(PGRange.class)", "SELECT '[1,10)'::int4range",
+        PGRange.class, new PGRange<>(1, 10, true, false)));
+
     return t;
   }
 
@@ -327,6 +360,12 @@ class CodecParityRoundtripTest {
         new PGmultirange<>(new PGRange<>(1L, 10L, true, false))));
     t.add(withExpected("nummultirange/single", "SELECT '{[1.5,2.5)}'::nummultirange", NO_PARAMS,
         new PGmultirange<>(new PGRange<>(new BigDecimal("1.5"), new BigDecimal("2.5"), true, false))));
+
+    // Typed getObject(int, Class) for multirange — the same dispatch gap as the range case above,
+    // gated here on PostgreSQL 14+ with the rest of the multirange cases.
+    t.add(withTypedExpected("int4multirange/getObject(PGmultirange.class)",
+        "SELECT '{[1,5),[10,20)}'::int4multirange", PGmultirange.class,
+        new PGmultirange<>(new PGRange<>(1, 5, true, false), new PGRange<>(10, 20, true, false))));
 
     return t;
   }

@@ -122,6 +122,15 @@ final class ParityHarness {
     }
   }
 
+  /** Runs {@code sql} on {@code con} and returns the typed {@code getObject(1, type)}. */
+  static Object decodeFirstAs(Connection con, String sql, Class<?> type) throws SQLException {
+    try (PreparedStatement ps = con.prepareStatement(sql);
+         ResultSet rs = ps.executeQuery()) {
+      assertTrue(rs.next(), () -> "no row returned for [" + sql + "]");
+      return rs.getObject(1, type);
+    }
+  }
+
   /**
    * Asserts that {@code sql}/{@code binder} decodes identically over the text and binary
    * connections. Use when the canonical value is awkward to spell in Java (e.g. temporal types,
