@@ -30,7 +30,7 @@ For security purposes, we sign our releases with these PGP keys:
 
 Two issues combine in releases 42.7.4 through 42.7.11:
 
-1. The bundled `com.ongres.scram:scram-client` (3.1 or 3.2) returns an empty byte array instead of failing when it cannot derive the binding hash for such a certificate. This is the library issue tracked as [CVE-2026-53712](https://github.com/advisories/GHSA-p9jg-fcr6-3mhf).
+1. The bundled `com.ongres.scram:scram-client` (3.1 or 3.2) returns an empty byte array instead of failing when it cannot derive the binding hash for such a certificate. This is the library issue tracked as [GHSA-p9jg-fcr6-3mhf](https://github.com/advisories/GHSA-p9jg-fcr6-3mhf).
 2. pgJDBC does not enforce `channelBinding=require` where it matters. `ScramAuthenticator` checks only that the server *advertised* a `-PLUS` mechanism; it neither rejects the empty binding nor checks that the *negotiated* mechanism uses channel binding. The connection therefore downgrades silently.
 
 Only connections that set `channelBinding=require` are affected. Under the default `prefer` policy, and under `allow` or `disable`, falling back to plain SCRAM is the documented behaviour. Releases before 42.7.4 are unaffected, because they do not support channel binding.
