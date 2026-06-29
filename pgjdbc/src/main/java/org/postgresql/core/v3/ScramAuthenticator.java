@@ -62,6 +62,15 @@ final class ScramAuthenticator {
           .stringPreparation(StringPreparation.POSTGRESQL_PREPARATION)
           .build();
 
+      // channelBinding=require must never silently downgrade: regardless of how negotiation
+      // resolved, the selected mechanism must actually use channel binding (a -PLUS mechanism).
+      if (channelBinding == ChannelBinding.REQUIRE && !client.getScramMechanism().isPlus()) {
+        throw new PSQLException(
+            GT.tr("Channel Binding is required, but the negotiated SCRAM mechanism \"{0}\" "
+                + "does not use channel binding.", client.getScramMechanism().getName()),
+            PSQLState.CONNECTION_REJECTED);
+      }
+
       LOGGER.log(Level.FINEST, () -> " Using SCRAM mechanism: "
           + client.getScramMechanism().getName());
       return client;
@@ -111,7 +120,22 @@ final class ScramAuthenticator {
           Certificate peerCert = certificates[0]; // First certificate is the peer's certificate
           if (peerCert instanceof X509Certificate) {
             X509Certificate cert = (X509Certificate) peerCert;
-            return TlsServerEndpoint.getChannelBindingData(cert);
+            byte[] cbindData = TlsServerEndpoint.getChannelBindingData(cert);
+            if (cbindData.length > 0) {
+              return cbindData;
+            }
+            // An empty result means no channel binding hash could be derived from the
+            // certificate signature algorithm: for example Ed25519 has no associated hash
+            // under RFC 5929 tls-server-end-point. Under REQUIRE this must fail rather than
+            // silently downgrade to a non-PLUS mechanism.
+            if (channelBinding == ChannelBinding.REQUIRE) {
+              throw new PSQLException(
+                  GT.tr("Channel Binding is required, but the server certificate signature "
+                      + "algorithm \"{0}\" does not support tls-server-end-point channel "
+                      + "binding (RFC 5929). Use a server certificate signed with RSA or ECDSA.",
+                      cert.getSigAlgName()),
+                  PSQLState.CONNECTION_REJECTED);
+            }
           }
         }
       } catch (CertificateEncodingException | SSLPeerUnverifiedException e) {
