@@ -32,6 +32,7 @@ import org.postgresql.jdbc.codec.IntervalCodec;
 import org.postgresql.jdbc.codec.JsonCodec;
 import org.postgresql.jdbc.codec.JsonbCodec;
 import org.postgresql.jdbc.codec.MoneyCodec;
+import org.postgresql.jdbc.codec.MultirangeCodec;
 import org.postgresql.jdbc.codec.NameCodec;
 import org.postgresql.jdbc.codec.NumericCodec;
 import org.postgresql.jdbc.codec.OidCodec;
@@ -272,6 +273,9 @@ public class CodecRegistry {
     // Range types
     registerBuiltin(RangeCodec.INSTANCE);
 
+    // Multirange types (PostgreSQL 14+)
+    registerBuiltin(MultirangeCodec.INSTANCE);
+
     // Extension types (built-in support). hstore has an installation-dependent OID
     // and lives in a user schema, so it is registered by bare name rather than
     // pinned by OID or qualified with pg_catalog.
@@ -324,6 +328,14 @@ public class CodecRegistry {
     registerBuiltinAlias("tstzrange", RangeCodec.INSTANCE);
     registerBuiltinAlias("daterange", RangeCodec.INSTANCE);
 
+    // Multirange type aliases (PostgreSQL 14+)
+    registerBuiltinAlias("int4multirange", MultirangeCodec.INSTANCE);
+    registerBuiltinAlias("int8multirange", MultirangeCodec.INSTANCE);
+    registerBuiltinAlias("nummultirange", MultirangeCodec.INSTANCE);
+    registerBuiltinAlias("tsmultirange", MultirangeCodec.INSTANCE);
+    registerBuiltinAlias("tstzmultirange", MultirangeCodec.INSTANCE);
+    registerBuiltinAlias("datemultirange", MultirangeCodec.INSTANCE);
+
     // Register codecs by their default Java types
     registerByClass(Short.class, Int2Codec.INSTANCE);
     registerByClass(Integer.class, Int4Codec.INSTANCE);
@@ -339,6 +351,7 @@ public class CodecRegistry {
     registerByClass(java.util.UUID.class, UuidCodec.INSTANCE);
     registerByClass(byte[].class, ByteaCodec.INSTANCE);
     registerByClass(org.postgresql.util.PGRange.class, RangeCodec.INSTANCE);
+    registerByClass(org.postgresql.util.PGmultirange.class, MultirangeCodec.INSTANCE);
   }
 
   /**
@@ -721,6 +734,10 @@ public class CodecRegistry {
     // Range types (typtype='r')
     if (pgType.getTyptype() == 'r') {
       return RangeCodec.INSTANCE;
+    }
+    // Multirange types (typtype='m', PostgreSQL 14+)
+    if (pgType.getTyptype() == 'm') {
+      return MultirangeCodec.INSTANCE;
     }
     return null;
   }

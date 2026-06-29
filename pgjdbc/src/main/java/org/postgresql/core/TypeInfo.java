@@ -85,6 +85,21 @@ public interface TypeInfo {
   int getRangeSubtype(int oid) throws SQLException;
 
   /**
+   * Gets the range type OID of a multirange type ({@code pg_range.rngtypid}, joined on
+   * {@code rngmultitypid}).
+   *
+   * <p>A multirange's element is a range rather than a scalar, so this returns the companion range
+   * type (for example {@code int4range} for {@code int4multirange}); resolve that range's own
+   * subtype with {@link #getRangeSubtype(int)}. The range type is loaded lazily on first access and
+   * cached on the {@link PgType}.</p>
+   *
+   * @param oid the OID of the multirange type
+   * @return the range type OID, or {@link Oid#UNSPECIFIED} if the type is not a multirange
+   * @throws SQLException if a database error occurs
+   */
+  int getMultirangeRange(int oid) throws SQLException;
+
+  /**
    * Reports whether values of this type can be sent by the server in binary
    * format, recursing into element, field and base types.
    *
