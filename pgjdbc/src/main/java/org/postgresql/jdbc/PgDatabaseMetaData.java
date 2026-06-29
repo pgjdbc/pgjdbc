@@ -2024,8 +2024,17 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
       if (connection.haveMinimumServerVersion(ServerVersion.v8_4)) {
         String acl = rs.getString("attacl");
-        Map<String, Map<String, List<@Nullable String[]>>> relPermissions = parseACL(acl, owner);
-        permissions.putAll(relPermissions);
+        // A table-level grant applies to every column, so the effective per-column
+        // privileges are the union of the table-level (relacl) and the column-level
+        // (attacl) grants. A column without an explicit column-level ACL inherits the
+        // table-level grants unchanged. Merge instead of replacing (the previous
+        // Map.putAll dropped table-level grants for privileges that also appeared at
+        // the column level, and leaked them for privileges that did not).
+        if (acl != null) {
+          Map<String, Map<String, List<@Nullable String[]>>> columnPermissions =
+              parseACL(acl, owner);
+          mergeACLPrivileges(permissions, columnPermissions);
+        }
       }
       @KeyFor("permissions") String[] permNames = permissions.keySet().toArray(new @KeyFor("permissions") String[0]);
       Arrays.sort(permNames);
@@ -2297,6 +2306,55 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       addACLPrivileges(acl, privileges);
     }
     return privileges;
+  }
+
+  /**
+   * Merges column-level privileges (parsed from {@code attacl}) into table-level privileges
+   * (parsed from {@code relacl}). A table-level grant applies to every column, so the effective
+   * per-column privileges are the union of the two. Identical {@code [grantor, grantable]} entries
+   * for the same privilege and grantee are kept only once.
+   *
+   * @param tablePrivileges table-level privileges; mutated in place to hold the merged result
+   * @param columnPrivileges column-level privileges to merge in
+   */
+  private static void mergeACLPrivileges(
+      Map<String, Map<String, List<@Nullable String[]>>> tablePrivileges,
+      Map<String, Map<String, List<@Nullable String[]>>> columnPrivileges) {
+    for (Map.Entry<String, Map<String, List<@Nullable String[]>>> permEntry
+        : columnPrivileges.entrySet()) {
+      String permName = permEntry.getKey();
+      Map<String, List<@Nullable String[]>> tableGrantees = tablePrivileges.get(permName);
+      //noinspection Java8MapApi
+      if (tableGrantees == null) {
+        tableGrantees = new HashMap<>();
+        tablePrivileges.put(permName, tableGrantees);
+      }
+      for (Map.Entry<String, List<@Nullable String[]>> granteeEntry
+          : permEntry.getValue().entrySet()) {
+        String grantee = granteeEntry.getKey();
+        List<@Nullable String[]> tableGrants = tableGrantees.get(grantee);
+        //noinspection Java8MapApi
+        if (tableGrants == null) {
+          tableGrants = new ArrayList<>();
+          tableGrantees.put(grantee, tableGrants);
+        }
+        for (@Nullable String[] grant : granteeEntry.getValue()) {
+          if (!containsGrant(tableGrants, grant)) {
+            tableGrants.add(grant);
+          }
+        }
+      }
+    }
+  }
+
+  private static boolean containsGrant(List<@Nullable String[]> grants,
+      @Nullable String[] grant) {
+    for (@Nullable String[] existing : grants) {
+      if (Arrays.equals(existing, grant)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override
