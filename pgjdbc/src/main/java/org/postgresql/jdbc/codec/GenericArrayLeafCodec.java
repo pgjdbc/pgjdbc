@@ -21,6 +21,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 /**
  * Generic array leaf adapter that delegates each non-null element to the
@@ -30,17 +31,31 @@ import java.sql.SQLException;
  * {@link Int4ArrayLeafCodec}: it handles arbitrary object leaves, including
  * composites and custom types, while specialized codecs keep primitive-array
  * fast paths for hot built-in types.</p>
+ *
+ * <p>When constructed with a {@code decodeTargetComponent}, each element decodes
+ * to that exact Java type through the element codec's {@code decodeBinaryAs}/
+ * {@code decodeTextAs} (so a {@code CustomDto[]} or {@code LocalDate[]} target is
+ * honoured), instead of the codec's default type. The encode path never uses a
+ * target and is unaffected.</p>
  */
 final class GenericArrayLeafCodec implements ArrayLeafCodec {
 
   private final TypeDescriptor elementType;
   private final @Nullable BinaryCodec binaryCodec;
   private final @Nullable TextCodec textCodec;
+  // When non-null, decode each element to this exact component type (decode-only path).
+  private final @Nullable Class<?> decodeTargetComponent;
 
   GenericArrayLeafCodec(TypeDescriptor elementType, Codec elementCodec) {
+    this(elementType, elementCodec, null);
+  }
+
+  GenericArrayLeafCodec(TypeDescriptor elementType, Codec elementCodec,
+      @Nullable Class<?> decodeTargetComponent) {
     this.elementType = elementType;
     this.binaryCodec = elementCodec instanceof BinaryCodec ? (BinaryCodec) elementCodec : null;
     this.textCodec = elementCodec instanceof TextCodec ? (TextCodec) elementCodec : null;
+    this.decodeTargetComponent = decodeTargetComponent;
   }
 
   @Override
@@ -55,7 +70,8 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
 
   @Override
   public Class<?> getBoxedComponentType() {
-    return getDefaultJavaType();
+    Class<?> target = decodeTargetComponent;
+    return target != null ? target : getDefaultJavaType();
   }
 
   @Override
@@ -119,6 +135,7 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
       throw noBinaryCodec();
     }
     @Nullable Object[] arr = (@Nullable Object[]) leaf;
+    Class<?> target = decodeTargetComponent;
     int pos = cursor[0];
     for (int i = 0; i < arr.length; i++) {
       int length = ByteConverter.int4(data, pos);
@@ -126,7 +143,10 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
       if (length == -1) {
         arr[i] = null;
       } else {
-        arr[i] = codec.decodeBinary(data, pos, length, elementType, ctx);
+        arr[i] = target != null
+            ? codec.decodeBinaryAs(Arrays.copyOfRange(data, pos, pos + length), elementType, target,
+                ctx)
+            : codec.decodeBinary(data, pos, length, elementType, ctx);
         pos += length;
       }
     }
@@ -194,6 +214,7 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
       throw noTextCodec();
     }
     @Nullable Object[] arr = (@Nullable Object[]) leaf;
+    Class<?> target = decodeTargetComponent;
     for (int i = 0; i < arr.length; i++) {
       if (i > 0) {
         cur.expect(delimiter);
@@ -201,6 +222,10 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
       cur.readValue(delimiter, '}');
       if (!cur.tokenWasQuoted() && cur.tokenEquals("NULL")) {
         arr[i] = null;
+      } else if (target != null) {
+        arr[i] = codec.decodeTextAs(
+            new String(cur.tokenChars(), cur.tokenOffset(), cur.tokenLength()), elementType, target,
+            ctx);
       } else {
         arr[i] = codec.decodeText(cur.tokenChars(), cur.tokenOffset(), cur.tokenLength(),
             elementType, ctx);

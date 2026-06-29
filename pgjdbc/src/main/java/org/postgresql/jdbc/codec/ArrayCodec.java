@@ -272,6 +272,37 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     return new GenericArrayLeafCodec(elementType, elementCodec);
   }
 
+  /**
+   * Returns a leaf codec that decodes each element to {@code leafComponentType}, for a
+   * {@code decodeXxxAs(T[].class)} call that asks for a specific reference element type the default
+   * array decode would not produce — a {@code CustomDto[]} over a composite, a {@code LocalDate[]}
+   * over {@code date}, a {@code String[]} over a non-string element. Returns {@code null} to keep the
+   * existing fast/generic path when its component is already assignable to {@code leafComponentType}
+   * ({@code Object[]}, {@code Integer[]}, {@code String[]} over {@code text}, ...) or the target is a
+   * primitive (only a fast leaf decodes a primitive array). Each element is decoded through the
+   * element codec's {@code decodeBinaryAs}/{@code decodeTextAs}, so no connection is required.
+   */
+  private static @Nullable GenericArrayLeafCodec typedElementLeaf(TypeDescriptor arrayType,
+      Class<?> leafComponentType, @Nullable ArrayLeafCodec fastLeaf, CodecContext ctx)
+      throws SQLException {
+    if (leafComponentType == Object.class || leafComponentType.isPrimitive()) {
+      return null;
+    }
+    TypeDescriptor elementType = ctx.resolveType(arrayType.getTypelem());
+    Codec elementCodec = ctx.resolveCodec(arrayType.getTypelem());
+    Class<?> defaultComponent;
+    if (fastLeaf != null) {
+      defaultComponent = fastLeaf.getBoxedComponentType();
+    } else {
+      Class<?> generic = genericComponentType(elementType, elementCodec);
+      defaultComponent = generic != null ? generic : Object.class;
+    }
+    if (leafComponentType.isAssignableFrom(defaultComponent)) {
+      return null;
+    }
+    return new GenericArrayLeafCodec(elementType, elementCodec, leafComponentType);
+  }
+
   @Override
   public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     PgCodecContext impl = impl(ctx);
@@ -565,12 +596,15 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
       return (T) new PgArray(impl(ctx).requireConnection(type), type.getOid(), data);
     }
     if (targetClass.isArray()) {
+      Class<?> leafComponentType = MultiDimArraySupport.leafComponentType(targetClass);
       ArrayLeafCodec fastLeaf = fastLeafFor(type, ctx);
-      if (fastLeaf != null) {
-        Class<?> leafComponentType = MultiDimArraySupport.leafComponentType(targetClass);
-        if (fastLeaf.supportsTargetComponent(leafComponentType)) {
-          return (T) MultiDimArrayBinary.decode(data, leafComponentType, ctx, fastLeaf);
-        }
+      if (fastLeaf != null && fastLeaf.supportsTargetComponent(leafComponentType)) {
+        return (T) MultiDimArrayBinary.decode(data, leafComponentType, ctx, fastLeaf);
+      }
+      GenericArrayLeafCodec typedLeaf = typedElementLeaf(type, leafComponentType, fastLeaf, ctx);
+      if (typedLeaf != null) {
+        // Decode each element to the requested component type (e.g. CustomDto[] over a composite).
+        return (T) MultiDimArrayBinary.decode(data, leafComponentType, ctx, typedLeaf);
       }
       // Element type has no matching fast leaf: decode through the shared codec walker, which
       // yields the same component type the legacy decoder produced (typed array, String[], or
@@ -595,13 +629,17 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
       return (T) new PgArray(impl(ctx).requireConnection(type), type.getOid(), data);
     }
     if (targetClass.isArray()) {
+      Class<?> leafComponentType = MultiDimArraySupport.leafComponentType(targetClass);
       ArrayLeafCodec fastLeaf = fastLeafFor(type, ctx);
-      if (fastLeaf != null) {
-        Class<?> leafComponentType = MultiDimArraySupport.leafComponentType(targetClass);
-        if (fastLeaf.supportsTargetComponent(leafComponentType)) {
-          return (T) MultiDimArrayText.decode(data, leafComponentType, type.getDelimiter(), ctx,
-              fastLeaf);
-        }
+      if (fastLeaf != null && fastLeaf.supportsTargetComponent(leafComponentType)) {
+        return (T) MultiDimArrayText.decode(data, leafComponentType, type.getDelimiter(), ctx,
+            fastLeaf);
+      }
+      GenericArrayLeafCodec typedLeaf = typedElementLeaf(type, leafComponentType, fastLeaf, ctx);
+      if (typedLeaf != null) {
+        // Decode each element to the requested component type (e.g. CustomDto[] over a composite).
+        return (T) MultiDimArrayText.decode(data, leafComponentType, type.getDelimiter(), ctx,
+            typedLeaf);
       }
       // Element type has no matching fast leaf: decode through the shared codec walker.
       return (T) decodeTextArray(data, type, ctx);
