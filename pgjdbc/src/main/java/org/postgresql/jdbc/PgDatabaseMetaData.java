@@ -1983,16 +1983,15 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
 
     StringBuilder sql = new StringBuilder(
-        "SELECT current_database() AS current_database, n.nspname,c.relname,r.rolname,c.relacl, "
-          + (connection.haveMinimumServerVersion(ServerVersion.v8_4) ? "a.attacl, " : "")
-          + " a.attname "
-          + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, "
-          + " pg_catalog.pg_roles r, pg_catalog.pg_attribute a "
-          + " WHERE c.relnamespace = n.oid "
-          + " AND c.relowner = r.oid "
-          + " AND c.oid = a.attrelid "
-          + " AND c.relkind = 'r' "
-          + " AND a.attnum > 0 AND NOT a.attisdropped ");
+        "SELECT current_database() AS current_database, n.nspname, c.relname, r.rolname,"
+          + " a.attacl, a.attname"
+          + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c,"
+          + " pg_catalog.pg_roles r, pg_catalog.pg_attribute a"
+          + " WHERE c.relnamespace = n.oid"
+          + " AND c.relowner = r.oid"
+          + " AND c.oid = a.attrelid"
+          + " AND c.relkind = 'r'"
+          + " AND a.attnum > 0 AND NOT a.attisdropped");
 
     List<String> args = new ArrayList<>();
     if (schema != null) {
@@ -2017,16 +2016,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       byte[] tableName = rs.getBytes("relname");
       byte[] column = rs.getBytes("attname");
       String owner = castNonNull(rs.getString("rolname"));
-      String relAcl = rs.getString("relacl");
+      String acl = rs.getString("attacl");
+      if (acl == null) {
+        // No column-level grants on this column — skip it
+        continue;
+      }
 
       // For instance: SELECT -> user1 -> list of [grantor, grantable]
-      Map<String, Map<String, List<@Nullable String[]>>> permissions = parseACL(relAcl, owner);
-
-      if (connection.haveMinimumServerVersion(ServerVersion.v8_4)) {
-        String acl = rs.getString("attacl");
-        Map<String, Map<String, List<@Nullable String[]>>> relPermissions = parseACL(acl, owner);
-        permissions.putAll(relPermissions);
-      }
+      Map<String, Map<String, List<@Nullable String[]>>> permissions = parseACL(acl, owner);
       @KeyFor("permissions") String[] permNames = permissions.keySet().toArray(new @KeyFor("permissions") String[0]);
       Arrays.sort(permNames);
       for (String permName : permNames) {

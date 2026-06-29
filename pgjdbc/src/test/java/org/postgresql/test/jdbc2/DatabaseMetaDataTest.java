@@ -853,14 +853,91 @@ public class DatabaseMetaDataTest {
 
   @Test
   void columnPrivileges() throws SQLException {
-    // At the moment just test that no exceptions are thrown KJ
-    DatabaseMetaData dbmd = con.getMetaData();
-    assertNotNull(dbmd);
-    try (ResultSet rs = dbmd.getColumnPrivileges(null, null, "pg_statistic", null)) {
-      assertTrue(rs.next());
+    assumeTrue(TestUtil.getPrivilegedUser() != null,
+        "Test requires a privileged user to CREATE ROLE");
+
+    try (Connection privCon = TestUtil.openPrivilegedDB();
+         Statement stmt = privCon.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS test_col_privs_basic");
+      stmt.execute("DROP ROLE IF EXISTS test_col_priv_reader");
+      stmt.execute("CREATE TABLE test_col_privs_basic (c1 int, c2 int)");
+      stmt.execute("CREATE ROLE test_col_priv_reader");
+      stmt.execute("GRANT SELECT (c1) ON test_col_privs_basic TO test_col_priv_reader");
+
+      try {
+        DatabaseMetaData dbmd = privCon.getMetaData();
+        try (ResultSet rs = dbmd.getColumnPrivileges(null, null, "test_col_privs_basic", null)) {
+          assertTrue(rs.next(), "Expected at least one column privilege row");
+        }
+        try (ResultSet rs =
+                 dbmd.getColumnPrivileges("nonsensecatalog", null, "test_col_privs_basic", null)) {
+          assertFalse(rs.next());
+        }
+      } finally {
+        stmt.execute("DROP TABLE IF EXISTS test_col_privs_basic");
+        stmt.execute("DROP ROLE IF EXISTS test_col_priv_reader");
+      }
     }
-    try (ResultSet rs = dbmd.getColumnPrivileges("nonsensecatalog", null, "pg_statistic", null)) {
-      assertFalse(rs.next());
+  }
+
+  @Test
+  void columnPrivilegesExcludesTableLevelGrants() throws SQLException {
+    assumeTrue(TestUtil.getPrivilegedUser() != null,
+        "Test requires a privileged user to CREATE ROLE");
+
+    try (Connection privCon = TestUtil.openPrivilegedDB();
+         Statement stmt = privCon.createStatement()) {
+      stmt.execute("DROP TABLE IF EXISTS test_col_privs");
+      stmt.execute("DROP ROLE IF EXISTS test_col_priv_a");
+      stmt.execute("DROP ROLE IF EXISTS test_col_priv_b");
+      stmt.execute("CREATE TABLE test_col_privs (c1 int, c2 int, c3 int)");
+      stmt.execute("CREATE ROLE test_col_priv_a");
+      stmt.execute("CREATE ROLE test_col_priv_b");
+      stmt.execute("GRANT SELECT ON test_col_privs TO test_col_priv_a");
+      stmt.execute("GRANT SELECT (c1, c2) ON test_col_privs TO test_col_priv_b");
+      stmt.execute("GRANT UPDATE (c1, c3) ON test_col_privs TO test_col_priv_b");
+
+      try {
+        DatabaseMetaData dbmd = privCon.getMetaData();
+        List<String> entries = new ArrayList<>();
+        try (ResultSet rs = dbmd.getColumnPrivileges(null, null, "test_col_privs", null)) {
+          while (rs.next()) {
+            String grantee = rs.getString("GRANTEE");
+            String column = rs.getString("COLUMN_NAME");
+            String privilege = rs.getString("PRIVILEGE");
+            entries.add(grantee + "/" + column + "/" + privilege);
+          }
+        }
+
+        // Role A must NOT appear (table-level grants should be excluded)
+        for (String entry : entries) {
+          assertFalse(entry.startsWith("test_col_priv_a/"),
+              "Table-level grant for test_col_priv_a should not appear in getColumnPrivileges, "
+                  + "but found: " + entry);
+        }
+
+        // Role B should appear with SELECT on c1 and c2
+        assertTrue(entries.contains("test_col_priv_b/c1/SELECT"),
+            "Expected column-level SELECT on c1 for test_col_priv_b, entries: " + entries);
+        assertTrue(entries.contains("test_col_priv_b/c2/SELECT"),
+            "Expected column-level SELECT on c2 for test_col_priv_b, entries: " + entries);
+
+        // Role B should appear with UPDATE on c1 and c3
+        assertTrue(entries.contains("test_col_priv_b/c1/UPDATE"),
+            "Expected column-level UPDATE on c1 for test_col_priv_b, entries: " + entries);
+        assertTrue(entries.contains("test_col_priv_b/c3/UPDATE"),
+            "Expected column-level UPDATE on c3 for test_col_priv_b, entries: " + entries);
+
+        // Role B should NOT have SELECT on c3 or UPDATE on c2
+        assertFalse(entries.contains("test_col_priv_b/c3/SELECT"),
+            "Unexpected SELECT on c3 for test_col_priv_b");
+        assertFalse(entries.contains("test_col_priv_b/c2/UPDATE"),
+            "Unexpected UPDATE on c2 for test_col_priv_b");
+      } finally {
+        stmt.execute("DROP TABLE IF EXISTS test_col_privs");
+        stmt.execute("DROP ROLE IF EXISTS test_col_priv_a");
+        stmt.execute("DROP ROLE IF EXISTS test_col_priv_b");
+      }
     }
   }
 
