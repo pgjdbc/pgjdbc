@@ -525,11 +525,9 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
           attributes[i] = field.decode(fieldCodec, fieldType, ctx);
         }
       }
-      PgCodecContext impl = impl(ctx);
-      // Offline contexts have no connection; the PgStruct still carries the decoded attributes, so
-      // getAttributes() works (getValue() rebuilds the text literal only on a connection-bound one).
-      return new PgStruct(structTypeFor(type, binaryFields), attributes,
-          impl.isConnectionBound() ? impl.getConnection() : null);
+      // The struct carries the codec context (offline or connection-bound), so getValue() can
+      // rebuild the text literal from the attributes either way; getAttributes() works regardless.
+      return PgStruct.withCodecContext(structTypeFor(type, binaryFields), attributes, impl(ctx));
     } finally {
       CodecDepth.exit();
     }
@@ -671,10 +669,9 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       // Text transfer carries no per-field OIDs, so an anonymous record keeps the
       // fieldless pseudo-type; getValue() still works because the raw server
       // literal is recorded verbatim by the caller. The SPI type reaching this codec is
-      // the driver's own PgType, which PgStruct (internal) carries.
-      PgCodecContext impl = impl(ctx);
-      return new PgStruct((PgType) type, attributes,
-          impl.isConnectionBound() ? impl.getConnection() : null);
+      // the driver's own PgType, which PgStruct (internal) carries. The struct also carries the
+      // codec context so getValue() can rebuild the literal offline.
+      return PgStruct.withCodecContext((PgType) type, attributes, impl(ctx));
     } finally {
       CodecDepth.exit();
     }

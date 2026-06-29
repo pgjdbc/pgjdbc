@@ -89,6 +89,40 @@ class OfflineContainerRoundtripTest {
   }
 
   @Test
+  void compositeStructGetValueRebuiltOffline() throws SQLException {
+    // The bug: offline binary (and text -> Struct.class) decode left PgStruct.getValue() null,
+    // because the struct reached its codec context only through a connection. With the context
+    // carried directly, getValue() and toString() rebuild the record_out literal from the
+    // attributes with no connection.
+    PgType type = composite("pt", POINT_OID,
+        field("x", Oid.INT4, 1), field("y", Oid.INT4, 2), field("label", Oid.TEXT, 3));
+    CodecContext ctx = PgCodecContext.offlineBuilder().type(type).build();
+    Object[] attributes = {10, 20, "hello"};
+
+    String canonical = null;
+    for (Format format : Format.values()) {
+      // Struct.class decode never records the raw literal, so getValue() must rebuild it from the
+      // attributes through the carried offline context.
+      RawValue raw = Codecs.encode(new PgStruct(type, attributes, null), type, ctx, format);
+      PgStruct decoded = (PgStruct) Codecs.decode(raw, type, ctx, Struct.class);
+      assertNotNull(decoded, "struct " + format);
+
+      String literal = decoded.getValue();
+      assertNotNull(literal, "getValue offline " + format);
+      assertEquals(literal, decoded.toString(), "toString offline " + format);
+
+      // Binary and text decode must rebuild the identical canonical literal.
+      if (canonical == null) {
+        canonical = literal;
+      } else {
+        assertEquals(canonical, literal, "canonical literal " + format);
+      }
+    }
+    // The text codec quotes the string field unconditionally; the literal round-trips either way.
+    assertEquals("(10,20,\"hello\")", canonical, "literal form");
+  }
+
+  @Test
   void sqlDataRoundtripsOffline() throws SQLException {
     PgType type = composite("point_t", POINT_OID,
         field("x", Oid.INT4, 1), field("y", Oid.INT4, 2), field("label", Oid.TEXT, 3));

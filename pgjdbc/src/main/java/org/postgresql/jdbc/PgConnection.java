@@ -1652,7 +1652,10 @@ public class PgConnection implements BaseConnection {
           PSQLState.DATA_ERROR);
     }
 
-    return new PgStruct(typeName, attributes, this);
+    // Carry the codec context (connection-bound here) so getValue() rebuilds the literal; pass the
+    // user-supplied typeName verbatim so getSQLTypeName() keeps returning it (pgType.getFullName()
+    // may be schema-qualified). The type is resolved lazily by name on the first getValue().
+    return PgStruct.withCodecContext(typeName, attributes, getCodecContext());
   }
 
   @Override
