@@ -2,6 +2,17 @@
 Notable changes since version 42.0.0, read the complete [History of Changes](https://jdbc.postgresql.org/documentation/changelog.html).
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
+
+## [42.7.12] (2026-06-29)
+
+### Security
+* fix: Enforce channel binding without bumping scram-client (3.2)
+Under `channelBinding=require`, the driver silently downgraded from `SCRAM-SHA-256-PLUS` (with channel binding) to plain `SCRAM-SHA-256` (without it) when the server presented a certificate whose signature algorithm has no `tls-server-end-point` channel-binding hash (e.g. Ed25519, Ed448, or post-quantum algorithms). An attacker who can intercept the TLS connection could exploit this to strip channel-binding protection.
+The fix enforces channel binding in the driver's own code: it now fails the connection when no binding data can be extracted, and verifies the negotiated mechanism uses channel binding (`-PLUS`) when `require` is set.
+Only connections that set `channelBinding=require` are affected. The default `prefer` policy and releases before 42.7.4 (which introduced channel-binding support) are unaffected.
+See the [Security Advisory](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-j92g-9f8w-j867) for more detail.
+The following [CVE-2026-54291](https://nvd.nist.gov/vuln/detail/CVE-2026-54291) has been issued.
+
 ## [42.7.11] (2026-04-28)
 
 ### Security
