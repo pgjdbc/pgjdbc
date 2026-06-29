@@ -134,14 +134,32 @@ public class PgArray implements Array {
     return castNonNull(connection);
   }
 
+  /**
+   * Resolves type metadata through the codec context captured at construction, so type resolution
+   * does not depend on the live connection. The connection is reserved for the operations that need
+   * it — materializing a {@link ResultSet} and reading the query mode.
+   */
+  private TypeInfo typeInfo() {
+    return codecContext.getTypeInfo();
+  }
+
+  /**
+   * Rejects use after {@link #free()}, as the {@code java.sql.Array} contract requires. The
+   * connection is the freed marker: every constructor sets it and only {@link #free()} clears it.
+   */
+  private void checkFreed() throws SQLException {
+    if (connection == null) {
+      throw new PSQLException(GT.tr("free() was called on this Array previously"),
+          PSQLState.OBJECT_NOT_IN_STATE);
+    }
+  }
+
   private PgType getPgType() throws SQLException {
-    TypeInfo typeInfo = getConnection().getTypeInfo();
-    return typeInfo.getPgTypeByOid(oid);
+    return typeInfo().getPgTypeByOid(oid);
   }
 
   private PgType getElementPgType() throws SQLException {
-    TypeInfo typeInfo = getConnection().getTypeInfo();
-    return typeInfo.getPgTypeByOid(getPgType().getTypelem());
+    return typeInfo().getPgTypeByOid(getPgType().getTypelem());
   }
 
   @Override
@@ -176,6 +194,7 @@ public class PgArray implements Array {
 
   public @Nullable Object getArrayImpl(long index, int count, @Nullable Map<String, Class<?>> map)
       throws SQLException {
+    checkFreed();
     CodecDepth.enter();
     try {
       // array index is out of range
@@ -274,7 +293,7 @@ public class PgArray implements Array {
           String value = pgObj.getValue();
           if (value != null) {
             int elementOid = getPgType().getTypelem();
-            PgType elementType = castNonNull(connection).getTypeInfo().getPgTypeByOid(elementOid);
+            PgType elementType = typeInfo().getPgTypeByOid(elementOid);
             Object decoded = CompositeCodec.INSTANCE.decodeTextAs(
                 value, elementType, (Class<? extends SQLData>) targetClass, ctx);
             if (decoded != null) {
@@ -406,16 +425,18 @@ public class PgArray implements Array {
 
   @Override
   public int getBaseType() throws SQLException {
+    checkFreed();
     return getElementPgType().getSqlType();
   }
 
   @Override
   public String getBaseTypeName() throws SQLException {
+    checkFreed();
     // Legacy contract: raw pg_type.typname (e.g. "int4") for types reachable
     // via the search_path, but a fully qualified \"schema\".\"typname\" form
     // for off-path or quoted types (e.g. "Composites"."ComplexCompositeTest").
     int elemOid = getElementPgType().getOid();
-    TypeInfo typeInfo = getConnection().getTypeInfo();
+    TypeInfo typeInfo = typeInfo();
     if (typeInfo instanceof TypeInfoCache) {
       String displayName = ((TypeInfoCache) typeInfo).getPGTypeDisplayName(elemOid);
       if (displayName != null) {
@@ -452,6 +473,7 @@ public class PgArray implements Array {
 
   public ResultSet getResultSetImpl(long index, int count, @Nullable Map<String, Class<?>> map)
       throws SQLException {
+    checkFreed();
     CodecDepth.enter();
     try {
       if (map != null && !map.isEmpty()) {

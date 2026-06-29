@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -612,6 +613,33 @@ public class ArrayTest extends BaseTest4 {
     strarr = (String[]) arr.getArray();
     assertEquals(5, strarr.length);
     assertEquals("un  quot\u000B \u2001", strarr[4]);
+
+    rs.close();
+    stmt.close();
+  }
+
+  @Test
+  public void testUseAfterFreeThrows() throws SQLException {
+    Statement stmt = conn.createStatement();
+    stmt.executeUpdate("INSERT INTO arrtest VALUES ('{1,2,3}', '{3.1,1.4}', '{a,b}')");
+    ResultSet rs = stmt.executeQuery("SELECT intarr FROM arrtest");
+    assertTrue(rs.next());
+
+    Array arr = rs.getArray(1);
+    // Type resolution and decoding run off the codec context captured at construction, so they
+    // work the same in both binary modes before the array is freed.
+    assertEquals(Types.INTEGER, arr.getBaseType());
+    assertArrayEquals(new Integer[]{1, 2, 3}, (Integer[]) arr.getArray());
+
+    arr.free();
+
+    // After free() every java.sql.Array accessor must report a clear SQLException, not an NPE.
+    assertThrows(SQLException.class, arr::getArray);
+    assertThrows(SQLException.class, arr::getBaseType);
+    assertThrows(SQLException.class, arr::getBaseTypeName);
+    assertThrows(SQLException.class, arr::getResultSet);
+    // free() stays idempotent.
+    arr.free();
 
     rs.close();
     stmt.close();
