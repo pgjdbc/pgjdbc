@@ -157,6 +157,23 @@ class OfflineContainerRoundtripTest {
   }
 
   @Test
+  void sqlDataArrayRoundtripsOffline() throws SQLException {
+    PgType element = composite("point_t", POINT_OID,
+        field("x", Oid.INT4, 1), field("y", Oid.INT4, 2), field("label", Oid.TEXT, 3));
+    PgType arrayType = new PgType(new ObjectName("public", "_point_t"), "public.point_t[]",
+        POINT_ARRAY_OID, 'b', 'A', -1, POINT_OID, 0, 0);
+    CodecContext ctx = PgCodecContext.offlineBuilder().type(element).type(arrayType).build();
+    Point[] points = {point(1, 2, "a"), point(3, 4, "b,c")};
+
+    for (Format format : Format.values()) {
+      // A typed CustomDto[] target decodes each element to the SQLData class — no connection.
+      RawValue raw = Codecs.encode(points, arrayType, ctx, format);
+      Point[] back = Codecs.decode(raw, arrayType, ctx, Point[].class);
+      assertArrayEquals(points, back, "CustomDto[] " + format);
+    }
+  }
+
+  @Test
   void nestedArrayInSqlDataReportsClearErrorOffline() throws SQLException {
     PgType type = composite("has_array", HAS_ARRAY_OID, field("arr", Oid.INT4_ARRAY, 1));
     CodecContext ctx = PgCodecContext.offlineBuilder().type(type).build();
