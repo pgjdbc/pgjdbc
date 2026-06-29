@@ -91,6 +91,18 @@ public interface TypeDescriptor {
   int getRangeSubtype();
 
   /**
+   * Returns the range type OID for a multirange type ({@code pg_range.rngtypid}, joined on
+   * {@code rngmultitypid}).
+   *
+   * <p>A multirange ({@code typtype='m'}) carries its elements as ranges rather than scalars, so the
+   * companion range type (for example {@code int4range} for {@code int4multirange}) is carried here.
+   * Resolve that range with {@link CodecContext#resolveType(int)} to reach its subtype in turn.</p>
+   *
+   * @return the range type OID, or {@code 0} if not a multirange or not yet loaded
+   */
+  int getMultirangeRange();
+
+  /**
    * Returns the {@code pg_type.typtype} discriminator
    * ({@code 'b'}=base, {@code 'c'}=composite, {@code 'e'}=enum, {@code 'd'}=domain,
    * {@code 'p'}=pseudo, {@code 'r'}=range, {@code 'm'}=multirange).
@@ -158,5 +170,14 @@ public interface TypeDescriptor {
    */
   default boolean isComposite() {
     return getTyptype() == 'c';
+  }
+
+  /**
+   * Reports whether this is a multirange type ({@code typtype='m'}).
+   *
+   * @return true for a multirange type
+   */
+  default boolean isMultirange() {
+    return getTyptype() == 'm';
   }
 }

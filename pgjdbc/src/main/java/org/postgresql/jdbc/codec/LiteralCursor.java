@@ -101,8 +101,11 @@ final class LiteralCursor {
 
   /**
    * Consumes {@code keyword} (case-insensitive, after leading whitespace) when it
-   * appears as a complete token — followed by end-of-input or whitespace — and
-   * reports whether it did. Used for the range {@code empty} literal.
+   * appears as a complete token — followed by end-of-input, whitespace, or a container
+   * delimiter ({@code ','}, {@code '}'}, {@code ')'}, {@code ']'}) — and reports whether
+   * it did. Used for the range {@code empty} literal, including when it sits inside a
+   * multirange ({@code {empty}}, {@code {[1,2),empty}}), where it is followed by
+   * {@code ','} or {@code '}'} rather than whitespace.
    */
   boolean consumeKeyword(String keyword) {
     skipWhitespace();
@@ -115,8 +118,11 @@ final class LiteralCursor {
         return false;
       }
     }
-    if (pos + n < end && !isWhitespace(src[pos + n])) {
-      return false;
+    if (pos + n < end) {
+      char next = src[pos + n];
+      if (!isWhitespace(next) && next != ',' && next != '}' && next != ')' && next != ']') {
+        return false;
+      }
     }
     pos += n;
     skipWhitespace();

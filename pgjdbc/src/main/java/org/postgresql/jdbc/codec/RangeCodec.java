@@ -313,10 +313,16 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
   }
 
   /**
-   * Parses a range literal off {@code cur}, driving the shared {@link LiteralCursor}
-   * so the same code serves the String and slice forms.
+   * Parses one range literal off {@code cur}, driving the shared {@link LiteralCursor}
+   * so the same code serves the String and slice forms. On return the cursor sits just
+   * past the range's closing bracket, so {@link MultirangeCodec} can call this in a loop
+   * to peel the ranges out of a {@code {...}} multirange literal off the same cursor.
+   *
+   * @param cur the cursor positioned at the start of a range literal
+   * @param type the range type, used to resolve the bound subtype and label the result
+   * @param ctx the codec context, or {@code null} to keep bounds as raw strings
    */
-  private static @Nullable Object decodeRange(LiteralCursor cur, TypeDescriptor type, CodecContext ctx)
+  static @Nullable Object decodeRange(LiteralCursor cur, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     cur.skipWhitespace();
     if (cur.consumeKeyword("empty")) {

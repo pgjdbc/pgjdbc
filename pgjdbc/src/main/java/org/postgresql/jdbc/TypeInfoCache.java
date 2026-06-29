@@ -96,6 +96,7 @@ public class TypeInfoCache implements TypeInfo {
   private @Nullable PreparedStatement findAllPgTypes;
   private @Nullable PreparedStatement findCompositeFields;
   private @Nullable PreparedStatement findRangeSubtype;
+  private @Nullable PreparedStatement findMultirangeRange;
   private @Nullable PreparedStatement findTypeVisibility;
   private final ResourceLock lock = new ResourceLock();
 
@@ -908,8 +909,8 @@ public class TypeInfoCache implements TypeInfo {
   @Override
   public int getRangeSubtype(int oid) throws SQLException {
     PgType pgType = getPgTypeByOid(oid);
-    // Only base ranges (typtype 'r'); multiranges ('m') resolve their subtype differently
-    // and are deferred to a later phase.
+    // Only base ranges (typtype 'r') carry a scalar subtype here. A multirange ('m') links to a
+    // range, not a scalar; resolve it with getMultirangeRange(int), then this on that range.
     if (pgType.getTyptype() != 'r') {
       return Oid.UNSPECIFIED;
     }
@@ -938,6 +939,49 @@ public class TypeInfoCache implements TypeInfo {
       typesByOid.put(oid, baseType.withRangeSubtype(subtype));
 
       return subtype;
+    }
+  }
+
+  /**
+   * Gets the range type OID of a multirange type, loading {@code pg_range.rngtypid} (joined on
+   * {@code rngmultitypid}) lazily and caching it on the {@link PgType}. Mirrors
+   * {@link #getRangeSubtype(int)} for ranges.
+   *
+   * @param oid the OID of the multirange type
+   * @return the range type OID, or {@link Oid#UNSPECIFIED} if the type is not a multirange
+   * @throws SQLException if a database error occurs
+   */
+  @Override
+  public int getMultirangeRange(int oid) throws SQLException {
+    PgType pgType = getPgTypeByOid(oid);
+    if (pgType.getTyptype() != 'm') {
+      return Oid.UNSPECIFIED;
+    }
+
+    int range = pgType.getMultirangeRange();
+    if (range != Oid.UNSPECIFIED) {
+      return range;
+    }
+
+    // Range type not loaded yet, load it now
+    try (ResourceLock ignore = lock.obtain()) {
+      // Double-check after acquiring the lock - check the connection cache first
+      PgType cachedType = typesByOid.get(oid);
+      if (cachedType != null) {
+        int cachedRange = cachedType.getMultirangeRange();
+        if (cachedRange != Oid.UNSPECIFIED) {
+          return cachedRange;
+        }
+      }
+
+      range = loadMultirangeRange(oid);
+
+      // Cache the range type on the type. Multiranges are never in DEFAULT_TYPES_BY_OID, so
+      // cachedType is the type loaded from the catalog; fall back to pgType for safety.
+      PgType baseType = cachedType != null ? cachedType : pgType;
+      typesByOid.put(oid, baseType.withMultirangeRange(range));
+
+      return range;
     }
   }
 
@@ -1243,6 +1287,37 @@ public class TypeInfoCache implements TypeInfo {
     try (ResultSet rs = castNonNull(stmt.getResultSet())) {
       if (rs.next()) {
         return rs.getInt("rngsubtype");
+      }
+    }
+
+    return Oid.UNSPECIFIED;
+  }
+
+  private PreparedStatement prepareFindMultirangeRange() throws SQLException {
+    PreparedStatement stmt = this.findMultirangeRange;
+    if (stmt == null) {
+      /* language=PostgreSQL */
+      String sql = "SELECT r.rngtypid\n"
+          + "FROM pg_catalog.pg_range r\n"
+          + "WHERE r.rngmultitypid = ?";
+      stmt = conn.prepareStatement(sql);
+      this.findMultirangeRange = stmt;
+    }
+    return stmt;
+  }
+
+  private int loadMultirangeRange(int multirangeOid) throws SQLException {
+    PreparedStatement stmt = prepareFindMultirangeRange();
+    stmt.setInt(1, multirangeOid);
+
+    // Go through BaseStatement to avoid transaction start.
+    if (!((BaseStatement) stmt).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+      return Oid.UNSPECIFIED;
+    }
+
+    try (ResultSet rs = castNonNull(stmt.getResultSet())) {
+      if (rs.next()) {
+        return rs.getInt("rngtypid");
       }
     }
 

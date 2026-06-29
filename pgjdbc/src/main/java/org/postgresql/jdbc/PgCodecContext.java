@@ -501,9 +501,10 @@ public final class PgCodecContext implements CodecContext {
 
   /**
    * Resolves a child type by OID, loading the lazily-cached structure the container codecs read off
-   * the descriptor: composite attributes ({@code pg_attribute}) and the range subtype
-   * ({@code pg_range.rngsubtype}), which {@code pg_type.typelem} does not carry. Other types resolve
-   * to the plain {@link TypeInfo#getPgTypeByOid(int)} lookup.
+   * the descriptor: composite attributes ({@code pg_attribute}), the range subtype
+   * ({@code pg_range.rngsubtype}), and the multirange's range type ({@code pg_range.rngtypid}) —
+   * none of which {@code pg_type.typelem} carries. Other types resolve to the plain
+   * {@link TypeInfo#getPgTypeByOid(int)} lookup.
    */
   @Override
   public TypeDescriptor resolveType(int oid) throws SQLException {
@@ -516,6 +517,9 @@ public final class PgCodecContext implements CodecContext {
         type = ti.getPgTypeByOid(oid);
       } else if (type.getTyptype() == 'r' && type.getRangeSubtype() == Oid.UNSPECIFIED) {
         ti.getRangeSubtype(oid);
+        type = ti.getPgTypeByOid(oid);
+      } else if (type.getTyptype() == 'm' && type.getMultirangeRange() == Oid.UNSPECIFIED) {
+        ti.getMultirangeRange(oid);
         type = ti.getPgTypeByOid(oid);
       }
       return type;

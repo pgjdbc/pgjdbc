@@ -45,6 +45,11 @@ public class PgType implements TypeDescriptor {
   // Ranges carry typelem == 0, so the subtype lives here rather than in typelem.
   private final int rangeSubtype;
 
+  // Multirange's range type OID (pg_range.rngtypid, joined on rngmultitypid); 0 for non-multirange
+  // types or until loaded. A multirange's element is a range, so the link is to the range type
+  // rather than to a scalar subtype.
+  private final int multirangeRange;
+
   /**
    * Constructs a new PgType for non-composite types.
    *
@@ -181,13 +186,13 @@ public class PgType implements TypeDescriptor {
                  int typtypmod, int typelem, int arrayOid, int typbasetype, char delimiter,
                  @Nullable List<PgField> fields, String typsend, String typreceive) {
     this(typeName, fullName, oid, typtype, typcategory, typtypmod, typelem, arrayOid, typbasetype,
-        delimiter, fields, typsend, typreceive, Oid.UNSPECIFIED);
+        delimiter, fields, typsend, typreceive, Oid.UNSPECIFIED, Oid.UNSPECIFIED);
   }
 
   private PgType(ObjectName typeName, String fullName, int oid, char typtype, char typcategory,
                  int typtypmod, int typelem, int arrayOid, int typbasetype, char delimiter,
                  @Nullable List<PgField> fields, String typsend, String typreceive,
-                 int rangeSubtype) {
+                 int rangeSubtype, int multirangeRange) {
     this.typeName = typeName;
     this.fullName = fullName;
     this.oid = oid;
@@ -202,6 +207,7 @@ public class PgType implements TypeDescriptor {
     this.typreceive = typreceive;
     this.fields = fields != null ? Collections.unmodifiableList(fields) : null;
     this.rangeSubtype = rangeSubtype;
+    this.multirangeRange = multirangeRange;
   }
 
   /**
@@ -431,6 +437,23 @@ public class PgType implements TypeDescriptor {
   }
 
   /**
+   * Gets the range type OID ({@code pg_range.rngtypid}, joined on {@code rngmultitypid}) for a
+   * multirange type.
+   *
+   * <p>A multirange's element is a range rather than a scalar, so the companion range type (for
+   * example {@code int4range} for {@code int4multirange}) is carried here. It lives in
+   * {@code pg_catalog.pg_range} and is loaded lazily, so this returns {@link Oid#UNSPECIFIED} for a
+   * non-multirange type or a multirange whose range has not been loaded yet; call
+   * {@link org.postgresql.core.TypeInfo#getMultirangeRange(int)} to force the load.</p>
+   *
+   * @return the range type OID, or {@link Oid#UNSPECIFIED} if not a multirange or not yet loaded
+   */
+  @Override
+  public int getMultirangeRange() {
+    return multirangeRange;
+  }
+
+  /**
    * Gets the delimiter used in array string representations.
    *
    * @return the delimiter character
@@ -519,6 +542,16 @@ public class PgType implements TypeDescriptor {
   }
 
   /**
+   * Returns whether this is a multirange type.
+   *
+   * @return true if this is a multirange type (typtype='m')
+   */
+  @Override
+  public boolean isMultirange() {
+    return typtype == 'm';
+  }
+
+  /**
    * Returns whether this is a domain type.
    *
    * @return true if this is a domain type (typtype='d')
@@ -580,7 +613,7 @@ public class PgType implements TypeDescriptor {
   public PgType withFields(List<PgField> fields) {
     return new PgType(typeName, fullName, oid, typtype, typcategory,
         typtypmod, typelem, arrayOid, typbasetype, delimiter, fields, typsend, typreceive,
-        rangeSubtype);
+        rangeSubtype, multirangeRange);
   }
 
   /**
@@ -593,7 +626,20 @@ public class PgType implements TypeDescriptor {
   public PgType withRangeSubtype(int rangeSubtype) {
     return new PgType(typeName, fullName, oid, typtype, typcategory,
         typtypmod, typelem, arrayOid, typbasetype, delimiter, fields, typsend, typreceive,
-        rangeSubtype);
+        rangeSubtype, multirangeRange);
+  }
+
+  /**
+   * Creates a copy of this PgType carrying the given multirange range type OID.
+   * Used to enrich a multirange type after loading {@code pg_range.rngtypid}.
+   *
+   * @param multirangeRange the range type OID from {@code pg_range}
+   * @return a new PgType with the multirange range type set
+   */
+  public PgType withMultirangeRange(int multirangeRange) {
+    return new PgType(typeName, fullName, oid, typtype, typcategory,
+        typtypmod, typelem, arrayOid, typbasetype, delimiter, fields, typsend, typreceive,
+        rangeSubtype, multirangeRange);
   }
 
   public boolean isCaseSensitive() {

@@ -16,6 +16,7 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGRange;
+import org.postgresql.util.PGmultirange;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -52,13 +53,16 @@ class CodecParityRoundtripTest {
   private static boolean binaryReady;
   private static boolean haveJsonb;
   private static boolean haveRanges;
+  private static boolean haveMultiranges;
   private static long int4rangeOid;
+  private static long int4multirangeOid;
 
   @BeforeAll
   static void setUpClass() throws Exception {
     setup = TestUtil.openDB();
     haveJsonb = TestUtil.haveMinimumServerVersion(setup, ServerVersion.v9_4);
     haveRanges = TestUtil.haveMinimumServerVersion(setup, ServerVersion.v9_2);
+    haveMultiranges = TestUtil.haveMinimumServerVersion(setup, ServerVersion.v14);
 
     TestUtil.createCompositeType(setup, "codec_parity_addr", "street text, city text, zip int");
     TestUtil.createCompositeType(setup, "codec_parity_person",
@@ -94,6 +98,14 @@ class CodecParityRoundtripTest {
       enable.append(',').append(ParityHarness.oids(int4rangeOid, int8rangeOid, numrangeOid,
           tsrangeOid));
     }
+    if (haveMultiranges) {
+      // Multirange OIDs are not Oid constants either; resolve them by name and force binary receive.
+      int4multirangeOid = ParityHarness.oidAndArray(setup, "int4multirange")[0];
+      long int8multirangeOid = ParityHarness.oidAndArray(setup, "int8multirange")[0];
+      long nummultirangeOid = ParityHarness.oidAndArray(setup, "nummultirange")[0];
+      enable.append(',').append(ParityHarness.oids(int4multirangeOid, int8multirangeOid,
+          nummultirangeOid));
+    }
 
     text = ParityHarness.openText();
     binary = ParityHarness.openBinary(enable.toString());
@@ -110,6 +122,10 @@ class CodecParityRoundtripTest {
       if (haveRanges) {
         assertTrue(ParityHarness.binaryActiveFor(binary, (int) int4rangeOid),
             "int4range must be received in binary on the binary connection");
+      }
+      if (haveMultiranges) {
+        assertTrue(ParityHarness.binaryActiveFor(binary, (int) int4multirangeOid),
+            "int4multirange must be received in binary on the binary connection");
       }
     }
   }
@@ -288,6 +304,29 @@ class CodecParityRoundtripTest {
     // tsrange bounds are timestamps, whose getObject mapping depends on the connection's codec
     // context (java.time vs java.sql), so this is parity-only, like the temporal scalars above.
     t.add(parityOnly("tsrange", "SELECT '[2020-01-01 00:00:00,2020-02-01 00:00:00)'::tsrange"));
+
+    return t;
+  }
+
+  @TestFactory
+  List<DynamicTest> multiranges() {
+    List<DynamicTest> t = new ArrayList<>();
+    if (!haveMultiranges) {
+      return t;
+    }
+
+    // MultirangeCodec composes on RangeCodec, so each range's bounds decode into typed values
+    // (Integer/Long/BigDecimal) identically over text and binary, the same as the range cases above.
+    t.add(withExpected("int4multirange/two", "SELECT '{[1,5),[10,20)}'::int4multirange", NO_PARAMS,
+        new PGmultirange<>(new PGRange<>(1, 5, true, false), new PGRange<>(10, 20, true, false))));
+    t.add(withExpected("int4multirange/single", "SELECT '{[1,5)}'::int4multirange", NO_PARAMS,
+        new PGmultirange<>(new PGRange<>(1, 5, true, false))));
+    t.add(withExpected("int4multirange/empty", "SELECT '{}'::int4multirange", NO_PARAMS,
+        new PGmultirange<>()));
+    t.add(withExpected("int8multirange/single", "SELECT '{[1,10)}'::int8multirange", NO_PARAMS,
+        new PGmultirange<>(new PGRange<>(1L, 10L, true, false))));
+    t.add(withExpected("nummultirange/single", "SELECT '{[1.5,2.5)}'::nummultirange", NO_PARAMS,
+        new PGmultirange<>(new PGRange<>(new BigDecimal("1.5"), new BigDecimal("2.5"), true, false))));
 
     return t;
   }
