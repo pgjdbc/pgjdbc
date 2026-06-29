@@ -3785,7 +3785,15 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       } catch (UnknownHostException ex) {
         throw new PSQLException(GT.tr("Invalid Inet data."), PSQLState.INVALID_PARAMETER_VALUE, ex);
       }
-    } else if (PGobject.class.isAssignableFrom(type)) {
+    } else if (PGobject.class.isAssignableFrom(type)
+        && (type == PGobject.class
+            || connection.getTypeInfo().getPGobject(getPGType(columnIndex)) != null)) {
+      // connection.getObject owns the bare PGobject.class request and any type with a
+      // registered PGobject subclass (the geometric types, money, interval, and user types
+      // added through addDataType): it materialises a typed PGobject even for an SQL NULL and
+      // honours the registered subclass. Codec-managed PGobject subclasses such as PGRange and
+      // PGmultirange are not registered there, so they fall through to the codec path below and
+      // decode through decodeBinaryAs/decodeTextAs.
       Object object;
       if (isBinary(columnIndex)) {
         byte[] byteValue = castNonNull(thisRow, "thisRow").get(columnIndex - 1);
