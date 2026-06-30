@@ -1213,10 +1213,13 @@ public class TypeInfoCache implements TypeInfo {
    * Whether the driver can decode this exact type from binary (non-recursive).
    * Asks the resolved codec's read-side capability
    * ({@link org.postgresql.api.codec.BinaryCodec#supportsBinaryRead()}) rather than
-   * testing {@code instanceof} alone. {@code FallbackCodec} reports binary-read, so an
-   * unmapped type still counts and is received as {@code PGUnknownBinary}; a text-only
-   * codec (such as the {@code circle}/{@code line} geometric codec) does not, so the
-   * type stays in text.
+   * testing {@code instanceof} alone. An unmapped type resolves to {@code FallbackCodec},
+   * which only wraps the raw bytes rather than reading the real binary wire, so it reports
+   * no binary-read and the type is requested in text (received as {@code PGobject}); a
+   * text-only codec (such as the {@code circle}/{@code line} geometric codec) is treated the
+   * same way. A value the server nonetheless sends in binary -- e.g. an unmapped type nested
+   * in a binary {@code record} -- still decodes through {@code FallbackCodec.decodeBinary} as
+   * {@code PGUnknownBinary}.
    */
   private boolean hasOwnBinaryCodec(PgType type) {
     return getCodecRegistry().canDecodeBinary(type.getOid(), type);
