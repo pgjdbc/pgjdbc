@@ -165,10 +165,21 @@ public final class OidCodec implements BinaryCodec, TextCodec, ArrayElementCodec
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     long value = decodeAsLong(data, type, ctx);
+    return decodeOidAs(value, targetClass);
+  }
+
+  @Override
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
+      throws SQLException {
+    long value = decodeAsLong(data, type, ctx);
+    return decodeOidAs(value, targetClass);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <T> T decodeOidAs(long value, Class<T> targetClass) throws SQLException {
     if (targetClass == Long.class || targetClass == Object.class) {
       return (T) Long.valueOf(value);
     }
@@ -185,15 +196,6 @@ public final class OidCodec implements BinaryCodec, TextCodec, ArrayElementCodec
       return (T) BigDecimal.valueOf(value);
     }
     throw Codec.cannotDecode("oid", targetClass.getName());
-  }
-
-  @Override
-  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
-    long value = decodeAsLong(data, type, ctx);
-    byte[] bytes = new byte[4];
-    ByteConverter.int4(bytes, 0, (int) value);
-    return decodeBinaryAs(bytes, type, targetClass, ctx);
   }
 
   static long toLong(Object value) throws SQLException {

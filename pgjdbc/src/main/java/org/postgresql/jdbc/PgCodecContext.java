@@ -232,8 +232,8 @@ public final class PgCodecContext implements CodecContext {
     this.javaTypes = null;
     this.typesByOid = typesByOid;
     this.typeMap = Collections.emptyMap();
-    // Derive a wire Encoding from the charset so the encoding readers (hstore, and the int4/int8
-    // text byte fast paths) work offline; getEncoding() would otherwise be null without a connection.
+    // Derive a wire Encoding from the charset so the encoding readers (such as hstore) work offline;
+    // getEncoding() would otherwise be null without a connection.
     this.encoding = Encoding.getJVMEncoding(charset.name());
     this.charset = charset;
     this.timestampUtils = timestampUtils;

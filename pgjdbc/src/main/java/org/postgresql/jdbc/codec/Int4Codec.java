@@ -10,7 +10,7 @@ import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
-import org.postgresql.jdbc.PgCodecContext;
+import org.postgresql.core.Encoding;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.NumberParser;
@@ -142,18 +142,14 @@ public final class Int4Codec implements StreamingBinaryCodec, StreamingTextCodec
 
   @Override
   public int decodeTextBytesAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    // Fast path for ASCII-encoded integers.
-    // Wire-encoding access (not child-resolve): reads the connection Encoding through the
-    // implementation. Exposing the wire encoding on the CodecContext interface is a separate
-    // slice-2 follow-up; slice 2c moved only child-type resolution onto the interface.
-    if (((PgCodecContext) ctx).getEncoding().hasAsciiNumbers()) {
+    if (Encoding.hasAsciiNumbers(ctx.getCharset())) {
       try {
         return (int) NumberParser.getFastLong(data, Integer.MIN_VALUE, Integer.MAX_VALUE);
       } catch (NumberFormatException ignored) {
         // Fall through to string parsing
       }
     }
-    return decodeAsInt(new String(data, java.nio.charset.StandardCharsets.UTF_8), type, ctx);
+    return decodeAsInt(new String(data, ctx.getCharset()), type, ctx);
   }
 
   @Override
@@ -187,59 +183,27 @@ public final class Int4Codec implements StreamingBinaryCodec, StreamingTextCodec
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     int value = decodeAsInt(data, type, ctx);
-    if (targetClass == Integer.class || targetClass == Object.class) {
-      return (T) Integer.valueOf(value);
-    }
-    if (targetClass == Long.class) {
-      return (T) Long.valueOf(value);
-    }
-    if (targetClass == Short.class) {
-      if (value < Short.MIN_VALUE || value > Short.MAX_VALUE) {
-        throw new PSQLException(
-            GT.tr("Value {0} is out of range for short", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-      }
-      return (T) Short.valueOf((short) value);
-    }
-    if (targetClass == Byte.class) {
-      if (value < Byte.MIN_VALUE || value > Byte.MAX_VALUE) {
-        throw new PSQLException(
-            GT.tr("Value {0} is out of range for byte", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-      }
-      return (T) Byte.valueOf((byte) value);
-    }
-    if (targetClass == Double.class) {
-      return (T) Double.valueOf(value);
-    }
-    if (targetClass == Float.class) {
-      return (T) Float.valueOf(value);
-    }
-    if (targetClass == BigDecimal.class) {
-      return (T) BigDecimal.valueOf(value);
-    }
-    if (targetClass == String.class) {
-      return (T) String.valueOf(value);
-    }
-    if (targetClass == Boolean.class) {
-      return (T) Boolean.valueOf(value != 0);
-    }
-    throw Codec.cannotDecode("int4", targetClass.getName());
+    return decodeIntAs(value, targetClass);
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     int value = decodeAsInt(data, type, ctx);
-    // Delegate to binary version since we have the int value
-    byte[] bytes = new byte[4];
-    ByteConverter.int4(bytes, 0, value);
-    return decodeBinaryAs(bytes, type, targetClass, ctx);
+    return decodeIntAs(value, targetClass);
+  }
+
+  // int4's natural getObject type is Integer; resolve it directly so the common path does not widen,
+  // and share the rarer coercions through NumberDecoders.
+  @SuppressWarnings("unchecked")
+  private static <T> T decodeIntAs(int value, Class<T> targetClass) throws SQLException {
+    if (targetClass == Integer.class || targetClass == Object.class) {
+      return (T) Integer.valueOf(value);
+    }
+    return NumberDecoders.decodeIntegralAs(value, targetClass, "int4");
   }
 
   static int toInt(Object value) throws SQLException {

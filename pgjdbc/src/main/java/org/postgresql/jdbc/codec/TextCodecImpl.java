@@ -51,12 +51,12 @@ public final class TextCodecImpl implements StreamingBinaryCodec, StreamingTextC
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsString(data, type, ctx);
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
+  public Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     return new String(data, offset, length, ctx.getCharset());
   }
@@ -69,7 +69,7 @@ public final class TextCodecImpl implements StreamingBinaryCodec, StreamingTextC
   }
 
   @Override
-  public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return data;
   }
 
@@ -93,7 +93,7 @@ public final class TextCodecImpl implements StreamingBinaryCodec, StreamingTextC
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Charset encoding = ctx.getCharset();
     return new String(data, encoding);
   }
@@ -222,6 +222,7 @@ public final class TextCodecImpl implements StreamingBinaryCodec, StreamingTextC
   public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     Charset encoding = ctx.getCharset();
+    // TODO: optimize
     return decodeBinaryAs(data.getBytes(encoding), type, targetClass, ctx);
   }
 

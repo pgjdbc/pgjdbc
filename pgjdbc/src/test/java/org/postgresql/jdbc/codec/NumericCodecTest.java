@@ -6,10 +6,13 @@
 package org.postgresql.jdbc.codec;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
+import org.postgresql.util.ByteConverter;
+import org.postgresql.util.PSQLException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -118,6 +121,54 @@ class NumericCodecTest {
     String encoded = codec.encodeText(original, numericType, null);
     Object decoded = codec.decodeText(encoded, numericType, null);
     assertEquals(original, decoded);
+  }
+
+  // ==================== decodeTextAs / decodeBinaryAs parity ====================
+
+  @Test
+  void decodeTextAs_matchesBinaryAs() throws SQLException {
+    // decodeTextAs decodes straight from the text form; it must still agree with the binary path,
+    // which the earlier text->bytes->decodeBinaryAs round-trip guaranteed by construction.
+    BigDecimal value = new BigDecimal("12.5");
+    byte[] binary = ByteConverter.numeric(value);
+    String text = value.toPlainString();
+    Class<?>[] targets = {
+        BigDecimal.class, Object.class, Double.class, Float.class, Long.class,
+        Integer.class, Short.class, Byte.class, String.class, Boolean.class,
+    };
+    for (Class<?> target : targets) {
+      assertEquals(
+          codec.decodeBinaryAs(binary, numericType, target, null),
+          codec.decodeTextAs(text, numericType, target, null),
+          "text/binary mismatch for " + target.getSimpleName());
+    }
+  }
+
+  @Test
+  void decodeTextAs_specialValues_double() throws SQLException {
+    // NaN / ±Infinity reach Double via the same path the binary decode uses, rather than being
+    // rejected by an up-front BigDecimal conversion.
+    assertEquals(Double.valueOf(Double.NaN),
+        codec.decodeTextAs("NaN", numericType, Double.class, null));
+    assertEquals(Double.valueOf(Double.POSITIVE_INFINITY),
+        codec.decodeTextAs("Infinity", numericType, Double.class, null));
+    assertEquals(Double.valueOf(Double.NEGATIVE_INFINITY),
+        codec.decodeTextAs("-Infinity", numericType, Double.class, null));
+  }
+
+  @Test
+  void decodeTextAs_specialValues_float() throws SQLException {
+    assertEquals(Float.valueOf(Float.NaN),
+        codec.decodeTextAs("NaN", numericType, Float.class, null));
+    assertEquals(Float.valueOf(Float.POSITIVE_INFINITY),
+        codec.decodeTextAs("Infinity", numericType, Float.class, null));
+  }
+
+  @Test
+  void decodeTextAs_nanToBigDecimal_throws() {
+    // BigDecimal cannot hold NaN, so this stays an error on the text path too.
+    assertThrows(PSQLException.class,
+        () -> codec.decodeTextAs("NaN", numericType, BigDecimal.class, null));
   }
 
   @Test

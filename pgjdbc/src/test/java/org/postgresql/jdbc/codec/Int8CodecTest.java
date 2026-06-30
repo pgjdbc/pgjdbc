@@ -9,9 +9,11 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
+import org.postgresql.jdbc.TestCodecContext;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.PSQLException;
 
@@ -19,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 
 /**
@@ -139,6 +142,46 @@ class Int8CodecTest {
     // One less than MIN_VALUE
     String overflow = "-9223372036854775809";
     assertThrows(PSQLException.class, () -> codec.decodeText(overflow, int8Type, null));
+  }
+
+  // ==================== Text-as-bytes Decoding ====================
+
+  // decodeTextBytesAsLong reads the ASCII-number compatibility off the context's charset rather than
+  // a connection Encoding, so it works through any CodecContext. TestCodecContext has no backing
+  // Encoding, which is exactly the case the earlier PgCodecContext downcast could not serve.
+
+  @Test
+  void decodeTextBytesAsLong_fastPath() throws SQLException {
+    CodecContext ctx = TestCodecContext.create();
+    assertEquals(42L, codec.decodeTextBytesAsLong("42".getBytes(StandardCharsets.US_ASCII), int8Type, ctx));
+    assertEquals(-42L, codec.decodeTextBytesAsLong("-42".getBytes(StandardCharsets.US_ASCII), int8Type, ctx));
+    assertEquals(0L, codec.decodeTextBytesAsLong("0".getBytes(StandardCharsets.US_ASCII), int8Type, ctx));
+    assertEquals(Long.MAX_VALUE,
+        codec.decodeTextBytesAsLong(String.valueOf(Long.MAX_VALUE).getBytes(StandardCharsets.US_ASCII), int8Type, ctx));
+    assertEquals(Long.MIN_VALUE,
+        codec.decodeTextBytesAsLong(String.valueOf(Long.MIN_VALUE).getBytes(StandardCharsets.US_ASCII), int8Type, ctx));
+  }
+
+  @Test
+  void decodeTextBytesAsLong_fallbackForFastPathReject() throws SQLException {
+    // Surrounding whitespace makes the byte fast path reject, exercising the String fallback.
+    CodecContext ctx = TestCodecContext.create();
+    assertEquals(42L, codec.decodeTextBytesAsLong(" 42 ".getBytes(StandardCharsets.US_ASCII), int8Type, ctx));
+  }
+
+  @Test
+  void decodeTextBytesAsInt_fastPath() throws SQLException {
+    CodecContext ctx = TestCodecContext.create();
+    assertEquals(42, codec.decodeTextBytesAsInt("42".getBytes(StandardCharsets.US_ASCII), int8Type, ctx));
+    assertEquals(-42, codec.decodeTextBytesAsInt("-42".getBytes(StandardCharsets.US_ASCII), int8Type, ctx));
+  }
+
+  @Test
+  void decodeTextBytesAsInt_overflow() {
+    // A value beyond int range must still be rejected when decoded through the byte fast path.
+    CodecContext ctx = TestCodecContext.create();
+    assertThrows(PSQLException.class,
+        () -> codec.decodeTextBytesAsInt("2147483648".getBytes(StandardCharsets.US_ASCII), int8Type, ctx));
   }
 
   // ==================== Binary Encoding ====================

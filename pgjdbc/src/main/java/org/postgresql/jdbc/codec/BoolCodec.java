@@ -180,10 +180,21 @@ public final class BoolCodec implements BinaryCodec, TextCodec, ArrayElementCode
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     boolean value = decodeAsBoolean(data, type, ctx);
+    return decodeBoolAs(value, targetClass);
+  }
+
+  @Override
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
+      throws SQLException {
+    boolean value = decodeAsBoolean(data, type, ctx);
+    return decodeBoolAs(value, targetClass);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <T> T decodeBoolAs(boolean value, Class<T> targetClass) throws SQLException {
     if (targetClass == Boolean.class || targetClass == Object.class) {
       return (T) Boolean.valueOf(value);
     }
@@ -212,14 +223,6 @@ public final class BoolCodec implements BinaryCodec, TextCodec, ArrayElementCode
       return (T) String.valueOf(value);
     }
     throw Codec.cannotDecode("bool", targetClass.getName());
-  }
-
-  @Override
-  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
-    boolean value = decodeAsBoolean(data, type, ctx);
-    byte[] bytes = new byte[]{(byte) (value ? 1 : 0)};
-    return decodeBinaryAs(bytes, type, targetClass, ctx);
   }
 
   static boolean toBoolean(Object value) throws SQLException {

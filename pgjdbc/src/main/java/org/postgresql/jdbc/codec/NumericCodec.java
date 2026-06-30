@@ -205,24 +205,28 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
   @Override
   public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     BigDecimal bd = decodeAsBigDecimal(data, type, ctx);
-    if (bd == null) {
-      return 0;
-    }
-    double d = bd.doubleValue();
-    if (d < Integer.MIN_VALUE || d > Integer.MAX_VALUE) {
-      throw new PSQLException(
-          GT.tr("Value {0} is out of range for int", bd),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-    }
-    return bd.intValue();
+    return bd == null ? 0 : bigDecimalToInt(bd);
   }
 
   @Override
   public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     BigDecimal bd = decodeAsBigDecimal(data, type, ctx);
-    if (bd == null) {
-      return 0;
-    }
+    return bd == null ? 0 : bigDecimalToInt(bd);
+  }
+
+  @Override
+  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    BigDecimal bd = decodeAsBigDecimal(data, type, ctx);
+    return bd == null ? 0 : bigDecimalToLong(bd);
+  }
+
+  @Override
+  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    BigDecimal bd = decodeAsBigDecimal(data, type, ctx);
+    return bd == null ? 0 : bigDecimalToLong(bd);
+  }
+
+  private static int bigDecimalToInt(BigDecimal bd) throws SQLException {
     double d = bd.doubleValue();
     if (d < Integer.MIN_VALUE || d > Integer.MAX_VALUE) {
       throw new PSQLException(
@@ -232,30 +236,7 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
     return bd.intValue();
   }
 
-  @Override
-  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    BigDecimal bd = decodeAsBigDecimal(data, type, ctx);
-    if (bd == null) {
-      return 0;
-    }
-    // Truncate the fractional part (matches the legacy getLong contract:
-    // 9223372036854775807.9 → Long.MAX_VALUE). Then check integer-part bounds
-    // exactly via BigDecimal compareTo.
-    BigDecimal whole = bd.setScale(0, RoundingMode.DOWN);
-    if (whole.compareTo(LONG_MAX_BD) > 0 || whole.compareTo(LONG_MIN_BD) < 0) {
-      throw new PSQLException(
-          GT.tr("Bad value for type {0} : {1}", "long", bd.toPlainString()),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-    }
-    return whole.longValue();
-  }
-
-  @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    BigDecimal bd = decodeAsBigDecimal(data, type, ctx);
-    if (bd == null) {
-      return 0;
-    }
+  private static long bigDecimalToLong(BigDecimal bd) throws SQLException {
     // Truncate the fractional part (matches the legacy getLong contract:
     // 9223372036854775807.9 → Long.MAX_VALUE). Then check integer-part bounds
     // exactly via BigDecimal compareTo.
@@ -272,26 +253,55 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
   @SuppressWarnings("unchecked")
   public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
-    if (targetClass == BigDecimal.class || targetClass == Object.class) {
-      return (T) decodeAsBigDecimal(data, type, ctx);
-    }
+    // Double and Float must preserve NaN / ±Infinity, which BigDecimal cannot represent, so they
+    // read the value as a double instead of going through decodeBigDecimalAs.
     if (targetClass == Double.class) {
       return (T) Double.valueOf(decodeAsDouble(data, type, ctx));
     }
     if (targetClass == Float.class) {
       return (T) Float.valueOf(decodeAsFloat(data, type, ctx));
     }
+    return decodeBigDecimalAs(decodeAsBigDecimal(data, type, ctx), targetClass);
+  }
+
+  @Override
+  @SuppressWarnings("unchecked")
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
+      throws SQLException {
+    // Decode straight from the text form. This previously round-tripped through
+    // ByteConverter.numeric and decodeBinaryAs; the binary re-encode then re-decode was pure
+    // overhead, and forcing a BigDecimal up front also rejected NaN / ±Infinity for Double/Float,
+    // which the binary path accepts.
+    if (targetClass == Double.class) {
+      return (T) Double.valueOf(decodeAsDouble(data, type, ctx));
+    }
+    if (targetClass == Float.class) {
+      return (T) Float.valueOf(decodeAsFloat(data, type, ctx));
+    }
+    return decodeBigDecimalAs(decodeAsBigDecimal(data, type, ctx), targetClass);
+  }
+
+  /**
+   * Dispatches a decoded numeric value to {@code targetClass}. Shared by the text and binary
+   * {@code decodeAs} paths once each has produced a {@link BigDecimal}; only Double and Float, which
+   * must keep NaN / ±Infinity, are handled by the callers instead.
+   */
+  @SuppressWarnings("unchecked")
+  private static <T> @Nullable T decodeBigDecimalAs(@Nullable BigDecimal bd, Class<T> targetClass)
+      throws SQLException {
+    if (targetClass == BigDecimal.class || targetClass == Object.class) {
+      return (T) bd;
+    }
+    if (bd == null) {
+      return null;
+    }
     if (targetClass == Long.class) {
-      return (T) Long.valueOf(decodeAsLong(data, type, ctx));
+      return (T) Long.valueOf(bigDecimalToLong(bd));
     }
     if (targetClass == Integer.class) {
-      return (T) Integer.valueOf(decodeAsInt(data, type, ctx));
+      return (T) Integer.valueOf(bigDecimalToInt(bd));
     }
     if (targetClass == Short.class) {
-      BigDecimal bd = decodeAsBigDecimal(data, type, ctx);
-      if (bd == null) {
-        return null;
-      }
       double d = bd.doubleValue();
       if (d < Short.MIN_VALUE || d > Short.MAX_VALUE) {
         throw new PSQLException(
@@ -301,10 +311,6 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
       return (T) Short.valueOf(bd.shortValue());
     }
     if (targetClass == Byte.class) {
-      BigDecimal bd = decodeAsBigDecimal(data, type, ctx);
-      if (bd == null) {
-        return null;
-      }
       double d = bd.doubleValue();
       if (d < Byte.MIN_VALUE || d > Byte.MAX_VALUE) {
         throw new PSQLException(
@@ -314,26 +320,12 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
       return (T) Byte.valueOf(bd.byteValue());
     }
     if (targetClass == String.class) {
-      BigDecimal bd = decodeAsBigDecimal(data, type, ctx);
-      return bd == null ? null : (T) bd.toPlainString();
+      return (T) bd.toPlainString();
     }
     if (targetClass == Boolean.class) {
-      BigDecimal bd = decodeAsBigDecimal(data, type, ctx);
-      return bd == null ? null : (T) Boolean.valueOf(bd.compareTo(BigDecimal.ZERO) != 0);
+      return (T) Boolean.valueOf(bd.compareTo(BigDecimal.ZERO) != 0);
     }
     throw Codec.cannotDecode("numeric", targetClass.getName());
-  }
-
-  @Override
-  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
-    // Convert to binary and delegate
-    BigDecimal bd = decodeAsBigDecimal(data, type, ctx);
-    if (bd == null) {
-      return null;
-    }
-    byte[] bytes = ByteConverter.numeric(bd);
-    return decodeBinaryAs(bytes, type, targetClass, ctx);
   }
 
   private static BigDecimal toBigDecimal(Object value) throws SQLException {
