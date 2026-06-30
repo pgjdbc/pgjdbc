@@ -1003,7 +1003,8 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
-   * @param oidList list of OIDs that are allowed to use binary transfer
+   * @param oidList list of OIDs that are allowed to use binary transfer, or {@code *} to force
+   *     binary receive for all result columns (for testing)
    * @see PGProperty#BINARY_TRANSFER_ENABLE
    */
   public void setBinaryTransferEnable(@Nullable String oidList) {
@@ -1019,7 +1020,8 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
-   * @param oidList list of OIDs that are not allowed to use binary transfer
+   * @param oidList list of OIDs that are not allowed to use binary transfer, or {@code *} to force
+   *     text for all types
    * @see PGProperty#BINARY_TRANSFER_DISABLE
    */
   public void setBinaryTransferDisable(@Nullable String oidList) {

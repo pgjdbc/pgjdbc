@@ -201,6 +201,11 @@ public class PgConnection implements BaseConnection {
    */
   private final Set<? extends Integer> binaryDisabledOids;
 
+  /**
+   * {@code binaryTransferDisable=*}: binary transfer is forced off for every type.
+   */
+  private final boolean disableBinaryAll;
+
   private int rsHoldability = ResultSet.CLOSE_CURSORS_AT_COMMIT;
   private int savepointId;
   // Connection's autocommit state.
@@ -333,6 +338,12 @@ public class PgConnection implements BaseConnection {
 
       boolean binaryTransfer = PGProperty.BINARY_TRANSFER.getBoolean(info);
 
+      // binaryTransferDisable=* forces text for every type; binaryTransferEnable=* forces binary
+      // receive for every column (bypassing the capability check). For testing; disable=* wins.
+      this.disableBinaryAll = containsWildcard(PGProperty.BINARY_TRANSFER_DISABLE.getOrDefault(info));
+      boolean forceBinaryReceiveAll =
+          !disableBinaryAll && containsWildcard(PGProperty.BINARY_TRANSFER_ENABLE.getOrDefault(info));
+
       // get oids that support binary transfer
       Set<Integer> binaryOids = getBinaryEnabledOids(info);
       // get oids that should be disabled from transfer
@@ -350,7 +361,9 @@ public class PgConnection implements BaseConnection {
        * whereas the binary transfer only supports date accuracy.
        */
       useBinarySendForOids.remove(Oid.DATE);
-      queryExecutor.setBinarySendOids(useBinarySendForOids);
+      // binaryTransferDisable=* also forces text for parameter send.
+      queryExecutor.setBinarySendOids(
+          disableBinaryAll ? Collections.<Integer>emptySet() : useBinarySendForOids);
 
       // RECEIVE is decided per column by the type's catalog capability
       // (TypeInfo.shouldReceiveBinary), not the static allow-list. Only explicit
@@ -360,6 +373,10 @@ public class PgConnection implements BaseConnection {
       Set<Integer> explicitReceiveOids = getExplicitBinaryOids(info);
       explicitReceiveOids.removeAll(binaryDisabledOids);
       queryExecutor.setBinaryReceiveOids(explicitReceiveOids);
+      queryExecutor.setForceBinaryReceiveAll(forceBinaryReceiveAll);
+      queryExecutor.setDisableBinaryAll(disableBinaryAll);
+      // A per-type binaryTransferDisable overrides binaryTransferEnable=*.
+      queryExecutor.setBinaryReceiveDisabledOids(new HashSet<Integer>(binaryDisabledOids));
 
       if (LOGGER.isLoggable(Level.FINEST)) {
         LOGGER.log(Level.FINEST, "    types using binary send = {0}", oidsToString(useBinarySendForOids));
@@ -410,7 +427,8 @@ public class PgConnection implements BaseConnection {
       // Enable the catalog capability fallback for result columns only when
       // binaryTransfer is on. Without it the executor still honours the explicit
       // binaryTransferEnable oids set above, matching binaryTransfer=false.
-      if (binaryTransfer) {
+      // binaryTransferDisable=* keeps it off so nothing can re-arm binary receive.
+      if (binaryTransfer && !disableBinaryAll) {
         queryExecutor.setTypeInfo(typeCache);
       }
 
@@ -608,9 +626,34 @@ public class PgConnection implements BaseConnection {
     StringTokenizer tokenizer = new StringTokenizer(oidList, ",");
     while (tokenizer.hasMoreTokens()) {
       String oid = tokenizer.nextToken();
+      // "*" is the wildcard handled via containsWildcard(); skip it so it neither fails Oid.valueOf
+      // nor hides any real oids listed alongside it.
+      if ("*".equals(oid)) {
+        continue;
+      }
       oids.add(Oid.valueOf(oid));
     }
     return oids;
+  }
+
+  /**
+   * Returns whether the comma-separated {@code binaryTransferEnable} / {@code binaryTransferDisable}
+   * list contains the {@code *} wildcard token.
+   *
+   * @param oidList the raw property value (may be {@code null})
+   * @return true if a {@code *} token is present
+   */
+  private static boolean containsWildcard(@Nullable String oidList) {
+    if (oidList == null || oidList.isEmpty()) {
+      return false;
+    }
+    StringTokenizer tokenizer = new StringTokenizer(oidList, ",");
+    while (tokenizer.hasMoreTokens()) {
+      if ("*".equals(tokenizer.nextToken())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static String oidsToString(Set<Integer> oids) {
@@ -959,7 +1002,7 @@ public class PgConnection implements BaseConnection {
         oid = 0;
       }
       // check if oid is there and if it is not disabled for binary transfer
-      if (oid > 0 && !binaryDisabledOids.contains(oid)) {
+      if (oid > 0 && !disableBinaryAll && !binaryDisabledOids.contains(oid)) {
         // allow using binary transfer for receiving and sending of this type
         queryExecutor.addBinaryReceiveOid(oid);
         queryExecutor.addBinarySendOid(oid);
