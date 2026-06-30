@@ -2,14 +2,13 @@
 Notable changes since version 42.0.0, read the complete [History of Changes](https://jdbc.postgresql.org/documentation/changelog.html).
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
-## [42.7.12] (2026-xx-xx)
+## [42.7.13] (2026-xx-xx)
 
 ### Security
 ### Added
 * feat: `reWriteBatchedInserts` now merges up to 32768 rows into one multi-values `INSERT` (bounded by the 65535 bind-parameter limit on the extended protocol) instead of capping at 128, which speeds up batches of few-column rows. The new `reWriteBatchedInsertsSize` connection property lowers that cap when set; the default of `0` uses that maximum.
 * feat: invalidate the prepared-statement cache after CREATE/DROP/ALTER so callers no longer trip on "cached plan must not change result type" without opting into `autosave=ALWAYS`. Controlled by the new `flushCacheOnDdl` connection property (default `true`); set to `false` for the prior behaviour.
 * feat: add `connectExecutor` connection property to customize the `Executor` used to run the worker task that performs the connection attempt when `loginTimeout` is in effect. The value is the fully qualified name of a class implementing `java.util.concurrent.Executor`. With a null value, the default, the driver retains the prior behavior of running the connection attempt on a daemon thread named `"PostgreSQL JDBC driver connection thread"`. The executor must run the task on a thread other than the caller's. Running the attempt on a named thread lets applications that monitor driver-created threads identify it.
-* feat: add `connectThreadFactory` connection property to customize the `ThreadFactory` used to spawn the worker thread that runs the connection attempt when `loginTimeout` is in effect. The value is the fully qualified name of a class implementing `java.util.concurrent.ThreadFactory`. With a null value, the default, the driver retains the prior behavior of using a daemon thread named `"PostgreSQL JDBC driver connection thread"`. Useful for testing timeout behaviour or for applications that want detailed control of all driver-created threads.
 * feat: add `classLoaderStrategy` connection property to control which classloaders the driver searches when loading a class named by a connection property, for example `socketFactory`. The default `driver-first` now falls back to the thread context classloader when the driver's classloader cannot resolve the class, which fixes class loading in non-flat class paths such as Quarkus and OSGi. Set `driver` to keep the previous driver-classloader-only behaviour, or `context-first` to prefer the thread context classloader [Issue #2112](https://github.com/pgjdbc/pgjdbc/issues/2112)
 
 ### Changed
@@ -29,6 +28,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * fix: `PGXAConnection` no longer saves and restores the underlying connection's JDBC `autoCommit` flag. All XA-protocol SQL (`BEGIN`, `PREPARE TRANSACTION`, `COMMIT`, `ROLLBACK`, `COMMIT PREPARED`, `ROLLBACK PREPARED`, the `recover()` SELECT) is sent through `QUERY_SUPPRESS_BEGIN`, so the caller's `autoCommit` value is invariant across every `XAResource` call. Fixes the "2nd phase commit must be issued using an idle connection" failure during recovery on managed datasources that pool connections with `autoCommit=false` (TomEE, WildFly, WebSphere Liberty).
 * fix: `PGXAConnection.prepare()` now mutates XA state only after `PREPARE TRANSACTION` succeeds. A failed `PREPARE` previously left the driver thinking the branch was already prepared, so the follow-up `rollback(xid)` tried `ROLLBACK PREPARED` against a non-existent gid and returned `XAER_RMERR`. Transaction managers (Narayana) escalated this to `HeuristicMixedException`. With the fix, `rollback(xid)` takes the active-branch path and issues a plain `ROLLBACK`, which the server accepts cleanly. Fixes [Issue #3153](https://github.com/pgjdbc/pgjdbc/issues/3153), [Issue #3123](https://github.com/pgjdbc/pgjdbc/issues/3123).
 * fix: an updatable result set over an unqualified table name is now classified using only the table visible through `search_path`. When two schemas held a table with the same name and the same primary or unique index name but a different set of key columns, the driver took the union of both schemas' columns, so the result set could be wrongly rejected as not updatable [PR #4214](https://github.com/pgjdbc/pgjdbc/pull/4214). Supersedes [PR #3400](https://github.com/pgjdbc/pgjdbc/pull/3400).
+* fix: `LargeObject.close()` now flushes a buffered output stream before marking the object closed, so closing a large object without an explicit `flush()` no longer drops buffered writes. The flush runs while the object is still open (it calls back into `LargeObject.write()`), and `lo_close` always runs afterward; a failure from `lo_close` no longer masks an earlier flush error, and the transaction is not committed when the flush failed [Issue #4247](https://github.com/pgjdbc/pgjdbc/issues/4247) [PR #4248](https://github.com/pgjdbc/pgjdbc/pull/4248).
+
+## [42.7.12] (2026-06-29)
+
+### Security
+* fix: Enforce SCRAM channel-binding policy and prevent silent downgrade.
+Under `channelBinding=require`, the driver silently downgraded from `SCRAM-SHA-256-PLUS` (with channel binding) to plain `SCRAM-SHA-256` (without it) when the server presented a certificate whose signature algorithm has no `tls-server-end-point` channel-binding hash (e.g. Ed25519, Ed448, or post-quantum algorithms). An attacker who can intercept the TLS connection could exploit this to strip channel-binding protection.
+The fix enforces channel binding in the driver's own code: it now fails the connection when no binding data can be extracted, and verifies the negotiated mechanism uses channel binding (`-PLUS`) when `require` is set.
+Only connections that set `channelBinding=require` are affected. The default `prefer` policy and releases before 42.7.4 (which introduced channel-binding support) are unaffected.
+See the [Security Advisory](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-j92g-9f8w-j867) for more detail.
+The following [CVE-2026-54291](https://nvd.nist.gov/vuln/detail/CVE-2026-54291) has been issued.
 
 ## [42.7.11] (2026-04-28)
 
