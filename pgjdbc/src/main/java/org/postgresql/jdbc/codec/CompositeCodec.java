@@ -772,6 +772,19 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       org.postgresql.api.codec.PgField field = fields.get(i);
       int fieldOid = field.getTypeOid();
       TypeDescriptor fieldType = ctx.resolveType(fieldOid);
+      // A nested record field carries the anonymous-record pseudo-type OID (2249) on the wire, which
+      // resolves to a fieldless descriptor. Re-encoding the decoded struct against it would fail the
+      // attribute-count check (0 declared fields against the struct's real arity), and
+      // PgStruct.getValue() swallows that error into a null literal. The decoded PgStruct already
+      // carries the fields synthesized from the wire and rebuilds itself recursively, so emit its own
+      // record_out literal, quoted per the composite text format.
+      if (fieldType.getOid() == Oid.RECORD && attr instanceof PgStruct) {
+        String nested = ((PgStruct) attr).getValue();
+        if (nested != null) {
+          appendQuotedField(out, nested);
+          continue;
+        }
+      }
       TextCodec codec = ctx.resolveTextCodec(fieldOid);
       if (codec == null) {
         throw new PSQLException(

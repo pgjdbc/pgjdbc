@@ -138,6 +138,40 @@ public class NestedRecordBinaryTransferTest extends BaseTest4 {
   }
 
   /**
+   * A binary anonymous record whose field is itself a record must rebuild its
+   * {@code record_out} text literal instead of collapsing to {@code null}.
+   *
+   * <p>Reconstruction re-resolves each field's type by the OID carried on the
+   * wire; a nested record field reports OID 2249, which resolves to the
+   * fieldless {@code record} pseudo-type. The rebuild must therefore fall back
+   * to the nested {@link Struct}'s own wire-synthesized fields rather than fail
+   * the attribute-count check against the fieldless type — a failure
+   * {@link org.postgresql.jdbc.PgStruct#getValue()} would otherwise swallow
+   * into a {@code null} literal. This is the {@code getString}/{@code getValue}
+   * path that {@link #nestedRowSucceedsInBinary()} (which walks
+   * {@code getAttributes()}) never exercises.</p>
+   */
+  @Test
+  public void nestedRecordRebuildsTextLiteral() throws SQLException {
+    try (PreparedStatement ps = con.prepareStatement("SELECT row(1, row(2, 3))");
+         ResultSet rs = ps.executeQuery()) {
+      assertTrue(rs.next(), "row should be returned");
+      // The attributes themselves decode correctly; only the literal rebuild was broken.
+      Struct outer = assertInstanceOf(Struct.class, rs.getObject(1), "outer record");
+      assertInstanceOf(Struct.class, outer.getAttributes()[1], "nested record attribute");
+      // record_out quotes the nested record because it contains commas and parentheses.
+      assertEquals("(1,\"(2,3)\")", rs.getString(1), "rebuilt nested record literal");
+    }
+    // A deeper nesting exercises record_out's quote doubling at every level: the rebuild recurses
+    // through each PgStruct's own fields, so the escaping must compound exactly as the server's does.
+    try (PreparedStatement ps = con.prepareStatement("SELECT row(row(row(1)))");
+         ResultSet rs = ps.executeQuery()) {
+      assertTrue(rs.next(), "row should be returned");
+      assertEquals("(\"(\"\"(1)\"\")\")", rs.getString(1), "rebuilt deeply nested record literal");
+    }
+  }
+
+  /**
    * Sanity check: without binary opt-in for the record OID, the same query
    * goes through {@code record_out} on the server and overflows the 1 GiB
    * stringinfo buffer. This proves {@link #nestedRowSucceedsInBinary()}
