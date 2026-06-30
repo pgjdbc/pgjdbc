@@ -38,6 +38,7 @@ import org.postgresql.jdbc.codec.NumericCodec;
 import org.postgresql.jdbc.codec.OidCodec;
 import org.postgresql.jdbc.codec.RangeCodec;
 import org.postgresql.jdbc.codec.TextCodecImpl;
+import org.postgresql.jdbc.codec.TextLikeCodec;
 import org.postgresql.jdbc.codec.TimeCodec;
 import org.postgresql.jdbc.codec.TimestampCodec;
 import org.postgresql.jdbc.codec.TimestamptzCodec;
@@ -633,9 +634,18 @@ public class CodecRegistry {
         oidCache.put(oid, resolved);
         return resolved;
       }
+
+      // 8. Text-like send: a codec-less type whose server typsend emits raw charset text decodes as
+      // text into a PGobject, so even a field nested in a binary record reads as a readable PGobject
+      // rather than PGUnknownBinary.
+      Codec textLike = resolveByTextLikeSend(pgType);
+      if (textLike != null) {
+        oidCache.put(oid, textLike);
+        return textLike;
+      }
     }
 
-    // 8. Fallback for unknown types.
+    // 9. Fallback for unknown types.
     return FallbackCodec.INSTANCE;
   }
 
@@ -740,6 +750,26 @@ public class CodecRegistry {
       return MultirangeCodec.INSTANCE;
     }
     return null;
+  }
+
+  /**
+   * Resolves a codec-less type whose server {@code typsend} emits raw charset text
+   * ({@code textsend}/{@code varcharsend}/{@code bpcharsend}/{@code namesend}) to
+   * {@link TextLikeCodec}. The binary wire of such a type is the charset text, so it decodes the
+   * same in binary and text into a {@code PGobject} — unlike {@link FallbackCodec}, which would
+   * surface a binary value (e.g. a field in a binary {@code record}) as {@code PGUnknownBinary}.
+   *
+   * <p>The {@code typsend} identity lives on {@link PgType}, not the {@link TypeDescriptor} SPI, so
+   * this only applies when the descriptor is a {@code PgType}; an offline descriptor of another
+   * implementation falls through to {@link FallbackCodec}.</p>
+   *
+   * @param pgType the type information
+   * @return {@link TextLikeCodec#INSTANCE}, or null when the type is not a text-send {@code PgType}
+   */
+  private static @Nullable Codec resolveByTextLikeSend(TypeDescriptor pgType) {
+    return pgType instanceof PgType && ((PgType) pgType).hasTextLikeSend()
+        ? TextLikeCodec.INSTANCE
+        : null;
   }
 
   /**
