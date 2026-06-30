@@ -177,23 +177,29 @@ public final class Float8Codec implements BinaryCodec, TextCodec, ArrayElementCo
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     double value = decodeAsDouble(data, type, ctx);
+    return decodeDoubleAs(value, targetClass);
+  }
+
+  @Override
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
+      throws SQLException {
+    double value = decodeAsDouble(data, type, ctx);
+    return decodeDoubleAs(value, targetClass);
+  }
+
+  // float8's natural getObject type is Double (and the value is already a double); resolve it and
+  // Object directly. String uses Double's text form, and Long has its own bound (Long.MAX_VALUE is
+  // not exactly representable as a double). The rest share NumberDecoders.
+  @SuppressWarnings("unchecked")
+  private static <T> T decodeDoubleAs(double value, Class<T> targetClass) throws SQLException {
     if (targetClass == Double.class || targetClass == Object.class) {
       return (T) Double.valueOf(value);
     }
-    if (targetClass == Float.class) {
-      return (T) Float.valueOf((float) value);
-    }
-    if (targetClass == Integer.class) {
-      if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
-        throw new PSQLException(
-            GT.tr("Value {0} is out of range for int", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-      }
-      return (T) Integer.valueOf((int) value);
+    if (targetClass == String.class) {
+      return (T) String.valueOf(value);
     }
     if (targetClass == Long.class) {
       if (value < LONG_MIN_DOUBLE || value > LONG_MAX_DOUBLE) {
@@ -203,46 +209,7 @@ public final class Float8Codec implements BinaryCodec, TextCodec, ArrayElementCo
       }
       return (T) Long.valueOf((long) value);
     }
-    if (targetClass == Short.class) {
-      if (value < Short.MIN_VALUE || value > Short.MAX_VALUE) {
-        throw new PSQLException(
-            GT.tr("Value {0} is out of range for short", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-      }
-      return (T) Short.valueOf((short) value);
-    }
-    if (targetClass == Byte.class) {
-      if (value < Byte.MIN_VALUE || value > Byte.MAX_VALUE) {
-        throw new PSQLException(
-            GT.tr("Value {0} is out of range for byte", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-      }
-      return (T) Byte.valueOf((byte) value);
-    }
-    if (targetClass == BigDecimal.class) {
-      if (Double.isNaN(value) || Double.isInfinite(value)) {
-        throw new PSQLException(
-            GT.tr("Cannot convert {0} to BigDecimal", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-      }
-      return (T) BigDecimal.valueOf(value);
-    }
-    if (targetClass == String.class) {
-      return (T) String.valueOf(value);
-    }
-    if (targetClass == Boolean.class) {
-      return (T) Boolean.valueOf(value != 0);
-    }
-    throw Codec.cannotDecode("float8", targetClass.getName());
-  }
-
-  @Override
-  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
-    double value = decodeAsDouble(data, type, ctx);
-    byte[] bytes = new byte[8];
-    ByteConverter.float8(bytes, 0, value);
-    return decodeBinaryAs(bytes, type, targetClass, ctx);
+    return NumberDecoders.decodeFloatingAs(value, targetClass, "float8");
   }
 
   static double toDouble(Object value) throws SQLException {

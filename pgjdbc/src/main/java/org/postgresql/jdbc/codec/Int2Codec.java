@@ -152,53 +152,27 @@ public final class Int2Codec implements BinaryCodec, TextCodec, ArrayElementCode
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     int value = decodeAsInt(data, type, ctx);
-    if (targetClass == Integer.class || targetClass == Object.class) {
-      return (T) Integer.valueOf(value);
-    }
-    if (targetClass == Short.class) {
-      return (T) Short.valueOf((short) value);
-    }
-    if (targetClass == Long.class) {
-      return (T) Long.valueOf(value);
-    }
-    if (targetClass == Byte.class) {
-      if (value < Byte.MIN_VALUE || value > Byte.MAX_VALUE) {
-        throw new PSQLException(
-            GT.tr("Value {0} is out of range for byte", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-      }
-      return (T) Byte.valueOf((byte) value);
-    }
-    if (targetClass == Double.class) {
-      return (T) Double.valueOf(value);
-    }
-    if (targetClass == Float.class) {
-      return (T) Float.valueOf(value);
-    }
-    if (targetClass == BigDecimal.class) {
-      return (T) BigDecimal.valueOf(value);
-    }
-    if (targetClass == String.class) {
-      return (T) String.valueOf(value);
-    }
-    if (targetClass == Boolean.class) {
-      return (T) Boolean.valueOf(value != 0);
-    }
-    throw Codec.cannotDecode("int2", targetClass.getName());
+    return decodeShortAs(value, targetClass);
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     int value = decodeAsInt(data, type, ctx);
-    byte[] bytes = new byte[2];
-    ByteConverter.int2(bytes, 0, (short) value);
-    return decodeBinaryAs(bytes, type, targetClass, ctx);
+    return decodeShortAs(value, targetClass);
+  }
+
+  // int2's natural getObject type is Integer (matching legacy smallint); resolve it directly so the
+  // common path does not widen, and share the rarer coercions through NumberDecoders.
+  @SuppressWarnings("unchecked")
+  private static <T> T decodeShortAs(int value, Class<T> targetClass) throws SQLException {
+    if (targetClass == Integer.class || targetClass == Object.class) {
+      return (T) Integer.valueOf(value);
+    }
+    return NumberDecoders.decodeIntegralAs(value, targetClass, "int2");
   }
 
   static short toShort(Object value) throws SQLException {

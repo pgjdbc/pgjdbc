@@ -17,6 +17,8 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -30,6 +32,13 @@ public class Encoding {
   private static final Encoding DEFAULT_ENCODING = new Encoding();
 
   private static final Encoding UTF8_ENCODING = new Encoding(StandardCharsets.UTF_8, true);
+
+  /*
+   * Memoizes the ASCII-number compatibility of a charset so callers that only hold a Charset (such
+   * as the int4/int8 text-byte fast paths, which see a Charset through CodecContext rather than an
+   * Encoding) can query it without re-running the encode probe in testAsciiNumbers on every value.
+   */
+  private static final Map<Charset, Boolean> ASCII_NUMBER_COMPATIBLE = new ConcurrentHashMap<>();
 
   /*
    * Preferred JVM encodings for backend encodings.
@@ -329,6 +338,20 @@ public class Encoding {
   @Override
   public String toString() {
     return encoding.name();
+  }
+
+  /**
+   * Returns whether {@code charset} encodes '-' and '0'..'9' at the same byte values as ASCII, so a
+   * byte buffer can be scanned for numbers directly. This is the same property as
+   * {@link #hasAsciiNumbers()}, exposed for callers that hold only a {@link Charset} (for example a
+   * codec that receives a charset through its context rather than an {@code Encoding}). The result
+   * is memoized, so the encode probe runs at most once per charset.
+   *
+   * @param charset the charset to test
+   * @return true if the bytes can be scanned directly for ASCII numbers
+   */
+  public static boolean hasAsciiNumbers(Charset charset) {
+    return ASCII_NUMBER_COMPATIBLE.computeIfAbsent(charset, Encoding::testAsciiNumbers);
   }
 
   /**

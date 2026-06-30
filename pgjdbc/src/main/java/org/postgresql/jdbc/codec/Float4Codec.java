@@ -173,19 +173,26 @@ public final class Float4Codec implements BinaryCodec, TextCodec, ArrayElementCo
   public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     float value = decodeAsFloat(data, type, ctx);
+    return decodeFloatAs(value, targetClass);
+  }
+
+  @Override
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
+      throws SQLException {
+    float value = decodeAsFloat(data, type, ctx);
+    return decodeFloatAs(value, targetClass);
+  }
+
+  // float4's natural getObject type is Float; resolve it and Object directly so the common path does
+  // not widen. String uses Float's narrower text form, and Long has a conservative bound because a
+  // float cannot represent Long.MAX_VALUE exactly. The rest share NumberDecoders, widening to double.
+  @SuppressWarnings("unchecked")
+  private static <T> T decodeFloatAs(float value, Class<T> targetClass) throws SQLException {
     if (targetClass == Float.class || targetClass == Object.class) {
       return (T) Float.valueOf(value);
     }
-    if (targetClass == Double.class) {
-      return (T) Double.valueOf(value);
-    }
-    if (targetClass == Integer.class) {
-      if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
-        throw new PSQLException(
-            GT.tr("Value {0} is out of range for int", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-      }
-      return (T) Integer.valueOf((int) value);
+    if (targetClass == String.class) {
+      return (T) String.valueOf(value);
     }
     if (targetClass == Long.class) {
       if (value < Long.MIN_VALUE || value >= 9.223372036854776E18) {
@@ -195,46 +202,7 @@ public final class Float4Codec implements BinaryCodec, TextCodec, ArrayElementCo
       }
       return (T) Long.valueOf((long) value);
     }
-    if (targetClass == Short.class) {
-      if (value < Short.MIN_VALUE || value > Short.MAX_VALUE) {
-        throw new PSQLException(
-            GT.tr("Value {0} is out of range for short", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-      }
-      return (T) Short.valueOf((short) value);
-    }
-    if (targetClass == Byte.class) {
-      if (value < Byte.MIN_VALUE || value > Byte.MAX_VALUE) {
-        throw new PSQLException(
-            GT.tr("Value {0} is out of range for byte", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-      }
-      return (T) Byte.valueOf((byte) value);
-    }
-    if (targetClass == BigDecimal.class) {
-      if (Float.isNaN(value) || Float.isInfinite(value)) {
-        throw new PSQLException(
-            GT.tr("Cannot convert {0} to BigDecimal", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-      }
-      return (T) BigDecimal.valueOf(value);
-    }
-    if (targetClass == String.class) {
-      return (T) String.valueOf(value);
-    }
-    if (targetClass == Boolean.class) {
-      return (T) Boolean.valueOf(value != 0);
-    }
-    throw Codec.cannotDecode("float4", targetClass.getName());
-  }
-
-  @Override
-  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
-    float value = decodeAsFloat(data, type, ctx);
-    byte[] bytes = new byte[4];
-    ByteConverter.float4(bytes, 0, value);
-    return decodeBinaryAs(bytes, type, targetClass, ctx);
+    return NumberDecoders.decodeFloatingAs(value, targetClass, "float4");
   }
 
   static float toFloat(Object value) throws SQLException {

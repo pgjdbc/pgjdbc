@@ -10,7 +10,7 @@ import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
-import org.postgresql.jdbc.PgCodecContext;
+import org.postgresql.core.Encoding;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.NumberParser;
@@ -145,18 +145,14 @@ public final class Int8Codec implements BinaryCodec, TextCodec, ArrayElementCode
 
   @Override
   public long decodeTextBytesAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    // Fast path for ASCII-encoded longs.
-    // Wire-encoding access (not child-resolve): reads the connection Encoding through the
-    // implementation. Exposing the wire encoding on the CodecContext interface is a separate
-    // slice-2 follow-up; slice 2c moved only child-type resolution onto the interface.
-    if (((PgCodecContext) ctx).getEncoding().hasAsciiNumbers()) {
+    if (Encoding.hasAsciiNumbers(ctx.getCharset())) {
       try {
         return NumberParser.getFastLong(data, Long.MIN_VALUE, Long.MAX_VALUE);
       } catch (NumberFormatException ignored) {
         // Fall through to string parsing
       }
     }
-    return decodeAsLong(new String(data, java.nio.charset.StandardCharsets.UTF_8), type, ctx);
+    return decodeAsLong(new String(data, ctx.getCharset()), type, ctx);
   }
 
   @Override
@@ -186,66 +182,30 @@ public final class Int8Codec implements BinaryCodec, TextCodec, ArrayElementCode
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
     long value = decodeAsLong(data, type, ctx);
+    return decodeLongAs(value, targetClass);
+  }
+
+  @Override
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
+      throws SQLException {
+    long value = decodeAsLong(data, type, ctx);
+    return decodeLongAs(value, targetClass);
+  }
+
+  // int8's natural getObject type is Long (and the value is already a long); resolve it and Object
+  // directly. BigInteger is int8-specific (int2/int4 do not offer it); the rest share NumberDecoders.
+  @SuppressWarnings("unchecked")
+  private static <T> T decodeLongAs(long value, Class<T> targetClass) throws SQLException {
     if (targetClass == Long.class || targetClass == Object.class) {
       return (T) Long.valueOf(value);
-    }
-    if (targetClass == Integer.class) {
-      if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
-        throw new PSQLException(
-            GT.tr("Value {0} is out of range for int", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-      }
-      return (T) Integer.valueOf((int) value);
-    }
-    if (targetClass == Short.class) {
-      if (value < Short.MIN_VALUE || value > Short.MAX_VALUE) {
-        throw new PSQLException(
-            GT.tr("Value {0} is out of range for short", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-      }
-      return (T) Short.valueOf((short) value);
-    }
-    if (targetClass == Byte.class) {
-      if (value < Byte.MIN_VALUE || value > Byte.MAX_VALUE) {
-        throw new PSQLException(
-            GT.tr("Value {0} is out of range for byte", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-      }
-      return (T) Byte.valueOf((byte) value);
-    }
-    if (targetClass == Double.class) {
-      return (T) Double.valueOf((double) value);
-    }
-    if (targetClass == Float.class) {
-      return (T) Float.valueOf((float) value);
-    }
-    if (targetClass == BigDecimal.class) {
-      return (T) BigDecimal.valueOf(value);
     }
     if (targetClass == java.math.BigInteger.class) {
       return (T) java.math.BigInteger.valueOf(value);
     }
-    if (targetClass == String.class) {
-      return (T) String.valueOf(value);
-    }
-    if (targetClass == Boolean.class) {
-      return (T) Boolean.valueOf(value != 0);
-    }
-    throw Codec.cannotDecode("int8", targetClass.getName());
-  }
-
-  @Override
-  @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
-    long value = decodeAsLong(data, type, ctx);
-    byte[] bytes = new byte[8];
-    ByteConverter.int8(bytes, 0, value);
-    return decodeBinaryAs(bytes, type, targetClass, ctx);
+    return NumberDecoders.decodeIntegralAs(value, targetClass, "int8");
   }
 
   static long toLong(Object value) throws SQLException {
