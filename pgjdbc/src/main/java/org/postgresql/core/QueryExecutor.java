@@ -131,6 +131,24 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   int QUERY_READ_ONLY_HINT = 2048;
 
   /**
+   * Two flags indicating transaction isolation level
+   *
+   * <p>High/Low
+   * READ UNCOMMITTED - 0/0
+   * READ COMMITTED - 0/1
+   * REPEATABLE READ - 1/0
+   * SERIALIZABLE - 1/1
+   */
+  int QUERY_ISOLATION_LEVEL_HIGH = 4096;
+  int QUERY_ISOLATION_LEVEL_LOW = 8192;
+
+  /**
+   * Flag indicating that when beginning a transaction the isolation level should be set to it
+   */
+  int QUERY_ISOLATION_TRANSACTION_MODE = 16384;
+
+
+  /**
    * Execute a Query, passing results to a provided ResultHandler.
    *
    * @param query the query to execute; must be a query returned from calling
