@@ -140,9 +140,12 @@ public interface TypeInfo {
    * by the server yet have no driver-side binary codec (for example
    * {@code circle}/{@code line}/{@code lseg}/{@code path}, whose codec is
    * text-only), in which case requesting it in binary would decode to {@code null}.
-   * An unmapped type still counts, because {@code FallbackCodec} is a binary codec
-   * and yields {@code PGUnknownBinary}. A column is received in binary only when
-   * both this and {@link #backendCanSendBinary(PgType)} hold.</p>
+   * An unmapped type does not count either: it resolves to {@code FallbackCodec}, which
+   * reports no binary-read, so it is received in text as {@code PGobject}. (Binary still
+   * reaches {@code FallbackCodec} for a value the server sends in binary regardless, such as
+   * an unmapped field inside a binary {@code record}, where it yields {@code PGUnknownBinary}.)
+   * A column is received in binary only when both this and
+   * {@link #backendCanSendBinary(PgType)} hold.</p>
    *
    * @param type the type to test
    * @return true if the driver can binary-decode this type

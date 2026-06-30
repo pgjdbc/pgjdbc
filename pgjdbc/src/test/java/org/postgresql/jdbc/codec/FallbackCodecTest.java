@@ -7,8 +7,10 @@ package org.postgresql.jdbc.codec;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.jdbc.ObjectName;
@@ -52,6 +54,15 @@ class FallbackCodecTest {
     PGUnknownBinary unknown = (PGUnknownBinary) result;
     assertEquals("unknown_type", unknown.getType());
     assertArrayEquals(data, unknown.getBytes());
+  }
+
+  @Test
+  void reportsTextOnlyRead() {
+    // The fallback does not interpret the real binary wire, so the receive-format choice must
+    // request an unmapped type in text (PGobject) rather than binary (PGUnknownBinary). It still
+    // decodes binary when the server sends it anyway, e.g. an unmapped field inside a binary record.
+    assertFalse(codec.supportsBinaryRead());
+    assertTrue(codec.supportsTextRead());
   }
 
   @Test

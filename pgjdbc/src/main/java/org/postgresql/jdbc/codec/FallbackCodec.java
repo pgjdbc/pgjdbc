@@ -49,8 +49,19 @@ public final class FallbackCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
+  public boolean supportsBinaryRead() {
+    // The fallback does not interpret the real binary wire of an unmapped type; it only wraps
+    // the raw bytes. Reporting false makes the receive-format choice request such a type in text,
+    // so it arrives as a readable PGobject (decodeText) rather than PGUnknownBinary. Binary data
+    // still reaches decodeBinary when it is unavoidable -- e.g. an unmapped field nested in a
+    // record the driver requested in binary -- and is surfaced as PGUnknownBinary there.
+    return false;
+  }
+
+  @Override
   public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    // Use PGUnknownBinary to preserve raw binary data without hex conversion
+    // Reached only when the server sends binary for an unmapped type anyway (e.g. a field inside a
+    // binary record): preserve the raw bytes as PGUnknownBinary instead of a lossy hex string.
     return new PGUnknownBinary(type.getTypeName().getName(), data);
   }
 
