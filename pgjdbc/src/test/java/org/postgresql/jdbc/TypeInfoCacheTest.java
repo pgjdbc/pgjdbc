@@ -111,13 +111,14 @@ public class TypeInfoCacheTest {
   }
 
   /**
-   * {@link TypeInfo#driverCanReceiveBinary(PgType)} gates binary receive on the
-   * driver actually having a binary decoder, recursing into element/field types.
-   * The server can send {@code circle}/{@code line}/{@code lseg}/{@code path} in
-   * binary, but their driver codec is text-only, so they must stay in text.
+   * {@link TypeInfo#driverCanReceiveBinary(PgType)} gates binary receive on the driver actually
+   * having a binary decoder, recursing into element/field types. A text-only codec
+   * ({@code circle}/{@code line}/{@code lseg}/{@code path}) is refused even though the server can
+   * send those in binary; a text-send type ({@code refcursor}) is accepted, because
+   * {@code TextLikeCodec} reads its binary wire, which is the charset text.
    */
   @Test
-  void driverCanReceiveBinaryExcludesTextOnlyCodecs() throws Exception {
+  void driverCanReceiveBinaryMatchesCodecCapability() throws Exception {
     Connection con = TestUtil.openDB();
     try {
       TypeInfo ti = con.unwrap(PgConnection.class).getTypeInfo();
@@ -127,6 +128,11 @@ public class TypeInfoCacheTest {
       assertTrue(ti.driverCanReceiveBinary(ti.getPgTypeByOid(Oid.INT4_ARRAY)), "int4[]");
       assertTrue(ti.driverCanReceiveBinary(ti.getPgTypeByOid(Oid.POINT)), "point");
       assertTrue(ti.driverCanReceiveBinary(ti.getPgTypeByOid(Oid.RECORD)), "record");
+
+      // refcursor has no dedicated codec, but TextLikeCodec reads its text-send binary wire, so it
+      // is binary-decodable and thus eligible for binary receive.
+      assertTrue(ti.driverCanReceiveBinary(ti.getPgTypeByOid(Oid.REFCURSOR)),
+          "refcursor: text-send binary is decodable via TextLikeCodec");
 
       // Geometric types whose codec is text-only: server can send them binary, but
       // the driver cannot decode it, so binary receive must be refused.

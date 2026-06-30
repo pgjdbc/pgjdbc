@@ -28,6 +28,7 @@ import org.postgresql.jdbc.codec.CompositeCodec;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.JdbcBlackHole;
+import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGbytea;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
@@ -3837,10 +3838,20 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       // PGmultirange are not registered there, so they fall through to the codec path below and
       // decode through decodeBinaryAs/decodeTextAs.
       Object object;
-      if (isBinary(columnIndex)) {
+      Class<? extends PGobject> registered =
+          connection.getTypeInfo().getPGobject(getPGType(columnIndex));
+      if (isBinary(columnIndex) && registered != null
+          && PGBinaryObject.class.isAssignableFrom(registered)) {
+        // Only a PGBinaryObject subclass parses the binary wire directly; connection.getObject
+        // consumes the bytes for it and ignores the string.
         byte[] byteValue = castNonNull(thisRow, "thisRow").get(columnIndex - 1);
         object = connection.getObject(getPGType(columnIndex), null, byteValue);
       } else {
+        // Otherwise -- text, an unregistered type, or a registered non-binary PGobject subclass --
+        // the value is the column's text, so decode the wire to text through the codec (getString).
+        // Passing the raw bytes would make connection.getObject call setValue(null) and drop the
+        // value under binary receive (e.g. refcursor, or an addDataType subclass that is not a
+        // PGBinaryObject).
         object = connection.getObject(getPGType(columnIndex), getString(columnIndex), null);
       }
       return type.cast(object);

@@ -12,8 +12,11 @@ import org.postgresql.core.Oid;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.Types;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Represents a PostgreSQL type.
@@ -22,6 +25,11 @@ import java.util.List;
  */
 @Experimental("PgType API is experimental and may change in future releases")
 public class PgType implements TypeDescriptor {
+  // pg_type.typsend names whose binary wire is the raw charset text, so a codec-less type using one
+  // decodes the same in binary and text (see hasTextLikeSend()).
+  private static final Set<String> TEXT_LIKE_SENDS = Collections.unmodifiableSet(
+      new HashSet<>(Arrays.asList("textsend", "varcharsend", "bpcharsend", "namesend")));
+
   private final ObjectName typeName;
   private final String fullName;
   private final int oid;
@@ -509,6 +517,23 @@ public class PgType implements TypeDescriptor {
    */
   public boolean hasOwnBinaryReceive() {
     return !"-".equals(typreceive);
+  }
+
+  /**
+   * Reports whether this type's binary-send function emits raw charset text, i.e.
+   * {@code pg_type.typsend} is one of the built-in text sends
+   * ({@code textsend}/{@code varcharsend}/{@code bpcharsend}/{@code namesend}).
+   *
+   * <p>For such a type the binary wire bytes are the charset text, so a codec-less value decodes the
+   * same in binary and text — letting {@code TextLikeCodec} return a readable {@code PGobject} even
+   * for a value nested in a binary {@code record}. The match is by exact name: it recognises the
+   * built-in raw-text sends and does not attempt to prove function-OID identity, so a same-named
+   * function in another schema is intentionally not treated as text-like.</p>
+   *
+   * @return true if the type's {@code typsend} is a built-in raw-text send
+   */
+  public boolean hasTextLikeSend() {
+    return TEXT_LIKE_SENDS.contains(typsend);
   }
 
   /**
