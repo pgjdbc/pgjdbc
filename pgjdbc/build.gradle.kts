@@ -406,6 +406,10 @@ val sourceDistribution by tasks.registering(Tar::class) {
             exclude("**/*Suite*")
             exclude("*/org/postgresql/test/sspi/*.java")
             exclude("*/org/postgresql/replication/**")
+            // ArchUnit (com.tngtech.archunit) is not declared in reduced-pom.xml and is not
+            // packaged for Fedora, so the api boundary test cannot compile in the minimal
+            // source-distribution build. The Gradle build already runs it.
+            exclude("*/org/postgresql/api/ApiBoundaryArchTest.java")
         }
         from(testKitSourcesWithoutAnnotationsResolved.elements.map { set ->
             set.map {
