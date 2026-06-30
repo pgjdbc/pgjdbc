@@ -121,20 +121,32 @@ public enum PGProperty {
   /**
    * Comma separated list of types to disable binary transfer. Either OID numbers or names.
    * Overrides values in the driver default set and values set with binaryTransferEnable.
+   * The special value {@code *} disables binary transfer for all types and takes precedence over
+   * binaryTransferEnable.
    */
   BINARY_TRANSFER_DISABLE(
       "binaryTransferDisable",
       "",
       "Comma separated list of types to disable binary transfer. Either OID numbers or names. "
-          + "Overrides values in the driver default set and values set with binaryTransferEnable."),
+          + "Overrides values in the driver default set and values set with binaryTransferEnable. "
+          + "The special value `*` disables binary transfer for all types (text everywhere) and "
+          + "takes precedence over binaryTransferEnable; useful for testing whether a failure is "
+          + "caused by binary mode."),
 
   /**
-   * Comma separated list of types to enable binary transfer. Either OID numbers or names
+   * Comma separated list of types to enable binary transfer. Either OID numbers or names.
+   * The special value {@code *} forces binary receive for all result columns, bypassing the
+   * per-type capability check.
    */
   BINARY_TRANSFER_ENABLE(
       "binaryTransferEnable",
       "",
-      "Comma separated list of types to enable binary transfer. Either OID numbers or names."),
+      "Comma separated list of types to enable binary transfer. Either OID numbers or names. "
+          + "The special value `*` forces binary receive for all result columns, bypassing the "
+          + "per-type capability check (for testing the binary path: a type the server cannot send "
+          + "in binary then errors, and one the driver cannot decode in binary may decode "
+          + "incorrectly). It does not affect the send direction, and binaryTransferDisable=* "
+          + "overrides it."),
 
   /**
    * Cancel command is sent out of band over its own connection, so cancel message can itself get

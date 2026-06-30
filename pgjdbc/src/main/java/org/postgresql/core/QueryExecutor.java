@@ -381,6 +381,34 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   void setTypeInfo(TypeInfo typeInfo);
 
   /**
+   * Forces binary receive for every result column, bypassing the per-type capability check
+   * ({@code binaryTransferEnable=*}). Intended for testing the binary path: a type the server cannot
+   * send in binary then errors at execute, and one the driver cannot decode in binary may decode
+   * incorrectly. Overridden by {@link #setDisableBinaryAll(boolean)}.
+   *
+   * @param forceBinaryReceiveAll whether to request binary for all result columns
+   */
+  void setForceBinaryReceiveAll(boolean forceBinaryReceiveAll);
+
+  /**
+   * Forces text for every result column ({@code binaryTransferDisable=*}), taking precedence over
+   * every other binary-receive setting. Intended for testing whether a failure is caused by binary
+   * mode.
+   *
+   * @param disableBinaryAll whether to force text for all result columns
+   */
+  void setDisableBinaryAll(boolean disableBinaryAll);
+
+  /**
+   * Sets the explicit per-type {@code binaryTransferDisable} oids. They are honoured even when
+   * {@link #setForceBinaryReceiveAll(boolean)} is set, so a per-type disable overrides
+   * {@code binaryTransferEnable=*}.
+   *
+   * @param oids the oids explicitly disabled for binary receive
+   */
+  void setBinaryReceiveDisabledOids(Set<Integer> oids);
+
+  /**
    * Adds a single oid that should be sent using binary encoding.
    *
    * @param oid The oid to send with binary encoding.

@@ -201,6 +201,24 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private @Nullable TypeInfo binaryReceiveTypeInfo;
 
   /**
+   * {@code binaryTransferEnable=*}: request binary for every result column, bypassing the per-type
+   * capability check. Set once at connection setup, read on the bind path.
+   */
+  private volatile boolean forceBinaryReceiveAll;
+
+  /**
+   * {@code binaryTransferDisable=*}: force text for every result column. Takes precedence over
+   * {@link #forceBinaryReceiveAll}, {@link #useBinaryReceiveForOids} and the capability fallback.
+   */
+  private volatile boolean disableBinaryAll;
+
+  /**
+   * Explicit per-type {@code binaryTransferDisable} oids. Honoured even under
+   * {@link #forceBinaryReceiveAll} so a per-type disable overrides {@code binaryTransferEnable=*}.
+   */
+  private volatile Set<Integer> binaryReceiveDisabledOids = Collections.emptySet();
+
+  /**
    * Bit set that has a bit set for each oid which should be sent using binary format.
    */
   private final IntSet useBinarySendForOids = new IntSet();
@@ -1871,12 +1889,28 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     Field[] fields = query.getFields();
-    if (!noBinaryTransfer && query.needUpdateFieldFormats() && fields != null) {
+    // Re-evaluate still-text columns on every Bind, not just once: a column whose type capability was
+    // cold at an earlier execution (its memos not yet warmed) upgrades to binary as soon as the type is
+    // warm. Already-binary columns are never revisited, and this only ever promotes text -> binary.
+    // needUpdateFieldFormats() is consumed to preserve the reset handshake with the noBinaryTransfer
+    // branch below; it no longer gates the loop.
+    if (!noBinaryTransfer && fields != null) {
+      query.needUpdateFieldFormats();
+      boolean anyBinary = false;
       for (Field field : fields) {
-        if (useBinary(field)) {
+        if (field.getFormat() == Field.TEXT_FORMAT && useBinary(field)) {
           field.setFormat(Field.BINARY_FORMAT);
-          query.setHasBinaryFields(true);
         }
+        // Recompute hasBinaryFields from the fields' actual formats, counting columns that are
+        // already binary from a prior describe. setFields() resets hasBinaryFields, so relying on it
+        // would drop those columns and a later Bind would request text while the cached metadata
+        // still says binary, corrupting the decode.
+        if (field.getFormat() == Field.BINARY_FORMAT) {
+          anyBinary = true;
+        }
+      }
+      if (anyBinary) {
+        query.setHasBinaryFields(true);
       }
     }
     // If text-only results are required (e.g. updateable resultset), and the query has binary columns,
@@ -1896,13 +1930,25 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // are text.
     int numBinaryFields = !noBinaryTransfer && query.hasBinaryFields() && fields != null
         ? fields.length : 0;
+    // binaryTransferEnable=*: when the result columns are not described yet (fields == null), request
+    // binary for all of them with a single result-format code, which the Bind protocol applies to
+    // every column. This forces binary from the first execution even without a prior describe.
+    // Skip it when a per-type binaryTransferDisable is set: a single code cannot exclude the disabled
+    // column, so defer to the per-field path (which honours the disable) once the columns are
+    // described, keeping disable-overrides-enable intact. Trade-off: with that combination the
+    // non-disabled columns are text on the first, undescribed execution and turn binary once the
+    // fields are cached; forcing them earlier would need an extra describe round-trip, not worth it
+    // for a testing flag.
+    boolean forceAllBinaryUndescribed = forceBinaryReceiveAll && !noBinaryTransfer && fields == null
+        && binaryReceiveDisabledOids.isEmpty();
+    int resultFormatCodeCount = forceAllBinaryUndescribed ? 1 : numBinaryFields;
 
     encodedSize = 4
         + (encodedPortalName == null ? 0 : encodedPortalName.length) + 1
         + (encodedStatementName == null ? 0 : encodedStatementName.length) + 1
         + 2 + params.getParameterCount() * 2L
         + 2 + encodedSize
-        + 2 + numBinaryFields * 2L;
+        + 2 + resultFormatCodeCount * 2L;
 
     // backend's MaxAllocSize is the largest message that can
     // be received from a client. If we have a bigger value
@@ -1963,9 +2009,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
     }
 
-    pgStream.sendInteger2(numBinaryFields); // # of result format codes
-    for (int i = 0; fields != null && i < numBinaryFields; i++) {
-      pgStream.sendInteger2(fields[i].getFormat());
+    pgStream.sendInteger2(resultFormatCodeCount); // # of result format codes
+    if (forceAllBinaryUndescribed) {
+      pgStream.sendInteger2(Field.BINARY_FORMAT); // one code applies to every result column
+    } else {
+      for (int i = 0; fields != null && i < numBinaryFields; i++) {
+        pgStream.sendInteger2(fields[i].getFormat());
+      }
     }
 
     pendingBindQueue.add(portal == null ? UNNAMED_PORTAL : portal);
@@ -1983,7 +2033,18 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    *         {@link Field#BINARY_FORMAT}.
    */
   private boolean useBinary(Field field) {
+    // binaryTransferDisable=* forces text for every column, overriding everything below.
+    if (disableBinaryAll) {
+      return false;
+    }
     int oid = field.getOID();
+    // binaryTransferEnable=* forces binary for every column, bypassing the capability check
+    // (for testing the binary path even where the server can't send or the driver can't decode it).
+    // An explicit per-type binaryTransferDisable still wins, matching the disable-overrides-enable
+    // contract.
+    if (forceBinaryReceiveAll) {
+      return !binaryReceiveDisabledOids.contains(oid);
+    }
     // Explicit binaryTransferEnable / registered binary types force binary on.
     synchronized (useBinaryReceiveForOids) {
       if (useBinaryReceiveForOids.contains(oid)) {
@@ -3273,6 +3334,21 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   @Override
   public void setTypeInfo(TypeInfo typeInfo) {
     this.binaryReceiveTypeInfo = typeInfo;
+  }
+
+  @Override
+  public void setForceBinaryReceiveAll(boolean forceBinaryReceiveAll) {
+    this.forceBinaryReceiveAll = forceBinaryReceiveAll;
+  }
+
+  @Override
+  public void setDisableBinaryAll(boolean disableBinaryAll) {
+    this.disableBinaryAll = disableBinaryAll;
+  }
+
+  @Override
+  public void setBinaryReceiveDisabledOids(Set<Integer> oids) {
+    this.binaryReceiveDisabledOids = oids;
   }
 
   @Override
