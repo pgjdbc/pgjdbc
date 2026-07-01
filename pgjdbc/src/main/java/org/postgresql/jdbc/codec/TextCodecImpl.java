@@ -149,6 +149,11 @@ public final class TextCodecImpl implements StreamingBinaryCodec, StreamingTextC
   }
 
   @Override
+  public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return parseAsBigDecimal(data);
+  }
+
+  @Override
   public boolean decodeAsBoolean(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     String s = castNonNull(decodeAsString(data, type, ctx));
     return parseAsBoolean(s);

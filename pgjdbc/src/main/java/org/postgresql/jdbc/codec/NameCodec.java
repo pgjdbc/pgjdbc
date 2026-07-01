@@ -116,6 +116,11 @@ public final class NameCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
+  public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return TextCodecImpl.INSTANCE.decodeAsBigDecimal(data, type, ctx);
+  }
+
+  @Override
   public boolean decodeAsBoolean(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return TextCodecImpl.INSTANCE.decodeAsBoolean(data, type, ctx);
   }
