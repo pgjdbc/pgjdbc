@@ -370,4 +370,3 @@ jobs:
         arguments: --no-parallel --no-daemon --scan jandex test
         properties: |
           includeTestTags=${{ matrix.junit_include_tags }}
-
