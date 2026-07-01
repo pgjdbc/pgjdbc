@@ -852,7 +852,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
         out.write(buf);
         continue;
       }
-      TypeDescriptor fieldType = ctx.resolveType(fieldOid);
+      TypeDescriptor fieldType = binaryFieldType(fieldOid, attr, ctx);
       BinaryCodec codec = ctx.resolveBinaryCodec(fieldOid);
       if (codec == null) {
         throw new PSQLException(
@@ -872,6 +872,27 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
         out.write(bytes);
       }
     }
+  }
+
+  /**
+   * Returns the descriptor to encode a composite field's value against.
+   *
+   * <p>The composite wire carries only each field's type OID, so a nested anonymous record reports
+   * the {@code record} pseudo-type OID (2249), which resolves to a fieldless descriptor — encoding
+   * a struct against it would fail the attribute-count check. A {@link PgStruct} decoded from the
+   * wire already carries the fields synthesized from its own self-description, so prefer that type
+   * for a record-typed field. This is the binary counterpart of the {@code record_out} fallback in
+   * {@link #streamAttributesAsText}.</p>
+   */
+  private static TypeDescriptor binaryFieldType(int fieldOid, Object attr, CodecContext ctx)
+      throws SQLException {
+    if (fieldOid == Oid.RECORD && attr instanceof PgStruct) {
+      PgType carried = ((PgStruct) attr).getResolvedType();
+      if (carried != null && carried.getFields() != null) {
+        return carried;
+      }
+    }
+    return ctx.resolveType(fieldOid);
   }
 
   @Override

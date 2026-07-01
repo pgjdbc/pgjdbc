@@ -150,6 +150,21 @@ public class PgStruct extends org.postgresql.util.PGobject implements Struct {
     return typeName;
   }
 
+  /**
+   * Returns the resolved composite type this struct carries, or {@code null} when it was built
+   * without one (the plain {@code (typeName, attributes)} constructor or the name-only
+   * {@link #withCodecContext(String, Object[], PgCodecContext)} overload).
+   *
+   * <p>For an anonymous record decoded from binary the type carries the fields synthesized from the
+   * self-describing wire, so the binary encoder can recurse into a nested record whose on-wire OID
+   * (the {@code record} pseudo-type, 2249) otherwise resolves to a fieldless descriptor.</p>
+   *
+   * @return the carried type, or {@code null} when none was supplied
+   */
+  public @Nullable PgType getResolvedType() {
+    return pgType;
+  }
+
   @Override
   @SuppressWarnings("override.return")
   public @Nullable Object[] getAttributes() throws SQLException {

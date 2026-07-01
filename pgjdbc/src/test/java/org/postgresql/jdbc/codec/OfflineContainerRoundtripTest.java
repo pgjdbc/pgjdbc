@@ -7,6 +7,7 @@ package org.postgresql.jdbc.codec;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -61,6 +62,11 @@ class OfflineContainerRoundtripTest {
 
   private static PgType composite(String simpleName, int oid, PgField... fields) {
     return new PgType(new ObjectName("public", simpleName), "public." + simpleName, oid, 'c', 'C',
+        -1, 0, 0, 0, ',', Arrays.asList(fields));
+  }
+
+  private static PgType anonymousRecord(PgField... fields) {
+    return new PgType(new ObjectName("pg_catalog", "record"), "record", Oid.RECORD, 'c', 'C',
         -1, 0, 0, 0, ',', Arrays.asList(fields));
   }
 
@@ -120,6 +126,57 @@ class OfflineContainerRoundtripTest {
     }
     // The text codec quotes the string field unconditionally; the literal round-trips either way.
     assertEquals("(10,20,\"hello\")", canonical, "literal form");
+  }
+
+  @Test
+  void nestedAnonymousRecordRoundtripsOffline() throws SQLException {
+    // An anonymous record (OID 2249) whose second field is itself an anonymous record. The wire
+    // reports OID 2249 for the nested field, which resolves to the fieldless record pseudo-type, so
+    // the binary encoder must fall back to the fields the nested struct carries. Before the fix a
+    // nested record could be decoded but not re-encoded, forcing callers onto named composites.
+    PgType inner = anonymousRecord(field("g1", Oid.INT4, 1), field("g2", Oid.INT4, 2));
+    PgType outer = anonymousRecord(field("f1", Oid.INT4, 1), field("f2", Oid.RECORD, 2));
+    // One record descriptor lets the context route OID 2249 to the composite codec; the per-node
+    // fields come from each struct's own carried type on encode and from the wire on decode.
+    CodecContext ctx = PgCodecContext.offlineBuilder().type(outer).build();
+
+    PgStruct nested = new PgStruct(inner, new Object[]{2, 3}, null);
+    PgStruct value = new PgStruct(outer, new Object[]{1, nested}, null);
+
+    RawValue raw = Codecs.encode(value, outer, ctx, Format.BINARY);
+    PgStruct decoded = (PgStruct) Codecs.decode(raw, outer, ctx, Struct.class);
+    assertNotNull(decoded, "nested anonymous record");
+    Object[] attributes = decoded.getAttributes();
+    assertEquals(1, attributes[0], "outer scalar field");
+    Struct decodedNested = assertInstanceOf(Struct.class, attributes[1], "nested record field");
+    assertArrayEquals(new Object[]{2, 3}, decodedNested.getAttributes(), "nested record attributes");
+
+    // getValue() rebuilds the record_out literal recursively; record_out quotes the nested record
+    // because it contains commas and parentheses.
+    assertEquals("(1,\"(2,3)\")", decoded.getValue(), "rebuilt nested record literal");
+  }
+
+  @Test
+  void deeplyNestedAnonymousRecordRoundtripsOffline() throws SQLException {
+    // record(record(record(int4))): each level recurses through the child struct's own fields, so
+    // the encoder compounds the nesting exactly as record_send would on the server.
+    PgType level3 = anonymousRecord(field("h1", Oid.INT4, 1));
+    PgType level2 = anonymousRecord(field("g1", Oid.RECORD, 1));
+    PgType level1 = anonymousRecord(field("f1", Oid.RECORD, 1));
+    CodecContext ctx = PgCodecContext.offlineBuilder().type(level1).build();
+
+    PgStruct value = new PgStruct(level1, new Object[]{
+        new PgStruct(level2, new Object[]{
+            new PgStruct(level3, new Object[]{1}, null)}, null)}, null);
+
+    RawValue raw = Codecs.encode(value, level1, ctx, Format.BINARY);
+    PgStruct decoded = (PgStruct) Codecs.decode(raw, level1, ctx, Struct.class);
+    Struct l2 = assertInstanceOf(Struct.class, decoded.getAttributes()[0], "level 2 record");
+    Struct l3 = assertInstanceOf(Struct.class, l2.getAttributes()[0], "level 3 record");
+    assertArrayEquals(new Object[]{1}, l3.getAttributes(), "leaf record attributes");
+
+    // record_out doubles the embedded quotes at each level, so the escaping compounds with depth.
+    assertEquals("(\"(\"\"(1)\"\")\")", decoded.getValue(), "rebuilt deeply nested record literal");
   }
 
   @Test
