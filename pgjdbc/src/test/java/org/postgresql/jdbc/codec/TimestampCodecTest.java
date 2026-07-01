@@ -267,11 +267,9 @@ class TimestampCodecTest {
   // ==================== decodeAsLong ====================
 
   @Test
-  void decodeAsLong_text() throws SQLException {
-    long result = codec.decodeAsLong("2024-01-15 10:30:00", timestampType, ctx);
-
-    Timestamp ts = Timestamp.valueOf("2024-01-15 10:30:00");
-    assertEquals(ts.getTime(), result);
+  void decodeAsLong_text_throws() {
+    assertThrows(PSQLException.class, () ->
+        codec.decodeAsLong("2024-01-15 10:30:00", timestampType, ctx));
   }
 
   // ==================== decodeAsInt throws ====================
@@ -285,11 +283,9 @@ class TimestampCodecTest {
   // ==================== decodeAsDouble ====================
 
   @Test
-  void decodeAsDouble_text() throws SQLException {
-    double result = codec.decodeAsDouble("2024-01-15 10:30:00", timestampType, ctx);
-
-    Timestamp ts = Timestamp.valueOf("2024-01-15 10:30:00");
-    assertEquals((double) ts.getTime(), result);
+  void decodeAsDouble_text_throws() {
+    assertThrows(PSQLException.class, () ->
+        codec.decodeAsDouble("2024-01-15 10:30:00", timestampType, ctx));
   }
 
   // ==================== Roundtrip ====================

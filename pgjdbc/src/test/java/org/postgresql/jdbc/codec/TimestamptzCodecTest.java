@@ -219,12 +219,9 @@ class TimestamptzCodecTest {
   // ==================== decodeAsLong ====================
 
   @Test
-  void decodeAsLong_text() throws SQLException {
-    long result = codec.decodeAsLong("2024-01-15 10:30:00+00", timestamptzType, ctx);
-
-    // The value is parsed as UTC, so compare with UTC-based instant
-    Instant expected = OffsetDateTime.of(2024, 1, 15, 10, 30, 0, 0, ZoneOffset.UTC).toInstant();
-    assertEquals(expected.toEpochMilli(), result);
+  void decodeAsLong_text_throws() {
+    assertThrows(PSQLException.class, () ->
+        codec.decodeAsLong("2024-01-15 10:30:00+00", timestamptzType, ctx));
   }
 
   // ==================== decodeAsInt throws ====================

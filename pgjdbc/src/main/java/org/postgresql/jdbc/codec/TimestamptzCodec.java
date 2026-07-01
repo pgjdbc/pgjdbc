@@ -17,7 +17,6 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -117,18 +116,6 @@ public final class TimestamptzCodec implements BinaryCodec, TextCodec {
       return TemporalCodecs.formatTimestamp(TemporalCodecs.decodeTimestampText((String) value, ctx), ctx);
     }
     throw Codec.cannotEncode(value, "timestamptz");
-  }
-
-  @Override
-  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Timestamp t = (Timestamp) decodeBinary(data, type, ctx);
-    return t != null ? t.getTime() : 0;
-  }
-
-  @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Timestamp t = (Timestamp) decodeText(data, type, ctx);
-    return t != null ? t.getTime() : 0;
   }
 
   @Override
@@ -238,18 +225,4 @@ public final class TimestamptzCodec implements BinaryCodec, TextCodec {
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
-  @Override
-  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsLong(data, type, ctx);
-  }
-
-  @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsLong(data, type, ctx);
-  }
-
-  @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return BigDecimal.valueOf(decodeAsLong(data, type, ctx));
-  }
 }

@@ -149,7 +149,10 @@ public final class TemporalCodecs {
   // ----------------------------- text encode -----------------------------
 
   public static String formatDate(Date value, CodecContext ctx) {
-    return TimestampUtils.toStringDate(ctx.getDefaultTimeZone(), value, true, null, null);
+    // A date has no time zone: the calendar uses the context zone to pick the day, but the text must
+    // not carry a "+hh" suffix (PostgreSQL outputs a bare yyyy-mm-dd). A trailing offset is invalid
+    // date syntax and breaks the decode round-trip.
+    return TimestampUtils.toStringDate(ctx.getDefaultTimeZone(), value, false, null, null);
   }
 
   public static String formatLocalDate(LocalDate value, CodecContext ctx) {
@@ -157,6 +160,13 @@ public final class TemporalCodecs {
   }
 
   public static String formatTime(Time value, CodecContext ctx) {
+    // A `time` (without time zone) must not carry a "+hh" suffix; PostgreSQL outputs a bare HH:MM:SS.
+    // A trailing offset is invalid time syntax and breaks the decode round-trip.
+    return TimestampUtils.toStringTime(ctx.getDefaultTimeZone(), value, false, null, null);
+  }
+
+  /** Formats a {@link Time} as a {@code timetz}, assigning it the context zone offset. */
+  public static String formatTimetz(Time value, CodecContext ctx) {
     return TimestampUtils.toStringTime(ctx.getDefaultTimeZone(), value, true, null, null);
   }
 

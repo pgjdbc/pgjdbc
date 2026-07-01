@@ -17,7 +17,6 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -78,7 +77,7 @@ public final class TimetzCodec implements BinaryCodec, TextCodec {
   @Override
   public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (value instanceof Time) {
-      return TemporalCodecs.formatTime((Time) value, ctx);
+      return TemporalCodecs.formatTimetz((Time) value, ctx);
     }
     if (value instanceof OffsetTime) {
       return TemporalCodecs.formatOffsetTime((OffsetTime) value, ctx);
@@ -89,24 +88,12 @@ public final class TimetzCodec implements BinaryCodec, TextCodec {
     if (value instanceof java.util.Date) {
       @SuppressWarnings("JavaUtilDate")
       long time = ((java.util.Date) value).getTime();
-      return TemporalCodecs.formatTime(new Time(time), ctx);
+      return TemporalCodecs.formatTimetz(new Time(time), ctx);
     }
     if (value instanceof String) {
-      return TemporalCodecs.formatTime(TemporalCodecs.decodeTimeText((String) value, ctx), ctx);
+      return TemporalCodecs.formatTimetz(TemporalCodecs.decodeTimeText((String) value, ctx), ctx);
     }
     throw Codec.cannotEncode(value, "timetz");
-  }
-
-  @Override
-  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Time t = (Time) decodeBinary(data, type, ctx);
-    return t != null ? t.getTime() : 0;
-  }
-
-  @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Time t = (Time) decodeText(data, type, ctx);
-    return t != null ? t.getTime() : 0;
   }
 
   @Override
@@ -212,18 +199,4 @@ public final class TimetzCodec implements BinaryCodec, TextCodec {
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
-  @Override
-  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsLong(data, type, ctx);
-  }
-
-  @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsLong(data, type, ctx);
-  }
-
-  @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return BigDecimal.valueOf(decodeAsLong(data, type, ctx));
-  }
 }

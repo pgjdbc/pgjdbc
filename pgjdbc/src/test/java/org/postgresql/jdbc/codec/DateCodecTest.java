@@ -177,11 +177,9 @@ class DateCodecTest {
   // ==================== decodeAsLong ====================
 
   @Test
-  void decodeAsLong_text() throws SQLException {
-    long result = codec.decodeAsLong("2024-01-15", dateType, ctx);
-
-    Date d = Date.valueOf("2024-01-15");
-    assertEquals(d.getTime(), result);
+  void decodeAsLong_text_throws() {
+    assertThrows(PSQLException.class, () ->
+        codec.decodeAsLong("2024-01-15", dateType, ctx));
   }
 
   // ==================== decodeAsInt throws ====================
@@ -195,11 +193,9 @@ class DateCodecTest {
   // ==================== decodeAsDouble ====================
 
   @Test
-  void decodeAsDouble_text() throws SQLException {
-    double result = codec.decodeAsDouble("2024-01-15", dateType, ctx);
-
-    Date d = Date.valueOf("2024-01-15");
-    assertEquals((double) d.getTime(), result);
+  void decodeAsDouble_text_throws() {
+    assertThrows(PSQLException.class, () ->
+        codec.decodeAsDouble("2024-01-15", dateType, ctx));
   }
 
   // ==================== Roundtrip ====================
