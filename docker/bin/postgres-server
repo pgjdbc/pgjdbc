@@ -48,11 +48,33 @@ log () {
 main () {
     local publish_port="${PG_PUBLISH_PORT:-5432}"
     local replica_one_port="${PG_REPLICA_ONE_PUBLISH_PORT:-5433}"
-    local replica_two_port="${PG_REPLICA_ONE_PUBLISH_PORT:-5434}"
+    local replica_two_port="${PG_REPLICA_TWO_PUBLISH_PORT:-5434}"
 
     # Determine our current directory and change to be in the same directory as the compose file
     local script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
     cd "${script_dir}/../postgres-server"
+
+    # Opt-in per-worktree isolation. Set PG_ISOLATE=1 (for example via direnv or your
+    # shell profile) to give each git worktree its own Compose project and host ports,
+    # so parallel checkouts no longer share or tear down each other's server. The default
+    # (PG_ISOLATE unset) keeps the historic project name and ports 5432/5433/5434, so CI
+    # and existing setups are unaffected. An explicit PG_PUBLISH_PORT still wins.
+    if [[ -n "${PG_ISOLATE:-}" ]]; then
+        local worktree
+        worktree="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+        local slot
+        slot=$(( $(printf '%s' "${worktree}" | cksum | cut -d' ' -f1) % 200 ))
+        local offset=$(( slot * 10 ))
+
+        publish_port="${PG_PUBLISH_PORT:-$(( 5432 + offset ))}"
+        replica_one_port="${PG_REPLICA_ONE_PUBLISH_PORT:-$(( 5433 + offset ))}"
+        replica_two_port="${PG_REPLICA_TWO_PUBLISH_PORT:-$(( 5434 + offset ))}"
+
+        local slug
+        slug="$(basename "${worktree}" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_-' '_' | tr -s '_')"
+        export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-pgjdbc_${slug}_${slot}}"
+        log "Worktree isolation on: project=${COMPOSE_PROJECT_NAME}, ports=${publish_port}/${replica_one_port}/${replica_two_port}"
+    fi
 
     log "Starting Postgres server and mapping to local port ${publish_port}"
     exec docker compose run \
