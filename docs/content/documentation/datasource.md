@@ -284,38 +284,38 @@ conf/server.xml
 ```xml
 <Resource name="jdbc/postgres" scope="Shareable" type="javax.sql.DataSource"/>
 <ResourceParams name="jdbc/postgres">
-	<parameter>
-		<name>validationQuery</name>
-		<value>select version();</value>
-	</parameter>
-	<parameter>
-		<name>url</name>
-		<value>jdbc:postgresql://localhost/davec</value>
-	</parameter>
-	<parameter>
-		<name>password</name>
-		<value>davec</value>
-	</parameter>
-	<parameter>
-		<name>maxActive</name>
-		<value>4</value>
-	</parameter>
-	<parameter>
-		<name>maxWait</name>
-		<value>5000</value>
-	</parameter>
-	<parameter>
-		<name>driverClassName</name>
-		<value>org.postgresql.Driver</value>
-	</parameter>
-	<parameter>
-		<name>username</name>
-		<value>davec</value>
-	</parameter>
-	<parameter>
-		<name>maxIdle</name>
-		<value>2</value>
-	</parameter>
+    <parameter>
+        <name>validationQuery</name>
+        <value>select version();</value>
+    </parameter>
+    <parameter>
+        <name>url</name>
+        <value>jdbc:postgresql://localhost/davec</value>
+    </parameter>
+    <parameter>
+        <name>password</name>
+        <value>davec</value>
+    </parameter>
+    <parameter>
+        <name>maxActive</name>
+        <value>4</value>
+    </parameter>
+    <parameter>
+        <name>maxWait</name>
+        <value>5000</value>
+    </parameter>
+    <parameter>
+        <name>driverClassName</name>
+        <value>org.postgresql.Driver</value>
+    </parameter>
+    <parameter>
+        <name>username</name>
+        <value>davec</value>
+    </parameter>
+    <parameter>
+        <name>maxIdle</name>
+        <value>2</value>
+    </parameter>
 </ResourceParams>
 ```
 
