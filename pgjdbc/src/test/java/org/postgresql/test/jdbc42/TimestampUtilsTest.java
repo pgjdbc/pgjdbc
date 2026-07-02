@@ -210,4 +210,44 @@ class TimestampUtilsTest {
     assertEquals(PSQLState.BAD_DATETIME_FORMAT.getState(), e.getSQLState(),
         "SQLState of the exception for empty input");
   }
+
+  @Test
+  void toLocalTimeBinRejectsOverflowMicros() {
+    // micros-of-day so large that scaling to nanoseconds overflows a long: corrupt binary time.
+    final byte[] bytes = new byte[8];
+    ByteConverter.int8(bytes, 0, Long.MAX_VALUE);
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> timestampUtils.toLocalTimeBin(bytes),
+        "toLocalTimeBin must reject an out-of-range time with a clean SQLException,"
+            + " not throw an unchecked ArithmeticException");
+    assertEquals(PSQLState.DATETIME_OVERFLOW.getState(), e.getSQLState(),
+        "SQLState for a time value beyond the representable range");
+  }
+
+  @Test
+  void toLocalTimeBinRejectsNegativeMicros() {
+    // A negative micros-of-day cannot map to a LocalTime: corrupt binary time.
+    final byte[] bytes = new byte[8];
+    ByteConverter.int8(bytes, 0, -1L);
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> timestampUtils.toLocalTimeBin(bytes),
+        "toLocalTimeBin must reject a negative time with a clean SQLException,"
+            + " not throw an unchecked DateTimeException");
+    assertEquals(PSQLState.DATETIME_OVERFLOW.getState(), e.getSQLState(),
+        "SQLState for a time value beyond the representable range");
+  }
+
+  @Test
+  void toOffsetTimeBinRejectsOverflowMicros() {
+    // micros-of-day so large that scaling to nanoseconds overflows a long: corrupt binary timetz.
+    final byte[] bytes = new byte[12];
+    ByteConverter.int8(bytes, 0, Long.MAX_VALUE);
+    ByteConverter.int4(bytes, 8, 0);
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> timestampUtils.toOffsetTimeBin(bytes),
+        "toOffsetTimeBin must reject an out-of-range timetz with a clean SQLException,"
+            + " not throw an unchecked ArithmeticException");
+    assertEquals(PSQLState.DATETIME_OVERFLOW.getState(), e.getSQLState(),
+        "SQLState for a timetz value beyond the representable range");
+  }
 }

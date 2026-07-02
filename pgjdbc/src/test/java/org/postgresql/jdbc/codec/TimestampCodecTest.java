@@ -9,12 +9,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.jdbc.TestCodecContext;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -169,6 +171,31 @@ class TimestampCodecTest {
   void encodeText_unsupportedType_throws() {
     assertThrows(PSQLException.class, () ->
         codec.encodeText("not a timestamp", timestampType, ctx));
+  }
+
+  // ==================== encodeBinary ====================
+
+  @Test
+  @SuppressWarnings("JavaUtilDate")
+  void encodeBinary_rejectsOutOfRangeDate() {
+    // PostgreSQL's timestamp range ends at 294276 AD because it counts microseconds since
+    // 2000-01-01 in an int8. A java.util.Date this far in the future overflows that count, so the
+    // server would reject it. The driver must surface the same out-of-range condition as a clean
+    // SQLException rather than leaking an unchecked ArithmeticException from the binary encoder.
+    java.util.Date farFuture = new java.util.Date(Long.MAX_VALUE);
+
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> codec.encodeBinary(farFuture, timestampType, ctx),
+        "encodeBinary must reject an out-of-range Date with a clean SQLException,"
+            + " not an unchecked ArithmeticException");
+    assertEquals(PSQLState.DATETIME_OVERFLOW.getState(), e.getSQLState(),
+        "SQLState for a timestamp value beyond the representable range");
+    // The message names the offending value and the target type so a developer can tell which
+    // parameter is at fault.
+    assertTrue(e.getMessage().contains("292278994"),
+        () -> "out-of-range message should include the offending value, but was: " + e.getMessage());
+    assertTrue(e.getMessage().contains("type timestamp"),
+        () -> "out-of-range message should name the target type, but was: " + e.getMessage());
   }
 
   // ==================== decodeBinaryAs ====================

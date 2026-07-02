@@ -25,6 +25,7 @@ import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.DateTimeException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -571,10 +572,18 @@ public class TimestampUtils {
       micros = ByteConverter.int8(bytes, offset);
     }
 
-    // postgres offset is negative, so we have to flip sign:
-    final ZoneOffset timeOffset = ZoneOffset.ofTotalSeconds(-ByteConverter.int4(bytes, offset + 8));
-
-    return OffsetTime.of(LocalTime.ofNanoOfDay(Math.multiplyExact(micros, 1000L)), timeOffset);
+    try {
+      // postgres offset is negative, so we have to flip sign:
+      ZoneOffset timeOffset = ZoneOffset.ofTotalSeconds(-ByteConverter.int4(bytes, offset + 8));
+      return OffsetTime.of(LocalTime.ofNanoOfDay(Math.multiplyExact(micros, 1000L)), timeOffset);
+    } catch (ArithmeticException | DateTimeException e) {
+      // A well-formed server never sends a timetz outside a single day; a value this far out of
+      // range is corrupt wire data. Surface a clean SQLException instead of leaking an unchecked
+      // ArithmeticException or DateTimeException.
+      throw new PSQLException(
+          GT.tr("Value ''{0}'' is out of range for type {1}", Long.toString(micros), "timetz"),
+          PSQLState.DATETIME_OVERFLOW, e);
+    }
   }
 
   /**
@@ -1605,12 +1614,19 @@ public class TimestampUtils {
       micros = ByteConverter.int8(bytes, offset);
     }
 
-    long nanos = Math.multiplyExact(micros, 1000L);
-
-    if (nanos > MAX_TIME_NANOS) {
-      return LocalTime.MAX;
-    } else {
+    try {
+      long nanos = Math.multiplyExact(micros, 1000L);
+      if (nanos > MAX_TIME_NANOS) {
+        return LocalTime.MAX;
+      }
       return LocalTime.ofNanoOfDay(nanos);
+    } catch (ArithmeticException | DateTimeException e) {
+      // A well-formed server never sends a time outside a single day; a value this far out of
+      // range is corrupt wire data. Surface a clean SQLException instead of leaking an unchecked
+      // ArithmeticException or DateTimeException.
+      throw new PSQLException(
+          GT.tr("Value ''{0}'' is out of range for type {1}", Long.toString(micros), "time"),
+          PSQLState.DATETIME_OVERFLOW, e);
     }
   }
 
@@ -2098,7 +2114,7 @@ public class TimestampUtils {
    * Binary {@code timestamp} (8 bytes): microseconds since 2000-01-01, treating {@code value} as the
    * wall clock (no time zone), matching {@link #toLocalDateTimeBin}.
    */
-  static byte[] toBinTimestamp(boolean usesDouble, LocalDateTime value) {
+  static byte[] toBinTimestamp(boolean usesDouble, LocalDateTime value) throws PSQLException {
     if (value.isAfter(MAX_LOCAL_DATETIME)) {
       return infinityTimestamp(usesDouble, true);
     }
@@ -2110,17 +2126,18 @@ public class TimestampUtils {
     if (nanosExceed499(nano)) {
       value = value.plus(ONE_MICROSECOND);
     }
-    return pgMicrosTimestamp(usesDouble, value.toEpochSecond(ZoneOffset.UTC), nano);
+    return pgMicrosTimestamp(usesDouble, value.toEpochSecond(ZoneOffset.UTC), nano, value,
+        "timestamp");
   }
 
   /** Binary {@code timestamptz} (8 bytes): microseconds since 2000-01-01 UTC. */
-  static byte[] toBinTimestampTz(boolean usesDouble, Instant value) {
+  static byte[] toBinTimestampTz(boolean usesDouble, Instant value) throws PSQLException {
     @SuppressWarnings("JavaLocalDateTimeGetNano")
     int nano = value.getNano();
     if (nanosExceed499(nano)) {
       value = value.plus(ONE_MICROSECOND);
     }
-    return pgMicrosTimestamp(usesDouble, value.getEpochSecond(), nano);
+    return pgMicrosTimestamp(usesDouble, value.getEpochSecond(), nano, value, "timestamptz");
   }
 
   /** Binary {@code timestamp}/{@code timestamptz} infinity (8 bytes). */
@@ -2146,9 +2163,20 @@ public class TimestampUtils {
     return value.toNanoOfDay() / 1000L;
   }
 
-  private static byte[] pgMicrosTimestamp(boolean usesDouble, long javaEpochSec, int nano) {
-    long micros = Math.addExact(
-        Math.multiplyExact(javaEpochSec - PG_EPOCH_SECS, 1_000_000L), nano / 1000L);
+  private static byte[] pgMicrosTimestamp(boolean usesDouble, long javaEpochSec, int nano,
+      Object value, String pgType) throws PSQLException {
+    long micros;
+    try {
+      micros = Math.addExact(
+          Math.multiplyExact(Math.subtractExact(javaEpochSec, PG_EPOCH_SECS), 1_000_000L),
+          nano / 1000L);
+    } catch (ArithmeticException e) {
+      // The value is far enough from the PostgreSQL epoch (2000-01-01) that its microsecond count
+      // no longer fits in an int8, so the server would reject it as well. Report it as the same
+      // out-of-range condition instead of leaking an unchecked ArithmeticException.
+      throw new PSQLException(GT.tr("Value ''{0}'' is out of range for type {1}", value, pgType),
+          PSQLState.DATETIME_OVERFLOW, e);
+    }
     byte[] out = new byte[8];
     writeMicros(usesDouble, out, 0, micros);
     return out;
