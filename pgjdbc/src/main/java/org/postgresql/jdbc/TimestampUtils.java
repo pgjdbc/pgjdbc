@@ -442,6 +442,12 @@ public class TimestampUtils {
         return null;
       }
 
+      if (bytes.length == 0) {
+        throw new PSQLException(
+            GT.tr("Bad value for type timestamp/date/time: {0}", ""),
+            PSQLState.BAD_DATETIME_FORMAT);
+      }
+
       // convert postgres's infinity values to internal infinity magic value
       if (bytes[0] == 'i' && Arrays.equals(bytes,INFINITY)) {
         return new Timestamp(PGStatement.DATE_POSITIVE_INFINITY);

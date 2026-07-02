@@ -6,9 +6,12 @@
 package org.postgresql.test.jdbc42;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -170,5 +173,23 @@ class TimestampUtilsTest {
     assertEquals(OffsetTime.parse(expectedOutput),
         timestampUtils.toOffsetTime(inputTime),
         "timestampUtils.toOffsetTime(" + inputTime + ")");
+  }
+
+  @Test
+  void toTimestampRejectsEmptyString() {
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> timestampUtils.toTimestamp(null, ""),
+        "toTimestamp(null, \"\") must reject empty input, not throw ArrayIndexOutOfBoundsException");
+    assertEquals(PSQLState.BAD_DATETIME_FORMAT.getState(), e.getSQLState(),
+        "SQLState of the exception for empty input");
+  }
+
+  @Test
+  void toTimestampRejectsEmptyByteArray() {
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> timestampUtils.toTimestamp(null, new byte[0]),
+        "toTimestamp(null, new byte[0]) must reject empty input, not throw ArrayIndexOutOfBoundsException");
+    assertEquals(PSQLState.BAD_DATETIME_FORMAT.getState(), e.getSQLState(),
+        "SQLState of the exception for empty input");
   }
 }
