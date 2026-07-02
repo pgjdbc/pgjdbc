@@ -532,7 +532,7 @@ value in the connection properties will be used.
 
 * **`requireAuth (`*String*`)`** *Default `null`*\
 Comma-separated list of acceptable authentication methods. Use '!' prefix to reject methods (e.g., '!password' to reject cleartext). 
-Supported methods: `password`, `md5`, `gss`, `sspi`, `scram-sha-256`, `none`. Cannot mix positive and negative options.
+Supported methods: `password`, `md5`, `gss`, `sspi`, `scram-sha-256`, `oauth-bearer`, `none`. Cannot mix positive and negative options.
 Examples: `requireAuth=md5,scram-sha-256` (allow only MD5 or SCRAM-SHA-256), `requireAuth=!password,!none` (reject cleartext and trust authentication).
 
 * **`scramMaxIterations (`*int*`)`** *Default `100000`*\
@@ -540,6 +540,19 @@ Maximum PBKDF2 iteration count that pgjdbc will accept from the server during SC
 During SCRAM-SHA-256 authentication, the server sends the iteration count used to derive the salted password. If the server advertises a value higher than `scramMaxIterations`, the driver rejects authentication before starting the PBKDF2 computation.
 This limits client CPU exposure if a malicious or compromised server sends an excessively large iteration count.
 A value of zero disables this check.
+
+* **`oauthToken (`*String*`)`** *Default `null`*\
+OAuth 2.0 bearer token used for OAUTHBEARER (RFC 7628) authentication, as introduced in PostgreSQL 18.
+Takes precedence over `oauthTokenProviderClassName`.
+
+* **`oauthTokenProviderClassName (`*String*`)`** *Default `null`*\
+Fully qualified name of a class implementing the `org.postgresql.plugin.OAuthTokenProvider` interface, used to
+obtain an OAuth bearer token at connection time. Ignored when `oauthToken` is set.
+
+* **`oauthAllowUnencrypted (`*boolean*`)`** *Default `false`*\
+Allow OAUTHBEARER authentication over a connection that is not encrypted by TLS or GSS. RFC 7628 §4 requires a
+confidential channel, so this is disabled by default. Enabling it is intended for development and testing only and
+logs a warning; do not enable it in production.
 
 ### Unix sockets
 

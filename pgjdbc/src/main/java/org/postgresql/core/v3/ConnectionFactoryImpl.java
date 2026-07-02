@@ -32,6 +32,7 @@ import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.SslMode;
 import org.postgresql.jdbc.SslNegotiation;
 import org.postgresql.plugin.AuthenticationRequestType;
+import org.postgresql.plugin.OAuthTokenProvider;
 import org.postgresql.ssl.MakeSSL;
 import org.postgresql.sspi.ISSPIClient;
 import org.postgresql.util.ClassLoaderStrategy;
@@ -39,11 +40,13 @@ import org.postgresql.util.ClassUtils;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.MD5Digest;
+import org.postgresql.util.ObjectFactory;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
 import org.postgresql.util.internal.Nullness;
 
+import com.ongres.scram.common.ScramMechanism;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
@@ -313,6 +316,47 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       closeStream(newStream, e);
       throw e;
     }
+  }
+
+  private static boolean isOAuthConfigured(Properties info) {
+    String staticToken = PGProperty.OAUTH_TOKEN.getOrDefault(info);
+    if (staticToken != null && !staticToken.isEmpty()) {
+      return true;
+    }
+    String providerClass = PGProperty.OAUTH_TOKEN_PROVIDER_CLASS_NAME.getOrDefault(info);
+    if (providerClass != null && !providerClass.isEmpty()) {
+      return true;
+    }
+    return false;
+  }
+
+  private static char @Nullable [] resolveOAuthToken(Properties info) throws PSQLException {
+    String tokenText = PGProperty.OAUTH_TOKEN.getOrDefault(info);
+    if (tokenText != null && !tokenText.isEmpty()) {
+      return tokenText.toCharArray();
+    }
+
+    String providerClassName = PGProperty.OAUTH_TOKEN_PROVIDER_CLASS_NAME.getOrDefault(info);
+    if (providerClassName != null && !providerClassName.isEmpty()) {
+      OAuthTokenProvider provider;
+      try {
+        provider = ObjectFactory.instantiate(OAuthTokenProvider.class, providerClassName, info, false,
+            null);
+      } catch (Exception ex) {
+        throw new PSQLException(
+            GT.tr("Unable to load OAuth token provider {0}", providerClassName),
+            PSQLState.INVALID_PARAMETER_VALUE, ex);
+      }
+
+      char [] token = provider.getToken();
+      if (token == null || token.length == 0) {
+        throw new PSQLException(
+            GT.tr("OAuth token provider returned no token"),
+            PSQLState.CONNECTION_REJECTED);
+      }
+      return token;
+    }
+    return null;
   }
 
   @Override
@@ -789,6 +833,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     /* SCRAM authentication state, if used */
     ScramAuthenticator scramAuthenticator = null;
+
+    /* OAuth authentication state, if used */
+    OAuthAuthenticator oauthAuthenticator = null;
+
     // TODO: figure out how to deal with new protocols
     int protocol = 3 << 16;
 
@@ -996,41 +1044,111 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 pgStream.setFinishedAuthenticationRequests();
                 break;
 
-              case AUTH_REQ_SASL:
-                AuthMethod.checkAuth(authMethods, AuthMethod.SCRAM_SHA_256);
-                int scramMaxIterations = PGProperty.SCRAM_MAX_ITERATIONS.getInt(info);
-                if (scramMaxIterations < 0) {
+              case AUTH_REQ_SASL: {
+                List<String> saslMechanisms = readMechanisms(pgStream);
+
+                if (saslMechanisms.contains(OAuthAuthenticator.SASL_MECHANISM)
+                    && AuthMethod.isAllowed(authMethods, AuthMethod.OAUTH_BEARER)
+                    && isOAuthConfigured(info)) {
+                  // OAuth
+
+                  if (channelBinding == ChannelBinding.REQUIRE) {
+                    throw new PSQLException(
+                        GT.tr("Channel binding is not supported for OAuth authentication."),
+                        PSQLState.CONNECTION_REJECTED);
+                  }
+
+                  boolean allowUnencrypted =
+                      PGProperty.OAUTH_ALLOW_UNENCRYPTED.getBoolean(info);
+                  oauthAuthenticator = new OAuthAuthenticator(pgStream, allowUnencrypted);
+                  char [] oauthToken = resolveOAuthToken(info);
+                  try {
+                    if (oauthToken != null) {
+                      oauthAuthenticator.handleAuthenticationSASL(oauthToken);
+                    }
+                  } finally {
+                    if (oauthToken != null) {
+                      /* Cleanup token */
+                      Arrays.fill(oauthToken, (char) 0);
+                    }
+                  }
+
+                  if (oauthToken != null) {
+                    /*
+                     * If we actually sent token, then we don't expect any more authentication requests, 
+                     * so we can mark authentication as finished. If token was empty, then server will send
+                     * discovery information and we will finish the authentication later.
+                     */
+                     pgStream.setFinishedAuthenticationRequests();
+                  }
+
+                } else if (saslMechanisms.stream().anyMatch(element -> ScramMechanism.supportedMechanisms().contains(element))
+                    && AuthMethod.isAllowed(authMethods, AuthMethod.SCRAM_SHA_256)) {
+                  // SCRAM
+                  int scramMaxIterations = PGProperty.SCRAM_MAX_ITERATIONS.getInt(info);
+                  if (scramMaxIterations < 0) {
+                    throw new PSQLException(
+                        GT.tr("{0} must be a non-negative integer, but was: {1}",
+                            PGProperty.SCRAM_MAX_ITERATIONS.getName(), scramMaxIterations),
+                        PSQLState.INVALID_PARAMETER_VALUE);
+                  }
+                  scramAuthenticator =
+                      AuthenticationPluginManager.<ScramAuthenticator>withPassword(
+                          AuthenticationRequestType.SASL, info, password -> {
+                            if (password == null) {
+                              throw new PSQLException(
+                                  GT.tr("The server requested SCRAM-based authentication,"
+                                      + " but no password was provided."),
+                                  PSQLState.CONNECTION_REJECTED);
+                            }
+                            if (password.length == 0) {
+                              throw new PSQLException(
+                                  GT.tr("The server requested SCRAM-based authentication,"
+                                      + " but the password is an empty string."),
+                                  PSQLState.CONNECTION_REJECTED);
+                            }
+                            return new ScramAuthenticator(password, pgStream, channelBinding,
+                                scramMaxIterations, saslMechanisms);
+                          });
+                  scramAuthenticator.handleAuthenticationSASL();
+                } else {
                   throw new PSQLException(
-                      GT.tr("{0} must be a non-negative integer, but was: {1}",
-                          PGProperty.SCRAM_MAX_ITERATIONS.getName(), scramMaxIterations),
-                      PSQLState.INVALID_PARAMETER_VALUE);
+                      GT.tr("The server requested SASL authentication with mechanisms {0}, "
+                          + "but non of them configured or supported by the driver.",
+                          saslMechanisms),
+                      PSQLState.CONNECTION_REJECTED);
                 }
-                scramAuthenticator = AuthenticationPluginManager.<ScramAuthenticator>withPassword(AuthenticationRequestType.SASL, info, password -> {
-                  if (password == null) {
-                    throw new PSQLException(
-                        GT.tr(
-                            "The server requested SCRAM-based authentication, but no password was provided."),
-                        PSQLState.CONNECTION_REJECTED);
-                  }
-                  if (password.length == 0) {
-                    throw new PSQLException(
-                        GT.tr(
-                            "The server requested SCRAM-based authentication, but the password is an empty string."),
-                        PSQLState.CONNECTION_REJECTED);
-                  }
-                  return new ScramAuthenticator(password, pgStream, channelBinding, scramMaxIterations);
-                });
-                scramAuthenticator.handleAuthenticationSASL();
                 break;
+              }
 
               case AUTH_REQ_SASL_CONTINUE:
-                castNonNull(scramAuthenticator).handleAuthenticationSASLContinue(msgLen - 4 - 4);
+                if (oauthAuthenticator != null) {
+                  oauthAuthenticator.handleAuthenticationSASLContinue(msgLen - 4 - 4);
+                  // At this point we can mark authentication as finished, as we don't expect any more requests from the server
+                  pgStream.setFinishedAuthenticationRequests(); 
+                } else if (scramAuthenticator != null) {
+                  scramAuthenticator.handleAuthenticationSASLContinue(msgLen - 4 - 4);
+                } else {
+                  throw new PSQLException(
+                      GT.tr("SASL CONTINUE message received out of order."),
+                      PSQLState.PROTOCOL_VIOLATION);
+                }
                 break;
 
               case AUTH_REQ_SASL_FINAL:
-                castNonNull(scramAuthenticator).handleAuthenticationSASLFinal(msgLen - 4 - 4);
-                saslHandshakeCompleted = true;
-                pgStream.setFinishedAuthenticationRequests();
+                if (scramAuthenticator != null) {
+                  scramAuthenticator.handleAuthenticationSASLFinal(msgLen - 4 - 4);
+                  saslHandshakeCompleted = true;
+                  pgStream.setFinishedAuthenticationRequests();
+                } else if (oauthAuthenticator != null) {
+                  throw new PSQLException(
+                      GT.tr("Unexpected SASL FINAL message received for OAuth authentication."),
+                      PSQLState.PROTOCOL_VIOLATION);
+                } else {
+                  throw new PSQLException(
+                      GT.tr("SASL FINAL message received out of order."),
+                      PSQLState.PROTOCOL_VIOLATION);
+                }
                 break;
 
               case AUTH_REQ_OK:
@@ -1071,6 +1189,28 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
       }
     }
+}
+
+  /*
+   * Reads the null-terminated mechanism list from an AuthenticationSASL message body.
+   * For the format see https://www.postgresql.org/docs/current/protocol-message-formats.html#PROTOCOL-MESSAGE-FORMATS-AUTHENTICATIONSASL
+   */
+  static List<String> readMechanisms(PGStream stream) throws PSQLException, IOException {
+    List<String> mechanisms = new ArrayList<>();
+
+    do {
+      mechanisms.add(stream.receiveString());
+    } while (stream.peekChar() != 0);
+    int c = stream.receiveChar();
+    assert c == 0;
+
+    if (mechanisms.isEmpty()) {
+      throw new PSQLException(
+          GT.tr("Received AuthenticationSASL message with 0 mechanisms!"),
+          PSQLState.CONNECTION_REJECTED);
+    }
+    LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL( {0} )", mechanisms);
+    return mechanisms;
   }
 
   private static void runInitialQueries(QueryExecutor queryExecutor, Properties info)

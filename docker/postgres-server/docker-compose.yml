@@ -1,6 +1,7 @@
 services:
   pgdb:
     image: ${PG_IMAGE:-postgres:${PGV:-latest}}
+    platform: linux/amd64
     # With the default pull_policy (missing) this section is ignored and the
     # official postgres:<PGV> is pulled; force a build with PG_PULL_POLICY=build.
     build:
@@ -24,6 +25,7 @@ services:
       - SSL=${SSL:-yes}
       - XA=${XA:-yes}
       - SCRAM=${SCRAM:-yes}
+      - OAUTH=${OAUTH:-no}
       - TZ=${TZ:-Etc/UTC}
       - FSYNC=${FSYNC:-no}
       - SYNC_COMMIT=${SYNC_COMMIT:-yes}
@@ -49,3 +51,31 @@ services:
       timeout: 5s
       retries: 30
       start_period: 30s
+    depends_on:
+      keycloak:
+        condition: service_healthy
+        required: false
+
+  keycloak:
+    profiles: [oauth]
+    image: quay.io/keycloak/keycloak:latest
+    hostname: keycloak
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: "true"
+      KC_HOSTNAME: keycloak
+      KC_HOSTNAME_PORT: 8080
+      # Allow requests via localhost (host port mapping) in addition to keycloak hostname.
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "true"
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
+    ports:
+      - "127.0.0.1:8080:8080"
+    command: start-dev --import-realm
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080"]
+      interval: 5s
+      timeout: 3s
+      retries: 60

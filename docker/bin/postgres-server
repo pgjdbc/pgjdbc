@@ -11,6 +11,7 @@ set -euo pipefail
 #    SSL   = "yes" | "no"                   - Whether to enable SSL
 #    XA    = "yes" | "no"                   - Whether to enable XA for prepared transactions
 #    SCRAM = "yes" | "no"                   - Whether to enable SCRAM authentication
+#    OAUTH = "yes" | "no"                   - Whether to start Keycloak and enable OAuth (PG 18 only)
 #    TZ    = "Etc/UTC" | ...                - Override server timezone (default Etc/UTC)
 #    CREATE_REPLICAS = "yes" | "no"         - Whether to create two streaming replicas (defaults to off)
 #
@@ -40,6 +41,10 @@ set -euo pipefail
 # To start the default (latest) version with read only replicas:
 #
 #     CREATE_REPLICAS=on docker/bin/postgres-server
+#
+# To start a PostgreSQL 18 server with Keycloak for OAuth testing:
+#
+#     PGV=18 OAUTH=yes docker/bin/postgres-server
 
 log () {
     echo "$@" 1>&2
@@ -53,6 +58,13 @@ main () {
     # Determine our current directory and change to be in the same directory as the compose file
     local script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
     cd "${script_dir}/../postgres-server"
+
+    # OAUTH=yes pulls in the Keycloak service, which lives behind the "oauth"
+    # compose profile. Enabling the profile lets `run pgdb` start it as a dependency.
+    if [ "${OAUTH:-no}" = "yes" ]; then
+        export COMPOSE_PROFILES=oauth
+        log "Using oauth compose profile"
+    fi
 
     log "Starting Postgres server and mapping to local port ${publish_port}"
     exec docker compose run \

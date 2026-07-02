@@ -148,6 +148,9 @@ jobs:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
       TZ: ${{ matrix.tz }}
+      # Enable the docker-compose 'oauth' profile (starts Keycloak) for oauth=yes rows.
+      # Applied at job level so the start, log-collection, and cleanup steps all agree.
+      COMPOSE_PROFILES: ${{ matrix.oauth == 'yes' && 'oauth' || '' }}
     steps:
     - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       with:
@@ -161,6 +164,7 @@ jobs:
         XA: ${{ matrix.xa }}
         SSL: ${{ matrix.ssl }}
         SCRAM: ${{ matrix.scram }}
+        OAUTH: ${{ matrix.oauth }}
         CREATE_REPLICAS: ${{ matrix.replication }}
         PG_IMAGE: ${{ matrix.pg_version == 'HEAD' && 'pgjdbc/postgres-devel:ci-head' || '' }}
         PG_PULL_POLICY: ${{ matrix.pg_version == 'HEAD' && 'build' || 'missing' }}
