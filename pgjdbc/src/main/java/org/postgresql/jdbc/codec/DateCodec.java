@@ -71,6 +71,8 @@ public final class DateCodec implements BinaryCodec, TextCodec {
       long time = ((java.util.Date) value).getTime();
       TemporalCodecs.encodeDateBin(new Date(time), result, ctx);
     } else if (value instanceof String) {
+      // decodeDateText already rejects a malformed literal with a clean SQLException (the parser no
+      // longer leaks an ArrayIndexOutOfBoundsException), so the binary path needs no extra wrapping.
       TemporalCodecs.encodeDateBin(TemporalCodecs.decodeDateText((String) value, ctx), result, ctx);
     } else {
       throw Codec.cannotEncode(value, "date");
@@ -101,15 +103,10 @@ public final class DateCodec implements BinaryCodec, TextCodec {
       return TemporalCodecs.formatDate(new Date(time), ctx);
     }
     if (value instanceof String) {
-      // setObject(i, "2024-01-01", Types.DATE) and friends — parse the literal so
-      // we match the legacy behavior of the driver.
-      try {
-        return TemporalCodecs.formatDate(TemporalCodecs.decodeDateText((String) value, ctx), ctx);
-      } catch (Exception e) {
-        throw new PSQLException(
-            GT.tr("Cannot convert {0} to date", value),
-            PSQLState.INVALID_PARAMETER_TYPE, e);
-      }
+      // setObject(i, "2024-01-01", Types.DATE) and friends — parse the literal so we match the
+      // legacy behavior of the driver. decodeDateText rejects a malformed literal with a clean
+      // SQLException (BAD_DATETIME_FORMAT), so no extra wrapping is needed here.
+      return TemporalCodecs.formatDate(TemporalCodecs.decodeDateText((String) value, ctx), ctx);
     }
     throw Codec.cannotEncode(value, "date");
   }

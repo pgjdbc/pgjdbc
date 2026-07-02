@@ -401,41 +401,77 @@ public class TimestampUtils {
         throw new NumberFormatException("Timestamp has neither date nor time");
       }
 
-    } catch (NumberFormatException nfe) {
-      throw new PSQLException(
-          GT.tr("Bad value for type timestamp/date/time: {0}",
-              new String(s, offset, length, StandardCharsets.UTF_8)),
-          PSQLState.BAD_DATETIME_FORMAT, nfe);
+    } catch (NumberFormatException | DateTimeException e) {
+      // A "+34" zone offset (or any other out-of-range field) makes ZoneOffset.ofHoursMinutesSeconds
+      // throw an unchecked DateTimeException; fold it into the same error the digit parser raises so
+      // a malformed literal never leaks an unchecked exception to the caller.
+      throw badDateTimeValue(s, offset, length, e);
     }
 
     return result;
   }
 
-  private static ParsedTimestamp parseDate(byte[] dateBytes) {
+  /**
+   * Reports a malformed temporal literal — one the parser cannot make sense of at all, such as a
+   * value with the wrong separators, trailing junk, or an out-of-range zone offset that
+   * {@link ZoneOffset} rejects while the type is still unknown. Reuses the {@code invalid_datetime_format}
+   * SQLSTATE (22007) the digit parser already raises, so a malformed literal never leaks an unchecked
+   * exception. Use {@link #outOfRangeValue} instead once the type is known and only a single field is
+   * out of range.
+   */
+  private static PSQLException badDateTimeValue(byte[] s, int offset, int length, Exception cause) {
+    return new PSQLException(
+        GT.tr("Bad value for type timestamp/date/time: {0}",
+            new String(s, offset, length, StandardCharsets.UTF_8)),
+        PSQLState.BAD_DATETIME_FORMAT, cause);
+  }
+
+  /**
+   * Reports a syntactically valid temporal literal whose field is out of range for {@code type} — a
+   * 13th month, a 25th hour — which makes {@link OffsetTime}, {@link LocalDateTime}, or
+   * {@link OffsetDateTime} throw an unchecked {@link DateTimeException}. Mirrors the binary codecs:
+   * same {@code "out of range"} message and {@code datetime_field_overflow} SQLSTATE (22008).
+   */
+  private static PSQLException outOfRangeValue(byte[] s, int offset, int length, String type,
+      DateTimeException cause) {
+    return new PSQLException(
+        GT.tr("Value ''{0}'' is out of range for type {1}",
+            new String(s, offset, length, StandardCharsets.UTF_8), type),
+        PSQLState.DATETIME_OVERFLOW, cause);
+  }
+
+  private static ParsedTimestamp parseDate(byte[] dateBytes) throws SQLException {
     return parseDate(dateBytes, 0, dateBytes.length);
   }
 
-  private static ParsedTimestamp parseDate(byte[] dateBytes, int offset, int len) {
+  private static ParsedTimestamp parseDate(byte[] dateBytes, int offset, int len) throws SQLException {
     ParsedTimestamp parsedTimestamp = new ParsedTimestamp();
     int end = offset + len;
 
-    if (dateBytes[end - 2] == 'B' && dateBytes[end - 1] == 'C') {
-      end = end - 3;
-      parsedTimestamp.era = GregorianCalendar.BC;
-    }
-    int var1 = offset;
-    for (parsedTimestamp.year = 0; dateBytes[var1] != 45; parsedTimestamp.year = parsedTimestamp.year * 10 + (dateBytes[var1++] - 48)) {
-    }
+    try {
+      if (dateBytes[end - 2] == 'B' && dateBytes[end - 1] == 'C') {
+        end = end - 3;
+        parsedTimestamp.era = GregorianCalendar.BC;
+      }
+      int var1 = offset;
+      for (parsedTimestamp.year = 0; dateBytes[var1] != 45; parsedTimestamp.year = parsedTimestamp.year * 10 + (dateBytes[var1++] - 48)) {
+      }
 
-    ++var1;
+      ++var1;
 
-    for (parsedTimestamp.month = 0; dateBytes[var1] != 45; parsedTimestamp.month = parsedTimestamp.month * 10 + (dateBytes[var1++] - 48)) {
-    }
+      for (parsedTimestamp.month = 0; dateBytes[var1] != 45; parsedTimestamp.month = parsedTimestamp.month * 10 + (dateBytes[var1++] - 48)) {
+      }
 
-    ++var1;
+      ++var1;
 
-    for (parsedTimestamp.day = 0; var1 < end; parsedTimestamp.day = parsedTimestamp.day * 10 + (dateBytes[var1++] - 48)) {
+      for (parsedTimestamp.day = 0; var1 < end; parsedTimestamp.day = parsedTimestamp.day * 10 + (dateBytes[var1++] - 48)) {
 
+      }
+    } catch (ArrayIndexOutOfBoundsException e) {
+      // A date literal without the expected `yyyy-mm-dd` dashes (or shorter than "yyyy") runs the
+      // digit scan off the end of the array; reject it cleanly instead of leaking an
+      // ArrayIndexOutOfBoundsException to the caller.
+      throw badDateTimeValue(dateBytes, offset, len, e);
     }
 
     return parsedTimestamp;
@@ -625,7 +661,11 @@ public class TimestampUtils {
     }
 
     final ParsedTimestamp ts = parseBackendTimestamp(bytes, offset, length);
-    return OffsetTime.of(ts.hour, ts.minute, ts.second, ts.nanos, ts.offset);
+    try {
+      return OffsetTime.of(ts.hour, ts.minute, ts.second, ts.nanos, ts.offset);
+    } catch (DateTimeException e) {
+      throw outOfRangeValue(bytes, offset, length, "timetz", e);
+    }
   }
 
   /**
@@ -667,11 +707,16 @@ public class TimestampUtils {
 
     // intentionally ignore time zone
     // 2004-10-19 10:23:54+03:00 is 2004-10-19 10:23:54 locally
-    LocalDateTime result = LocalDateTime.of(ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.nanos);
-    if (ts.era == GregorianCalendar.BC) {
-      return result.with(ChronoField.ERA, IsoEra.BCE.getValue());
-    } else {
-      return result;
+    try {
+      LocalDateTime result =
+          LocalDateTime.of(ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.nanos);
+      if (ts.era == GregorianCalendar.BC) {
+        return result.with(ChronoField.ERA, IsoEra.BCE.getValue());
+      } else {
+        return result;
+      }
+    } catch (DateTimeException e) {
+      throw outOfRangeValue(bytes, offset, length, "timestamp", e);
     }
   }
 
@@ -737,12 +782,16 @@ public class TimestampUtils {
     }
 
     final ParsedTimestamp ts = parseBackendTimestamp(bytes, offset, length);
-    OffsetDateTime result =
-        OffsetDateTime.of(ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.nanos, ts.offset);
-    if (ts.era == GregorianCalendar.BC) {
-      return result.with(ChronoField.ERA, IsoEra.BCE.getValue());
-    } else {
-      return result;
+    try {
+      OffsetDateTime result =
+          OffsetDateTime.of(ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.nanos, ts.offset);
+      if (ts.era == GregorianCalendar.BC) {
+        return result.with(ChronoField.ERA, IsoEra.BCE.getValue());
+      } else {
+        return result;
+      }
+    } catch (DateTimeException e) {
+      throw outOfRangeValue(bytes, offset, length, "timestamptz", e);
     }
   }
 
@@ -861,6 +910,11 @@ public class TimestampUtils {
 
   static Date toDate(byte[] dateBytes, TimeZone userTz, @Nullable Calendar scratch)
       throws SQLException {
+    if (dateBytes.length == 0) {
+      throw new PSQLException(
+          GT.tr("Bad value for type timestamp/date/time: {0}", ""),
+          PSQLState.BAD_DATETIME_FORMAT);
+    }
     if (dateBytes[0] == 'i' && Arrays.equals(INFINITY, dateBytes)) {
       return new Date(PGStatement.DATE_POSITIVE_INFINITY);
     }
@@ -909,6 +963,11 @@ public class TimestampUtils {
   }
 
   static LocalDate toLocalDate(byte[] dateBytes, int offset, int length) throws SQLException {
+    if (length == 0) {
+      throw new PSQLException(
+          GT.tr("Bad value for type timestamp/date/time: {0}", ""),
+          PSQLState.BAD_DATETIME_FORMAT);
+    }
     if (dateBytes[offset] == 'i' && regionEquals(dateBytes, offset, length, INFINITY)) {
       return LocalDateTime.MAX.toLocalDate();
     }
@@ -916,11 +975,16 @@ public class TimestampUtils {
       return LocalDateTime.MIN.toLocalDate();
     }
     ParsedTimestamp pt = parseDate(dateBytes, offset, length);
-    LocalDateTime ldt = LocalDateTime.of(pt.year, pt.month, pt.day, pt.hour, pt.minute, pt.second, pt.nanos);
-    if (pt.era == GregorianCalendar.BC) {
-      return ldt.toLocalDate().with(ChronoField.ERA, IsoEra.BCE.getValue());
-    } else {
-      return ldt.toLocalDate();
+    try {
+      LocalDateTime ldt =
+          LocalDateTime.of(pt.year, pt.month, pt.day, pt.hour, pt.minute, pt.second, pt.nanos);
+      if (pt.era == GregorianCalendar.BC) {
+        return ldt.toLocalDate().with(ChronoField.ERA, IsoEra.BCE.getValue());
+      } else {
+        return ldt.toLocalDate();
+      }
+    } catch (DateTimeException e) {
+      throw outOfRangeValue(dateBytes, offset, length, "date", e);
     }
   }
 

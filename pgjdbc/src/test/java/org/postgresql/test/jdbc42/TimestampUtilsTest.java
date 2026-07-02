@@ -16,6 +16,7 @@ import org.postgresql.util.PSQLState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.time.LocalTime;
 import java.time.OffsetTime;
@@ -249,5 +250,100 @@ class TimestampUtilsTest {
             + " not throw an unchecked ArithmeticException");
     assertEquals(PSQLState.DATETIME_OVERFLOW.getState(), e.getSQLState(),
         "SQLState for a timetz value beyond the representable range");
+  }
+
+  @Test
+  void toTimeRejectsOutOfRangeZoneOffset() {
+    // A "+34" zone offset is outside the ±18:00 range java.time allows, so
+    // ZoneOffset.ofHoursMinutesSeconds throws DateTimeException while parsing.
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> timestampUtils.toTime(null, "00:00:00+34"),
+        "toTime must reject an out-of-range zone offset with a clean SQLException,"
+            + " not throw an unchecked DateTimeException");
+    assertEquals(PSQLState.BAD_DATETIME_FORMAT.getState(), e.getSQLState(),
+        "SQLState for a time with an out-of-range zone offset");
+  }
+
+  @Test
+  void toOffsetTimeRejectsOutOfRangeHour() {
+    // Hour 34 is not a valid time-of-day, so OffsetTime.of throws DateTimeException.
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> timestampUtils.toOffsetTime("34:00:00+01"),
+        "toOffsetTime must reject an out-of-range hour with a clean SQLException,"
+            + " not throw an unchecked DateTimeException");
+    assertEquals(PSQLState.DATETIME_OVERFLOW.getState(), e.getSQLState(),
+        "SQLState for a timetz with an out-of-range hour");
+  }
+
+  @Test
+  void toLocalDateTimeRejectsOutOfRangeMonth() {
+    // Month 13 is not a valid month, so LocalDateTime.of throws DateTimeException.
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> timestampUtils.toLocalDateTime("2024-13-01 00:00:00"),
+        "toLocalDateTime must reject an out-of-range month with a clean SQLException,"
+            + " not throw an unchecked DateTimeException");
+    assertEquals(PSQLState.DATETIME_OVERFLOW.getState(), e.getSQLState(),
+        "SQLState for a timestamp with an out-of-range month");
+  }
+
+  @Test
+  void toOffsetDateTimeRejectsOutOfRangeMonth() {
+    // Month 13 is not a valid month, so OffsetDateTime.of throws DateTimeException.
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> timestampUtils.toOffsetDateTime("2024-13-01 00:00:00+00"),
+        "toOffsetDateTime must reject an out-of-range month with a clean SQLException,"
+            + " not throw an unchecked DateTimeException");
+    assertEquals(PSQLState.DATETIME_OVERFLOW.getState(), e.getSQLState(),
+        "SQLState for a timestamptz with an out-of-range month");
+  }
+
+  @Test
+  void toLocalDateRejectsOutOfRangeMonth() {
+    // Month 13 is not a valid month, so LocalDate parsing throws DateTimeException.
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> timestampUtils.toLocalDate("2024-13-01".getBytes(StandardCharsets.UTF_8)),
+        "toLocalDate must reject an out-of-range month with a clean SQLException,"
+            + " not throw an unchecked DateTimeException");
+    assertEquals(PSQLState.DATETIME_OVERFLOW.getState(), e.getSQLState(),
+        "SQLState for a date with an out-of-range month");
+  }
+
+  @Test
+  void toDateRejectsEmptyString() {
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> timestampUtils.toDate(null, ""),
+        "toDate(null, \"\") must reject empty input, not throw ArrayIndexOutOfBoundsException");
+    assertEquals(PSQLState.BAD_DATETIME_FORMAT.getState(), e.getSQLState(),
+        "SQLState of the exception for empty input");
+  }
+
+  @Test
+  void toDateRejectsMissingDashes() {
+    // A date literal without the "yyyy-mm-dd" dashes runs the digit scan off the end of the array.
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> timestampUtils.toDate(null, "20240101"),
+        "toDate must reject a date without dashes with a clean SQLException,"
+            + " not throw an unchecked ArrayIndexOutOfBoundsException");
+    assertEquals(PSQLState.BAD_DATETIME_FORMAT.getState(), e.getSQLState(),
+        "SQLState for a date literal without the expected dashes");
+  }
+
+  @Test
+  void toLocalDateRejectsEmptyByteArray() {
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> timestampUtils.toLocalDate(new byte[0]),
+        "toLocalDate(new byte[0]) must reject empty input, not throw ArrayIndexOutOfBoundsException");
+    assertEquals(PSQLState.BAD_DATETIME_FORMAT.getState(), e.getSQLState(),
+        "SQLState of the exception for empty input");
+  }
+
+  @Test
+  void toLocalDateRejectsMissingDashes() {
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> timestampUtils.toLocalDate("20240101".getBytes(StandardCharsets.UTF_8)),
+        "toLocalDate must reject a date without dashes with a clean SQLException,"
+            + " not throw an unchecked ArrayIndexOutOfBoundsException");
+    assertEquals(PSQLState.BAD_DATETIME_FORMAT.getState(), e.getSQLState(),
+        "SQLState for a date literal without the expected dashes");
   }
 }
