@@ -394,12 +394,12 @@ plan and, since PostgreSQL® 9.3, re-plans the statement when that path changes,
 statement still returns rows from the table the current `search_path` selects. (Releases before 9.3 keep the old plan
 and may read the previously resolved table.)
 
-What pgJDBC adds is a cache optimisation. It watches for `search_path` changes and invalidates its prepared statement
-cache so the next execution re-prepares against the new path: top-level `set search_path...` and `reset` commands on any
-server, and, on PostgreSQL® 18 and later that report `search_path` to the client (`GUC_REPORT`), changes made anywhere,
-including inside pl/pgsql. This avoids the `cached plan must not change result type` error when the new path resolves to
-a table with a different column layout (for example, `SELECT *` over `app_v1.mytable` and `app_v2.mytable` with
-different columns).
+What pgJDBC adds is a cache optimisation. It watches for `search_path` value changes and invalidates its prepared
+statement cache so the next execution re-prepares against the new path: top-level `set search_path...` and `reset`
+commands on any server, and, on PostgreSQL® 18 and later that report `search_path` to the client (`GUC_REPORT`), any
+change to that value, wherever it is made, including inside pl/pgsql. This avoids the
+`cached plan must not change result type` error when the new path resolves to a table with a different column layout
+(for example, `SELECT *` over `app_v1.mytable` and `app_v2.mytable` with different columns).
 
 The recommendation is:
 
@@ -408,7 +408,13 @@ so the affected statements have to be re-prepared.
 2. Keep `set search_path` at the top level on PostgreSQL® 17 and older. There pgJDBC detects only top-level commands, so
 a change hidden inside pl/pgsql or a function is invisible to it: it cannot re-prepare against the new path, and reusing
 a cached statement can then fail with `cached plan must not change result type`. PostgreSQL® 18 reports `search_path`
-changes to the client (`GUC_REPORT`), so pgJDBC detects them wherever they happen and re-prepares automatically.
+value changes to the client (`GUC_REPORT`), so pgJDBC detects those wherever they happen and re-prepares automatically.
+
+> **Note**
+>
+> Detection keys on the `search_path` value. `SET ROLE` and `SET SESSION AUTHORIZATION` change the schema `"$user"`
+> selects without changing the `search_path` value, so the change is not reported and pgJDBC does not re-prepare. On any
+> server version, reusing a cached statement after such a change can fail with `cached plan must not change result type`.
 
 #### Re-execution of failed statements
 
