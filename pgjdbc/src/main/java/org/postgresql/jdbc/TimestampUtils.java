@@ -482,6 +482,12 @@ public class TimestampUtils {
    */
   static Timestamp toTimestamp(byte[] bytes, TimeZone userTz, @Nullable Calendar scratch)
       throws SQLException {
+    if (bytes.length == 0) {
+      throw new PSQLException(
+          GT.tr("Bad value for type timestamp/date/time: {0}", ""),
+          PSQLState.BAD_DATETIME_FORMAT);
+    }
+
     // convert postgres's infinity values to internal infinity magic value
     if (bytes[0] == 'i' && Arrays.equals(bytes, INFINITY)) {
       return new Timestamp(PGStatement.DATE_POSITIVE_INFINITY);
@@ -706,6 +712,12 @@ public class TimestampUtils {
   }
 
   static OffsetDateTime toOffsetDateTime(byte[] bytes, int offset, int length) throws SQLException {
+    if (length == 0) {
+      throw new PSQLException(
+          GT.tr("Bad value for type timestamp/date/time: {0}", ""),
+          PSQLState.BAD_DATETIME_FORMAT);
+    }
+
     // convert postgres's infinity values to internal infinity magic value
     if (bytes[offset] == 'i' && regionEquals(bytes, offset, length, INFINITY)) {
       return OffsetDateTime.MAX;

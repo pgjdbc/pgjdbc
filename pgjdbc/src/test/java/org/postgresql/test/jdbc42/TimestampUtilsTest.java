@@ -192,4 +192,22 @@ class TimestampUtilsTest {
     assertEquals(PSQLState.BAD_DATETIME_FORMAT.getState(), e.getSQLState(),
         "SQLState of the exception for empty input");
   }
+
+  @Test
+  void toOffsetDateTimeRejectsEmptyString() {
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> timestampUtils.toOffsetDateTime(""),
+        "toOffsetDateTime(\"\") must reject empty input, not throw ArrayIndexOutOfBoundsException");
+    assertEquals(PSQLState.BAD_DATETIME_FORMAT.getState(), e.getSQLState(),
+        "SQLState of the exception for empty input");
+  }
+
+  @Test
+  void toOffsetDateTimeRejectsEmptyByteArray() {
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> timestampUtils.toOffsetDateTime(new byte[0]),
+        "toOffsetDateTime(new byte[0]) must reject empty input, not throw ArrayIndexOutOfBoundsException");
+    assertEquals(PSQLState.BAD_DATETIME_FORMAT.getState(), e.getSQLState(),
+        "SQLState of the exception for empty input");
+  }
 }
