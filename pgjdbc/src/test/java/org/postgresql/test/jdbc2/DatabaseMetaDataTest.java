@@ -1385,6 +1385,65 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
+  void getSchemasDoesNotForceTempNamespaceCreation() throws Exception {
+    // getSchemas() must not force creation of the session's temporary namespace, even when
+    // pg_temp is the first entry of search_path. Forcing it (as current_schemas() did) fails on
+    // a hot standby with "cannot create temporary tables during recovery". See issue #4274.
+    // The connection is created fresh per test (@BeforeEach) and closed in @AfterEach, so the
+    // search_path change here does not leak to other tests and needs no explicit reset.
+    try (Statement stmt = con.createStatement()) {
+      stmt.execute("SET search_path = pg_temp, public");
+    }
+
+    DatabaseMetaData dbmd = con.getMetaData();
+    boolean foundPublic = false;
+    try (ResultSet rs = dbmd.getSchemas()) {
+      while (rs.next()) {
+        if ("public".equals(rs.getString("TABLE_SCHEM"))) {
+          foundPublic = true;
+        }
+      }
+    }
+    assertTrue(foundPublic, "getSchemas() should list the public schema");
+
+    // The metadata call must not have created a temporary namespace as a side effect.
+    try (Statement stmt = con.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT pg_my_temp_schema()")) {
+      assertTrue(rs.next());
+      assertEquals(0, rs.getLong(1),
+          "getSchemas() must not force temp-namespace creation");
+    }
+  }
+
+  @Test
+  void getSchemasReportsSessionTempSchema() throws Exception {
+    // When the session already has a temporary namespace, getSchemas() reports it (and its
+    // matching toast temp namespace). Note this differs from the pre-#4274 behaviour, which only
+    // surfaced the temp schema when pg_temp resolved to the first entry of search_path; keying
+    // off pg_my_temp_schema() reports it whenever it exists, regardless of search_path order.
+    try (Statement stmt = con.createStatement()) {
+      stmt.execute("CREATE TEMP TABLE temp_schema_probe (a int)");
+    }
+
+    DatabaseMetaData dbmd = con.getMetaData();
+    boolean foundTemp = false;
+    boolean foundToastTemp = false;
+    try (ResultSet rs = dbmd.getSchemas()) {
+      while (rs.next()) {
+        String schema = rs.getString("TABLE_SCHEM");
+        if (schema.startsWith("pg_temp_")) {
+          foundTemp = true;
+        } else if (schema.startsWith("pg_toast_temp_")) {
+          foundToastTemp = true;
+        }
+      }
+    }
+    assertTrue(foundTemp, "getSchemas() should report the session's temp schema when it exists");
+    assertTrue(foundToastTemp,
+        "getSchemas() should report the session's toast temp schema when it exists");
+  }
+
+  @Test
   @EnabledForServerVersionRange(gte = "9.2")
   void escaping() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
