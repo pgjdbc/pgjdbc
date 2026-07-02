@@ -306,6 +306,11 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
   @SuppressWarnings("unchecked")
   private static <T> @Nullable T decodeBigDecimalAs(@Nullable BigDecimal bd, Class<T> targetClass)
       throws SQLException {
+    // TODO: callers convert to BigDecimal (decodeAsBigDecimal) before reaching this target-class check,
+    // so a non-finite value (NaN / +/-Infinity) with an unsupported targetClass refuses with
+    // NUMERIC_VALUE_OUT_OF_RANGE rather than DATA_TYPE_MISMATCH. CoercionRoundTripSupport tolerates it as
+    // a known deviation; validating the target class before the conversion would fix it. Surfaced by
+    // CoercionRoundTripFuzzTest.
     if (targetClass == BigDecimal.class || targetClass == Object.class) {
       return (T) bd;
     }

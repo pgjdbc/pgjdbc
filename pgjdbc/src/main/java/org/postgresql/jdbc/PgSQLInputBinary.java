@@ -169,42 +169,18 @@ public final class PgSQLInputBinary extends PgSQLInput<byte[]> {
 
   @Override
   protected @Nullable Date decodeDate(byte[] data, PgType fieldType) throws SQLException {
-    TypeDescriptor type = getCurrentType();
-    Object value = getCodec().decodeBinary(data, type, ctx);
-    if (value instanceof Date) {
-      return (Date) value;
-    }
-    if (value != null) {
-      return Date.valueOf(value.toString());
-    }
-    return null;
+    return getCodec().decodeBinaryAs(data, getCurrentType(), Date.class, ctx);
   }
 
   @Override
   protected @Nullable Time decodeTime(byte[] data, PgType fieldType) throws SQLException {
-    TypeDescriptor type = getCurrentType();
-    Object value = getCodec().decodeBinary(data, type, ctx);
-    if (value instanceof Time) {
-      return (Time) value;
-    }
-    if (value != null) {
-      return Time.valueOf(value.toString());
-    }
-    return null;
+    return getCodec().decodeBinaryAs(data, getCurrentType(), Time.class, ctx);
   }
 
   @Override
   protected @Nullable Timestamp decodeTimestamp(byte[] data, PgType fieldType)
       throws SQLException {
-    TypeDescriptor type = getCurrentType();
-    Object value = getCodec().decodeBinary(data, type, ctx);
-    if (value instanceof Timestamp) {
-      return (Timestamp) value;
-    }
-    if (value != null) {
-      return Timestamp.valueOf(value.toString());
-    }
-    return null;
+    return getCodec().decodeBinaryAs(data, getCurrentType(), Timestamp.class, ctx);
   }
 
   @Override

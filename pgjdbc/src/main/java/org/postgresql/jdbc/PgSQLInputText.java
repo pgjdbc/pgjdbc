@@ -7,6 +7,7 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.codec.CompositeCodec;
@@ -136,56 +137,31 @@ public final class PgSQLInputText extends PgSQLInput<String> {
   protected byte @Nullable [] decodeBytes(String data, PgType fieldType) throws SQLException {
     TypeDescriptor type = getCurrentType();
     Object value = getCodec().decodeText(data, type, ctx);
+    if (value == null) {
+      return null;
+    }
     if (value instanceof byte[]) {
       return (byte[]) value;
     }
-    if (value instanceof String) {
-      return ((String) value).getBytes(java.nio.charset.StandardCharsets.UTF_8);
-    }
-    if (value != null) {
-      return value.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
-    }
-    return null;
+    // Only byte[]-valued types (bytea) yield bytes. Refuse the rest rather than coercing to the
+    // value's string bytes, matching the binary adapter and PostgreSQL, which has no cast to bytea.
+    throw Codec.cannotDecode(value, "byte[]");
   }
 
   @Override
   protected @Nullable Date decodeDate(String data, PgType fieldType) throws SQLException {
-    TypeDescriptor type = getCurrentType();
-    Object value = getCodec().decodeText(data, type, ctx);
-    if (value instanceof Date) {
-      return (Date) value;
-    }
-    if (value != null) {
-      return Date.valueOf(value.toString());
-    }
-    return null;
+    return getCodec().decodeTextAs(data, getCurrentType(), Date.class, ctx);
   }
 
   @Override
   protected @Nullable Time decodeTime(String data, PgType fieldType) throws SQLException {
-    TypeDescriptor type = getCurrentType();
-    Object value = getCodec().decodeText(data, type, ctx);
-    if (value instanceof Time) {
-      return (Time) value;
-    }
-    if (value != null) {
-      return Time.valueOf(value.toString());
-    }
-    return null;
+    return getCodec().decodeTextAs(data, getCurrentType(), Time.class, ctx);
   }
 
   @Override
   protected @Nullable Timestamp decodeTimestamp(String data, PgType fieldType)
       throws SQLException {
-    TypeDescriptor type = getCurrentType();
-    Object value = getCodec().decodeText(data, type, ctx);
-    if (value instanceof Timestamp) {
-      return (Timestamp) value;
-    }
-    if (value != null) {
-      return Timestamp.valueOf(value.toString());
-    }
-    return null;
+    return getCodec().decodeTextAs(data, getCurrentType(), Timestamp.class, ctx);
   }
 
   @Override
