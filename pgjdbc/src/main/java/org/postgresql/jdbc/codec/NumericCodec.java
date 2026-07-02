@@ -82,6 +82,13 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
 
   @Override
   public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    // numeric carries NaN / ±Infinity, but BigDecimal can't, so encode the
+    // sentinel straight to the wire and skip toBigDecimal — BigDecimal.valueOf(NaN)
+    // throws NumberFormatException.
+    Double special = specialValue(value);
+    if (special != null) {
+      return ByteConverter.numericNonFinite(special);
+    }
     BigDecimal bd = toBigDecimal(value);
     return ByteConverter.numeric(bd);
   }
@@ -109,6 +116,16 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
 
   @Override
   public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    // Mirror encodeBinary: text numeric spells the special values out as
+    // literals, which decodeText reads back.
+    Double special = specialValue(value);
+    if (special != null) {
+      double d = special;
+      if (Double.isNaN(d)) {
+        return "NaN";
+      }
+      return d > 0 ? "Infinity" : "-Infinity";
+    }
     BigDecimal bd = toBigDecimal(value);
     return bd.toPlainString();
   }
@@ -326,6 +343,24 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
       return (T) Boolean.valueOf(bd.compareTo(BigDecimal.ZERO) != 0);
     }
     throw Codec.cannotDecode("numeric", targetClass.getName());
+  }
+
+  /**
+   * Returns the {@code double} sentinel when <i>value</i> is a floating-point NaN or ±Infinity —
+   * values {@code numeric} supports but {@link BigDecimal} can't hold — otherwise {@code null}.
+   *
+   * <p>Only {@link Float} and {@link Double} are inspected: they are the sole JDK number types that
+   * carry these sentinels, and probing {@link BigDecimal} via {@link BigDecimal#doubleValue()} would
+   * misread a very large finite value as {@code Infinity}.</p>
+   */
+  private static @Nullable Double specialValue(Object value) {
+    if (value instanceof Float || value instanceof Double) {
+      double d = ((Number) value).doubleValue();
+      if (Double.isNaN(d) || Double.isInfinite(d)) {
+        return d;
+      }
+    }
+    return null;
   }
 
   private static BigDecimal toBigDecimal(Object value) throws SQLException {

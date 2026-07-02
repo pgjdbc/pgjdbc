@@ -498,6 +498,35 @@ public class ByteConverter {
     return bytes;
   }
 
+  /**
+   * Converts a non-finite {@code double} to binary format for {@link org.postgresql.core.Oid#NUMERIC}.
+   *
+   * <p>{@code numeric} carries {@code NaN} and, since PostgreSQL 14, {@code ±Infinity}, but
+   * {@link BigDecimal} can't represent them. Callers that hold such a sentinel — as produced by
+   * {@link #numeric(byte[], int, int)} — route through here instead of {@link #numeric(BigDecimal)},
+   * which would reject the value.</p>
+   *
+   * @param value a value for which {@link Double#isNaN(double)} or {@link Double#isInfinite(double)} holds
+   * @return the binary representation of the numeric special value
+   * @throws IllegalArgumentException if <i>value</i> is finite
+   */
+  public static byte[] numericNonFinite(double value) {
+    final short sign;
+    if (Double.isNaN(value)) {
+      sign = NUMERIC_NAN;
+    } else if (value == Double.POSITIVE_INFINITY) {
+      sign = NUMERIC_PINF;
+    } else if (value == Double.NEGATIVE_INFINITY) {
+      sign = NUMERIC_NINF;
+    } else {
+      throw new IllegalArgumentException("numericNonFinite expects NaN or ±Infinity, got: " + value);
+    }
+    // len = 0, weight = 0, dscale = 0; only the sign field carries the value.
+    final byte[] bytes = new byte[8];
+    ByteConverter.int2(bytes, 4, sign);
+    return bytes;
+  }
+
   private static BigInteger tenPower(int exponent) {
     return BI_TEN_POWERS.length > exponent ? BI_TEN_POWERS[exponent] : BigInteger.TEN.pow(exponent);
   }

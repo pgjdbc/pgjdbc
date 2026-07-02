@@ -5,7 +5,9 @@
 
 package org.postgresql.jdbc.codec;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.core.Oid;
@@ -169,6 +171,80 @@ class NumericCodecTest {
     // BigDecimal cannot hold NaN, so this stays an error on the text path too.
     assertThrows(PSQLException.class,
         () -> codec.decodeTextAs("NaN", numericType, BigDecimal.class, null));
+  }
+
+  // ==================== encode NaN / ±Infinity (text + binary) ====================
+
+  @Test
+  void encodeBinary_nan_roundTrips() throws SQLException {
+    // Regression: encodeBinary used to route NaN through BigDecimal.valueOf, which throws
+    // NumberFormatException. It must instead emit the numeric special: len=0, weight=0,
+    // sign=0xC000 (NUMERIC_NAN), dscale=0 — the exact bytes numeric_send produces.
+    byte[] encoded = codec.encodeBinary(Double.NaN, numericType, null);
+    assertArrayEquals(new byte[]{0, 0, 0, 0, (byte) 0xC0, 0, 0, 0}, encoded);
+    assertEquals(Double.valueOf(Double.NaN), codec.decodeBinary(encoded, numericType, null));
+  }
+
+  @Test
+  void encodeBinary_positiveInfinity_roundTrips() throws SQLException {
+    byte[] encoded = codec.encodeBinary(Double.POSITIVE_INFINITY, numericType, null);
+    // sign=0xD000 (NUMERIC_PINF); dscale is discarded by the server on recv, so 0 is fine.
+    assertArrayEquals(new byte[]{0, 0, 0, 0, (byte) 0xD0, 0, 0, 0}, encoded);
+    assertEquals(Double.valueOf(Double.POSITIVE_INFINITY),
+        codec.decodeBinary(encoded, numericType, null));
+  }
+
+  @Test
+  void encodeBinary_negativeInfinity_roundTrips() throws SQLException {
+    byte[] encoded = codec.encodeBinary(Double.NEGATIVE_INFINITY, numericType, null);
+    // sign=0xF000 (NUMERIC_NINF)
+    assertArrayEquals(new byte[]{0, 0, 0, 0, (byte) 0xF0, 0, 0, 0}, encoded);
+    assertEquals(Double.valueOf(Double.NEGATIVE_INFINITY),
+        codec.decodeBinary(encoded, numericType, null));
+  }
+
+  @Test
+  void encodeBinary_floatSpecials_widenToDoubleSentinels() throws SQLException {
+    assertEquals(Double.valueOf(Double.NaN),
+        codec.decodeBinary(codec.encodeBinary(Float.NaN, numericType, null), numericType, null));
+    assertEquals(Double.valueOf(Double.POSITIVE_INFINITY),
+        codec.decodeBinary(codec.encodeBinary(Float.POSITIVE_INFINITY, numericType, null),
+            numericType, null));
+    assertEquals(Double.valueOf(Double.NEGATIVE_INFINITY),
+        codec.decodeBinary(codec.encodeBinary(Float.NEGATIVE_INFINITY, numericType, null),
+            numericType, null));
+  }
+
+  @Test
+  void encodeText_specialValues_roundTrip() throws SQLException {
+    assertEquals("NaN", codec.encodeText(Double.NaN, numericType, null));
+    assertEquals("Infinity", codec.encodeText(Double.POSITIVE_INFINITY, numericType, null));
+    assertEquals("-Infinity", codec.encodeText(Double.NEGATIVE_INFINITY, numericType, null));
+    // Float too — the sentinels the fuzzer feeds through writeFloat.
+    assertEquals("NaN", codec.encodeText(Float.NaN, numericType, null));
+
+    assertEquals(Double.valueOf(Double.NaN), codec.decodeText("NaN", numericType, null));
+    assertEquals(Double.valueOf(Double.POSITIVE_INFINITY),
+        codec.decodeText("Infinity", numericType, null));
+    assertEquals(Double.valueOf(Double.NEGATIVE_INFINITY),
+        codec.decodeText("-Infinity", numericType, null));
+  }
+
+  @Test
+  void encodeBinary_hugeFiniteBigDecimal_notMistakenForInfinity() throws SQLException {
+    // BigDecimal.doubleValue() overflows to Infinity for very large finite values, so
+    // specialValue must inspect only Float/Double, never BigDecimal.
+    BigDecimal huge = new BigDecimal("1E400");
+    Object decoded = codec.decodeBinary(codec.encodeBinary(huge, numericType, null),
+        numericType, null);
+    BigDecimal result = assertInstanceOf(BigDecimal.class, decoded);
+    assertEquals(0, huge.compareTo(result));
+  }
+
+  @Test
+  void numericNonFinite_rejectsFinite() {
+    // The helper is only for the sentinels; a finite value is a caller bug, not silent garbage.
+    assertThrows(IllegalArgumentException.class, () -> ByteConverter.numericNonFinite(1.0));
   }
 
   @Test
