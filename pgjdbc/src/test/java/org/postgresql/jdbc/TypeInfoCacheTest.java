@@ -179,9 +179,10 @@ public class TypeInfoCacheTest {
   }
 
   /**
-   * Regenerates the {@code TypeInfoCache.BASE_TYPES} array from a live server and prints the
-   * resulting Java source. The output is the body of the array literal; paste it back into
-   * {@link TypeInfoCache}.
+   * Regenerates {@link BaseTypes} from a live server and prints the resulting Java source. The
+   * output is the whole {@code BaseTypes.java} file (license header, package, imports and the
+   * {@code BASE_TYPES} array); overwrite the file with it rather than editing the array in place.
+   * {@link TypeInfoCache} seeds its offline catalog from that array.
    *
    * <p>This is a code generator rather than an assertion, so it stays off by default. Enable it
    * with the {@value #GENERATE_PROPERTY} Gradle project property:</p>
@@ -207,7 +208,7 @@ public class TypeInfoCacheTest {
   @EnabledIfSystemProperty(named = GENERATE_PROPERTY, matches = ".*",
       disabledReason = "Set -P" + GENERATE_PROPERTY + " to regenerate TypeInfoCache.BASE_TYPES")
   public void generateBaseTypes() throws Exception {
-    StringBuilder out = new StringBuilder();
+    StringBuilder rows = new StringBuilder();
     try (Connection con = TestUtil.openDB();
         PreparedStatement ps = con.prepareStatement(
             // Constructor: PgType(typeName, fullName, oid, typtype, typcategory, typtypmod,
@@ -216,9 +217,10 @@ public class TypeInfoCacheTest {
                 + "    select * from (values\n"
                 + "        ('bit'), ('bool'), ('box'), ('bpchar'), ('bytea'), ('circle'), ('date'),\n"
                 + "        ('float4'), ('float8'), ('int2'), ('int4'), ('int8'), ('interval'),\n"
-                + "        ('json'), ('line'), ('lseg'), ('money'), ('name'), ('numeric'), ('oid'),\n"
-                + "        ('path'), ('point'), ('polygon'), ('refcursor'), ('text'), ('time'),\n"
-                + "        ('timestamp'), ('timestamptz'), ('timetz'), ('uuid'), ('varbit'), ('varchar'), ('xml')\n"
+                + "        ('json'), ('jsonb'), ('line'), ('lseg'), ('money'), ('name'), ('numeric'),\n"
+                + "        ('oid'), ('path'), ('point'), ('polygon'), ('record'), ('refcursor'), ('text'),\n"
+                + "        ('time'), ('timestamp'), ('timestamptz'), ('timetz'), ('uuid'), ('varbit'),\n"
+                + "        ('varchar'), ('xml')\n"
                 + "    ) as t(typname)\n"
                 + ")\n"
                 + "select\n"
@@ -269,9 +271,12 @@ public class TypeInfoCacheTest {
                 + "order by sort1, sort2");
         ResultSet rs = ps.executeQuery()) {
       while (rs.next()) {
-        out.append(rs.getString(1)).append('\n');
+        // Each row is a bare `new PgType(...),`; indent it as an array element.
+        rows.append("      ").append(rs.getString(1)).append('\n');
       }
     }
+
+    String out = renderBaseTypesFile(rows.toString());
 
     String target = System.getProperty(GENERATE_PROPERTY, "");
     if (target.isEmpty() || "true".equalsIgnoreCase(target)) {
@@ -283,5 +288,49 @@ public class TypeInfoCacheTest {
         writer.print(out);
       }
     }
+  }
+
+  /**
+   * Wraps the generated {@code new PgType(...)} rows in the full text of {@code BaseTypes.java} so
+   * the output can overwrite that file verbatim, keeping the generated array out of the
+   * hand-maintained {@link TypeInfoCache}.
+   */
+  private static String renderBaseTypesFile(String rows) {
+    return "/*\n"
+        + " * Copyright (c) 2026, PostgreSQL Global Development Group\n"
+        + " * See the LICENSE file in the project root for more information.\n"
+        + " */\n"
+        + "\n"
+        + "package org.postgresql.jdbc;\n"
+        + "\n"
+        + "import org.postgresql.core.Oid;\n"
+        + "\n"
+        + "/**\n"
+        + " * The driver's static catalog of built-in {@code pg_catalog} types, seeded into every\n"
+        + " * {@link TypeInfoCache} and used by the connectionless (offline) codec context to resolve built-in\n"
+        + " * types without a live type cache.\n"
+        + " *\n"
+        + " * <p><strong>Generated file — do not edit by hand.</strong> Regenerate it from a live server with:</p>\n"
+        + " *\n"
+        + " * <pre>{@code\n"
+        + " * ./gradlew :postgresql:test --tests '*TypeInfoCacheTest.generateBaseTypes' \\\n"
+        + " *     -Ppgjdbc.test.TypeInfoCacheTest.generateBaseTypes=pgjdbc/src/main/java/org/postgresql/jdbc/BaseTypes.java\n"
+        + " * }</pre>\n"
+        + " *\n"
+        + " * <p>The generator ({@code org.postgresql.jdbc.TypeInfoCacheTest.generateBaseTypes}) emits this whole\n"
+        + " * file; overwrite it rather than editing {@link #BASE_TYPES} in place. {@link TypeInfoCache} seeds its\n"
+        + " * offline catalog from that array, and that test also documents the {@code pg_type} column list the\n"
+        + " * type name set is drawn from.</p>\n"
+        + " */\n"
+        + "final class BaseTypes {\n"
+        + "\n"
+        + "  private BaseTypes() {\n"
+        + "  }\n"
+        + "\n"
+        + "  // Constructor: PgType(typeName, fullName, oid, typtype, typcategory, typtypmod, typsend, typreceive, typelem, arrayOid, typbasetype)\n"
+        + "  static final PgType[] BASE_TYPES = {\n"
+        + rows
+        + "  };\n"
+        + "}\n";
   }
 }

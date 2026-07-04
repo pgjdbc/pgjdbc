@@ -180,6 +180,32 @@ class OfflineContainerRoundtripTest {
   }
 
   @Test
+  void nestedAnonymousRecordResolvesFromBuiltinCatalogOffline() throws SQLException {
+    // Regression for a coverage-guided fuzzer finding (NestedCodecFuzzTest.structRoundTrip): a named
+    // composite with a nested anonymous RECORD field, encoded offline without registering the record
+    // pseudo-type. The nested field's OID (2249) is resolved by OID during encode, so the record
+    // pseudo-type must resolve to CompositeCodec from the built-in catalog alone -- otherwise it fell
+    // through to FallbackCodec and failed with "Cannot convert PgStruct to record". The fix is the
+    // built-in record/record[] entries in BaseTypes; the context registers only the named outer type.
+    PgType inner = anonymousRecord(field("g1", Oid.INT4, 1), field("g2", Oid.INT4, 2));
+    PgType outer = composite("outer_rec", POINT_OID,
+        field("f1", Oid.INT4, 1), field("f2", Oid.RECORD, 2));
+    CodecContext ctx = PgCodecContext.offlineBuilder().type(outer).build();
+
+    PgStruct value = new PgStruct(outer,
+        new Object[]{1, new PgStruct(inner, new Object[]{2, 3}, null)}, null);
+
+    RawValue raw = Codecs.encode(value, outer, ctx, Format.BINARY);
+    PgStruct decoded = (PgStruct) Codecs.decode(raw, outer, ctx, Struct.class);
+    assertNotNull(decoded, "named record with nested anonymous record");
+    Object[] attributes = decoded.getAttributes();
+    assertEquals(1, attributes[0], "outer scalar field");
+    Struct nested = assertInstanceOf(Struct.class, attributes[1], "nested record field");
+    assertArrayEquals(new Object[]{2, 3}, nested.getAttributes(), "nested record attributes");
+    assertEquals("(1,\"(2,3)\")", decoded.getValue(), "rebuilt nested record literal");
+  }
+
+  @Test
   void sqlDataRoundtripsOffline() throws SQLException {
     PgType type = composite("point_t", POINT_OID,
         field("x", Oid.INT4, 1), field("y", Oid.INT4, 2), field("label", Oid.TEXT, 3));
