@@ -84,7 +84,14 @@ public final class MultiDimArrayText {
               javaArray.getClass().getName()),
           PSQLState.INVALID_PARAMETER_TYPE);
     }
-    MultiDimArraySupport.computeDimensionLengths(javaArray, dimensions);
+    int[] dimLengths = MultiDimArraySupport.computeDimensionLengths(javaArray, dimensions);
+    if (MultiDimArraySupport.isEmpty(dimLengths)) {
+      // An empty array renders as {} regardless of its Java dimensionality: PostgreSQL has no
+      // multi-dimensional empty array (it rejects a literal such as {{},{}}), and {} decodes back to
+      // the same empty shape the binary path produces from its zero-dimension header.
+      out.append("{}");
+      return;
+    }
     walk(out, javaArray, dimensions, delim, ctx, leaf);
   }
 

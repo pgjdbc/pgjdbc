@@ -167,6 +167,41 @@ class Int4ArrayLeafCodecTest {
     assertThrows(Exception.class, () -> encodeBinary("not-an-array"));
   }
 
+  // ---------------- empty-array normalisation ----------------
+
+  @Test
+  void encodeBinary_emptyMultiDim_normalisesToZeroDimHeader() throws SQLException {
+    // An empty array (a zero in any dimension) is the zero-dimension array on the wire, like the
+    // server's own empty array, not a positive-dimension header.
+    for (int[][] empty : new int[][][]{new int[0][2], new int[2][0]}) {
+      byte[] bytes = encodeBinary(empty);
+      assertEquals(12, bytes.length);
+      assertEquals(0, ByteConverter.int4(bytes, 0));         // dimensions
+      assertEquals(0, ByteConverter.int4(bytes, 4));         // hasNulls
+      assertEquals(Oid.INT4, ByteConverter.int4(bytes, 8));  // element OID
+    }
+  }
+
+  @Test
+  void encodeText_emptyMultiDim_rendersEmptyLiteral() throws SQLException {
+    // PostgreSQL rejects a literal such as {{},{}}; every empty array renders as {}.
+    assertEquals("{}", encodeText(new int[0][2]));
+    assertEquals("{}", encodeText(new int[2][0]));
+    assertEquals("{}", encodeText(new int[0][0][0]));
+  }
+
+  @Test
+  void emptyMultiDim_textAndBinaryDecodeToSameShape() throws SQLException {
+    // F2 regression: an empty outer dimension collapses the text literal to {}, which decodes 1-D.
+    // The binary path must collapse to the same shape rather than keep a multi-dimensional header,
+    // so the two formats agree.
+    int[][] value = new int[0][2];
+    Object viaText = decodeText(encodeText(value), int.class);
+    Object viaBinary = decodeBinary(encodeBinary(value), int.class);
+    assertEquals(viaText.getClass(), viaBinary.getClass());
+    assertArrayEquals((int[]) viaText, (int[]) viaBinary);
+  }
+
   // ---------------- multi-dim ----------------
 
   @Test

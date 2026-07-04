@@ -124,6 +124,16 @@ public final class MultiDimArrayBinary {
           PSQLState.INVALID_PARAMETER_TYPE);
     }
     int[] dimLengths = MultiDimArraySupport.computeDimensionLengths(javaArray, dimensions);
+    if (MultiDimArraySupport.isEmpty(dimLengths)) {
+      // An empty array (a zero in any dimension) is the zero-dimension array on the wire, matching
+      // what the server emits and accepts. A positive-dimension header would decode back to a
+      // different shape than the text {} literal the sibling text encoder produces for the same
+      // value (see MultiDimArrayText.encode), so both formats collapse to this one canonical shape.
+      out.writeInt32(0); // dimensions
+      out.writeInt32(0); // hasNulls
+      out.writeInt32(elementOid);
+      return;
+    }
 
     byte[] scratch = new byte[4];
     out.writeInt32(dimensions);

@@ -152,6 +152,24 @@ final class MultiDimArraySupport {
   }
 
   /**
+   * Whether an array with these dimension lengths holds no elements — a zero length in any
+   * dimension. PostgreSQL has no non-empty-dimension empty array: it normalises every such value to
+   * the zero-dimension empty form ({@code {}}) and rejects a text literal like {@code {{},{}}}. The
+   * encoders use this to emit that canonical shape, so a value whose Java class is
+   * multi-dimensional but empty ({@code int[0][]}, {@code int[2][0]}) round-trips through the same
+   * one shape in both formats instead of a positive-dimension header the text {@code {}} literal
+   * cannot reproduce.
+   */
+  static boolean isEmpty(int[] dimLengths) {
+    for (int length : dimLengths) {
+      if (length == 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Computes lengths for each dimension by following the {@code [0]} sub-array
    * at each level, then verifies every sub-array has the same rectangular
    * shape.
