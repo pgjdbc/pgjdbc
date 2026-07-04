@@ -3,7 +3,7 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.test.coercion;
+package org.postgresql.fuzzkit.coercion;
 
 /**
  * The contract-level result a JDBC coercion is expected to produce, independent of the value.
@@ -53,6 +53,15 @@ public enum CoercionOutcome {
    * driver must throw with {@code SQLState} {@code PSQLState.INVALID_PARAMETER_VALUE}.
    */
   INVALID_PARAMETER_VALUE,
+
+  /**
+   * The general encode-failure state (write direction): the codec cannot turn this Java class into
+   * the target PostgreSQL type. {@code Codec.cannotEncode} -- the shared path behind every rejected
+   * write source class -- throws {@code SQLState} {@code 07006} ({@code PSQLState.INVALID_PARAMETER_TYPE}).
+   * It is the write-side default refusal, the mirror of {@link #DATA_TYPE_MISMATCH} on the read side;
+   * {@code bool} deviates to {@link #CANNOT_COERCE} (it runs through {@code BooleanTypeUtil}).
+   */
+  INVALID_PARAMETER_TYPE,
 
   /**
    * The accessor is not implemented for any type ({@code readRowId}, {@code readNClob}). The driver

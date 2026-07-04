@@ -3,14 +3,14 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.test.coercion;
+package org.postgresql.fuzzkit.coercion;
 
-import static org.postgresql.test.coercion.CoercionOutcome.CANNOT_COERCE;
-import static org.postgresql.test.coercion.CoercionOutcome.DATA_TYPE_MISMATCH;
-import static org.postgresql.test.coercion.CoercionOutcome.INVALID_PARAMETER_VALUE;
-import static org.postgresql.test.coercion.CoercionOutcome.NOT_IMPLEMENTED;
-import static org.postgresql.test.coercion.CoercionOutcome.OK;
-import static org.postgresql.test.coercion.CoercionOutcome.OK_OR_COERCE;
+import static org.postgresql.fuzzkit.coercion.CoercionOutcome.CANNOT_COERCE;
+import static org.postgresql.fuzzkit.coercion.CoercionOutcome.DATA_TYPE_MISMATCH;
+import static org.postgresql.fuzzkit.coercion.CoercionOutcome.INVALID_PARAMETER_VALUE;
+import static org.postgresql.fuzzkit.coercion.CoercionOutcome.NOT_IMPLEMENTED;
+import static org.postgresql.fuzzkit.coercion.CoercionOutcome.OK;
+import static org.postgresql.fuzzkit.coercion.CoercionOutcome.OK_OR_COERCE;
 
 import org.postgresql.core.Oid;
 import org.postgresql.geometric.PGbox;
@@ -23,6 +23,7 @@ import org.postgresql.geometric.PGpolygon;
 import org.postgresql.util.PGInterval;
 import org.postgresql.util.PGobject;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.InputStream;
@@ -44,6 +45,7 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -452,6 +454,49 @@ public final class ReadCoercions {
   }
 
   /**
+   * The {@code readObject(Class)} target classes the default view lists for a type (an unmodifiable
+   * view of its object row), or an empty set when the type has no object row. Backs
+   * {@link PgTypeDescriptor#producedClasses()}, so the descriptor can derive its produced-class axis
+   * without copying the table.
+   *
+   * @param oid the PostgreSQL type OID
+   * @return the {@code readObject(Class)} target classes, never {@code null}
+   */
+  static Set<Class<?>> objectTargets(int oid) {
+    Map<Class<?>, CoercionOutcome> row = DEFAULT.objects.get(oid);
+    return row == null ? Collections.<Class<?>>emptySet()
+        : Collections.unmodifiableSet(row.keySet());
+  }
+
+  /**
+   * The union of every read-populated type's {@code readObject(Class)} targets under the default view --
+   * the whole {@code readObject} target-class axis the read fuzzers exercise. Derived from the object
+   * rows, so the fuzzer no longer keeps a hand-written class list; a type joining the read dictionary
+   * widens the axis automatically. The result is unordered; the caller imposes a stable order.
+   *
+   * @return the union of all {@code readObject(Class)} target classes, never {@code null}
+   */
+  public static Set<Class<?>> allObjectTargets() {
+    Set<Class<?>> union = new HashSet<>();
+    for (Map<Class<?>, CoercionOutcome> row : DEFAULT.objects.values()) {
+      union.addAll(row.keySet());
+    }
+    return Collections.unmodifiableSet(union);
+  }
+
+  /**
+   * Whether the default view has any read row -- a fixed reader or a {@code readObject(Class)} target
+   * -- for a type. Backs the descriptor type guard (G3): a descriptor whose OID is not populated here
+   * could never be read back.
+   *
+   * @param oid the PostgreSQL type OID
+   * @return whether the type is populated on the read side
+   */
+  static boolean isPopulated(int oid) {
+    return DEFAULT.methods.containsKey(oid) || DEFAULT.objects.containsKey(oid);
+  }
+
+  /**
    * Registers a view scoped to a connection property. The {@code populate} lambda fills the view's
    * cells with the deltas that {@code param = value} switches on, via the same DSL the default
    * population uses ({@code v.method(...)}, {@code v.objectAs(...)}, {@code v.defaultObject(...)}).
@@ -467,7 +512,7 @@ public final class ReadCoercions {
     return set == null ? Collections.emptySet() : set;
   }
 
-  private static <K> @Nullable CoercionOutcome nested(
+  private static <K extends @NonNull Object> @Nullable CoercionOutcome nested(
       @Nullable Map<Integer, Map<K, CoercionOutcome>> bySurface, int oid, K key) {
     if (bySurface == null) {
       return null;
