@@ -16,7 +16,6 @@ import org.postgresql.jdbc.PgType;
 
 import com.code_intelligence.jazzer.junit.FuzzTest;
 import com.code_intelligence.jazzer.mutation.annotation.NotNull;
-import org.junit.jupiter.api.Disabled;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
@@ -47,13 +46,11 @@ class JazzerDecodeRobustnessFuzzTest {
     decodeQuietly(NUMERIC, RawValue.text(data), BigDecimal.class);
   }
 
-  // FINDING: this target fails on the very first (empty) input in plain regression mode -- a
-  // 0-byte binary numeric makes ByteConverter.numeric throw IllegalArgumentException
-  // ("number of bytes should be at-least 8") through NumericCodec.decodeBinaryAs, an unchecked leak
-  // rather than a SQLException. It is disabled so the module baseline stays green; drop @Disabled to
-  // reproduce instantly. The driver-side fix (validate the binary length and refuse with a
-  // PSQLException) is out of scope for this fuzzer experiment and tracked separately.
-  @Disabled("Jazzer finding: short binary numeric leaks IllegalArgumentException; driver fix pending")
+  // This target originally failed on the very first (empty) input: a 0-byte binary numeric made
+  // ByteConverter.numeric throw IllegalArgumentException ("number of bytes should be at-least 8")
+  // through NumericCodec.decodeBinaryAs, an unchecked leak rather than a SQLException. Roadmap phase
+  // F1 fixed the driver (NumericCodec now wraps ByteConverter.numeric and refuses malformed binary
+  // wire with a PSQLException), so the target is green in bounded regression and can join the fuzz.
   @FuzzTest
   void numericBinaryDecodeNeverLeaksUnchecked(byte @NotNull [] data) {
     decodeQuietly(NUMERIC, RawValue.binary(data), BigDecimal.class);
