@@ -55,14 +55,14 @@ import java.util.TreeMap;
  * bytes are read back from {@code getAttributeValues().get(0)} before any framing runs. That is exactly
  * the field value the reader adapter is handed on the canonical path.
  *
- * <p>Two axes of scalar are covered:
+ * <p>Two axes of scalar are covered, split by whether the descriptor carries a typed writer:
  *
  * <ul>
- *   <li>the eight diagonal typed-writer scalars ({@code int4}, {@code int8}, {@code numeric},
- *       {@code text}, {@code bool}, {@code date}, {@code time}, {@code timestamp}) are written through
- *       their descriptor's {@code typedWriter} ({@code writeInt}, {@code writeString}, ...);</li>
- *   <li>the two object-axis scalars ({@code timetz}, {@code timestamptz}, which have no typed
- *       {@code Offset} writer) are written through {@code writeObject(value, jdbcType)}.</li>
+ *   <li>a diagonal typed-writer scalar is written through its descriptor's {@code typedWriter}
+ *       ({@code writeInt}, {@code writeString}, ...);</li>
+ *   <li>an object-axis scalar (one with no typed writer) is written through
+ *       {@code writeObject(value, jdbcType)}, the same call the driver write path takes for such a
+ *       type.</li>
  * </ul>
  *
  * <p>Values are fixed, deterministic examples of each scalar's {@code naturalClass} -- not random --
@@ -80,6 +80,10 @@ class TypedWriteMatchesCanonicalWireTest {
     Map<Class<?>, Object> map = new TreeMap<>((a, b) -> a.getName().compareTo(b.getName()));
     map.put(Integer.class, 1_234_567);
     map.put(Long.class, 9_876_543_210L);
+    map.put(Short.class, (short) 12_345);
+    map.put(Float.class, 1.5f);
+    map.put(Double.class, 1.5d);
+    map.put(byte[].class, new byte[]{1, 2, 3, -1});
     map.put(BigDecimal.class, new BigDecimal("12345.6789"));
     map.put(String.class, "sample text é");
     map.put(Boolean.class, Boolean.TRUE);

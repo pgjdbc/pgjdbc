@@ -156,8 +156,12 @@ public final class WriteCoercions {
 
   static {
     defineNumericFamily();
+    defineSmallNumericFamily();
+    defineFloatFamily();
     defineText();
+    defineTextLikeFamily();
     defineBool();
+    defineBytea();
     defineTemporalFamily();
   }
 
@@ -273,6 +277,51 @@ public final class WriteCoercions {
   }
 
   // ---------------------------------------------------------------------------------------------
+  // Small integer: int2 and oid. Both funnel through a codec toShort/toLong that widens a Number,
+  // parses a String, and refuses everything else.
+  //
+  // int2 (Int2Codec.toShort): Short and Byte always fit the int2 range; Boolean maps to 0/1 (in range).
+  // Integer and the wider numbers go through longValue() and are range-checked (NUMERIC_VALUE_OUT_OF_
+  // RANGE), so they are value-dependent, as is String (Short.parseShort). Everything else refuses with
+  // INVALID_PARAMETER_TYPE.
+  //
+  // oid (OidCodec.toLong): every Number widens through longValue(), which never overflows (it truncates
+  // a floating or big value rather than raising), so all the boxed numbers are OK. String parses through
+  // Long.parseLong and is value-dependent. Boolean is not a Number and is not handled, so it refuses with
+  // INVALID_PARAMETER_TYPE -- unlike int2/int4, which accept it as 0/1. The oid codec truncates the long
+  // to unsigned 32 bits only in the binary encoder; that is a round-trip fidelity concern, not an encode
+  // legality one, so it does not change the accepted-class set here.
+  // ---------------------------------------------------------------------------------------------
+
+  private static void defineSmallNumericFamily() {
+    type(Oid.INT2, a -> a
+        .ok(Short.class).ok(Byte.class).ok(Boolean.class)
+        .coerce(Integer.class).coerce(Long.class).coerce(Float.class).coerce(Double.class)
+        .coerce(BigDecimal.class).coerce(BigInteger.class).coerce(String.class));
+
+    type(Oid.OID, a -> a
+        .ok(Integer.class).ok(Long.class).ok(Short.class).ok(Byte.class).ok(Float.class)
+        .ok(Double.class).ok(BigDecimal.class).ok(BigInteger.class)
+        .coerce(String.class));
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Floating point: float4 and float8. Sourced from Float4Codec.toFloat / Float8Codec.toDouble: a
+  // Number widens through floatValue()/doubleValue() (which saturate to +/-Infinity rather than raise,
+  // so every boxed number is OK), Boolean maps to 1.0/0.0, and String parses through parseFloat/
+  // parseDouble and is value-dependent. Everything else refuses with INVALID_PARAMETER_TYPE.
+  // ---------------------------------------------------------------------------------------------
+
+  private static void defineFloatFamily() {
+    for (int oid : new int[]{Oid.FLOAT4, Oid.FLOAT8}) {
+      type(oid, a -> a
+          .ok(Integer.class).ok(Long.class).ok(Short.class).ok(Byte.class).ok(Float.class)
+          .ok(Double.class).ok(BigDecimal.class).ok(BigInteger.class).ok(Boolean.class)
+          .coerce(String.class));
+    }
+  }
+
+  // ---------------------------------------------------------------------------------------------
   // text. Sourced from TextCodecImpl.toString: every scalar (Number, Boolean, String) stringifies;
   // byte[], temporal and UUID refuse with INVALID_PARAMETER_TYPE.
   // ---------------------------------------------------------------------------------------------
@@ -281,6 +330,23 @@ public final class WriteCoercions {
     type(Oid.TEXT, a -> a
         .ok(Integer.class).ok(Long.class).ok(Short.class).ok(Byte.class).ok(Float.class)
         .ok(Double.class).ok(BigDecimal.class).ok(BigInteger.class).ok(Boolean.class).ok(String.class));
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // Text-like family: varchar, bpchar, name. Each delegates its encoder to TextCodecImpl (through
+  // VarcharCodec/BpcharCodec/NameCodec), so the accepted-class set is identical to text: every Number,
+  // Boolean and String stringifies; byte[], temporal and UUID refuse with INVALID_PARAMETER_TYPE. The
+  // fixed-width blank padding of bpchar is a server-side effect; the offline single-field codec neither
+  // pads nor trims, so it does not touch encode legality here.
+  // ---------------------------------------------------------------------------------------------
+
+  private static void defineTextLikeFamily() {
+    for (int oid : new int[]{Oid.VARCHAR, Oid.BPCHAR, Oid.NAME}) {
+      type(oid, a -> a
+          .ok(Integer.class).ok(Long.class).ok(Short.class).ok(Byte.class).ok(Float.class)
+          .ok(Double.class).ok(BigDecimal.class).ok(BigInteger.class).ok(Boolean.class)
+          .ok(String.class));
+    }
   }
 
   // ---------------------------------------------------------------------------------------------
@@ -297,6 +363,25 @@ public final class WriteCoercions {
         .coerce(Integer.class).coerce(Long.class).coerce(Short.class).coerce(Byte.class)
         .coerce(Float.class).coerce(Double.class).coerce(BigDecimal.class).coerce(BigInteger.class)
         .coerce(String.class));
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // bytea. Sourced from ByteaCodec.toBytes: byte[] is taken as-is and always encodes, so it is OK. A
+  // String is decoded through PGbytea.toBytes as the hex ('\x...') or octal-escape text form: a valid
+  // literal encodes and a malformed one (an odd hex length, a non-hex digit, a trailing/lone backslash,
+  // a truncated or out-of-range octal escape) refuses per value, so String is value-dependent
+  // (OK_OR_COERCE). Everything else refuses with INVALID_PARAMETER_TYPE.
+  //
+  // The String value generator feeds bytea free printable-ASCII, backslashes included, so it exercises
+  // both the valid and the malformed literal. A clean per-value refusal is the modelled outcome: a bad
+  // escape/octal literal raises INVALID_TEXT_REPRESENTATION (22P02) and a bad hex literal raises
+  // INVALID_PARAMETER_VALUE (22023), both in OutcomeContract.WRITE_VALUE_LEVEL_STATES. These match the
+  // server; the driver's PGbytea.toBytes was hardened to raise them instead of leaking an
+  // ArrayIndexOutOfBoundsException on a malformed literal.
+  // ---------------------------------------------------------------------------------------------
+
+  private static void defineBytea() {
+    type(Oid.BYTEA, a -> a.ok(byte[].class).coerce(String.class));
   }
 
   // ---------------------------------------------------------------------------------------------

@@ -48,16 +48,21 @@ public final class OutcomeContract {
 
   /**
    * Clean value-level refusal states a write {@link CoercionOutcome#OK_OR_COERCE} cell may raise.
-   * It extends the read set with {@link PSQLState#DATETIME_OVERFLOW} (a write-time overflow) and
+   * It extends the read set with {@link PSQLState#DATETIME_OVERFLOW} (a write-time overflow),
    * {@link PSQLState#INVALID_PARAMETER_TYPE} (a value of an accepted class that fails to convert,
-   * such as {@code decodeDateText} on an unparsable {@code date} string).
+   * such as {@code decodeDateText} on an unparsable {@code date} string), and the two states a
+   * malformed {@code bytea} literal raises when a {@code String} is encoded as {@code bytea}:
+   * {@link PSQLState#INVALID_TEXT_REPRESENTATION} for a bad escape/octal literal and
+   * {@link PSQLState#INVALID_PARAMETER_VALUE} for a bad hex literal.
    */
   private static final Set<String> WRITE_VALUE_LEVEL_STATES = states(
       PSQLState.NUMERIC_VALUE_OUT_OF_RANGE,
       PSQLState.BAD_DATETIME_FORMAT,
       PSQLState.DATETIME_OVERFLOW,
       PSQLState.CANNOT_COERCE,
-      PSQLState.INVALID_PARAMETER_TYPE);
+      PSQLState.INVALID_PARAMETER_TYPE,
+      PSQLState.INVALID_TEXT_REPRESENTATION,
+      PSQLState.INVALID_PARAMETER_VALUE);
 
   private OutcomeContract() {
   }

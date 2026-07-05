@@ -376,7 +376,7 @@ public final class PgValueArgumentsFactory implements ArgumentsGeneratorFactory 
           IDENTITY_PAIRS[env.generate(Generator.integers(0, IDENTITY_PAIRS.length - 1))];
       // Draw the value of the pair's natural class: the object-axis pairs (timetz/timestamptz) write
       // through writeObject, which does not fix the class, so it comes from naturalClass, not the writer.
-      Object value = ValueGenerators.draw(env, pair.naturalClass);
+      Object value = identityValue(env, pair);
       int classes = ReadOracle.TARGET_CLASSES.length;
       int mode = env.generate(Generator.integers(0, classes));
       if (mode == classes) {
@@ -400,6 +400,27 @@ public final class PgValueArgumentsFactory implements ArgumentsGeneratorFactory 
     return new CoercionRoundTripCase(attr, writer, ValueGenerators.writeValue(env, writer.method()),
         reader, target);
   });
+
+  /**
+   * Draws an identity-pair value that survives the round-trip in both wire formats. It is the pair's
+   * natural-class value from {@link ValueGenerators}, except for {@code oid}: its binary encoder
+   * truncates the {@code Long} to unsigned 32 bits and re-reads it, so only a value in {@code [0,
+   * 2^32-1]} round-trips exactly. Drawing the full-width {@code Long} would fail the binary leg on a
+   * high value, so {@code oid} is narrowed to that range -- the same constraint
+   * {@link #recordFieldValueGenerator} applies on the record axis. The text leg carries the full long,
+   * so the narrowing only trims the values the binary form cannot represent, never the reachable set.
+   *
+   * @param env the generation environment
+   * @param pair the identity pair whose value to draw
+   * @return a value of the pair's natural class that round-trips in both formats
+   */
+  private static Object identityValue(GenerationEnvironment env,
+      CoercionRoundTripSupport.IdentityPair pair) {
+    if (pair.attr.oid() == Oid.OID) {
+      return env.generate(Generator.integers().map(i -> i & 0xFFFFFFFFL));
+    }
+    return ValueGenerators.draw(env, pair.naturalClass);
+  }
 
   private static URL sampleUrl() {
     try {
