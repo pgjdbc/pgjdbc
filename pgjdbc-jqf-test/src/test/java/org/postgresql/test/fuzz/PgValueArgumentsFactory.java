@@ -500,11 +500,31 @@ public final class PgValueArgumentsFactory implements ArgumentsGeneratorFactory 
     Object array = Array.newInstance(leafClass, lengths);
     // The boxed leaf generator: the element's shared scalar generator (from ValueGenerators), made
     // nullable for the boxed representation, non-null for the primitive one.
-    Generator<?> boxed = ValueGenerators.gen(descriptor.element().naturalClass());
+    Generator<?> boxed = leafGenerator(descriptor.element());
     Generator<?> leaf = leafRepr == LeafRepr.BOXED
         ? Generator.frequency(1, Generator.constant(null), 9, boxed) : boxed;
     fillArray(env, array, lengths, 0, leaf);
     return new FuzzArray(descriptor.oid(), leafRepr, ndim, array);
+  }
+
+  /**
+   * The leaf-value generator for an array element. It is the element's shared scalar generator from
+   * {@link ValueGenerators}, keyed by its natural class, except for {@code oid}: its natural class is
+   * {@code Long}, but its binary array codec truncates each element to unsigned 32 bits and re-reads it,
+   * so a full-width {@code Long} above {@code 2^32-1} would fail the binary leg of the round-trip. The
+   * {@code oid} leaf is therefore narrowed to {@code [0, 2^32-1]} -- the same constraint the scalar
+   * {@code oid} identity value and the record-field {@code oid} generator apply. {@code int8[]}, whose
+   * element also decodes to {@code Long}, keeps the full-width generator, since its 8-byte codec loses
+   * nothing.
+   *
+   * @param element the array's scalar element descriptor
+   * @return the generator drawing one leaf value of the element's type
+   */
+  private static Generator<?> leafGenerator(ScalarDescriptor element) {
+    if (element.oid() == Oid.OID) {
+      return Generator.integers().map(i -> i & 0xFFFFFFFFL);
+    }
+    return ValueGenerators.gen(element.naturalClass());
   }
 
   /** Fills a rectangular nested array by walking its indices, drawing a leaf value at the deepest level. */

@@ -23,11 +23,24 @@ class FidelityTest {
   }
 
   @Test
-  void deepEquals_rejectsDifferentRankEvenWhenEmpty() {
-    // Arrays.deepEquals alone treats two empty arrays of different rank as equal; the class check
-    // makes DEEP_EQUALS reject the shape drift a text-vs-binary decode of an empty array would show.
-    assertFalse(Fidelity.DEEP_EQUALS.equal(new int[0], new int[0][0]));
-    assertFalse(Fidelity.DEEP_EQUALS.equal(new Integer[0], new Integer[0][0]));
+  void deepEquals_matchesEmptyArraysOfAnyRank() {
+    // PostgreSQL normalises every empty array to the canonical zero-dimension form, which the codec
+    // reads back as a one-dimensional empty array whatever the written rank was. So an empty array
+    // round-trips to a rank-1 empty array by contract, and DEEP_EQUALS treats two empty arrays as
+    // equal regardless of declared rank rather than flagging that documented collapse as a mismatch.
+    assertTrue(Fidelity.DEEP_EQUALS.equal(new int[0], new int[0][0]));
+    assertTrue(Fidelity.DEEP_EQUALS.equal(new Integer[0], new Integer[0][0]));
+    assertTrue(Fidelity.DEEP_EQUALS.equal(new Integer[0][0][0], new Integer[0]));
+    // A non-empty outer dimension whose sub-arrays are all empty is still the empty array (int[2][0]).
+    assertTrue(Fidelity.DEEP_EQUALS.equal(new int[2][0], new int[0]));
+    assertTrue(Fidelity.DEEP_EQUALS.equal(new Integer[1][2][0], new Integer[0]));
+  }
+
+  @Test
+  void deepEquals_rejectsDifferentRankWhenNonEmpty() {
+    // The class check still catches a genuine rank disagreement between two non-empty arrays.
+    assertFalse(Fidelity.DEEP_EQUALS.equal(new int[]{1}, new int[][]{{1}}));
+    assertFalse(Fidelity.DEEP_EQUALS.equal(new Integer[]{1}, new Integer[][]{{1}}));
   }
 
   @Test

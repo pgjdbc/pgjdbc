@@ -49,9 +49,10 @@ import java.util.TreeSet;
  * <p>The registry holds the ten coercion scalars ({@code int4}, {@code int8}, {@code numeric},
  * {@code text}, {@code bool}, {@code date}, {@code time}, {@code timetz}, {@code timestamp},
  * {@code timestamptz}), eight read-only scalars ({@code int2}, {@code float4}, {@code float8},
- * {@code bytea}, {@code oid}, {@code varchar}, {@code bpchar}, {@code name}), the two arrays
- * ({@code int4[]}, {@code text[]}) over their scalar elements, and the {@code point} composite
- * ({@code x int4, y int4, label text}). The read-only scalars are read-populated but not
+ * {@code bytea}, {@code oid}, {@code varchar}, {@code bpchar}, {@code name}), the nine arrays
+ * ({@code int4[]}, {@code text[]}, {@code int2[]}, {@code int8[]}, {@code float4[]}, {@code float8[]},
+ * {@code oid[]}, {@code bytea[]}, {@code bool[]}) over their scalar elements, and the {@code point}
+ * composite ({@code x int4, y int4, label text}). The read-only scalars are read-populated but not
  * write-populated, so they carry a descriptor and reach the reader axis ({@link #readScalars()}) yet
  * stay out of the write-populated coercion round-trip ({@link #coercionScalars()}); the arrays and
  * composite are populated in neither dictionary, so the coercion guards do not apply to them.
@@ -80,9 +81,10 @@ public final class PgTypeDescriptors {
         Integer.class, WriteCoercions.Method.WRITE_INT, ReadCoercions.Accessor.READ_INT,
         Fidelity.EQUALS, ScalarDescriptor.NO_POISON);
     add(map, int4);
-    add(map, new ScalarDescriptor(Oid.INT8, "int8", 'N', JDBCType.BIGINT, Long.class,
+    ScalarDescriptor int8 = new ScalarDescriptor(Oid.INT8, "int8", 'N', JDBCType.BIGINT, Long.class,
         WriteCoercions.Method.WRITE_LONG, ReadCoercions.Accessor.READ_LONG,
-        Fidelity.EQUALS, ScalarDescriptor.NO_POISON));
+        Fidelity.EQUALS, ScalarDescriptor.NO_POISON);
+    add(map, int8);
     add(map, new ScalarDescriptor(Oid.NUMERIC, "numeric", 'N', JDBCType.NUMERIC, BigDecimal.class,
         WriteCoercions.Method.WRITE_BIG_DECIMAL, ReadCoercions.Accessor.READ_BIG_DECIMAL,
         Fidelity.NUMERIC_EQUAL, ScalarDescriptor.NON_FINITE_NUMERIC));
@@ -90,9 +92,10 @@ public final class PgTypeDescriptors {
         String.class, WriteCoercions.Method.WRITE_STRING, ReadCoercions.Accessor.READ_STRING,
         Fidelity.EQUALS, ScalarDescriptor.NO_POISON);
     add(map, text);
-    add(map, new ScalarDescriptor(Oid.BOOL, "bool", 'B', JDBCType.BOOLEAN, Boolean.class,
+    ScalarDescriptor bool = new ScalarDescriptor(Oid.BOOL, "bool", 'B', JDBCType.BOOLEAN, Boolean.class,
         WriteCoercions.Method.WRITE_BOOLEAN, ReadCoercions.Accessor.READ_BOOLEAN,
-        Fidelity.EQUALS, ScalarDescriptor.NO_POISON));
+        Fidelity.EQUALS, ScalarDescriptor.NO_POISON);
+    add(map, bool);
     add(map, new ScalarDescriptor(Oid.DATE, "date", 'D', JDBCType.DATE, Date.class,
         WriteCoercions.Method.WRITE_DATE, ReadCoercions.Accessor.READ_DATE,
         Fidelity.EQUALS, ScalarDescriptor.NO_POISON));
@@ -118,18 +121,24 @@ public final class PgTypeDescriptors {
     // coercion round-trip's identity pairs (which build only from write-populated types). int2's natural
     // class is Short (its WRITE_SHORT/READ_SHORT typed identity); its default getObject class stays
     // Integer, delegated to the dictionary (pgjdbc's documented smallint backward-compat).
-    add(map, new ScalarDescriptor(Oid.INT2, "int2", 'N', JDBCType.SMALLINT, Short.class,
+    // int2, float4, float8 and bytea are bound to locals, because the leaf-type array descriptors below
+    // reference them as elements (int2[], float4[], float8[], bytea[]).
+    ScalarDescriptor int2 = new ScalarDescriptor(Oid.INT2, "int2", 'N', JDBCType.SMALLINT, Short.class,
         WriteCoercions.Method.WRITE_SHORT, ReadCoercions.Accessor.READ_SHORT,
-        Fidelity.EQUALS, ScalarDescriptor.NO_POISON));
-    add(map, new ScalarDescriptor(Oid.FLOAT4, "float4", 'N', JDBCType.REAL, Float.class,
+        Fidelity.EQUALS, ScalarDescriptor.NO_POISON);
+    add(map, int2);
+    ScalarDescriptor float4 = new ScalarDescriptor(Oid.FLOAT4, "float4", 'N', JDBCType.REAL, Float.class,
         WriteCoercions.Method.WRITE_FLOAT, ReadCoercions.Accessor.READ_FLOAT,
-        Fidelity.EQUALS, ScalarDescriptor.NO_POISON));
-    add(map, new ScalarDescriptor(Oid.FLOAT8, "float8", 'N', JDBCType.DOUBLE, Double.class,
-        WriteCoercions.Method.WRITE_DOUBLE, ReadCoercions.Accessor.READ_DOUBLE,
-        Fidelity.EQUALS, ScalarDescriptor.NO_POISON));
-    add(map, new ScalarDescriptor(Oid.BYTEA, "bytea", 'U', JDBCType.BINARY, byte[].class,
-        WriteCoercions.Method.WRITE_BYTES, ReadCoercions.Accessor.READ_BYTES,
-        Fidelity.BYTES_EQUAL, ScalarDescriptor.NO_POISON));
+        Fidelity.EQUALS, ScalarDescriptor.NO_POISON);
+    add(map, float4);
+    ScalarDescriptor float8 = new ScalarDescriptor(Oid.FLOAT8, "float8", 'N', JDBCType.DOUBLE,
+        Double.class, WriteCoercions.Method.WRITE_DOUBLE, ReadCoercions.Accessor.READ_DOUBLE,
+        Fidelity.EQUALS, ScalarDescriptor.NO_POISON);
+    add(map, float8);
+    ScalarDescriptor bytea = new ScalarDescriptor(Oid.BYTEA, "bytea", 'U', JDBCType.BINARY,
+        byte[].class, WriteCoercions.Method.WRITE_BYTES, ReadCoercions.Accessor.READ_BYTES,
+        Fidelity.BYTES_EQUAL, ScalarDescriptor.NO_POISON);
+    add(map, bytea);
 
     // Four more read-populated scalars, read-only for now (oid, varchar, bpchar, name): each already
     // carries a ReadCoercions row -- oid in the integer family, the three text types in the text family --
@@ -141,8 +150,9 @@ public final class PgTypeDescriptors {
     // (CodecFuzzSupport.SQL_DATA_FIELD_OIDS) is derived from the typed-pair scalars and pinned to the
     // twelve FuzzSqlData fields, so a new typed pair would break that pinned wire layout. The reader axis
     // draws every SQLInput reader against the naturalClass regardless, so these types are still fully read.
-    add(map, new ScalarDescriptor(Oid.OID, "oid", 'N', JDBCType.BIGINT, Long.class,
-        null, null, Fidelity.EQUALS, ScalarDescriptor.NO_POISON));
+    ScalarDescriptor oid = new ScalarDescriptor(Oid.OID, "oid", 'N', JDBCType.BIGINT, Long.class,
+        null, null, Fidelity.EQUALS, ScalarDescriptor.NO_POISON);
+    add(map, oid);
     add(map, new ScalarDescriptor(Oid.VARCHAR, "varchar", 'S', JDBCType.VARCHAR, String.class,
         null, null, Fidelity.EQUALS, ScalarDescriptor.NO_POISON));
     add(map, new ScalarDescriptor(Oid.BPCHAR, "bpchar", 'S', JDBCType.CHAR, String.class,
@@ -150,11 +160,23 @@ public final class PgTypeDescriptors {
     add(map, new ScalarDescriptor(Oid.NAME, "name", 'S', JDBCType.VARCHAR, String.class,
         null, null, Fidelity.EQUALS, ScalarDescriptor.NO_POISON));
 
-    // The two codec arrays, over their scalar elements. One descriptor per element covers every
-    // dimension {1, 2, 3}; int4 has a primitive leaf (int), text does not, so int4[] fuzzes both
-    // Integer[n] and int[n] while text[] fuzzes String[n] only. Both carry DEEP_EQUALS.
+    // The nine codec arrays, over their scalar elements. One descriptor per element covers every
+    // dimension {1, 2, 3}, and each carries DEEP_EQUALS. An element with a primitive leaf (int4, int2,
+    // int8, float4, float8, oid, bool) fuzzes both the boxed and the primitive representation -- int4[]
+    // fuzzes Integer[n] and int[n]; the leaf-only text and bytea elements fuzz the boxed representation
+    // only, so text[] fuzzes String[n] and bytea[] fuzzes byte[][n] (byte[] itself is the leaf). oid[]'s
+    // leaf decodes to Long like int8[], but its binary codec truncates each element to unsigned 32 bits,
+    // so its generator narrows the leaf to [0, 2^32-1] (PgValueArgumentsFactory.drawArray), whereas
+    // int8[] keeps the full-width Long.
     add(map, new ArrayDescriptor(Oid.INT4_ARRAY, "_int4", "int4[]", int4, 1, 2, 3));
     add(map, new ArrayDescriptor(Oid.TEXT_ARRAY, "_text", "text[]", text, 1, 2, 3));
+    add(map, new ArrayDescriptor(Oid.INT2_ARRAY, "_int2", "int2[]", int2, 1, 2, 3));
+    add(map, new ArrayDescriptor(Oid.INT8_ARRAY, "_int8", "int8[]", int8, 1, 2, 3));
+    add(map, new ArrayDescriptor(Oid.FLOAT4_ARRAY, "_float4", "float4[]", float4, 1, 2, 3));
+    add(map, new ArrayDescriptor(Oid.FLOAT8_ARRAY, "_float8", "float8[]", float8, 1, 2, 3));
+    add(map, new ArrayDescriptor(Oid.OID_ARRAY, "_oid", "oid[]", oid, 1, 2, 3));
+    add(map, new ArrayDescriptor(Oid.BYTEA_ARRAY, "_bytea", "bytea[]", bytea, 1, 2, 3));
+    add(map, new ArrayDescriptor(Oid.BOOL_ARRAY, "_bool", "bool[]", bool, 1, 2, 3));
 
     // The point composite (x int4, y int4, label text) -- the "regular" named-struct shape, previously
     // the codec fuzz support's pointType().
