@@ -226,12 +226,6 @@ public final class MultiDimArrayBinary {
           PSQLState.DATA_ERROR);
     }
     int[] dimLengths = new int[dimensions];
-    // Bound the total element count against the bytes that remain after the header: every element
-    // occupies at least its 4-byte length prefix on the wire, so the element product can never exceed
-    // (remaining bytes / 4). This caps the Array.newInstance allocation to what the buffer could
-    // actually describe, turning a corrupt oversized dimension length into a clean refusal instead of
-    // an OutOfMemoryError. The product is accumulated in long to avoid int overflow.
-    long elementCount = 1;
     for (int d = 0; d < dimensions; d++) {
       int dimLength = readInt4(data, cursor);
       readInt4(data, cursor); // lower bound
@@ -241,13 +235,26 @@ public final class MultiDimArrayBinary {
             PSQLState.DATA_ERROR);
       }
       dimLengths[d] = dimLength;
-      elementCount *= dimLength;
     }
+    // Bound each partial dimension product against the bytes that remain after the header, not just the
+    // final element count. Array.newInstance allocates the dimension spine eagerly -- dimLengths[0]
+    // references, then that many arrays of dimLengths[1], and so on -- so a huge outer dimension
+    // followed by a zero-length inner one would allocate a giant spine (an OutOfMemoryError) while the
+    // full product collapses to zero and slips past a product-only bound. Every element the buffer can
+    // describe needs at least its 4-byte length prefix, so no partial product can exceed
+    // (remaining bytes / 4); a valid array has every dimension >= 1, so its partial products never
+    // exceed the final element count and are never rejected here. Products accumulate in long to avoid
+    // int overflow.
     long remainingBytes = (long) data.length - cursor[0];
-    if (elementCount > remainingBytes / 4) {
-      throw new PSQLException(
-          GT.tr("Invalid binary array data: element count {0} exceeds remaining data", elementCount),
-          PSQLState.DATA_ERROR);
+    long maxElements = remainingBytes / 4;
+    long partialProduct = 1;
+    for (int d = 0; d < dimensions; d++) {
+      partialProduct *= dimLengths[d];
+      if (partialProduct > maxElements) {
+        throw new PSQLException(
+            GT.tr("Invalid binary array data: element count {0} exceeds remaining data", partialProduct),
+            PSQLState.DATA_ERROR);
+      }
     }
     Object result = java.lang.reflect.Array.newInstance(leafComponentType, dimLengths);
     try {

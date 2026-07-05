@@ -121,6 +121,23 @@ class BinaryContainerHardeningTest {
   }
 
   @Test
+  void array_zeroInnerDimensionHugeOuter_refusesCleanly() {
+    // A zero inner dimension collapses the element product to 0, so a product-only bound passes, but
+    // Array.newInstance still allocates the huge outer spine (dimLengths[0] references) before the zero
+    // shrinks anything -- an OutOfMemoryError. The partial-product bound refuses it.
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    byte[] w = new byte[4];
+    write(out, w, 2);          // dimensions
+    write(out, w, 0);          // hasNulls
+    write(out, w, Oid.INT4);   // element OID
+    write(out, w, 84_215_045); // dim 0 length (huge outer spine)
+    write(out, w, 1);          // dim 0 lower bound
+    write(out, w, 0);          // dim 1 length (zero collapses the product)
+    write(out, w, 1);          // dim 1 lower bound
+    assertArrayRefused(out.toByteArray());
+  }
+
+  @Test
   void array_negativeDimensionLength_refusesCleanly() {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     byte[] w = new byte[4];
