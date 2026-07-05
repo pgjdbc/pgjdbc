@@ -39,6 +39,13 @@ import java.sql.SQLException;
  */
 public final class MultiDimArrayBinary {
 
+  /**
+   * Maximum number of array dimensions, matching the server's {@code MAXDIM} (see
+   * {@code src/include/utils/array.h}). A binary array header carrying more dimensions than this is
+   * corrupt or hostile wire, so reject it rather than allocate on the count.
+   */
+  private static final int MAX_DIMENSIONS = 6;
+
   private MultiDimArrayBinary() {
     // Utility class
   }
@@ -204,6 +211,14 @@ public final class MultiDimArrayBinary {
     if (dimensions == 0) {
       return java.lang.reflect.Array.newInstance(leafComponentType, 0);
     }
+    // dimensions is read straight from the wire: a negative count would throw
+    // NegativeArraySizeException on the array allocations below, and an oversized one would drive an
+    // OutOfMemoryError. The server never nests deeper than MAXDIM, so bound it before allocating.
+    if (dimensions < 0 || dimensions > MAX_DIMENSIONS) {
+      throw new PSQLException(
+          GT.tr("Invalid binary array data: dimension count {0} out of range", dimensions),
+          PSQLState.DATA_ERROR);
+    }
     if (hasNulls && leafComponentType.isPrimitive()) {
       throw new PSQLException(
           GT.tr("Cannot decode array containing NULL into a primitive {0}[] leaf",
@@ -211,12 +226,41 @@ public final class MultiDimArrayBinary {
           PSQLState.DATA_ERROR);
     }
     int[] dimLengths = new int[dimensions];
+    // Bound the total element count against the bytes that remain after the header: every element
+    // occupies at least its 4-byte length prefix on the wire, so the element product can never exceed
+    // (remaining bytes / 4). This caps the Array.newInstance allocation to what the buffer could
+    // actually describe, turning a corrupt oversized dimension length into a clean refusal instead of
+    // an OutOfMemoryError. The product is accumulated in long to avoid int overflow.
+    long elementCount = 1;
     for (int d = 0; d < dimensions; d++) {
-      dimLengths[d] = readInt4(data, cursor);
+      int dimLength = readInt4(data, cursor);
       readInt4(data, cursor); // lower bound
+      if (dimLength < 0) {
+        throw new PSQLException(
+            GT.tr("Invalid binary array data: negative dimension length {0}", dimLength),
+            PSQLState.DATA_ERROR);
+      }
+      dimLengths[d] = dimLength;
+      elementCount *= dimLength;
+    }
+    long remainingBytes = (long) data.length - cursor[0];
+    if (elementCount > remainingBytes / 4) {
+      throw new PSQLException(
+          GT.tr("Invalid binary array data: element count {0} exceeds remaining data", elementCount),
+          PSQLState.DATA_ERROR);
     }
     Object result = java.lang.reflect.Array.newInstance(leafComponentType, dimLengths);
-    walkAndDecode(data, cursor, result, dimensions, ctx, leaf);
+    try {
+      walkAndDecode(data, cursor, result, dimensions, ctx, leaf);
+    } catch (IndexOutOfBoundsException e) {
+      // The element-count cap above bounds the allocation, but a header can still promise more element
+      // bytes than the body carries (a truncated element length or body). The per-element reads live in
+      // the leaf codecs and index straight into data; a short body would AIOOBE out of them. Convert
+      // that leak into a clean refusal at the container boundary — corrupt wire, never sent by a server.
+      throw new PSQLException(
+          GT.tr("Invalid binary array data: truncated element body"),
+          PSQLState.DATA_ERROR, e);
+    }
     return result;
   }
 
@@ -255,9 +299,17 @@ public final class MultiDimArrayBinary {
     return est > 1 << 20 ? 1 << 20 : (int) Math.max(64, est);
   }
 
-  private static int readInt4(byte[] data, int[] cursor) {
-    int v = ByteConverter.int4(data, cursor[0]);
-    cursor[0] += 4;
+  private static int readInt4(byte[] data, int[] cursor) throws SQLException {
+    int pos = cursor[0];
+    if (pos < 0 || pos > data.length - 4) {
+      // A truncated header (fewer than 4 bytes left for this int4) would AIOOBE out of
+      // ByteConverter.int4; refuse the corrupt wire with a checked failure instead.
+      throw new PSQLException(
+          GT.tr("Invalid binary array data: truncated header"),
+          PSQLState.DATA_ERROR);
+    }
+    int v = ByteConverter.int4(data, pos);
+    cursor[0] = pos + 4;
     return v;
   }
 }

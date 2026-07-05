@@ -185,6 +185,15 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
           GT.tr("Invalid binary composite data: negative field count {0}", fieldCount),
           PSQLState.DATA_ERROR);
     }
+    // Bound the field count against the bytes that remain before sizing the list: every field carries
+    // at least an 8-byte header (type OID + length) on the wire, so a count larger than
+    // (remaining bytes / 8) is corrupt. Without this, a hostile count near Integer.MAX_VALUE would
+    // drive an OutOfMemoryError in the ArrayList allocation before the per-field bounds check runs.
+    if (fieldCount > (end - pos) / 8) {
+      throw new PSQLException(
+          GT.tr("Invalid binary composite data: field count {0} exceeds remaining data", fieldCount),
+          PSQLState.DATA_ERROR);
+    }
 
     List<DecodedField> fields = new ArrayList<>(fieldCount);
 
