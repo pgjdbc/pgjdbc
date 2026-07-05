@@ -5,6 +5,13 @@
 
 package org.postgresql.test.jazzer;
 
+import org.postgresql.geometric.PGbox;
+import org.postgresql.geometric.PGcircle;
+import org.postgresql.geometric.PGline;
+import org.postgresql.geometric.PGlseg;
+import org.postgresql.geometric.PGpath;
+import org.postgresql.geometric.PGpoint;
+import org.postgresql.geometric.PGpolygon;
 import org.postgresql.util.PGInterval;
 
 import com.code_intelligence.jazzer.api.FuzzedDataProvider;
@@ -217,5 +224,114 @@ final class JazzerValues {
     int wholeSeconds = data.consumeInt(0, 59);
     int micros = data.consumeInt(0, 999_999);
     return new PGInterval(years, months, days, hours, minutes, wholeSeconds + micros / 1_000_000.0);
+  }
+
+  // --- Geometric types (U7b) -----------------------------------------------------------------
+
+  /**
+   * Draws a finite double coordinate the way the jetCheck {@code FINITE_DOUBLE} generator does --
+   * {@code unscaled * 10^-scale} with {@code scale} in {@code [0,6]}. The value is always finite, so it
+   * never trips the {@code x == x} equality the geometric classes use, and {@code Double.toString}
+   * recovers it exactly through the text codec.
+   *
+   * @param data the fuzzer input
+   * @return a finite double
+   */
+  private static double finiteDouble(FuzzedDataProvider data) {
+    int unscaled = data.consumeInt();
+    int scale = data.consumeInt(0, 6);
+    return unscaled / Math.pow(10, scale);
+  }
+
+  private static PGpoint point(FuzzedDataProvider data) {
+    return new PGpoint(finiteDouble(data), finiteDouble(data));
+  }
+
+  /**
+   * Draws one to eight {@link PGpoint}s for the {@code path} and {@code polygon} generators. The list is
+   * never empty: an empty {@code path} decodes to SQL NULL and an empty {@code polygon} re-parses to a
+   * one-point polygon, so neither round-trips.
+   */
+  private static PGpoint[] pointList(FuzzedDataProvider data) {
+    int n = data.consumeInt(1, 8);
+    PGpoint[] points = new PGpoint[n];
+    for (int i = 0; i < n; i++) {
+      points[i] = point(data);
+    }
+    return points;
+  }
+
+  /**
+   * Draws a {@link PGpoint} (Jazzer counterpart of the jetCheck {@code POINT} generator).
+   *
+   * @param data the fuzzer input
+   * @return a point with finite coordinates
+   */
+  static PGpoint pointValue(FuzzedDataProvider data) {
+    return point(data);
+  }
+
+  /**
+   * Draws a {@link PGline} from three finite coefficients {@code a}, {@code b}, {@code c} (Jazzer
+   * counterpart of the jetCheck {@code LINE} generator).
+   *
+   * @param data the fuzzer input
+   * @return a line {@code {a,b,c}}
+   */
+  static PGline lineValue(FuzzedDataProvider data) {
+    return new PGline(finiteDouble(data), finiteDouble(data), finiteDouble(data));
+  }
+
+  /**
+   * Draws a {@link PGlseg} from two points (Jazzer counterpart of the jetCheck {@code LSEG} generator).
+   *
+   * @param data the fuzzer input
+   * @return a line segment
+   */
+  static PGlseg lsegValue(FuzzedDataProvider data) {
+    return new PGlseg(point(data), point(data));
+  }
+
+  /**
+   * Draws a {@link PGbox} from two points (Jazzer counterpart of the jetCheck {@code BOX} generator).
+   *
+   * @param data the fuzzer input
+   * @return a box
+   */
+  static PGbox boxValue(FuzzedDataProvider data) {
+    return new PGbox(point(data), point(data));
+  }
+
+  /**
+   * Draws a {@link PGpath} from one to eight points and an open/closed flag (Jazzer counterpart of the
+   * jetCheck {@code PATH} generator).
+   *
+   * @param data the fuzzer input
+   * @return an open or closed path
+   */
+  static PGpath pathValue(FuzzedDataProvider data) {
+    return new PGpath(pointList(data), data.consumeBoolean());
+  }
+
+  /**
+   * Draws a {@link PGpolygon} from one to eight points (Jazzer counterpart of the jetCheck
+   * {@code POLYGON} generator).
+   *
+   * @param data the fuzzer input
+   * @return a polygon
+   */
+  static PGpolygon polygonValue(FuzzedDataProvider data) {
+    return new PGpolygon(pointList(data));
+  }
+
+  /**
+   * Draws a {@link PGcircle} from a centre point and a non-negative radius (Jazzer counterpart of the
+   * jetCheck {@code CIRCLE} generator).
+   *
+   * @param data the fuzzer input
+   * @return a circle
+   */
+  static PGcircle circleValue(FuzzedDataProvider data) {
+    return new PGcircle(point(data), Math.abs(finiteDouble(data)));
   }
 }

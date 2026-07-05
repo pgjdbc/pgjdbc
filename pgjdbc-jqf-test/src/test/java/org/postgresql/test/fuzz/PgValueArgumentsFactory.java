@@ -22,6 +22,13 @@ import org.postgresql.fuzzkit.coercion.CompositeDescriptor;
 import org.postgresql.fuzzkit.coercion.LeafRepr;
 import org.postgresql.fuzzkit.coercion.PgTypeDescriptors;
 import org.postgresql.fuzzkit.coercion.ScalarDescriptor;
+import org.postgresql.geometric.PGbox;
+import org.postgresql.geometric.PGcircle;
+import org.postgresql.geometric.PGline;
+import org.postgresql.geometric.PGlseg;
+import org.postgresql.geometric.PGpath;
+import org.postgresql.geometric.PGpoint;
+import org.postgresql.geometric.PGpolygon;
 import org.postgresql.util.PGInterval;
 import org.postgresql.util.PGobject;
 
@@ -124,6 +131,32 @@ public final class PgValueArgumentsFactory implements ArgumentsGeneratorFactory 
   // way the decoder does (so both share a sign), and the time components stay non-negative with minutes
   // in [0,59] and seconds in [0,60). The bounds also keep hours*3600e6 and years*12 clear of overflow.
   private static final Generator<PGInterval> INTERVAL = intervalGenerator();
+
+  // Geometric types (blind spot Z6, U7b): point, line, lseg, box, path, polygon, circle. Every
+  // component is a finite double drawn the way NUMERIC draws its unscaled value -- unscaled * 10^-scale
+  // with scale in [0,6], so the value is always finite (never NaN or infinity, which the equals of
+  // these classes would reject) and its Double.toString round-trips through Double.parseDouble exactly.
+  // The text path prints each double with Double.toString and parses it back, and Double.toString emits
+  // the shortest decimal that recovers the same double, so a finite component round-trips by equals; the
+  // binary path (point and box only) writes the raw float8 bits, which is exact for any double. path and
+  // polygon carry between one and eight points -- never zero, since an empty point list decodes to SQL
+  // NULL for a path and re-parses to a spurious one-point polygon.
+  private static final Generator<Double> FINITE_DOUBLE =
+      Generator.zipWith(Generator.integers(), Generator.integers(0, 6),
+          (unscaled, scale) -> unscaled / Math.pow(10, scale));
+  static final Generator<PGpoint> POINT = pointGenerator();
+  static final Generator<PGline> LINE = Generator.from(env ->
+      new PGline(env.generate(FINITE_DOUBLE), env.generate(FINITE_DOUBLE), env.generate(FINITE_DOUBLE)));
+  static final Generator<PGlseg> LSEG =
+      Generator.zipWith(POINT, POINT, PGlseg::new);
+  static final Generator<PGbox> BOX =
+      Generator.zipWith(POINT, POINT, PGbox::new);
+  static final Generator<PGpath> PATH = Generator.zipWith(pointList(), Generator.booleans(),
+      (points, open) -> new PGpath(points.toArray(new PGpoint[0]), open));
+  static final Generator<PGpolygon> POLYGON =
+      pointList().map(points -> new PGpolygon(points.toArray(new PGpoint[0])));
+  static final Generator<PGcircle> CIRCLE = Generator.from(env -> new PGcircle(
+      env.generate(POINT), Math.abs(env.generate(FINITE_DOUBLE))));
 
   // The record-field membership is derived, not hand-listed: a scalar descriptor takes part iff its
   // default getObject class is equals-stable and config-independent, so the decoded attribute compares
@@ -508,10 +541,32 @@ public final class PgValueArgumentsFactory implements ArgumentsGeneratorFactory 
     if (type == PGInterval.class) {
       return INTERVAL;
     }
+    if (type == PGpoint.class) {
+      return POINT;
+    }
+    if (type == PGline.class) {
+      return LINE;
+    }
+    if (type == PGlseg.class) {
+      return LSEG;
+    }
+    if (type == PGbox.class) {
+      return BOX;
+    }
+    if (type == PGpath.class) {
+      return PATH;
+    }
+    if (type == PGpolygon.class) {
+      return POLYGON;
+    }
+    if (type == PGcircle.class) {
+      return CIRCLE;
+    }
     throw new IllegalArgumentException(
         "PgValueArgumentsFactory generates FuzzArray, byte[], BigDecimal, FuzzRecord, FuzzNode, "
             + "Object[][], FuzzSqlData, CoercionCase, CoercionWriteCase, CoercionRoundTripCase, "
-            + "FuzzJson, FuzzBit and PGInterval, not " + type.getName());
+            + "FuzzJson, FuzzBit, PGInterval and the geometric types (PGpoint, PGline, PGlseg, PGbox, "
+            + "PGpath, PGpolygon, PGcircle), not " + type.getName());
   }
 
   /**
@@ -641,6 +696,21 @@ public final class PgValueArgumentsFactory implements ArgumentsGeneratorFactory 
       int micros = env.generate(Generator.integers(0, 999_999));
       return new PGInterval(years, months, days, hours, minutes, wholeSeconds + micros / 1_000_000.0);
     });
+  }
+
+  /** A {@link PGpoint} with two finite double coordinates (see the {@link #POINT} field comment). */
+  private static Generator<PGpoint> pointGenerator() {
+    return Generator.zipWith(FINITE_DOUBLE, FINITE_DOUBLE, PGpoint::new);
+  }
+
+  /**
+   * A list of one to eight {@link PGpoint}s, for the {@code path} and {@code polygon} generators. The
+   * list is never empty: an empty {@code path} decodes to SQL NULL, and an empty {@code polygon}
+   * re-parses to a one-point polygon, so neither round-trips.
+   */
+  private static Generator<List<PGpoint>> pointList() {
+    return Generator.nonEmptyLists(pointGenerator())
+        .map(points -> points.size() <= 8 ? points : points.subList(0, 8));
   }
 
   private static String toBitString(List<Integer> bits) {

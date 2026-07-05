@@ -156,6 +156,26 @@ public final class CodecFuzzSupport {
     }
   }
 
+  /**
+   * Round-trips {@code value} through the text format alone and asserts the result equals the input.
+   * The two-format {@link #roundTrip} would fail for a codec that carries only a text path, so the
+   * text-only geometric types ({@code line}, {@code lseg}, {@code path}, {@code polygon},
+   * {@code circle}) use this variant. The point and box codecs are binary-capable and go through
+   * {@link #roundTrip} instead.
+   *
+   * @param value the value to encode then decode as text
+   * @param type the offline scalar type
+   * @param target the class to decode into
+   * @param ctx the offline codec context
+   * @param <T> the target type
+   */
+  public static <T> void roundTripText(Object value, PgType type, Class<T> target, CodecContext ctx)
+      throws SQLException {
+    RawValue raw = Codecs.encode(value, type, ctx, Format.TEXT);
+    T back = Codecs.decode(raw, type, ctx, target);
+    assertEquals(value, back, () -> type.getTypeName() + " text round-trip");
+  }
+
   /** numeric round-trip compared by value ({@code compareTo}) so trailing-zero scale is ignored. */
   public static void numericRoundTrip(BigDecimal value, CodecContext ctx) throws SQLException {
     PgType numeric = PgTypeDescriptors.scalar(Oid.NUMERIC).pgType();
