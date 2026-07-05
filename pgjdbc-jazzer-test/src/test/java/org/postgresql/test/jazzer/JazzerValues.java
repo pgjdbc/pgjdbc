@@ -5,6 +5,8 @@
 
 package org.postgresql.test.jazzer;
 
+import org.postgresql.util.PGInterval;
+
 import com.code_intelligence.jazzer.api.FuzzedDataProvider;
 
 import java.math.BigDecimal;
@@ -115,5 +117,105 @@ final class JazzerValues {
     // The jetCheck generator draws printable ASCII; strip control characters (including NUL, which
     // PostgreSQL text cannot carry) so the value always encodes.
     return data.consumeAsciiString(16).replaceAll("[\\x00-\\x1F\\x7F]", "");
+  }
+
+  // --- PGobject / PGInterval scalars (U7a) ---------------------------------------------------
+
+  private static final String[] JSON_KEYWORDS = {"null", "true", "false"};
+
+  /**
+   * Draws a valid, non-empty JSON literal (Jazzer counterpart of the jetCheck {@code JSON_LITERAL}
+   * generator). The json / jsonb codecs pass the value through verbatim, so any non-empty literal
+   * round-trips; the shape is one of the keywords, a number, a quoted string, a small array, or a
+   * small object, so the literal carries JSON structure without ever being empty.
+   *
+   * @param data the fuzzer input
+   * @return a non-empty JSON literal
+   */
+  static String jsonLiteral(FuzzedDataProvider data) {
+    switch (data.consumeInt(0, 4)) {
+      case 0:
+        return JSON_KEYWORDS[data.consumeInt(0, JSON_KEYWORDS.length - 1)];
+      case 1:
+        return String.valueOf(data.consumeInt());
+      case 2:
+        return jsonString(data);
+      case 3:
+        return jsonArray(data);
+      default:
+        return jsonObject(data);
+    }
+  }
+
+  private static String jsonString(FuzzedDataProvider data) {
+    // Only ASCII letters and digits, so the quoted string never needs JSON escaping.
+    return '"' + data.consumeAsciiString(12).replaceAll("[^A-Za-z0-9]", "") + '"';
+  }
+
+  private static String jsonArray(FuzzedDataProvider data) {
+    int n = data.consumeInt(0, 4);
+    StringBuilder sb = new StringBuilder("[");
+    for (int i = 0; i < n; i++) {
+      if (i > 0) {
+        sb.append(',');
+      }
+      sb.append(data.consumeInt());
+    }
+    return sb.append(']').toString();
+  }
+
+  private static String jsonObject(FuzzedDataProvider data) {
+    int n = data.consumeInt(0, 4);
+    StringBuilder sb = new StringBuilder("{");
+    for (int i = 0; i < n; i++) {
+      if (i > 0) {
+        sb.append(',');
+      }
+      sb.append(jsonString(data)).append(':').append(data.consumeInt());
+    }
+    return sb.append('}').toString();
+  }
+
+  /**
+   * Draws a non-empty bit string (a run of {@code '0'}/{@code '1'}) for {@code bit} / {@code varbit}.
+   * The length is at least one so it decodes to a value rather than SQL NULL, and it round-trips
+   * exactly through both the text and the packed binary form.
+   *
+   * @param data the fuzzer input
+   * @return a bit string of length one or more
+   */
+  static String bitString(FuzzedDataProvider data) {
+    int length = data.consumeInt(1, 32);
+    StringBuilder sb = new StringBuilder(length);
+    for (int i = 0; i < length; i++) {
+      sb.append(data.consumeBoolean() ? '1' : '0');
+    }
+    return sb.toString();
+  }
+
+  /**
+   * Draws a {@link PGInterval} whose components are a fixed point of the codec's binary re-split, so it
+   * round-trips by {@code equals} in both formats (Jazzer counterpart of the jetCheck {@code INTERVAL}
+   * generator). The year/month pair comes from splitting one total month count the way the decoder does
+   * ({@code years = total/12}, {@code months = total%12}), so both share a sign; the time components
+   * stay non-negative with minutes in {@code [0,59]} and seconds in {@code [0,60)}. The bounds keep the
+   * encoder's {@code hours*3600e6} and {@code years*12} clear of overflow.
+   *
+   * @param data the fuzzer input
+   * @return a normalised interval
+   */
+  static PGInterval interval(FuzzedDataProvider data) {
+    int totalMonths = data.consumeInt(-1_200_000, 1_200_000);
+    int years = totalMonths / 12;
+    int months = totalMonths % 12;
+    int days = data.consumeInt(-1_000_000, 1_000_000);
+    // Run well past 596_523 hours: IntervalCodec.decodeBinary's re-split (hours * 3600) once overflowed
+    // int past that and corrupted the minutes; the decoder now splits in long arithmetic, so the wider
+    // range exercises that fix rather than dodging it.
+    int hours = data.consumeInt(0, 2_000_000);
+    int minutes = data.consumeInt(0, 59);
+    int wholeSeconds = data.consumeInt(0, 59);
+    int micros = data.consumeInt(0, 999_999);
+    return new PGInterval(years, months, days, hours, minutes, wholeSeconds + micros / 1_000_000.0);
   }
 }

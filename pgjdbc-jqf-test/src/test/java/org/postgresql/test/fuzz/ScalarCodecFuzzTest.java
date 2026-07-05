@@ -9,6 +9,8 @@ import org.postgresql.core.Oid;
 import org.postgresql.fuzzkit.CodecFuzzSupport;
 import org.postgresql.fuzzkit.coercion.PgTypeDescriptors;
 import org.postgresql.jdbc.PgType;
+import org.postgresql.util.PGInterval;
+import org.postgresql.util.PGobject;
 
 import edu.berkeley.cs.jqf.junit5.FuzzTest;
 
@@ -83,5 +85,41 @@ class ScalarCodecFuzzTest {
   void regularStructRoundTrip(int x, int y, String label) throws SQLException {
     PgType point = PgTypeDescriptors.composite(PgTypeDescriptors.POINT_OID).pgType();
     CodecFuzzSupport.structRoundTrip(point, new Object[]{x, y, label}, CodecFuzzSupport.with(point));
+  }
+
+  // The PGobject / PGInterval scalars (blind spot Z6): json, jsonb, bit, varbit, interval. Their types
+  // are not registered descriptors (they carry a codec but no coercion row), so the PgType is built
+  // inline from the pinned built-in OID. The values come from PgValueArgumentsFactory because the stock
+  // provider builds neither PGobject nor PGInterval; each generator draws a value that round-trips by
+  // equals in both formats (see the factory's field comments for the fidelity constraints).
+
+  @FuzzTest(arguments = PgValueArgumentsFactory.class)
+  void jsonRoundTrip(FuzzJson value) throws SQLException {
+    CodecFuzzSupport.roundTrip(value.value(), CodecFuzzSupport.scalar(Oid.JSON, "json", 'U'),
+        PGobject.class, CodecFuzzSupport.builtins());
+  }
+
+  @FuzzTest(arguments = PgValueArgumentsFactory.class)
+  void jsonbRoundTrip(FuzzJson value) throws SQLException {
+    CodecFuzzSupport.roundTrip(value.value(), CodecFuzzSupport.scalar(Oid.JSONB, "jsonb", 'U'),
+        PGobject.class, CodecFuzzSupport.builtins());
+  }
+
+  @FuzzTest(arguments = PgValueArgumentsFactory.class)
+  void bitRoundTrip(FuzzBit value) throws SQLException {
+    CodecFuzzSupport.roundTrip(value.value(), CodecFuzzSupport.scalar(Oid.BIT, "bit", 'V'),
+        PGobject.class, CodecFuzzSupport.builtins());
+  }
+
+  @FuzzTest(arguments = PgValueArgumentsFactory.class)
+  void varbitRoundTrip(FuzzBit value) throws SQLException {
+    CodecFuzzSupport.roundTrip(value.value(), CodecFuzzSupport.scalar(Oid.VARBIT, "varbit", 'V'),
+        PGobject.class, CodecFuzzSupport.builtins());
+  }
+
+  @FuzzTest(arguments = PgValueArgumentsFactory.class)
+  void intervalRoundTrip(PGInterval value) throws SQLException {
+    CodecFuzzSupport.roundTrip(value, CodecFuzzSupport.scalar(Oid.INTERVAL, "interval", 'T'),
+        PGInterval.class, CodecFuzzSupport.builtins());
   }
 }

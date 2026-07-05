@@ -22,6 +22,8 @@ import org.postgresql.fuzzkit.coercion.CompositeDescriptor;
 import org.postgresql.fuzzkit.coercion.LeafRepr;
 import org.postgresql.fuzzkit.coercion.PgTypeDescriptors;
 import org.postgresql.fuzzkit.coercion.ScalarDescriptor;
+import org.postgresql.util.PGInterval;
+import org.postgresql.util.PGobject;
 
 import edu.berkeley.cs.jqf.fuzz.jetcheck.JetCheckArgumentsGenerator;
 import edu.berkeley.cs.jqf.fuzz.spi.ArgumentsGenerator;
@@ -35,6 +37,7 @@ import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Date;
+import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDate;
@@ -96,6 +99,31 @@ public final class PgValueArgumentsFactory implements ArgumentsGeneratorFactory 
   static final Generator<BigDecimal> NUMERIC =
       Generator.zipWith(Generator.integers(), Generator.integers(0, 12),
           (unscaled, scale) -> BigDecimal.valueOf(unscaled.longValue(), scale));
+
+  // json / jsonb: a valid, non-empty JSON literal. The json and jsonb codecs pass the value string
+  // through verbatim (jsonb only frames a version byte around it in binary), so any non-empty literal
+  // round-trips unchanged -- but an empty value decodes to SQL NULL, so every branch here is non-empty.
+  // The scalar literals plus one shallow array and object exercise both the passthrough and the text
+  // that carries JSON structure (braces, brackets, quotes) through the codec.
+  private static final Generator<String> JSON_LITERAL = jsonLiteralGenerator();
+  static final Generator<PGobject> JSON = JSON_LITERAL.map(literal -> pgObject("json", literal));
+
+  // bit / varbit: a non-empty bit string (a run of '0'/'1'), which round-trips exactly in both formats
+  // -- the binary codec writes the length in an int4 prefix and reads back exactly that many bits. An
+  // empty string is excluded so the length is at least one, matching a scalar bit(n>=1) / varbit column.
+  static final Generator<PGobject> BIT_STRING =
+      Generator.listsOf(Generator.integers(0, 1))
+          .map(PgValueArgumentsFactory::toBitString)
+          .map(bits -> pgObject("bit", bits));
+
+  // interval: a PGInterval whose components are already in the normalised form the codec's binary path
+  // produces, so it round-trips by equals in both formats. The binary encoder folds years into months
+  // and hours/minutes/seconds into a single microsecond field, then the decoder re-splits months into
+  // years+months and microseconds into hours+minutes+seconds. The generator draws components that are a
+  // fixed point of that re-split: the year/month pair comes from splitting one total month count the
+  // way the decoder does (so both share a sign), and the time components stay non-negative with minutes
+  // in [0,59] and seconds in [0,60). The bounds also keep hours*3600e6 and years*12 clear of overflow.
+  private static final Generator<PGInterval> INTERVAL = intervalGenerator();
 
   // The record-field membership is derived, not hand-listed: a scalar descriptor takes part iff its
   // default getObject class is equals-stable and config-independent, so the decoded attribute compares
@@ -471,10 +499,19 @@ public final class PgValueArgumentsFactory implements ArgumentsGeneratorFactory 
     if (type == CoercionRoundTripCase.class) {
       return ROUND_TRIP;
     }
+    if (type == FuzzJson.class) {
+      return JSON.map(FuzzJson::new);
+    }
+    if (type == FuzzBit.class) {
+      return BIT_STRING.map(FuzzBit::new);
+    }
+    if (type == PGInterval.class) {
+      return INTERVAL;
+    }
     throw new IllegalArgumentException(
         "PgValueArgumentsFactory generates FuzzArray, byte[], BigDecimal, FuzzRecord, FuzzNode, "
-            + "Object[][], FuzzSqlData, CoercionCase, CoercionWriteCase and CoercionRoundTripCase, "
-            + "not " + type.getName());
+            + "Object[][], FuzzSqlData, CoercionCase, CoercionWriteCase, CoercionRoundTripCase, "
+            + "FuzzJson, FuzzBit and PGInterval, not " + type.getName());
   }
 
   /**
@@ -558,6 +595,76 @@ public final class PgValueArgumentsFactory implements ArgumentsGeneratorFactory 
       }
       return row;
     });
+  }
+
+  /**
+   * The JSON-literal generator: one of a fixed set of shallow, always-valid shapes -- the three
+   * keywords, a small integer, a quoted printable-ASCII string, a small array, and a small object.
+   * Every shape is non-empty so it decodes to a {@link PGobject} rather than SQL NULL.
+   */
+  private static Generator<String> jsonLiteralGenerator() {
+    Generator<String> quotedString =
+        Generator.stringsOf(Generator.asciiLetters()).map(s -> '"' + s + '"');
+    Generator<String> number = Generator.integers().map(String::valueOf);
+    Generator<String> keyword = Generator.sampledFrom("null", "true", "false");
+    Generator<String> scalar = Generator.anyOf(keyword, number, quotedString);
+    Generator<String> array = Generator.listsOf(scalar).map(items -> '[' + String.join(",", items) + ']');
+    Generator<String> object = Generator.listsOf(Generator.zipWith(quotedString, scalar,
+        (key, val) -> key + ':' + val)).map(members -> '{' + String.join(",", members) + '}');
+    return Generator.anyOf(scalar, array, object);
+  }
+
+  /**
+   * The interval generator: draws each component already in its normalised range so the value
+   * round-trips by {@code equals} through both the text and the binary codec (see the {@link #INTERVAL}
+   * field comment for why the ranges are what they are).
+   */
+  private static Generator<PGInterval> intervalGenerator() {
+    return Generator.from(env -> {
+      // Split a total month count the way the binary decoder does (years = total/12, months = total%12),
+      // so years and months share a sign and the re-split is the identity even for a negative interval.
+      // Splitting the total, rather than drawing years and months independently, is what keeps a case
+      // like years=-1, months=10 (total -2, which the decoder re-splits to years=0, months=-2) out of
+      // the generated set. The +-1,200,000-month bound keeps years*12 clear of int overflow.
+      int totalMonths = env.generate(Generator.integers(-1_200_000, 1_200_000));
+      int years = totalMonths / 12;
+      int months = totalMonths % 12;
+      int days = env.generate(Generator.integers(-1_000_000, 1_000_000));
+      // Hours, minutes and seconds fold into one microsecond field, re-split the same canonical way, so
+      // they are all non-negative here (minutes in [0,59], seconds in [0,60)) to make the re-split the
+      // identity. The hours range runs well past 596_523, where IntervalCodec.decodeBinary's re-split
+      // once overflowed int (hours * 3600) and corrupted the minutes; the decoder now splits in long
+      // arithmetic, so the wider range exercises that fix rather than dodging it.
+      int hours = env.generate(Generator.integers(0, 2_000_000));
+      int minutes = env.generate(Generator.integers(0, 59));
+      int wholeSeconds = env.generate(Generator.integers(0, 59));
+      int micros = env.generate(Generator.integers(0, 999_999));
+      return new PGInterval(years, months, days, hours, minutes, wholeSeconds + micros / 1_000_000.0);
+    });
+  }
+
+  private static String toBitString(List<Integer> bits) {
+    if (bits.isEmpty()) {
+      // A scalar bit / varbit value has at least one bit; the empty seed would decode to SQL NULL.
+      return "0";
+    }
+    StringBuilder sb = new StringBuilder(bits.size());
+    for (int bit : bits) {
+      sb.append(bit == 1 ? '1' : '0');
+    }
+    return sb.toString();
+  }
+
+  private static PGobject pgObject(String type, String value) {
+    PGobject obj = new PGobject();
+    obj.setType(type);
+    try {
+      obj.setValue(value);
+    } catch (SQLException e) {
+      // PGobject.setValue only stores the string; it never rejects one.
+      throw new IllegalStateException(e);
+    }
+    return obj;
   }
 
   private static byte[] toByteArray(List<Byte> bytes) {

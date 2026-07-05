@@ -51,7 +51,28 @@ public final class CodecFuzzSupport {
 
   // Every PgType comes from the descriptor registry: scalars from ScalarDescriptor.pgType(), arrays
   // from ArrayDescriptor.pgType(), and the point composite from CompositeDescriptor.pgType(). Nothing
-  // is built inline here any more.
+  // is built inline here any more, except the PGobject/PGInterval scalars below, which carry a codec
+  // but no coercion-dictionary row and so are deliberately kept out of the descriptor registry (a
+  // ScalarDescriptor requires a ReadCoercions row that guard G3 checks for).
+
+  /**
+   * Builds an offline scalar {@link PgType} the codec context resolves by OID, for the PGobject and
+   * PGInterval scalars ({@code json}, {@code jsonb}, {@code bit}, {@code varbit}, {@code interval})
+   * the codec round-trip targets exercise. These carry a pinned built-in codec but no coercion
+   * dictionary row, so they are not {@link org.postgresql.fuzzkit.coercion.ScalarDescriptor}s; the
+   * PgType is built inline here the way the codec unit tests build theirs -- a base type
+   * ({@code typtype='b'}) in {@code pg_catalog} with no element, array, or base type. The codec is
+   * resolved from the pinned built-in OID, so {@code typcategory} only records the type's category and
+   * does not steer resolution.
+   *
+   * @param oid the pinned built-in OID (for example {@link Oid#JSON})
+   * @param name the {@code pg_catalog} type name (for example {@code "json"})
+   * @param typcategory the {@code pg_type.typcategory}
+   * @return the offline scalar type
+   */
+  public static PgType scalar(int oid, String name, char typcategory) {
+    return new PgType(new ObjectName("pg_catalog", name), name, oid, 'b', typcategory, -1, 0, 0, 0);
+  }
 
   // The SQLData composite's field OIDs, in wire order (f1..f12). The membership is derived: exactly
   // the scalar descriptors that carry both a typed writer and a typed reader (which excludes timetz and
