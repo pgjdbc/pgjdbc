@@ -5,9 +5,10 @@
 
 package org.postgresql.jdbc.codec;
 
-import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
@@ -17,13 +18,14 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.UUID;
 
 /**
  * Codec for PostgreSQL uuid type.
  */
-public final class UuidCodec implements BinaryCodec, TextCodec {
+public final class UuidCodec implements StreamingBinaryCodec, TextCodec {
 
   public static final UuidCodec INSTANCE = new UuidCodec();
 
@@ -73,6 +75,14 @@ public final class UuidCodec implements BinaryCodec, TextCodec {
     ByteConverter.int8(result, 0, uuid.getMostSignificantBits());
     ByteConverter.int8(result, 8, uuid.getLeastSignificantBits());
     return result;
+  }
+
+  @Override
+  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx,
+      BackpatchingBinarySink out) throws SQLException, IOException {
+    UUID uuid = toUuid(value);
+    out.writeInt64(uuid.getMostSignificantBits());
+    out.writeInt64(uuid.getLeastSignificantBits());
   }
 
   @Override

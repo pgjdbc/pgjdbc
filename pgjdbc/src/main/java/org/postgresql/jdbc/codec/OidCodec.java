@@ -5,9 +5,10 @@
 
 package org.postgresql.jdbc.codec;
 
-import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
@@ -18,6 +19,7 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 
@@ -27,7 +29,7 @@ import java.sql.SQLException;
  * <p>OID is an unsigned 32-bit integer, represented as Long in Java
  * to handle the full range without overflow.</p>
  */
-public final class OidCodec implements BinaryCodec, TextCodec, ArrayElementCodec {
+public final class OidCodec implements StreamingBinaryCodec, TextCodec, ArrayElementCodec {
 
   public static final OidCodec INSTANCE = new OidCodec();
 
@@ -79,6 +81,12 @@ public final class OidCodec implements BinaryCodec, TextCodec, ArrayElementCodec
     byte[] result = new byte[4];
     ByteConverter.int4(result, 0, (int) v);
     return result;
+  }
+
+  @Override
+  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx,
+      BackpatchingBinarySink out) throws SQLException, IOException {
+    out.writeInt32((int) toLong(value));
   }
 
   @Override

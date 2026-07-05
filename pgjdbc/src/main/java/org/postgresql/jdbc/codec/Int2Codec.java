@@ -5,9 +5,10 @@
 
 package org.postgresql.jdbc.codec;
 
-import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
@@ -18,6 +19,7 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 
@@ -27,7 +29,7 @@ import java.sql.SQLException;
  * <p>Note: getObject() returns Integer for backward compatibility,
  * not Short as might be expected.</p>
  */
-public final class Int2Codec implements BinaryCodec, TextCodec, ArrayElementCodec {
+public final class Int2Codec implements StreamingBinaryCodec, TextCodec, ArrayElementCodec {
 
   public static final Int2Codec INSTANCE = new Int2Codec();
 
@@ -80,6 +82,12 @@ public final class Int2Codec implements BinaryCodec, TextCodec, ArrayElementCode
     byte[] result = new byte[2];
     ByteConverter.int2(result, 0, v);
     return result;
+  }
+
+  @Override
+  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx,
+      BackpatchingBinarySink out) throws SQLException, IOException {
+    out.writeInt16(toShort(value));
   }
 
   @Override

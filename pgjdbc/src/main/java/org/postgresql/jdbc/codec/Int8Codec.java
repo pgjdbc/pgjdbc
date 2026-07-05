@@ -5,9 +5,10 @@
 
 package org.postgresql.jdbc.codec;
 
-import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Encoding;
@@ -19,13 +20,14 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 
 /**
  * Codec for PostgreSQL int8 (BIGINT) type.
  */
-public final class Int8Codec implements BinaryCodec, TextCodec, ArrayElementCodec {
+public final class Int8Codec implements StreamingBinaryCodec, TextCodec, ArrayElementCodec {
 
   public static final Int8Codec INSTANCE = new Int8Codec();
 
@@ -76,6 +78,12 @@ public final class Int8Codec implements BinaryCodec, TextCodec, ArrayElementCode
     byte[] result = new byte[8];
     ByteConverter.int8(result, 0, v);
     return result;
+  }
+
+  @Override
+  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx,
+      BackpatchingBinarySink out) throws SQLException, IOException {
+    out.writeInt64(toLong(value));
   }
 
   @Override
