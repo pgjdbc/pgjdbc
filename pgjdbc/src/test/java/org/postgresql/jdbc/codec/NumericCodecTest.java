@@ -15,6 +15,7 @@ import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -245,6 +246,100 @@ class NumericCodecTest {
   void numericNonFinite_rejectsFinite() {
     // The helper is only for the sentinels; a finite value is a caller bug, not silent garbage.
     assertThrows(IllegalArgumentException.class, () -> ByteConverter.numericNonFinite(1.0));
+  }
+
+  // ==================== malformed binary wire (F3a) ====================
+
+  // A truncated or malformed binary numeric drives ByteConverter.numeric to throw
+  // IllegalArgumentException. Every codec binary path must trap that and refuse with a clean
+  // PSQLException (DATA_ERROR), rather than leak the unchecked exception the raw-bytes fuzzer flagged.
+
+  @Test
+  void decodeBinary_empty_refusesCleanly() {
+    // A zero-length buffer is shorter than the 8-byte numeric header (the fuzzer's first input).
+    assertBinaryRefused(new byte[0]);
+  }
+
+  @Test
+  void decodeBinary_short_refusesCleanly() {
+    // Fewer than 8 header bytes.
+    assertBinaryRefused(new byte[]{0, 0, 0, 0, 0, 0, 0});
+  }
+
+  @Test
+  void decodeBinary_lengthMismatch_refusesCleanly() {
+    // Header claims one 2-byte digit group (len=1) but the buffer stops at the 8-byte header, so
+    // numBytes != len*2+8.
+    byte[] data = new byte[8];
+    ByteConverter.int2(data, 0, (short) 1); // len = 1
+    assertBinaryRefused(data);
+  }
+
+  @Test
+  void decodeBinary_invalidSign_refusesCleanly() {
+    // len=0 header with a sign field that is none of POS/NEG/NAN/PINF/NINF.
+    byte[] data = new byte[8];
+    ByteConverter.int2(data, 4, (short) 0x1234); // sign
+    assertBinaryRefused(data);
+  }
+
+  @Test
+  void decodeBinary_scaleRoundingArtefact_refusesCleanly() {
+    // A crafted header whose weight/scale combination drives ByteConverter.numeric's internal
+    // BigDecimal.setScale(0) to round throws ArithmeticException ("Rounding necessary"), a distinct
+    // unchecked leak from the length IllegalArgumentException. The active Jazzer campaign found this
+    // 16-byte input: len=4 with a body that produces a fractional value at scale 0. The guard traps it
+    // the same way. (Regression pin for JazzerDecodeRobustnessFuzzTest.numericBinary.)
+    byte[] data = {
+        0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0a, 0x0a,
+    };
+    assertBinaryRefused(data);
+  }
+
+  @Test
+  void decodeBinary_negativeWeightZeroScale_refusesCleanly() {
+    // weight < 0 with scale <= 0 breaks the server's numeric invariant (a fraction must have a
+    // positive scale). ByteConverter.numeric used to assert this (an AssertionError under -ea, garbage
+    // otherwise); it now rejects it as malformed and the codec surfaces DATA_ERROR. The active Jazzer
+    // campaign found this 10-byte input (len=1, weight=0x9f00 < 0, scale=0).
+    byte[] data = {
+        0x00, 0x01, (byte) 0x9f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0a, 0x25,
+    };
+    assertBinaryRefused(data);
+  }
+
+  @Test
+  void decodeBinary_valid_stillDecodes() throws SQLException {
+    // A well-formed binary numeric is unaffected by the guard.
+    byte[] data = ByteConverter.numeric(new BigDecimal("12.5"));
+    assertEquals(new BigDecimal("12.5"), codec.decodeBinary(data, numericType, null));
+    assertEquals(new BigDecimal("12.5"), codec.decodeAsBigDecimal(data, numericType, null));
+    assertEquals(12.5, codec.decodeAsDouble(data, numericType, null), 0.0);
+    assertEquals(new BigDecimal("12.5"),
+        codec.decodeBinaryAs(data, numericType, BigDecimal.class, null));
+  }
+
+  /**
+   * Asserts every binary decode entry point refuses {@code data} with a {@link PSQLState#DATA_ERROR}
+   * {@link PSQLException} and never leaks an unchecked exception.
+   */
+  private void assertBinaryRefused(byte[] data) {
+    assertBinaryPathRefused("decodeBinary", () -> codec.decodeBinary(data, numericType, null));
+    assertBinaryPathRefused("decodeAsBigDecimal",
+        () -> codec.decodeAsBigDecimal(data, numericType, null));
+    assertBinaryPathRefused("decodeAsDouble", () -> codec.decodeAsDouble(data, numericType, null));
+    // decodeBinaryAs(BigDecimal) is the exact path the Jazzer numericBinary target exercises.
+    assertBinaryPathRefused("decodeBinaryAs",
+        () -> codec.decodeBinaryAs(data, numericType, BigDecimal.class, null));
+  }
+
+  private static void assertBinaryPathRefused(String path,
+      org.junit.jupiter.api.function.Executable decode) {
+    PSQLException e = assertThrows(PSQLException.class, decode,
+        () -> "numeric binary " + path + " should refuse malformed wire");
+    assertEquals(PSQLState.DATA_ERROR.getState(), e.getSQLState(),
+        () -> "SQLState for numeric binary " + path);
   }
 
   @Test

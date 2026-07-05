@@ -67,7 +67,7 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
     // BigDecimal can't represent them, so surface those literals as Double
     // sentinels — matches the legacy driver's getObject contract. Callers
     // that need BigDecimal go through decodeAsBigDecimal which throws.
-    Number result = ByteConverter.numeric(data, offset, length);
+    Number result = numericFromWire(data, offset, length);
     if (result instanceof Double) {
       double d = result.doubleValue();
       if (Double.isNaN(d) || Double.isInfinite(d)) {
@@ -132,7 +132,7 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
 
   @Override
   public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Number result = ByteConverter.numeric(data);
+    Number result = numericFromWire(data, 0, data.length);
     if (result instanceof BigDecimal) {
       return (BigDecimal) result;
     }
@@ -184,7 +184,7 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
 
   @Override
   public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Number result = ByteConverter.numeric(data);
+    Number result = numericFromWire(data, 0, data.length);
     return result.doubleValue();
   }
 
@@ -348,6 +348,24 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
       return (T) Boolean.valueOf(bd.compareTo(BigDecimal.ZERO) != 0);
     }
     throw Codec.cannotDecode("numeric", targetClass.getName());
+  }
+
+  /**
+   * Decodes the binary {@code numeric} wire form, turning the unchecked exceptions
+   * {@link ByteConverter#numeric} raises on a malformed buffer into a clean {@link PSQLException}.
+   * A truncated or inconsistent header throws {@link IllegalArgumentException}; a header whose
+   * weight/scale combination drives an internal {@code setScale} to round throws
+   * {@link ArithmeticException}. Untrusted or corrupt wire bytes must surface as a checked failure
+   * rather than leak either out of the decode path; the server itself never emits such bytes, so the
+   * state is {@link PSQLState#DATA_ERROR}.
+   */
+  private static Number numericFromWire(byte[] data, int offset, int length) throws SQLException {
+    try {
+      return ByteConverter.numeric(data, offset, length);
+    } catch (IllegalArgumentException | ArithmeticException e) {
+      throw new PSQLException(
+          GT.tr("Invalid binary numeric value"), PSQLState.DATA_ERROR, e);
+    }
   }
 
   /**
