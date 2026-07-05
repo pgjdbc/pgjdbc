@@ -5,6 +5,7 @@
 
 package org.postgresql.jdbc.codec;
 
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.TextCodec;

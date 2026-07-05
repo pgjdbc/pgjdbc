@@ -5,6 +5,7 @@
 
 package org.postgresql.jdbc.codec;
 
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
@@ -115,7 +116,7 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
     if (codec instanceof StreamingBinaryCodec) {
       int lengthSlot = out.reserveInt32();
       int startPos = out.position();
-      ((StreamingBinaryCodec) codec).encodeBinary(element, elementType, ctx, out.asOutputStream());
+      ((StreamingBinaryCodec) codec).encodeBinary(element, elementType, ctx, out);
       out.setInt32At(lengthSlot, out.position() - startPos);
     } else {
       byte[] encoded = codec.encodeBinary(element, elementType, ctx);

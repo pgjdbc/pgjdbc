@@ -7,26 +7,25 @@ package org.postgresql.api.codec;
 
 import org.postgresql.api.Experimental;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.sql.SQLException;
 
 /**
- * Extends {@link BinaryCodec} with an {@link OutputStream}-targeted encode
- * method so callers can stream output directly into a shared buffer without
- * allocating an intermediate {@code byte[]} per element.
+ * Extends {@link BinaryCodec} with a {@link BackpatchingBinarySink}-targeted
+ * encode method so callers can stream output directly into a shared buffer
+ * without allocating an intermediate {@code byte[]} per element.
  *
- * <p>Primary use case: composing nested encoders. The array codec can write
- * each element's bytes straight into its own {@code ByteArrayOutputStream}
- * (with length-prefix back-patching via
- * {@link org.postgresql.jdbc.codec.BackpatchByteArrayOutputStream}) instead
- * of asking the element codec for a per-element {@code byte[]} that's
- * immediately copied into the array buffer.</p>
+ * <p>Primary use case: composing nested encoders. A container codec reserves a
+ * length slot in the sink, lets the element codec stream its body straight into
+ * the same buffer, and back-patches the slot once the length is known — instead
+ * of asking the element codec for a per-element {@code byte[]} that is copied
+ * into the container buffer and then discarded. See {@link BackpatchingBinarySink}
+ * for the reserve/patch protocol.</p>
  *
- * <p>The {@link #encodeBinary(Object, TypeDescriptor, CodecContext)} byte-array form
- * is provided as a default adapter that buffers into a
- * {@link ByteArrayOutputStream}.</p>
+ * <p>A codec opting into this interface implements <em>both</em> the streaming
+ * form here and the {@code byte[]}-returning {@link #encodeBinary(Object,
+ * TypeDescriptor, CodecContext)} inherited from {@link BinaryCodec}; both are
+ * mandatory so the streaming form cannot be silently forgotten.</p>
  *
  * @since 42.8.0
  */
@@ -43,23 +42,6 @@ public interface StreamingBinaryCodec extends BinaryCodec {
    * @throws SQLException if encoding fails
    * @throws IOException if {@code out} throws
    */
-  void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx, OutputStream out)
+  void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx, BackpatchingBinarySink out)
       throws SQLException, IOException;
-
-  /**
-   * Default {@code byte[]}-returning form: buffers into a
-   * {@link ByteArrayOutputStream} and delegates to
-   * {@link #encodeBinary(Object, TypeDescriptor, CodecContext, OutputStream)}.
-   */
-  @Override
-  default byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    try {
-      encodeBinary(value, type, ctx, baos);
-    } catch (IOException e) {
-      // ByteArrayOutputStream never throws IOException.
-      throw new AssertionError(e);
-    }
-    return baos.toByteArray();
-  }
 }

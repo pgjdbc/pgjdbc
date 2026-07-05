@@ -5,6 +5,7 @@
 
 package org.postgresql.jdbc.codec;
 
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.util.ByteConverter;
 
 import java.io.ByteArrayOutputStream;
@@ -34,26 +35,55 @@ public final class BackpatchByteArrayOutputStream extends ByteArrayOutputStream
    * @return current write position (== size of data written so far).
    */
   @Override
-  public ByteArrayOutputStream asOutputStream() {
-    return this;
-  }
-
-  @Override
   public int position() {
     return count;
   }
 
+  @Override
+  public void writeByte(int b) {
+    write(b);
+  }
+
+  // Each writer reserves (which may grow and reassign buf) into a local BEFORE touching buf,
+  // so the ByteConverter call reads the current buffer, not a stale reference captured first.
+
+  @Override
+  public void writeInt16(int value) {
+    int pos = reserve(2);
+    ByteConverter.int2(buf, pos, value);
+  }
+
+  @Override
+  public void writeInt32(int value) {
+    int pos = reserve(4);
+    ByteConverter.int4(buf, pos, value);
+  }
+
+  @Override
+  public void writeInt64(long value) {
+    int pos = reserve(8);
+    ByteConverter.int8(buf, pos, value);
+  }
+
+  @Override
+  public void writeFloat(float value) {
+    int pos = reserve(4);
+    ByteConverter.float4(buf, pos, value);
+  }
+
+  @Override
+  public void writeDouble(double value) {
+    int pos = reserve(8);
+    ByteConverter.float8(buf, pos, value);
+  }
+
   /**
-   * Reserves a 4-byte slot at the current position by writing four zero bytes
-   * and returns the index of the slot, which can later be passed to
-   * {@link #setInt32At(int, int)}.
+   * Reserves a 4-byte slot at the current position and returns the index of the
+   * slot, which can later be passed to {@link #setInt32At(int, int)}.
    */
   @Override
   public int reserveInt32() {
-    int pos = count;
-    ensureCapacity(count + 4);
-    count += 4;
-    return pos;
+    return reserve(4);
   }
 
   /**
@@ -70,10 +100,15 @@ public final class BackpatchByteArrayOutputStream extends ByteArrayOutputStream
     ByteConverter.int4(buf, position, value);
   }
 
-  @Override
-  public void writeInt32(int value) {
-    int pos = reserveInt32();
-    ByteConverter.int4(buf, pos, value);
+  /**
+   * Reserves {@code n} bytes at the current position and returns the start index
+   * of the reserved region, leaving the write position just past it.
+   */
+  private int reserve(int n) {
+    int pos = count;
+    ensureCapacity(count + n);
+    count += n;
+    return pos;
   }
 
   private void ensureCapacity(int minCapacity) {

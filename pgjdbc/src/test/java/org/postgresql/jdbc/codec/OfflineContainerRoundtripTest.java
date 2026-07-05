@@ -26,6 +26,7 @@ import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.sql.Array;
 import java.sql.SQLData;
 import java.sql.SQLException;
@@ -203,6 +204,41 @@ class OfflineContainerRoundtripTest {
     Struct nested = assertInstanceOf(Struct.class, attributes[1], "nested record field");
     assertArrayEquals(new Object[]{2, 3}, nested.getAttributes(), "nested record attributes");
     assertEquals("(1,\"(2,3)\")", decoded.getValue(), "rebuilt nested record literal");
+  }
+
+  @Test
+  void structFastPathStreamingMatchesMaterializedBytesOffline() throws SQLException, IOException {
+    // The Struct fast path streams each attribute straight into a BackpatchingBinarySink,
+    // back-patching per-field length prefixes. Assert it produces the SAME bytes as the
+    // materializing byte[] path. This proves output equivalence only — not the absence of an
+    // intermediate byte[] (that would need an allocation-counting sink).
+    PgType type = composite("pt", POINT_OID,
+        field("x", Oid.INT4, 1), field("y", Oid.INT4, 2), field("label", Oid.TEXT, 3));
+    CodecContext ctx = PgCodecContext.offlineBuilder().type(type).build();
+    PgStruct value = new PgStruct(type, new Object[]{10, 20, "hello, struct"}, null);
+
+    byte[] materialized = CompositeCodec.INSTANCE.encodeBinary(value, type, ctx);
+    BackpatchByteArrayOutputStream streamed = new BackpatchByteArrayOutputStream();
+    CompositeCodec.INSTANCE.encodeBinary(value, type, ctx, streamed);
+    assertArrayEquals(materialized, streamed.toByteArray(), "Struct fast path");
+  }
+
+  @Test
+  void sqlDataStreamingFallbackMatchesMaterializedBytesOffline() throws SQLException, IOException {
+    // An SQLData value does not take the Struct fast path: streaming encodeBinary falls back to
+    // out.write(encodeBinary(...)), a length-correct materialize-then-copy. Assert the fallback
+    // writes the same bytes as the byte[] path. (A plain PGobject is never binary-encoded here —
+    // canEncodeBinary() gates it to text — so SQLData is the value that actually exercises the
+    // fallback branch.)
+    PgType type = composite("point_t", POINT_OID,
+        field("x", Oid.INT4, 1), field("y", Oid.INT4, 2), field("label", Oid.TEXT, 3));
+    CodecContext ctx = PgCodecContext.offlineBuilder().type(type).build();
+    Point value = point(3, 4, "corner");
+
+    byte[] materialized = CompositeCodec.INSTANCE.encodeBinary(value, type, ctx);
+    BackpatchByteArrayOutputStream streamed = new BackpatchByteArrayOutputStream();
+    CompositeCodec.INSTANCE.encodeBinary(value, type, ctx, streamed);
+    assertArrayEquals(materialized, streamed.toByteArray(), "SQLData fallback");
   }
 
   @Test

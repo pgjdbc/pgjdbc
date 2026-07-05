@@ -5,6 +5,7 @@
 
 package org.postgresql.jdbc.codec;
 
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.StreamingBinaryCodec;
@@ -20,7 +21,6 @@ import org.postgresql.util.PSQLState;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 
@@ -81,13 +81,9 @@ public final class Int4Codec implements StreamingBinaryCodec, StreamingTextCodec
   }
 
   @Override
-  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx, OutputStream out)
-      throws SQLException, IOException {
-    if (out instanceof BackpatchingBinarySink) {
-      ((BackpatchingBinarySink) out).writeInt32(toInt(value));
-      return;
-    }
-    out.write(encodeBinary(value, type, ctx));
+  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx,
+      BackpatchingBinarySink out) throws SQLException, IOException {
+    out.writeInt32(toInt(value));
   }
 
   @Override

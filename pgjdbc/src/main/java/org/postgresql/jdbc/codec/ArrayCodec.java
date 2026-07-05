@@ -5,6 +5,7 @@
 
 package org.postgresql.jdbc.codec;
 
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
@@ -21,7 +22,6 @@ import org.postgresql.util.PSQLState;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.sql.Array;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -326,8 +326,8 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   }
 
   @Override
-  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx, OutputStream out)
-      throws SQLException, IOException {
+  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx,
+      BackpatchingBinarySink out) throws SQLException, IOException {
     // Defer to the non-streaming path for unwrap/native-encoder dispatch;
     // the via-codec branch internally back-patches lengths via
     // BackpatchByteArrayOutputStream when the element codec is streaming,

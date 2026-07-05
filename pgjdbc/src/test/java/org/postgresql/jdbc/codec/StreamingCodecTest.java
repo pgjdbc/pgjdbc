@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.core.Oid;
@@ -42,13 +43,12 @@ class StreamingCodecTest {
         'b', 'N', -1, 0, 0, 0);
   }
 
-  // ---------------- StreamingTextCodec adapter ----------------
+  // ---------------- Streaming vs materializing form agree ----------------
 
   @Test
-  void streamingTextCodec_defaultStringAdapter_buffersViaStringBuilder() throws SQLException {
-    // Int4Codec implements StreamingTextCodec — non-streaming encodeText should
-    // route through default adapter and produce identical output to the
-    // explicit streaming call.
+  void int4_stringFormMatchesStreamingText() throws SQLException {
+    // Int4Codec implements both the String-returning encodeText and the streaming
+    // Appendable form; they must produce identical output.
     String viaString = Int4Codec.INSTANCE.encodeText(42, int4Type, null);
     StringBuilder sb = new StringBuilder();
     try {
@@ -61,8 +61,8 @@ class StreamingCodecTest {
   }
 
   @Test
-  void streamingBinaryCodec_defaultByteArrayAdapter_buffersViaByteArrayOutputStream()
-      throws SQLException, IOException {
+  void int4_byteArrayFormMatchesStreamingBinary() throws SQLException, IOException {
+    // The byte[]-returning encodeBinary and the streaming sink form must produce identical bytes.
     byte[] viaArray = Int4Codec.INSTANCE.encodeBinary(42, int4Type, null);
     BackpatchByteArrayOutputStream out = new BackpatchByteArrayOutputStream();
     Int4Codec.INSTANCE.encodeBinary(42, int4Type, null, out);

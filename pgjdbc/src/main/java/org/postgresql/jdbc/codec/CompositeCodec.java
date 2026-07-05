@@ -5,6 +5,7 @@
 
 package org.postgresql.jdbc.codec;
 
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.StreamingBinaryCodec;
@@ -30,7 +31,6 @@ import org.postgresql.util.PSQLState;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.sql.SQLData;
 import java.sql.SQLException;
 import java.sql.SQLInput;
@@ -820,15 +820,19 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
 
   /** Streaming variant of {@link #encodeBinary(Object, TypeDescriptor, CodecContext)}. */
   @Override
-  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx, OutputStream out)
-      throws SQLException, IOException {
-    if (value instanceof Struct && !(value instanceof SQLData)
-        && out instanceof BackpatchByteArrayOutputStream) {
-      streamAttributesAsBinary(((Struct) value).getAttributes(), type, ctx,
-          (BackpatchByteArrayOutputStream) out);
+  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx,
+      BackpatchingBinarySink out) throws SQLException, IOException {
+    if (value instanceof Struct && !(value instanceof SQLData)) {
+      // Struct fast path: stream each attribute straight into the sink, back-patching
+      // per-field length prefixes, so no per-field byte[] is materialized.
+      streamAttributesAsBinary(((Struct) value).getAttributes(), type, ctx, out);
       return;
     }
-    // Fallback: defer to the non-streaming path that materializes a byte[].
+    // Fallback for values that do not take the Struct fast path (chiefly SQLData, which
+    // serializes through its own PgSQLOutputBinary adapter): materialize the whole composite
+    // into a byte[] and copy it into the sink. This is a length-correct write, not true
+    // streaming — the intermediate byte[] is unavoidable via that path. Plain PGobject values
+    // never reach here: canEncodeBinary() gates them out and they bind as text.
     out.write(encodeBinary(value, type, ctx));
   }
 
@@ -837,7 +841,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       @Nullable Object[] attributes,
       TypeDescriptor compositeType,
       CodecContext ctx,
-      BackpatchByteArrayOutputStream out) throws SQLException, IOException {
+      BackpatchingBinarySink out) throws SQLException, IOException {
     List<? extends org.postgresql.api.codec.PgField> fields = resolveFields(compositeType, ctx);
     if (fields.size() != attributes.length) {
       throw new PSQLException(

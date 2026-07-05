@@ -7,6 +7,7 @@ package org.postgresql.jdbc.codec;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.StreamingBinaryCodec;
@@ -21,7 +22,6 @@ import org.postgresql.util.PSQLState;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.sql.Date;
@@ -79,8 +79,8 @@ public final class TextCodecImpl implements StreamingBinaryCodec, StreamingTextC
   }
 
   @Override
-  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx, OutputStream out)
-      throws SQLException, IOException {
+  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx,
+      BackpatchingBinarySink out) throws SQLException, IOException {
     String s = toString(value);
     Charset encoding = ctx.getCharset();
     out.write(s.getBytes(encoding));

@@ -22,10 +22,10 @@ import java.sql.SQLException;
  * {@code String} that the non-streaming path materializes only to walk it
  * once for escape characters.</p>
  *
- * <p>The {@link #encodeText(Object, TypeDescriptor, CodecContext)} String-returning
- * form is provided as a default adapter that buffers into a
- * {@link StringBuilder}, so existing callers continue to work and codecs may
- * opt in to streaming incrementally.</p>
+ * <p>A codec opting into this interface implements <em>both</em> the streaming
+ * form here and the {@code String}-returning {@link #encodeText(Object,
+ * TypeDescriptor, CodecContext)} inherited from {@link TextCodec}; both are
+ * mandatory so the streaming form cannot be silently forgotten.</p>
  *
  * @since 42.8.0
  */
@@ -44,21 +44,4 @@ public interface StreamingTextCodec extends TextCodec {
    */
   void encodeText(Object value, TypeDescriptor type, CodecContext ctx, Appendable out)
       throws SQLException, IOException;
-
-  /**
-   * Default {@code String}-returning form: buffers into a
-   * {@link StringBuilder} and delegates to
-   * {@link #encodeText(Object, TypeDescriptor, CodecContext, Appendable)}.
-   */
-  @Override
-  default String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    StringBuilder sb = new StringBuilder();
-    try {
-      encodeText(value, type, ctx, sb);
-    } catch (IOException e) {
-      // StringBuilder.append never throws IOException.
-      throw new AssertionError(e);
-    }
-    return sb.toString();
-  }
 }
