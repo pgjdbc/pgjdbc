@@ -7,6 +7,7 @@ package org.postgresql.fuzzkit;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.postgresql.api.codec.BinaryCodec;
@@ -18,6 +19,7 @@ import org.postgresql.api.codec.RawValue;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 import org.postgresql.fuzzkit.coercion.ArrayDescriptor;
 import org.postgresql.fuzzkit.coercion.Fidelity;
@@ -30,15 +32,22 @@ import org.postgresql.jdbc.PgField;
 import org.postgresql.jdbc.PgStruct;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.jdbc.codec.BackpatchByteArrayOutputStream;
+import org.postgresql.util.PGRange;
+import org.postgresql.util.PGmultirange;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.Struct;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
@@ -197,6 +206,238 @@ public final class CodecFuzzSupport {
       }
       assertEquals(materialised, sink.toString(),
           () -> type.getTypeName() + " streaming-text vs String");
+    }
+  }
+
+  // --- Stream-vs-materialise property for delegating codecs -----------------------------------
+
+  /**
+   * Asserts a delegating codec (range, multirange, domain, PGobject, array, composite) writes the
+   * same wire bytes whether it streams each child straight into the sink or materialises the child to
+   * a {@code byte[]}/{@code String} first. It encodes {@code value} twice: once through {@code ctx},
+   * and once through a context whose {@link CodecContext#resolveCodec} returns a non-streaming view of
+   * every codec, forcing the delegate's materialising fallback branch. The two wire forms must match
+   * in both formats.
+   *
+   * <p>This is the property {@link #encodeParity} cannot reach for {@link org.postgresql.jdbc.codec
+   * .RangeCodec} and {@link org.postgresql.jdbc.codec.MultirangeCodec}, whose {@code byte[]} form
+   * merely buffers their own streaming form -- so their materialising child branch is otherwise never
+   * taken, since every registered child codec streams. The de-streamed run exercises that branch and
+   * pins its length framing against the back-patched streaming one.
+   *
+   * @param value the value to encode both ways
+   * @param type the delegating backend type
+   * @param ctx the offline codec context, which must resolve {@code type} and its children
+   */
+  public static void streamVsMaterializeParity(Object value, PgType type, CodecContext ctx)
+      throws SQLException {
+    CodecContext materialising = new NonStreamingContext(ctx);
+    // Non-vacuity guard: if the delegate streams, the de-streamed view must hide its streaming faces,
+    // or the two runs would encode through the same branch and the property would prove nothing. The
+    // same wrapping drives the children, so hiding it on the top type witnesses the mechanism works.
+    Codec real = ctx.resolveCodec(type.getOid());
+    if (real instanceof StreamingBinaryCodec || real instanceof StreamingTextCodec) {
+      Codec deStreamed = materialising.resolveCodec(type.getOid());
+      assertFalse(deStreamed instanceof StreamingBinaryCodec
+              || deStreamed instanceof StreamingTextCodec,
+          () -> type.getTypeName() + " de-streamed codec still advertises a streaming face");
+    }
+    for (Format format : Format.values()) {
+      byte[] streamed = Codecs.encode(value, type, ctx, format).toByteArray();
+      byte[] materialised = Codecs.encode(value, type, materialising, format).toByteArray();
+      assertArrayEquals(streamed, materialised,
+          type.getTypeName() + " " + format + " streamed vs materialised child path");
+    }
+  }
+
+  /**
+   * A {@link CodecContext} that resolves every codec through {@link NonStreamingCodec}, so a
+   * delegating codec sees no child that opts into the streaming interfaces and takes its
+   * materialising fallback branch. Every other setting is delegated unchanged.
+   */
+  private static final class NonStreamingContext implements CodecContext {
+    private final CodecContext delegate;
+
+    NonStreamingContext(CodecContext delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public Codec resolveCodec(int oid) throws SQLException {
+      return NonStreamingCodec.wrap(delegate.resolveCodec(oid));
+    }
+
+    @Override
+    public TypeDescriptor resolveType(int oid) throws SQLException {
+      return delegate.resolveType(oid);
+    }
+
+    @Override
+    public CodecContext withoutJavaTimePreferences() {
+      CodecContext inner = delegate.withoutJavaTimePreferences();
+      return inner == delegate ? this : new NonStreamingContext(inner);
+    }
+
+    @Override
+    public Charset getCharset() {
+      return delegate.getCharset();
+    }
+
+    @Override
+    public boolean usesDoubleDateTime() {
+      return delegate.usesDoubleDateTime();
+    }
+
+    @Override
+    public TimeZone getClientTimeZone() {
+      return delegate.getClientTimeZone();
+    }
+
+    @Override
+    public TimeZone getDefaultTimeZone() {
+      return delegate.getDefaultTimeZone();
+    }
+
+    @Override
+    public @Nullable Calendar getCalendar() {
+      return delegate.getCalendar();
+    }
+
+    @Override
+    public boolean prefersJavaTimeForDate() {
+      return delegate.prefersJavaTimeForDate();
+    }
+
+    @Override
+    public boolean prefersJavaTimeForTime() {
+      return delegate.prefersJavaTimeForTime();
+    }
+
+    @Override
+    public boolean prefersJavaTimeForTimetz() {
+      return delegate.prefersJavaTimeForTimetz();
+    }
+
+    @Override
+    public boolean prefersJavaTimeForTimestamp() {
+      return delegate.prefersJavaTimeForTimestamp();
+    }
+
+    @Override
+    public boolean prefersJavaTimeForTimestamptz() {
+      return delegate.prefersJavaTimeForTimestamptz();
+    }
+
+    @Override
+    public boolean getConvertBooleanToNumeric() {
+      return delegate.getConvertBooleanToNumeric();
+    }
+
+    @Override
+    public Map<String, Class<?>> getTypeMap() {
+      return delegate.getTypeMap();
+    }
+
+    @Override
+    public @Nullable Class<?> getMappedClass(String typeName) {
+      return delegate.getMappedClass(typeName);
+    }
+  }
+
+  /**
+   * A {@link BinaryCodec} and {@link TextCodec} that forwards every call to a wrapped codec but does
+   * not implement {@link StreamingBinaryCodec} or {@link StreamingTextCodec}, so a delegating codec
+   * resolving it as a child takes the materialising branch. Capability probes
+   * ({@code supportsBinaryEncoding}, {@code canEncodeBinary}, {@code mayRequireQuoting}) are delegated
+   * too, so the wrapped codec still steers format selection exactly as it would unwrapped.
+   */
+  private static final class NonStreamingCodec implements BinaryCodec, TextCodec {
+    private final BinaryCodec bin;
+    private final TextCodec txt;
+
+    private NonStreamingCodec(BinaryCodec bin, TextCodec txt) {
+      this.bin = bin;
+      this.txt = txt;
+    }
+
+    /**
+     * Wraps {@code codec} only when it streams and carries both wire faces (every delegating codec
+     * and its registered children do). A codec that streams neither face needs no de-streaming, and
+     * one that carries a single face is returned unchanged rather than gaining a face it lacked.
+     */
+    static Codec wrap(Codec codec) {
+      boolean streams = codec instanceof StreamingBinaryCodec || codec instanceof StreamingTextCodec;
+      if (streams && codec instanceof BinaryCodec && codec instanceof TextCodec) {
+        return new NonStreamingCodec((BinaryCodec) codec, (TextCodec) codec);
+      }
+      return codec;
+    }
+
+    @Override
+    public String getTypeName() {
+      return bin.getTypeName();
+    }
+
+    @Override
+    public Class<?> getDefaultJavaType() {
+      return bin.getDefaultJavaType();
+    }
+
+    @Override
+    public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
+      return bin.encodeBinary(value, type, ctx);
+    }
+
+    @Override
+    public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+      return bin.decodeBinary(data, type, ctx);
+    }
+
+    @Override
+    public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
+        CodecContext ctx) throws SQLException {
+      return bin.decodeBinary(data, offset, length, type, ctx);
+    }
+
+    @Override
+    public boolean supportsBinaryEncoding() {
+      return bin.supportsBinaryEncoding();
+    }
+
+    @Override
+    public boolean canEncodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
+      return bin.canEncodeBinary(value, type, ctx);
+    }
+
+    @Override
+    public boolean supportsBinaryRead() {
+      return bin.supportsBinaryRead();
+    }
+
+    @Override
+    public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
+      return txt.encodeText(value, type, ctx);
+    }
+
+    @Override
+    public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+      return txt.decodeText(data, type, ctx);
+    }
+
+    @Override
+    public @Nullable Object decodeText(char[] data, int offset, int length, TypeDescriptor type,
+        CodecContext ctx) throws SQLException {
+      return txt.decodeText(data, offset, length, type, ctx);
+    }
+
+    @Override
+    public boolean mayRequireQuoting() {
+      return txt.mayRequireQuoting();
+    }
+
+    @Override
+    public boolean supportsTextRead() {
+      return txt.supportsTextRead();
     }
   }
 
@@ -500,6 +741,76 @@ public final class CodecFuzzSupport {
         assertArrayEquals(rows[i], ((Struct) decoded[i]).getAttributes(), "record[] element");
       }
     }
+  }
+
+  // --- Delegating codecs: range, multirange, domain ------------------------------------------
+
+  // A fixed OID for the offline domain type. Codec resolution keys on typtype 'd', not the OID, so
+  // any value that does not collide with a registered type serves.
+  private static final int DOMAIN_OID = 90_030;
+
+  /**
+   * Round-trips a domain value through the {@link org.postgresql.jdbc.codec.DomainCodec}, which
+   * forwards to the base type's codec. The property runs the two-format round-trip and, through
+   * {@link #encodeParity}, pins the domain's streaming form against its materialising one -- a
+   * genuine check here, because the domain's {@code byte[]}/{@code String} form materialises the base
+   * value while its streaming form streams the base, so the two agree only if the base codec's own
+   * forms do.
+   *
+   * @param baseOid the base type OID the domain wraps (for example {@link Oid#INT4})
+   * @param baseTypeName the base type name, used only to name the synthetic domain type
+   * @param baseCategory the base type's {@code typcategory}
+   * @param value the domain value (a value of the base type)
+   * @param target the class to decode into
+   */
+  public static void domainRoundTrip(int baseOid, String baseTypeName, char baseCategory,
+      Object value, Class<?> target) throws SQLException {
+    PgType domain = new PgType(new ObjectName("public", "dom_" + baseTypeName),
+        "public.dom_" + baseTypeName, DOMAIN_OID, 'd', baseCategory, -1, 0, 0, baseOid);
+    CodecContext ctx = PgCodecContext.offlineBuilder().type(domain).build();
+    roundTrip(value, domain, target, ctx);
+  }
+
+  /**
+   * Asserts a range value encodes to the same wire bytes whether its bound codec streams or
+   * materialises, through {@link #streamVsMaterializeParity}. The range's {@code byte[]} form buffers
+   * its own streaming form, so {@link #encodeParity} cannot tell the two bound paths apart; only the
+   * de-streamed run reaches {@link org.postgresql.jdbc.codec.RangeCodec}'s materialising bound branch.
+   *
+   * @param rangeOid the range type OID (for example {@code 3904} for {@code int4range})
+   * @param rangeTypeName the range type name
+   * @param subtypeOid the range subtype OID (for example {@link Oid#INT4})
+   * @param value the range value, whose bounds are of the subtype's Java class
+   */
+  public static void rangeStreamParity(int rangeOid, String rangeTypeName, int subtypeOid,
+      PGRange<?> value) throws SQLException {
+    PgType rangeType = new PgType(new ObjectName("pg_catalog", rangeTypeName), rangeTypeName,
+        rangeOid, 'r', 'R', -1, 0, 0, 0).withRangeSubtype(subtypeOid);
+    CodecContext ctx = PgCodecContext.offlineBuilder().type(rangeType).build();
+    streamVsMaterializeParity(value, rangeType, ctx);
+  }
+
+  /**
+   * Asserts a multirange value encodes to the same wire bytes whether its element ranges stream or
+   * materialise, through {@link #streamVsMaterializeParity}. As with {@link #rangeStreamParity}, the
+   * multirange's {@code byte[]} form buffers its own streaming form, so only the de-streamed run
+   * reaches {@link org.postgresql.jdbc.codec.MultirangeCodec}'s materialising element branch.
+   *
+   * @param multirangeOid the multirange type OID (for example {@code 4451} for {@code int4multirange})
+   * @param multirangeTypeName the multirange type name
+   * @param rangeOid the element range type OID
+   * @param rangeTypeName the element range type name
+   * @param subtypeOid the range subtype OID
+   * @param value the multirange value
+   */
+  public static void multirangeStreamParity(int multirangeOid, String multirangeTypeName,
+      int rangeOid, String rangeTypeName, int subtypeOid, PGmultirange<?> value) throws SQLException {
+    PgType rangeType = new PgType(new ObjectName("pg_catalog", rangeTypeName), rangeTypeName,
+        rangeOid, 'r', 'R', -1, 0, 0, 0).withRangeSubtype(subtypeOid);
+    PgType multirangeType = new PgType(new ObjectName("pg_catalog", multirangeTypeName),
+        multirangeTypeName, multirangeOid, 'm', 'R', -1, 0, 0, 0).withMultirangeRange(rangeOid);
+    CodecContext ctx = PgCodecContext.offlineBuilder().type(rangeType).type(multirangeType).build();
+    streamVsMaterializeParity(value, multirangeType, ctx);
   }
 
   // --- SQLData (PgSQLInput / PgSQLOutput) ----------------------------------------------------
