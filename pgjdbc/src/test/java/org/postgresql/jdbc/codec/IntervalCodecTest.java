@@ -228,4 +228,38 @@ class IntervalCodecTest {
     assertEquals(original.getMinutes(), decoded.getMinutes());
     assertEquals(original.getSeconds(), decoded.getSeconds(), 0.001);
   }
+
+  private PGInterval binaryRoundTrip(PGInterval interval) throws SQLException {
+    byte[] wire = codec.encodeBinary(interval, intervalType, null);
+    return (PGInterval) codec.decodeBinary(wire, intervalType, null);
+  }
+
+  @Test
+  void binaryRoundtrip_subSecondMicros() throws SQLException {
+    // 0.999999 s is 999998.999... as a double, so encoding it with a truncating (long) cast dropped
+    // the last microsecond. Rounding to the nearest microsecond keeps all six digits, so the value
+    // round-trips exactly (compared by PGInterval.equals, not a tolerance).
+    PGInterval original = new PGInterval(0, 0, 0, 0, 0, 0.999999);
+    assertEquals(original, binaryRoundTrip(original));
+  }
+
+  @Test
+  void binaryRoundtrip_negativeSubSecond() throws SQLException {
+    PGInterval original = new PGInterval(0, 0, 0, 0, 0, -0.123456);
+    assertEquals(original, binaryRoundTrip(original));
+  }
+
+  @Test
+  void binaryRoundtrip_largeHours() throws SQLException {
+    // 700000 hours is past 596_523, where the decoder's hours * 3600 term overflowed int and corrupted
+    // the minutes. In long arithmetic it round-trips exactly.
+    PGInterval original = new PGInterval(0, 0, 0, 700_000, 45, 30.5);
+    assertEquals(original, binaryRoundTrip(original));
+  }
+
+  @Test
+  void binaryRoundtrip_mixedWithMicros() throws SQLException {
+    PGInterval original = new PGInterval(2, 3, 15, 10, 20, 30.500001);
+    assertEquals(original, binaryRoundTrip(original));
+  }
 }

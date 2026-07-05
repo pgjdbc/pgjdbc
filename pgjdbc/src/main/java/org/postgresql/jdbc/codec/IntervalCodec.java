@@ -66,15 +66,18 @@ public final class IntervalCodec implements BinaryCodec, TextCodec {
     int days = ByteConverter.int4(data, offset + 8);
     int months = ByteConverter.int4(data, offset + 12);
 
-    // Convert to PGInterval components
+    // Convert to PGInterval components. Split the whole microseconds in long arithmetic so the
+    // hours * 3600 term cannot overflow int (it does past ~596_523 hours, corrupting the minutes), then
+    // fold the sub-second remainder back into seconds as a double.
     int years = months / 12;
     months = months % 12;
 
-    double seconds = microseconds / 1_000_000.0;
-    int hours = (int) (seconds / 3600);
-    seconds -= hours * 3600;
-    int minutes = (int) (seconds / 60);
-    seconds -= minutes * 60;
+    long totalSeconds = microseconds / 1_000_000L;
+    long fractionMicros = microseconds % 1_000_000L;
+    int hours = (int) (totalSeconds / 3600);
+    long afterHours = totalSeconds - (long) hours * 3600;
+    int minutes = (int) (afterHours / 60);
+    double seconds = (afterHours - (long) minutes * 60) + fractionMicros / 1_000_000.0;
 
     return new PGInterval(years, months, days, hours, minutes, seconds);
   }
@@ -92,12 +95,15 @@ public final class IntervalCodec implements BinaryCodec, TextCodec {
           PSQLState.INVALID_PARAMETER_TYPE);
     }
 
-    // Convert to binary format
+    // Convert to binary format. Keep the hours and minutes terms in long arithmetic (they are exact),
+    // and round the fractional seconds to the nearest microsecond rather than truncating: the seconds
+    // are a double, so (long) (seconds * 1e6) drops the last microsecond on most values (0.999999 s is
+    // 999998.999... as a double and truncates to 999998).
     int months = interval.getYears() * 12 + interval.getMonths();
     int days = interval.getDays();
-    long microseconds = (long) (interval.getHours() * 3600_000_000L
+    long microseconds = interval.getHours() * 3600_000_000L
         + interval.getMinutes() * 60_000_000L
-        + interval.getSeconds() * 1_000_000);
+        + Math.round(interval.getSeconds() * 1_000_000.0);
 
     byte[] result = new byte[16];
     ByteConverter.int8(result, 0, microseconds);
