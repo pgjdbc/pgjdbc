@@ -115,6 +115,9 @@ public enum SqlOutputWriterBinding {
 
   private final Method method;
   private final String label;
+  // The invoker is a stateless method-reference-style lambda, so the enum is effectively immutable;
+  // errorprone cannot prove it because the functional interface is not annotated @Immutable.
+  @SuppressWarnings("ImmutableEnumChecker")
   private final Invoker invoker;
 
   SqlOutputWriterBinding(Method method, String label, Invoker invoker) {

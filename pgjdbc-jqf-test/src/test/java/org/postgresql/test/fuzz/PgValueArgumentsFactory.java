@@ -100,12 +100,12 @@ public final class PgValueArgumentsFactory implements ArgumentsGeneratorFactory 
   // The record-field membership is derived, not hand-listed: a scalar descriptor takes part iff its
   // default getObject class is equals-stable and config-independent, so the decoded attribute compares
   // equal by Objects.equals (FuzzRecord's comparison) under any connection config. That admits
-  // {int2, int4, int8, float4, float8, bool, text} -- the seven whose default class is one of
-  // EQUALS_STABLE_OBJECT_CLASSES -- and rejects numeric (BigDecimal compares by scale, not equals),
-  // bytea (byte[] equals is identity), and the temporal types (their default class flips with
-  // prefersJavaTime). float4 was absent from the earlier hand-written list; deriving the set adds it.
-  // The field VALUE is of the descriptor's defaultObjectClass -- for int2 that is Integer (pgjdbc's
-  // documented smallint->Integer backward-compat), not the naturalClass Short, so the attributes match.
+  // {int2, int4, int8, oid, float4, float8, bool, text, varchar, bpchar, name} -- the eleven whose
+  // default class is one of EQUALS_STABLE_OBJECT_CLASSES (Long for oid; String for text/varchar/bpchar/
+  // name) -- and rejects numeric (BigDecimal compares by scale, not equals), bytea (byte[] equals is
+  // identity), and the temporal types (their default class flips with prefersJavaTime). The field VALUE
+  // is of the descriptor's defaultObjectClass -- for int2 that is Integer (pgjdbc's documented
+  // smallint->Integer backward-compat), not the naturalClass Short, so the attributes match.
   private static final Set<Class<?>> EQUALS_STABLE_OBJECT_CLASSES = equalsStableObjectClasses();
 
   // The config that turns on every prefersJavaTime view, used to detect a config-dependent default
@@ -166,13 +166,14 @@ public final class PgValueArgumentsFactory implements ArgumentsGeneratorFactory 
       int oid = scalar.oid();
       branches.add(recordFieldValueGenerator(oid).map(value -> new Object[]{oid, value}));
     }
-    // The criterion must derive exactly the seven equals-stable, config-independent scalars, float4
-    // among them. If it ever drifts, fail class init here rather than silently reshape the record axis.
+    // The criterion must derive exactly the eleven equals-stable, config-independent scalars. If it ever
+    // drifts, fail class init here rather than silently reshape the record axis.
     Set<Integer> expected = new LinkedHashSet<>(Arrays.asList(
-        Oid.INT2, Oid.INT4, Oid.INT8, Oid.FLOAT4, Oid.FLOAT8, Oid.BOOL, Oid.TEXT));
+        Oid.INT2, Oid.INT4, Oid.INT8, Oid.OID, Oid.FLOAT4, Oid.FLOAT8, Oid.BOOL, Oid.TEXT,
+        Oid.VARCHAR, Oid.BPCHAR, Oid.NAME));
     if (!members.equals(expected)) {
       throw new ExceptionInInitializerError(
-          "derived record-field OIDs " + members + " diverge from the expected seven " + expected);
+          "derived record-field OIDs " + members + " diverge from the expected set " + expected);
     }
     return Generator.anyOf(branches);
   }
@@ -194,6 +195,11 @@ public final class PgValueArgumentsFactory implements ArgumentsGeneratorFactory 
         return Generator.integers();
       case Oid.INT8:
         return Generator.integers().map(Integer::longValue);
+      case Oid.OID:
+        // oid decodes to a Long, but its binary codec truncates to 4 bytes and re-reads unsigned, so
+        // only an unsigned-32-bit value round-trips exactly through the binary record wire. Draw one
+        // from a full-width int reinterpreted into [0, 2^32-1].
+        return Generator.integers().map(i -> i & 0xFFFFFFFFL);
       case Oid.FLOAT4:
         return Generator.doubles().map(Double::floatValue);
       case Oid.FLOAT8:
@@ -201,6 +207,11 @@ public final class PgValueArgumentsFactory implements ArgumentsGeneratorFactory 
       case Oid.BOOL:
         return Generator.booleans();
       case Oid.TEXT:
+      case Oid.VARCHAR:
+      case Oid.BPCHAR:
+      case Oid.NAME:
+        // text, varchar, bpchar and name all delegate to the text codec, so a printable-ASCII String
+        // round-trips through the binary record wire unchanged (no padding or trimming offline).
         return Generator.stringsOf(Generator.asciiPrintableChars());
       default:
         throw new ExceptionInInitializerError(
@@ -307,11 +318,16 @@ public final class PgValueArgumentsFactory implements ArgumentsGeneratorFactory 
     return Generator.frequency(1, Generator.<T>constant(null), 9, generator);
   }
 
-  // The coercion matrix axis: the write-populated scalars only, so it stays on exactly the ten coercion
-  // types. The codec-only scalars (int2/float4/float8/bytea) carry descriptors but no WriteCoercions row,
-  // so they take no part in the coercion write / round-trip matrix.
+  // The write and round-trip axis: the write-populated scalars only, so it stays on exactly the ten
+  // coercion types. The read-only scalars (int2/float4/float8/bytea/oid/varchar/bpchar/name) carry
+  // descriptors but no WriteCoercions row, so they take no part in the coercion write / round-trip matrix.
   private static final ScalarDescriptor[] DESCRIPTORS =
       PgTypeDescriptors.coercionScalars().toArray(new ScalarDescriptor[0]);
+  // The reader axis: every read-populated scalar, so the reader matrix also covers the read-only scalars
+  // (int2/float4/float8/bytea and the text and oid types), whose filled ReadCoercions rows were otherwise
+  // outside the oracle. Decoupling it from the write axis is the whole point of the reader-axis phase.
+  private static final ScalarDescriptor[] READ_DESCRIPTORS =
+      PgTypeDescriptors.readScalars().toArray(new ScalarDescriptor[0]);
   private static final SqlInputReader[] SQL_INPUT_READERS = SqlInputReader.values();
   private static final SqlOutputWriterBinding[] SQL_OUTPUT_WRITERS = SqlOutputWriterBinding.values();
 
@@ -323,7 +339,8 @@ public final class PgValueArgumentsFactory implements ArgumentsGeneratorFactory 
   // driver write paths present field bytes identical to the canonical codec on the diagonal (pinned by
   // TypedWriteMatchesCanonicalWireTest), so off-diagonal write->read is the round-trip fuzzer's job.
   private static final Generator<CoercionCase> COERCION = Generator.from(env -> {
-    ScalarDescriptor descriptor = DESCRIPTORS[env.generate(Generator.integers(0, DESCRIPTORS.length - 1))];
+    ScalarDescriptor descriptor =
+        READ_DESCRIPTORS[env.generate(Generator.integers(0, READ_DESCRIPTORS.length - 1))];
     Object value = ValueGenerators.draw(env, descriptor.naturalClass());
     SqlInputReader reader =
         SQL_INPUT_READERS[env.generate(Generator.integers(0, SQL_INPUT_READERS.length - 1))];

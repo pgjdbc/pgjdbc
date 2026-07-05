@@ -20,12 +20,15 @@ import java.sql.SQLException;
 
 /**
  * The Jazzer counterpart of {@code CoercionReaderFuzzTest} in pgjdbc-jqf-test, driving the <b>same</b>
- * oracle: it builds a {@link CoercionCase} -- a field type from {@link PgTypeDescriptors#coercionScalars()},
+ * oracle: it builds a {@link CoercionCase} -- a field type from {@link PgTypeDescriptors#readScalars()},
  * a value of that type, an {@link SqlInputReader}, a {@code readObject(Class)} target, and the
  * {@code prefersJavaTime} flags -- and hands it to {@link CoercionFuzzSupport#run}, which asserts the read
- * outcome against the {@code ReadCoercions} registry across both wire formats. The registry's unspecified
- * cells keep the weak invariant the JQF target advertises: a reader returns or refuses with a
- * {@link SQLException}, never an unchecked leak.
+ * outcome against the {@code ReadCoercions} registry across both wire formats. The reader axis is every
+ * read-populated scalar, not just the write-populated coercion subset, so the read-only scalars
+ * ({@code int2}, {@code float4}, {@code float8}, {@code bytea}, {@code oid}, {@code varchar},
+ * {@code bpchar}, {@code name}) reach the oracle too. The registry's unspecified cells keep the weak
+ * invariant the JQF target advertises: a reader returns or refuses with a {@link SQLException}, never an
+ * unchecked leak.
  *
  * <p>Only the front-end differs from the JQF target. There the {@code CoercionCase} dimensions come from a
  * jetCheck generator inside {@code PgValueArgumentsFactory}; here they are drawn from a
@@ -39,7 +42,7 @@ import java.sql.SQLException;
 class JazzerCoercionReaderFuzzTest {
 
   private static final ScalarDescriptor[] DESCRIPTORS =
-      PgTypeDescriptors.coercionScalars().toArray(new ScalarDescriptor[0]);
+      PgTypeDescriptors.readScalars().toArray(new ScalarDescriptor[0]);
   private static final SqlInputReader[] READERS = SqlInputReader.values();
 
   @FuzzTest
