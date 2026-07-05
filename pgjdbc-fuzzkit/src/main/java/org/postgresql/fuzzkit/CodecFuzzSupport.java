@@ -26,6 +26,7 @@ import org.postgresql.jdbc.PgStruct;
 import org.postgresql.jdbc.PgType;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.Struct;
 import java.util.ArrayList;
@@ -418,5 +419,50 @@ public final class CodecFuzzSupport {
       FuzzSqlData back = Codecs.decode(raw, type, ctx, FuzzSqlData.class);
       assertEquals(value, back, () -> "SQLData " + format + " round-trip");
     }
+  }
+
+  // --- Adversarial text-literal decode -------------------------------------------------------
+
+  /**
+   * The weak decode-robustness invariant for adversarial text literals, shared by both fuzz
+   * front-ends: decodes {@code literal} as {@code type} in the text format and asserts the decoder
+   * either returns a value or refuses with a clean {@link SQLException}. It must never leak an
+   * unchecked {@link RuntimeException}.
+   *
+   * <p>The property targets the recursive, quoting- and escape-aware text-literal parsers -- the
+   * array literal grammar ({@code MultiDimArrayText} over {@code LiteralCursor}), the composite
+   * literal grammar ({@code CompositeCodec} over {@code LiteralCursor}), and the scalar text decoders
+   * -- which the canonical-wire fuzzers leave almost entirely cold, since every literal those fuzzers
+   * decode is one the codec itself just wrote. A malformed literal (unbalanced braces, a truncated
+   * element, a stray quote) is expected to refuse per value, not crash.
+   *
+   * <p>A leaked unchecked exception is rethrown as an {@link AssertionError} that names the type OID,
+   * the leaked exception class, and the offending literal, so the same finding surfaces under both the
+   * JQF and Jazzer front-ends. An {@link Error} -- notably the {@link StackOverflowError} the recursive
+   * array grammar can hit on a pathologically deep literal -- is left to propagate: it is a known
+   * limitation of the parser, not a per-value contract breach for this oracle to translate (see
+   * FUZZ_ROADMAP.md).
+   *
+   * @param literal the arbitrary literal to decode
+   * @param type the backend type to decode the literal as
+   * @param ctx the offline codec context, which must resolve {@code type}
+   */
+  public static void decodeTextExpectingNoLeak(String literal, PgType type, CodecContext ctx) {
+    RawValue raw = RawValue.text(literal.getBytes(StandardCharsets.UTF_8));
+    try {
+      Codecs.decode(raw, type, ctx, Object.class);
+    } catch (SQLException refused) {
+      // Expected: a malformed literal refuses per value.
+    } catch (RuntimeException leak) {
+      throw new AssertionError("text decode of t" + type.getOid() + " leaked "
+          + leak.getClass().getName() + " (expected only SQLException) on literal "
+          + quoteLiteral(literal), leak);
+    }
+  }
+
+  private static String quoteLiteral(String s) {
+    return s.length() > 80
+        ? '"' + s.substring(0, 80) + "\"... (" + s.length() + " chars)"
+        : '"' + s + '"';
   }
 }
