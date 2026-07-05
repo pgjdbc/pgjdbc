@@ -7,15 +7,19 @@ package org.postgresql.jdbc.codec;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.sql.SQLException;
 
 class Float8CodecTest {
@@ -126,6 +130,33 @@ class Float8CodecTest {
     String encoded = codec.encodeText(original, float8Type, null);
     Object decoded = codec.decodeText(encoded, float8Type, null);
     assertEquals(original, decoded);
+  }
+
+  @Test
+  void decodeAsBigDecimal_text_finite() throws SQLException {
+    assertEquals(new BigDecimal("3.14"), codec.decodeAsBigDecimal("3.14", float8Type, null));
+  }
+
+  @Test
+  void decodeAsBigDecimal_text_nonFinite() {
+    // A non-finite float has no BigDecimal form, so the text path refuses with the same state the
+    // binary path raises, rather than leaking NumberFormatException from BigDecimal.valueOf.
+    for (String literal : new String[]{"Infinity", "-Infinity", "NaN"}) {
+      PSQLException e = assertThrows(PSQLException.class,
+          () -> codec.decodeAsBigDecimal(literal, float8Type, null),
+          () -> "float8 text " + literal + " should refuse readBigDecimal");
+      assertEquals(PSQLState.NUMERIC_VALUE_OUT_OF_RANGE.getState(), e.getSQLState(),
+          () -> "SQLState for float8 " + literal + " to BigDecimal");
+    }
+  }
+
+  @Test
+  void decodeAsBigDecimal_binary_nonFinite() {
+    byte[] data = new byte[8];
+    ByteConverter.float8(data, 0, Double.NEGATIVE_INFINITY);
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> codec.decodeAsBigDecimal(data, float8Type, null));
+    assertEquals(PSQLState.NUMERIC_VALUE_OUT_OF_RANGE.getState(), e.getSQLState());
   }
 
   @Test

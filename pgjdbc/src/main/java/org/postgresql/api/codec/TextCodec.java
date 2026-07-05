@@ -6,6 +6,9 @@
 package org.postgresql.api.codec;
 
 import org.postgresql.api.Experimental;
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -268,7 +271,16 @@ public interface TextCodec extends Codec {
       if (value instanceof Long || value instanceof Integer || value instanceof Short || value instanceof Byte) {
         return BigDecimal.valueOf(((Number) value).longValue());
       }
-      return BigDecimal.valueOf(((Number) value).doubleValue());
+      double doubleValue = ((Number) value).doubleValue();
+      // BigDecimal has no non-finite form, so a NaN or infinite float refuses rather than letting
+      // BigDecimal.valueOf throw an unchecked NumberFormatException. This mirrors the binary float
+      // codecs (Float4Codec/Float8Codec.decodeAsBigDecimal), which raise the same state.
+      if (Double.isNaN(doubleValue) || Double.isInfinite(doubleValue)) {
+        throw new PSQLException(
+            GT.tr("Cannot convert {0} to BigDecimal", value),
+            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      }
+      return BigDecimal.valueOf(doubleValue);
     }
     throw Codec.cannotDecode(value, "BigDecimal");
   }
