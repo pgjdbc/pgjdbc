@@ -9,10 +9,15 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.Codecs;
 import org.postgresql.api.codec.Format;
 import org.postgresql.api.codec.RawValue;
+import org.postgresql.api.codec.StreamingBinaryCodec;
+import org.postgresql.api.codec.StreamingTextCodec;
+import org.postgresql.api.codec.TextCodec;
 import org.postgresql.core.Oid;
 import org.postgresql.fuzzkit.coercion.ArrayDescriptor;
 import org.postgresql.fuzzkit.coercion.Fidelity;
@@ -24,7 +29,9 @@ import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.jdbc.PgField;
 import org.postgresql.jdbc.PgStruct;
 import org.postgresql.jdbc.PgType;
+import org.postgresql.jdbc.codec.BackpatchByteArrayOutputStream;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
@@ -141,6 +148,58 @@ public final class CodecFuzzSupport {
     return PgCodecContext.offlineBuilder().type(type).build();
   }
 
+  // --- Streaming-parity property: stream(v) == materialise(v) ---------------------------------
+
+  /**
+   * Asserts the streaming encode form agrees with the materialising one for whichever paths the
+   * resolved codec opts into. A {@link StreamingBinaryCodec} must write the same bytes into a
+   * {@link BackpatchingBinarySink} as its {@code byte[]} {@link BinaryCodec#encodeBinary} returns; a
+   * {@link StreamingTextCodec} must append the same characters as its {@code String}
+   * {@link TextCodec#encodeText} returns.
+   *
+   * <p>The top-level {@link Codecs#encode} routes a scalar through the {@code byte[]}/{@code String}
+   * form, so the streaming form of a leaf codec (int4, date, uuid, ...) is otherwise reached only when
+   * that leaf is an array or composite element. Calling this alongside the round-trip and cross-format
+   * properties covers the leaf streaming form directly, across every generated value.
+   *
+   * <p>Guarded by {@code instanceof}, so it is a no-op for a codec that streams neither path and safe
+   * to call for any type. For a delegating codec whose {@code byte[]} form merely buffers its own
+   * streaming form (range, multirange, domain, PGobject), the two paths are equal by construction --
+   * this property has teeth only for the leaf codecs that hand-write both. The element-branch parity
+   * of the delegating codecs is a separate property.
+   *
+   * @param value the value to encode both ways
+   * @param type the backend type whose codec the context resolves
+   * @param ctx the offline codec context, which must resolve {@code type}
+   */
+  public static void encodeParity(Object value, PgType type, CodecContext ctx) throws SQLException {
+    Codec codec = ctx.resolveCodec(type.getOid());
+    if (codec instanceof StreamingBinaryCodec) {
+      byte[] materialised = ((BinaryCodec) codec).encodeBinary(value, type, ctx);
+      BackpatchByteArrayOutputStream sink = new BackpatchByteArrayOutputStream();
+      try {
+        ((StreamingBinaryCodec) codec).encodeBinary(value, type, ctx, sink);
+      } catch (IOException e) {
+        // BackpatchByteArrayOutputStream never performs I/O; a throw here is a codec contract breach.
+        throw new AssertionError(type.getTypeName() + " streaming-binary threw IOException", e);
+      }
+      assertArrayEquals(materialised, sink.toByteArray(),
+          type.getTypeName() + " streaming-binary vs byte[]");
+    }
+    if (codec instanceof StreamingTextCodec) {
+      String materialised = ((TextCodec) codec).encodeText(value, type, ctx);
+      StringBuilder sink = new StringBuilder();
+      try {
+        ((StreamingTextCodec) codec).encodeText(value, type, ctx, sink);
+      } catch (IOException e) {
+        // StringBuilder.append never throws IOException; a throw here is a codec contract breach.
+        throw new AssertionError(type.getTypeName() + " streaming-text threw IOException", e);
+      }
+      assertEquals(materialised, sink.toString(),
+          () -> type.getTypeName() + " streaming-text vs String");
+    }
+  }
+
   // --- Round-trip properties: decode(encode(v)) == v -----------------------------------------
 
   /**
@@ -149,6 +208,7 @@ public final class CodecFuzzSupport {
    */
   public static <T> void roundTrip(Object value, PgType type, Class<T> target, CodecContext ctx)
       throws SQLException {
+    encodeParity(value, type, ctx);
     for (Format format : Format.values()) {
       RawValue raw = Codecs.encode(value, type, ctx, format);
       T back = Codecs.decode(raw, type, ctx, target);
@@ -171,6 +231,7 @@ public final class CodecFuzzSupport {
    */
   public static <T> void roundTripText(Object value, PgType type, Class<T> target, CodecContext ctx)
       throws SQLException {
+    encodeParity(value, type, ctx);
     RawValue raw = Codecs.encode(value, type, ctx, Format.TEXT);
     T back = Codecs.decode(raw, type, ctx, target);
     assertEquals(value, back, () -> type.getTypeName() + " text round-trip");
@@ -267,6 +328,7 @@ public final class CodecFuzzSupport {
    */
   public static <T> void crossFormat(Object value, PgType type, Class<T> target, CodecContext ctx)
       throws SQLException {
+    encodeParity(value, type, ctx);
     T viaText = Codecs.decode(Codecs.encode(value, type, ctx, Format.TEXT), type, ctx, target);
     T viaBinary = Codecs.decode(Codecs.encode(value, type, ctx, Format.BINARY), type, ctx, target);
     assertEquals(viaText, viaBinary, () -> type.getTypeName() + " text vs binary");
