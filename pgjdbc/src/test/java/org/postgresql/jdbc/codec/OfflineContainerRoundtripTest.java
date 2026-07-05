@@ -11,16 +11,19 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.Codecs;
 import org.postgresql.api.codec.Format;
 import org.postgresql.api.codec.RawValue;
+import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.jdbc.PgField;
 import org.postgresql.jdbc.PgStruct;
 import org.postgresql.jdbc.PgType;
+import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -239,6 +242,36 @@ class OfflineContainerRoundtripTest {
     BackpatchByteArrayOutputStream streamed = new BackpatchByteArrayOutputStream();
     CompositeCodec.INSTANCE.encodeBinary(value, type, ctx, streamed);
     assertArrayEquals(materialized, streamed.toByteArray(), "SQLData fallback");
+  }
+
+  // A delegate codec that forwards to a streaming inner codec must emit the same bytes through its
+  // streaming form as through its materialising byte[] form.
+  private static void assertStreamMatchesMaterialized(BinaryCodec codec, PgType type, Object value,
+      CodecContext ctx) throws SQLException, IOException {
+    byte[] materialized = codec.encodeBinary(value, type, ctx);
+    BackpatchByteArrayOutputStream sink = new BackpatchByteArrayOutputStream();
+    ((StreamingBinaryCodec) codec).encodeBinary(value, type, ctx, sink);
+    assertArrayEquals(materialized, sink.toByteArray());
+  }
+
+  @Test
+  void pgobjectDelegateStreamingMatchesMaterializedOffline() throws SQLException, IOException {
+    // PGobjectCodec forwards to its delegate; with a streaming delegate (int4) the sink path must
+    // match the materialised bytes.
+    CodecContext ctx = PgCodecContext.offlineBuilder().build();
+    PgType int4 = new PgType(new ObjectName("pg_catalog", "int4"), "int4", Oid.INT4, 'b', 'N', -1,
+        0, 0, 0);
+    PGobjectCodec codec = new PGobjectCodec(PGobject.class, Int4Codec.INSTANCE);
+    assertStreamMatchesMaterialized(codec, int4, 42, ctx);
+  }
+
+  @Test
+  void domainDelegateStreamingMatchesMaterializedOffline() throws SQLException, IOException {
+    // DomainCodec resolves its base type (int4, a streaming codec) and forwards to it.
+    PgType domain = new PgType(new ObjectName("public", "dom_int"), "public.dom_int", 90_010,
+        'd', 'N', -1, 0, 0, Oid.INT4);
+    CodecContext ctx = PgCodecContext.offlineBuilder().type(domain).build();
+    assertStreamMatchesMaterialized(DomainCodec.INSTANCE, domain, 7, ctx);
   }
 
   @Test

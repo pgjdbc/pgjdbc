@@ -5,15 +5,19 @@
 
 package org.postgresql.jdbc.codec;
 
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.StreamingBinaryCodec;
+import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.CodecDepth;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 
@@ -51,7 +55,7 @@ import java.sql.SQLException;
  *   {@link TypeDescriptor#getTyptypmod()}, not from anything this codec forwards.</li>
  * </ul>
  */
-public final class DomainCodec implements BinaryCodec, TextCodec {
+public final class DomainCodec implements StreamingBinaryCodec, StreamingTextCodec {
 
   public static final DomainCodec INSTANCE = new DomainCodec();
 
@@ -124,6 +128,25 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
+  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx,
+      BackpatchingBinarySink out) throws SQLException, IOException {
+    CodecDepth.enter();
+    try {
+      Codec baseCodec = getBaseCodec(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
+      if (baseCodec instanceof StreamingBinaryCodec) {
+        ((StreamingBinaryCodec) baseCodec).encodeBinary(value, baseType, ctx, out);
+      } else if (baseCodec instanceof BinaryCodec) {
+        out.write(((BinaryCodec) baseCodec).encodeBinary(value, baseType, ctx));
+      } else {
+        out.write(FallbackCodec.INSTANCE.encodeBinary(value, baseType, ctx));
+      }
+    } finally {
+      CodecDepth.exit();
+    }
+  }
+
+  @Override
   public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
@@ -148,6 +171,25 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
         return ((TextCodec) baseCodec).encodeText(value, baseType, ctx);
       }
       return FallbackCodec.INSTANCE.encodeText(value, baseType, ctx);
+    } finally {
+      CodecDepth.exit();
+    }
+  }
+
+  @Override
+  public void encodeText(Object value, TypeDescriptor type, CodecContext ctx, Appendable out)
+      throws SQLException, IOException {
+    CodecDepth.enter();
+    try {
+      Codec baseCodec = getBaseCodec(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
+      if (baseCodec instanceof StreamingTextCodec) {
+        ((StreamingTextCodec) baseCodec).encodeText(value, baseType, ctx, out);
+      } else if (baseCodec instanceof TextCodec) {
+        out.append(((TextCodec) baseCodec).encodeText(value, baseType, ctx));
+      } else {
+        out.append(FallbackCodec.INSTANCE.encodeText(value, baseType, ctx));
+      }
     } finally {
       CodecDepth.exit();
     }

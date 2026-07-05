@@ -7,9 +7,11 @@ package org.postgresql.jdbc.codec;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.CodecDepth;
@@ -21,7 +23,6 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
@@ -45,7 +46,7 @@ import java.sql.SQLException;
  *   <li>If upper bound exists: 4-byte length + bound data</li>
  * </ul>
  */
-public final class RangeCodec implements BinaryCodec, TextCodec {
+public final class RangeCodec implements StreamingBinaryCodec, TextCodec {
 
   public static final RangeCodec INSTANCE = new RangeCodec();
 
@@ -159,6 +160,19 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
 
   @Override
   public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    BackpatchByteArrayOutputStream out = new BackpatchByteArrayOutputStream();
+    try {
+      encodeBinary(value, type, ctx, out);
+    } catch (IOException e) {
+      // BackpatchByteArrayOutputStream never throws; keep the historical error mapping regardless.
+      throw new PSQLException(GT.tr("Error encoding range"), PSQLState.DATA_ERROR, e);
+    }
+    return out.toByteArray();
+  }
+
+  @Override
+  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx,
+      BackpatchingBinarySink out) throws SQLException, IOException {
     if (!(value instanceof PGRange)) {
       throw new PSQLException(GT.tr("Cannot encode {0} as range type", value.getClass().getName()),
           PSQLState.DATA_TYPE_MISMATCH);
@@ -170,7 +184,8 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
       PGRange<Object> range = (PGRange<Object>) value;
 
       if (range.isEmpty()) {
-        return new byte[]{FLAG_EMPTY};
+        out.writeByte(FLAG_EMPTY);
+        return;
       }
 
       // Resolve the subtype codec. pg_type.typelem is 0 for ranges; the real subtype
@@ -189,8 +204,6 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
             type.getFullName(), subtypeOid), PSQLState.DATA_ERROR);
       }
 
-      ByteArrayOutputStream out = new ByteArrayOutputStream();
-
       // Calculate flags
       byte flags = 0;
       if (range.isLowerInclusive()) {
@@ -205,33 +218,35 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
       if (!range.hasUpperBound()) {
         flags |= FLAG_UPPER_INFINITE;
       }
-      out.write(flags);
+      out.writeByte(flags);
 
       // Write lower bound if not infinite
       if (range.hasLowerBound()) {
-        byte[] lowerData = subtypeCodec.encodeBinary(castNonNull(range.getLower()), subtypeType, ctx);
-        writeLengthPrefixed(out, lowerData);
+        writeBound(out, subtypeCodec, castNonNull(range.getLower()), subtypeType, ctx);
       }
 
       // Write upper bound if not infinite
       if (range.hasUpperBound()) {
-        byte[] upperData = subtypeCodec.encodeBinary(castNonNull(range.getUpper()), subtypeType, ctx);
-        writeLengthPrefixed(out, upperData);
+        writeBound(out, subtypeCodec, castNonNull(range.getUpper()), subtypeType, ctx);
       }
-
-      return out.toByteArray();
-    } catch (IOException e) {
-      throw new PSQLException(GT.tr("Error encoding range"), PSQLState.DATA_ERROR, e);
     } finally {
       CodecDepth.exit();
     }
   }
 
-  private static void writeLengthPrefixed(ByteArrayOutputStream out, byte[] data) throws IOException {
-    byte[] lenBytes = new byte[4];
-    ByteConverter.int4(lenBytes, 0, data.length);
-    out.write(lenBytes);
-    out.write(data);
+  /** Writes one length-prefixed range bound, streaming the body when the subtype codec supports it. */
+  private static void writeBound(BackpatchingBinarySink out, BinaryCodec codec, Object bound,
+      TypeDescriptor subtypeType, CodecContext ctx) throws SQLException, IOException {
+    if (codec instanceof StreamingBinaryCodec) {
+      int lengthSlot = out.reserveInt32();
+      int startPos = out.position();
+      ((StreamingBinaryCodec) codec).encodeBinary(bound, subtypeType, ctx, out);
+      out.setInt32At(lengthSlot, out.position() - startPos);
+    } else {
+      byte[] data = codec.encodeBinary(bound, subtypeType, ctx);
+      out.writeInt32(data.length);
+      out.write(data);
+    }
   }
 
   /**

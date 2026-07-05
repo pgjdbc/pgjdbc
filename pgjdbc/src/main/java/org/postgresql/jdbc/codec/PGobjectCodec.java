@@ -5,9 +5,12 @@
 
 package org.postgresql.jdbc.codec;
 
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.StreamingBinaryCodec;
+import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.GT;
@@ -18,6 +21,7 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.IOException;
 import java.sql.SQLException;
 
 /**
@@ -38,7 +42,7 @@ import java.sql.SQLException;
  * It is keyed by OID, so the registered identifier form (bare, schema-qualified,
  * or quoted) no longer matters for resolution.</p>
  */
-public final class PGobjectCodec implements BinaryCodec, TextCodec {
+public final class PGobjectCodec implements StreamingBinaryCodec, StreamingTextCodec {
 
   private final Class<? extends PGobject> pgObjectClass;
   private final Codec delegate;
@@ -123,11 +127,35 @@ public final class PGobjectCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
+  public void encodeText(Object value, TypeDescriptor type, CodecContext ctx, Appendable out)
+      throws SQLException, IOException {
+    if (delegate instanceof StreamingTextCodec) {
+      ((StreamingTextCodec) delegate).encodeText(value, type, ctx, out);
+    } else if (delegate instanceof TextCodec) {
+      out.append(((TextCodec) delegate).encodeText(value, type, ctx));
+    } else {
+      throw Codec.cannotEncode(value, type.getFullName());
+    }
+  }
+
+  @Override
   public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (delegate instanceof BinaryCodec) {
       return ((BinaryCodec) delegate).encodeBinary(value, type, ctx);
     }
     throw Codec.cannotEncode(value, type.getFullName());
+  }
+
+  @Override
+  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx,
+      BackpatchingBinarySink out) throws SQLException, IOException {
+    if (delegate instanceof StreamingBinaryCodec) {
+      ((StreamingBinaryCodec) delegate).encodeBinary(value, type, ctx, out);
+    } else if (delegate instanceof BinaryCodec) {
+      out.write(((BinaryCodec) delegate).encodeBinary(value, type, ctx));
+    } else {
+      throw Codec.cannotEncode(value, type.getFullName());
+    }
   }
 
   @Override

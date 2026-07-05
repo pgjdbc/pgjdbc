@@ -5,8 +5,10 @@
 
 package org.postgresql.jdbc.codec;
 
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.CodecDepth;
@@ -19,6 +21,7 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -44,7 +47,7 @@ import java.util.List;
  * followed by that range's {@code range_send} payload — the same payload {@link RangeCodec}
  * produces and consumes.</p>
  */
-public final class MultirangeCodec implements BinaryCodec, TextCodec {
+public final class MultirangeCodec implements StreamingBinaryCodec, TextCodec {
 
   public static final MultirangeCodec INSTANCE = new MultirangeCodec();
 
@@ -139,6 +142,18 @@ public final class MultirangeCodec implements BinaryCodec, TextCodec {
 
   @Override
   public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    BackpatchByteArrayOutputStream out = new BackpatchByteArrayOutputStream();
+    try {
+      encodeBinary(value, type, ctx, out);
+    } catch (IOException e) {
+      throw new AssertionError(e); // BackpatchByteArrayOutputStream never throws
+    }
+    return out.toByteArray();
+  }
+
+  @Override
+  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx,
+      BackpatchingBinarySink out) throws SQLException, IOException {
     if (!(value instanceof PGmultirange)) {
       throw new PSQLException(GT.tr("Cannot encode {0} as multirange type", value.getClass().getName()),
           PSQLState.DATA_TYPE_MISMATCH);
@@ -163,14 +178,19 @@ public final class MultirangeCodec implements BinaryCodec, TextCodec {
       }
 
       List<? extends PGRange<?>> ranges = multirange.getRanges();
-      BackpatchByteArrayOutputStream out = new BackpatchByteArrayOutputStream();
       out.writeInt32(ranges.size());
       for (PGRange<?> range : ranges) {
-        byte[] payload = rangeCodec.encodeBinary(range, rangeType, ctx);
-        out.writeInt32(payload.length);
-        out.write(payload, 0, payload.length);
+        if (rangeCodec instanceof StreamingBinaryCodec) {
+          int lengthSlot = out.reserveInt32();
+          int startPos = out.position();
+          ((StreamingBinaryCodec) rangeCodec).encodeBinary(range, rangeType, ctx, out);
+          out.setInt32At(lengthSlot, out.position() - startPos);
+        } else {
+          byte[] payload = rangeCodec.encodeBinary(range, rangeType, ctx);
+          out.writeInt32(payload.length);
+          out.write(payload, 0, payload.length);
+        }
       }
-      return out.toByteArray();
     } finally {
       CodecDepth.exit();
     }
