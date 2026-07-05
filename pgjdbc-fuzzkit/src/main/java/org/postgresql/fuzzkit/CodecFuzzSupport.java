@@ -460,9 +460,61 @@ public final class CodecFuzzSupport {
     }
   }
 
+  /**
+   * The weak decode-robustness invariant for adversarial binary wire, the binary sibling of
+   * {@link #decodeTextExpectingNoLeak}: decodes {@code data} as {@code type} in the binary format and
+   * asserts the decoder either returns a value or refuses with a clean {@link SQLException}. It must
+   * never leak an unchecked {@link RuntimeException}.
+   *
+   * <p>The property targets the binary container decoders -- the array header and per-element framing
+   * ({@code MultiDimArrayBinary}), the composite field framing ({@code CompositeCodec}), and the range
+   * bound framing ({@code RangeCodec}) -- whose length- and count-guarded error branches the
+   * canonical-wire round-trip fuzzers never reach, since every buffer those fuzzers decode is one a
+   * matching encoder just produced. A hostile or corrupt server can send a truncated header, a
+   * negative length, or an over-large element count; the decoder is expected to refuse per value, not
+   * crash. The allocation guards phase F1 added to those decoders are what let a guided campaign run
+   * this without exhausting the heap.
+   *
+   * <p>A leaked unchecked exception is rethrown as an {@link AssertionError} naming the type OID, the
+   * leaked class, and a hex prefix of the offending bytes, so the finding surfaces the same way under
+   * both fuzz front-ends. An {@link Error} -- an {@link OutOfMemoryError} from an unbounded allocation,
+   * or a {@link StackOverflowError} from unbounded recursion -- is left to propagate: it is a driver
+   * robustness gap for the campaign to report, not a per-value contract breach for this oracle to
+   * translate.
+   *
+   * @param data the arbitrary bytes to decode as a binary wire value
+   * @param type the backend type to decode the bytes as
+   * @param ctx the offline codec context, which must resolve {@code type}
+   */
+  public static void decodeBinaryExpectingNoLeak(byte[] data, PgType type, CodecContext ctx) {
+    try {
+      Codecs.decode(RawValue.binary(data), type, ctx, Object.class);
+    } catch (SQLException refused) {
+      // Expected: malformed bytes refuse per value.
+    } catch (RuntimeException leak) {
+      throw new AssertionError("binary decode of t" + type.getOid() + " leaked "
+          + leak.getClass().getName() + " (expected only SQLException) on bytes "
+          + hexPrefix(data), leak);
+    }
+  }
+
   private static String quoteLiteral(String s) {
     return s.length() > 80
         ? '"' + s.substring(0, 80) + "\"... (" + s.length() + " chars)"
         : '"' + s + '"';
+  }
+
+  private static final char[] HEX = "0123456789abcdef".toCharArray();
+
+  private static String hexPrefix(byte[] data) {
+    int shown = Math.min(data.length, 40);
+    StringBuilder sb = new StringBuilder(shown * 2 + 24);
+    for (int i = 0; i < shown; i++) {
+      sb.append(HEX[(data[i] >> 4) & 0xf]).append(HEX[data[i] & 0xf]);
+    }
+    if (data.length > shown) {
+      sb.append("... (").append(data.length).append(" bytes)");
+    }
+    return sb.toString();
   }
 }
