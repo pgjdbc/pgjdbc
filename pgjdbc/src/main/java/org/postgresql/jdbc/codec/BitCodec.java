@@ -171,7 +171,20 @@ public final class BitCodec implements BinaryCodec, TextCodec {
           GT.tr("Invalid bit binary data length: {0}", length), PSQLState.DATA_ERROR);
     }
     int nbits = ByteConverter.int4(data, offset);
-    StringBuilder sb = new StringBuilder(Math.max(0, nbits));
+    // The wire form is a 4-byte bit count followed by ceil(nbits/8) packed bytes. Validate the count
+    // against the bytes actually present before allocating the StringBuilder or walking the packed
+    // body: a negative or oversized count read from untrusted or corrupt wire would otherwise drive an
+    // OutOfMemoryError on the allocation or an ArrayIndexOutOfBoundsException in the loop. The server
+    // never emits a mismatched length, so reject it with DATA_ERROR. The ceil is computed in long to
+    // avoid the (nbits + 7) overflow near Integer.MAX_VALUE.
+    long expectedBytes = 4L + (nbits + 7L) / 8L;
+    if (nbits < 0 || expectedBytes != length) {
+      throw new PSQLException(
+          GT.tr("Invalid bit binary data: bit count {0} does not match data length {1}",
+              nbits, length),
+          PSQLState.DATA_ERROR);
+    }
+    StringBuilder sb = new StringBuilder(nbits);
     for (int i = 0; i < nbits; i++) {
       int b = data[offset + 4 + (i >> 3)];
       sb.append(((b >> (7 - (i & 7))) & 1) == 1 ? '1' : '0');
