@@ -14,6 +14,7 @@ import org.postgresql.core.v3.SqlSerializationContext;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.Random;
 
@@ -104,6 +105,50 @@ class PGbyteaTest {
   void toPGLiteral_string_rejectsMissingHexPrefix() {
     assertThrows(IllegalArgumentException.class,
         () -> PGbytea.toPGLiteral("00010203", SqlSerializationContext.of(true, true)));
+  }
+
+  @Test
+  void escapeDecodeValid() throws SQLException {
+    assertArrayEquals(new byte[]{'a', 'b', 'c'}, PGbytea.toBytes(ascii("abc")), "plain text");
+    assertArrayEquals(new byte[]{'\\'}, PGbytea.toBytes(ascii("\\\\")), "escaped backslash");
+    assertArrayEquals(new byte[]{0x01}, PGbytea.toBytes(ascii("\\001")), "octal escape");
+    assertArrayEquals(new byte[]{(byte) 0xff}, PGbytea.toBytes(ascii("\\377")), "octal escape, max byte");
+    assertArrayEquals(new byte[0], PGbytea.toBytes(ascii("")), "empty");
+  }
+
+  @Test
+  void hexDecodeValid() throws SQLException {
+    assertArrayEquals(new byte[]{0x1a, 0x2b}, PGbytea.toBytes(ascii("\\x1a2b")), "lower hex");
+    assertArrayEquals(new byte[]{(byte) 0xab}, PGbytea.toBytes(ascii("\\xAB")), "upper hex");
+    assertArrayEquals(new byte[0], PGbytea.toBytes(ascii("\\x")), "empty hex");
+  }
+
+  @Test
+  void escapeDecodeRejectsMalformed() {
+    // The escape/octal parser matches the server: a lone or trailing backslash, a truncated octal
+    // escape, non-octal digits, and an out-of-range octal value all raise 22P02.
+    for (String literal : new String[]{"\\", "abc\\", "\\0", "\\00", "\\089", "\\378", "\\400", "\\777"}) {
+      assertRejected(literal, PSQLState.INVALID_TEXT_REPRESENTATION);
+    }
+  }
+
+  @Test
+  void hexDecodeRejectsMalformed() {
+    // The hex parser matches the server: an odd digit count or a non-hex digit raises 22023.
+    for (String literal : new String[]{"\\x1", "\\xzz", "\\xg", "\\x1g", "\\x /"}) {
+      assertRejected(literal, PSQLState.INVALID_PARAMETER_VALUE);
+    }
+  }
+
+  private static void assertRejected(String literal, PSQLState expected) {
+    PSQLException e = assertThrows(PSQLException.class, () -> PGbytea.toBytes(ascii(literal)),
+        () -> "bytea literal " + literal + " should be rejected");
+    assertEquals(expected.getState(), e.getSQLState(),
+        () -> "SQLState for rejected bytea literal " + literal);
+  }
+
+  private static byte[] ascii(String s) {
+    return s.getBytes(StandardCharsets.US_ASCII);
   }
 
   private static byte[] hexEncode(byte[] data, byte[] hexDigits) {

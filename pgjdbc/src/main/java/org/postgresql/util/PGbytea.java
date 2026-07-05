@@ -15,26 +15,27 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 /**
  * Converts to and from the postgresql bytea datatype used by the backend.
  */
 public class PGbytea {
-  private static final int MAX_3_BUFF_SIZE = 2 * 1024 * 1024;
 
   /**
-   * Lookup table for each of the valid ascii code points (offset by {@code '0'})
-   * to the 4 bit numeric value.
+   * Lookup from an unsigned byte value to its hexadecimal digit value (0-15), or {@code -1} when the
+   * byte is not an ASCII hex digit. Indexed by {@code b & 0xff}, so every input byte is in range.
    */
-  private static final int[] HEX_VALS = new int['f' + 1 - '0'];
+  private static final int[] HEX_VALS = new int[256];
 
   static {
-    for (int i = 0; i < 10; i++) {
-      HEX_VALS[i] = (byte) i;
+    Arrays.fill(HEX_VALS, -1);
+    for (int i = 0; i <= 9; i++) {
+      HEX_VALS['0' + i] = i;
     }
     for (int i = 0; i < 6; i++) {
-      HEX_VALS['A' + i - '0'] = (byte) (10 + i);
-      HEX_VALS['a' + i - '0'] = (byte) (10 + i);
+      HEX_VALS['A' + i] = 10 + i;
+      HEX_VALS['a' + i] = 10 + i;
     }
   }
 
@@ -57,74 +58,76 @@ public class PGbytea {
     return toBytesHexEscaped(s);
   }
 
-  private static byte[] toBytesHexEscaped(byte[] s) {
-    // first 2 bytes of s indicate the byte[] is hex encoded
-    // so they need to be ignored here
+  private static byte[] toBytesHexEscaped(byte[] s) throws SQLException {
+    // The leading "\x" is the format marker, so the hex digits start at index 2.
     final int realLength = s.length - 2;
+    if ((realLength & 1) != 0) {
+      throw new PSQLException(
+          GT.tr("invalid hexadecimal data: odd number of digits"),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
     byte[] output = new byte[realLength >>> 1];
     for (int i = 0; i < realLength; i += 2) {
-      int val = getHex(s[2 + i]) << 4;
-      val |= getHex(s[3 + i]);
+      int val = (hexDigit(s[2 + i]) << 4) | hexDigit(s[3 + i]);
       output[i >>> 1] = (byte) val;
     }
     return output;
   }
 
-  private static int getHex(byte b) {
-    return HEX_VALS[b - '0'];
+  private static int hexDigit(byte b) throws SQLException {
+    int val = HEX_VALS[b & 0xff];
+    if (val < 0) {
+      throw new PSQLException(
+          GT.tr("invalid hexadecimal digit: \"{0}\"", (char) (b & 0xff)),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+    return val;
   }
 
-  private static byte[] toBytesOctalEscaped(byte[] s) {
+  private static byte[] toBytesOctalEscaped(byte[] s) throws SQLException {
     final int slength = s.length;
-    byte[] buf = null;
-    int correctSize = slength;
-    if (slength > MAX_3_BUFF_SIZE) {
-      // count backslash escapes, they will be either
-      // backslashes or an octal escape \\ or \003
-      //
-      for (int i = 0; i < slength; i++) {
-        byte current = s[i];
-        if (current == '\\') {
-          byte next = s[++i];
-          if (next == '\\') {
-            --correctSize;
-          } else {
-            correctSize -= 3;
-          }
-        }
-      }
-      buf = new byte[correctSize];
-    } else {
-      buf = new byte[slength];
-    }
+    // A backslash escape shrinks the output, so slength is an upper bound; the result is trimmed once
+    // the exact length is known.
+    final byte[] buf = new byte[slength];
     int bufpos = 0;
-    int thebyte;
-    byte nextbyte;
-    byte secondbyte;
     for (int i = 0; i < slength; i++) {
-      nextbyte = s[i];
-      if (nextbyte == (byte) '\\') {
-        secondbyte = s[++i];
-        if (secondbyte == (byte) '\\') {
-          // escaped \
-          buf[bufpos++] = (byte) '\\';
-        } else {
-          thebyte = (secondbyte - 48) * 64 + (s[++i] - 48) * 8 + (s[++i] - 48);
-          if (thebyte > 127) {
-            thebyte -= 256;
-          }
-          buf[bufpos++] = (byte) thebyte;
-        }
-      } else {
-        buf[bufpos++] = nextbyte;
+      byte current = s[i];
+      if (current != '\\') {
+        buf[bufpos++] = current;
+        continue;
       }
+      // An escape is either "\\" (a literal backslash) or "\ooo" (three octal digits).
+      if (i + 1 >= slength) {
+        throw invalidByteaLiteral();
+      }
+      byte second = s[++i];
+      if (second == '\\') {
+        buf[bufpos++] = '\\';
+        continue;
+      }
+      if (i + 2 >= slength) {
+        throw invalidByteaLiteral();
+      }
+      int value = (octalDigit(second) << 6) | (octalDigit(s[++i]) << 3) | octalDigit(s[++i]);
+      if (value > 0xff) {
+        throw invalidByteaLiteral();
+      }
+      buf[bufpos++] = (byte) value;
     }
-    if (bufpos == correctSize) {
-      return buf;
+    return bufpos == slength ? buf : Arrays.copyOf(buf, bufpos);
+  }
+
+  private static int octalDigit(byte b) throws SQLException {
+    if (b < '0' || b > '7') {
+      throw invalidByteaLiteral();
     }
-    byte[] result = new byte[bufpos];
-    System.arraycopy(buf, 0, result, 0, bufpos);
-    return result;
+    return b - '0';
+  }
+
+  private static PSQLException invalidByteaLiteral() {
+    return new PSQLException(
+        GT.tr("invalid input syntax for type bytea"),
+        PSQLState.INVALID_TEXT_REPRESENTATION);
   }
 
   /*
