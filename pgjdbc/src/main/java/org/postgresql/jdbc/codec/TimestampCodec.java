@@ -5,9 +5,10 @@
 
 package org.postgresql.jdbc.codec;
 
-import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.TemporalCodecs;
@@ -17,6 +18,7 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.IOException;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -30,7 +32,7 @@ import java.time.ZonedDateTime;
 /**
  * Codec for PostgreSQL timestamp (without time zone) type.
  */
-public final class TimestampCodec implements BinaryCodec, TextCodec {
+public final class TimestampCodec implements StreamingBinaryCodec, TextCodec {
 
   public static final TimestampCodec INSTANCE = new TimestampCodec();
 
@@ -66,6 +68,12 @@ public final class TimestampCodec implements BinaryCodec, TextCodec {
   @Override
   public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return TemporalCodecs.encodeTimestampBin(value, ctx);
+  }
+
+  @Override
+  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx,
+      BackpatchingBinarySink out) throws SQLException, IOException {
+    TemporalCodecs.writeTimestampBin(value, out, ctx);
   }
 
   @Override

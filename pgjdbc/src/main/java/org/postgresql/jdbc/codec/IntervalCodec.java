@@ -5,9 +5,10 @@
 
 package org.postgresql.jdbc.codec;
 
-import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
@@ -18,6 +19,7 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.IOException;
 import java.sql.SQLException;
 
 /**
@@ -27,7 +29,7 @@ import java.sql.SQLException;
  *
  * <p>Binary format is: 8 bytes (microseconds), 4 bytes (days), 4 bytes (months).</p>
  */
-public final class IntervalCodec implements BinaryCodec, TextCodec {
+public final class IntervalCodec implements StreamingBinaryCodec, TextCodec {
 
   public static final IntervalCodec INSTANCE = new IntervalCodec();
 
@@ -84,16 +86,19 @@ public final class IntervalCodec implements BinaryCodec, TextCodec {
 
   @Override
   public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    PGInterval interval;
-    if (value instanceof PGInterval) {
-      interval = (PGInterval) value;
-    } else if (value instanceof String) {
-      interval = new PGInterval((String) value);
-    } else {
-      throw new PSQLException(
-          GT.tr("Cannot encode {0} as interval", value.getClass().getName()),
-          PSQLState.INVALID_PARAMETER_TYPE);
+    BackpatchByteArrayOutputStream out = new BackpatchByteArrayOutputStream(16);
+    try {
+      encodeBinary(value, type, ctx, out);
+    } catch (IOException e) {
+      throw new AssertionError(e); // BackpatchByteArrayOutputStream never throws
     }
+    return out.toByteArray();
+  }
+
+  @Override
+  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx,
+      BackpatchingBinarySink out) throws SQLException, IOException {
+    PGInterval interval = toInterval(value);
 
     // Convert to binary format. Keep the hours and minutes terms in long arithmetic (they are exact),
     // and round the fractional seconds to the nearest microsecond rather than truncating: the seconds
@@ -105,11 +110,22 @@ public final class IntervalCodec implements BinaryCodec, TextCodec {
         + interval.getMinutes() * 60_000_000L
         + Math.round(interval.getSeconds() * 1_000_000.0);
 
-    byte[] result = new byte[16];
-    ByteConverter.int8(result, 0, microseconds);
-    ByteConverter.int4(result, 8, days);
-    ByteConverter.int4(result, 12, months);
-    return result;
+    // Wire order: 8 bytes microseconds, 4 bytes days, 4 bytes months.
+    out.writeInt64(microseconds);
+    out.writeInt32(days);
+    out.writeInt32(months);
+  }
+
+  private static PGInterval toInterval(Object value) throws SQLException {
+    if (value instanceof PGInterval) {
+      return (PGInterval) value;
+    }
+    if (value instanceof String) {
+      return new PGInterval((String) value);
+    }
+    throw new PSQLException(
+        GT.tr("Cannot encode {0} as interval", value.getClass().getName()),
+        PSQLState.INVALID_PARAMETER_TYPE);
   }
 
   @Override

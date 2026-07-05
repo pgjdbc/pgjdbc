@@ -5,9 +5,10 @@
 
 package org.postgresql.jdbc.codec;
 
-import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.TemporalCodecs;
@@ -17,6 +18,7 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.IOException;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -25,7 +27,7 @@ import java.time.LocalDate;
 /**
  * Codec for PostgreSQL date type.
  */
-public final class DateCodec implements BinaryCodec, TextCodec {
+public final class DateCodec implements StreamingBinaryCodec, TextCodec {
 
   public static final DateCodec INSTANCE = new DateCodec();
 
@@ -61,23 +63,35 @@ public final class DateCodec implements BinaryCodec, TextCodec {
   @Override
   public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     byte[] result = new byte[4];
+    TemporalCodecs.encodeDateBin(toDate(value, ctx), result, ctx);
+    return result;
+  }
+
+  @Override
+  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx,
+      BackpatchingBinarySink out) throws SQLException, IOException {
+    TemporalCodecs.writeDateBin(toDate(value, ctx), out, ctx);
+  }
+
+  /** Coerces a supported date-like value to {@link Date}, shared by both encode paths. */
+  private static Date toDate(Object value, CodecContext ctx) throws SQLException {
     if (value instanceof Date) {
-      TemporalCodecs.encodeDateBin((Date) value, result, ctx);
-    } else if (value instanceof LocalDate) {
-      // Convert to Date and encode
-      TemporalCodecs.encodeDateBin(Date.valueOf((LocalDate) value), result, ctx);
-    } else if (value instanceof java.util.Date) {
+      return (Date) value;
+    }
+    if (value instanceof LocalDate) {
+      return Date.valueOf((LocalDate) value);
+    }
+    if (value instanceof java.util.Date) {
       @SuppressWarnings("JavaUtilDate")
       long time = ((java.util.Date) value).getTime();
-      TemporalCodecs.encodeDateBin(new Date(time), result, ctx);
-    } else if (value instanceof String) {
+      return new Date(time);
+    }
+    if (value instanceof String) {
       // decodeDateText already rejects a malformed literal with a clean SQLException (the parser no
       // longer leaks an ArrayIndexOutOfBoundsException), so the binary path needs no extra wrapping.
-      TemporalCodecs.encodeDateBin(TemporalCodecs.decodeDateText((String) value, ctx), result, ctx);
-    } else {
-      throw Codec.cannotEncode(value, "date");
+      return TemporalCodecs.decodeDateText((String) value, ctx);
     }
-    return result;
+    throw Codec.cannotEncode(value, "date");
   }
 
   @Override

@@ -6,6 +6,7 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.PGStatement;
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -13,6 +14,7 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.SQLException;
@@ -243,6 +245,56 @@ public final class TemporalCodecs {
       }
     }
     return TimestampUtils.toBinTimestampTz(usesDouble, instantOf(value, ctx));
+  }
+
+  // ----------------------------- streaming binary encode -----------------------------
+  // Mirror the encode*Bin methods above, writing straight into the sink so container elements
+  // avoid a per-element scratch byte[].
+
+  /** Streaming counterpart of {@link #encodeDateBin(Date, byte[], CodecContext)}. */
+  public static void writeDateBin(Date value, BackpatchingBinarySink out, CodecContext ctx)
+      throws SQLException, IOException {
+    TimestampUtils.writeBinDate(ctx.getDefaultTimeZone(), out, value);
+  }
+
+  /** Streaming counterpart of {@link #encodeTimeBin(Object, CodecContext)}. */
+  public static void writeTimeBin(Object value, BackpatchingBinarySink out, CodecContext ctx)
+      throws SQLException, IOException {
+    TimestampUtils.writeBinTime(ctx.usesDoubleDateTime(), localTimeOf(value, ctx), out);
+  }
+
+  /** Streaming counterpart of {@link #encodeTimetzBin(Object, CodecContext)}. */
+  public static void writeTimetzBin(Object value, BackpatchingBinarySink out, CodecContext ctx)
+      throws SQLException, IOException {
+    TimestampUtils.writeBinTimeTz(ctx.usesDoubleDateTime(), offsetTimeOf(value, ctx), out);
+  }
+
+  /** Streaming counterpart of {@link #encodeTimestampBin(Object, CodecContext)}. */
+  public static void writeTimestampBin(Object value, BackpatchingBinarySink out, CodecContext ctx)
+      throws SQLException, IOException {
+    boolean usesDouble = ctx.usesDoubleDateTime();
+    if (value instanceof Timestamp) {
+      Long inf = infinityOf((Timestamp) value);
+      if (inf != null) {
+        TimestampUtils.writeInfinityTimestamp(usesDouble, inf > 0, out);
+        return;
+      }
+    }
+    TimestampUtils.writeBinTimestamp(usesDouble, localDateTimeOf(value, ctx), out);
+  }
+
+  /** Streaming counterpart of {@link #encodeTimestamptzBin(Object, CodecContext)}. */
+  public static void writeTimestamptzBin(Object value, BackpatchingBinarySink out, CodecContext ctx)
+      throws SQLException, IOException {
+    boolean usesDouble = ctx.usesDoubleDateTime();
+    if (value instanceof Timestamp) {
+      Long inf = infinityOf((Timestamp) value);
+      if (inf != null) {
+        TimestampUtils.writeInfinityTimestamp(usesDouble, inf > 0, out);
+        return;
+      }
+    }
+    TimestampUtils.writeBinTimestampTz(usesDouble, instantOf(value, ctx), out);
   }
 
   // ----------------------------- binary-encode dispatch -----------------------------

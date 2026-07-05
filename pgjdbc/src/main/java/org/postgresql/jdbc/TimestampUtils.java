@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.PGStatement;
+import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.core.JavaVersion;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Provider;
@@ -19,6 +20,7 @@ import org.postgresql.util.PSQLState;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
@@ -2215,6 +2217,72 @@ public class TimestampUtils {
     return out;
   }
 
+  // ------------------- streaming binary encode (BackpatchingBinarySink) -------------------
+  // These mirror the toBin*/writeBinDate byte[] encoders exactly, writing the same wire bytes
+  // straight into the sink so container elements avoid a per-element scratch byte[].
+
+  /** Streaming counterpart of {@link #infinityTimestamp(boolean, boolean)}. */
+  static void writeInfinityTimestamp(boolean usesDouble, boolean positive,
+      BackpatchingBinarySink out) throws IOException {
+    if (usesDouble) {
+      out.writeDouble(positive ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY);
+    } else {
+      out.writeInt64(positive ? Long.MAX_VALUE : Long.MIN_VALUE);
+    }
+  }
+
+  /** Streaming counterpart of {@link #writeBinDate(TimeZone, byte[], Date)}. */
+  static void writeBinDate(TimeZone tz, BackpatchingBinarySink out, Date value) throws IOException {
+    long millis = value.getTime();
+    millis += tz.getOffset(millis);
+    long secs = toPgSecs(millis / 1000);
+    out.writeInt32((int) (secs / 86400));
+  }
+
+  /** Streaming counterpart of {@link #toBinTime(boolean, LocalTime)}. */
+  static void writeBinTime(boolean usesDouble, LocalTime value, BackpatchingBinarySink out)
+      throws IOException {
+    writeMicros(usesDouble, out, microsOfDay(value));
+  }
+
+  /** Streaming counterpart of {@link #toBinTimeTz(boolean, OffsetTime)}. */
+  static void writeBinTimeTz(boolean usesDouble, OffsetTime value, BackpatchingBinarySink out)
+      throws IOException {
+    writeMicros(usesDouble, out, microsOfDay(value.toLocalTime()));
+    out.writeInt32(-value.getOffset().getTotalSeconds());
+  }
+
+  /** Streaming counterpart of {@link #toBinTimestamp(boolean, LocalDateTime)}. */
+  static void writeBinTimestamp(boolean usesDouble, LocalDateTime value, BackpatchingBinarySink out)
+      throws PSQLException, IOException {
+    if (value.isAfter(MAX_LOCAL_DATETIME)) {
+      writeInfinityTimestamp(usesDouble, true, out);
+      return;
+    }
+    if (value.isBefore(MIN_LOCAL_DATETIME)) {
+      writeInfinityTimestamp(usesDouble, false, out);
+      return;
+    }
+    @SuppressWarnings("JavaLocalDateTimeGetNano")
+    int nano = value.getNano();
+    if (nanosExceed499(nano)) {
+      value = value.plus(ONE_MICROSECOND);
+    }
+    writeMicros(usesDouble, out,
+        pgMicros(value.toEpochSecond(ZoneOffset.UTC), nano, value, "timestamp"));
+  }
+
+  /** Streaming counterpart of {@link #toBinTimestampTz(boolean, Instant)}. */
+  static void writeBinTimestampTz(boolean usesDouble, Instant value, BackpatchingBinarySink out)
+      throws PSQLException, IOException {
+    @SuppressWarnings("JavaLocalDateTimeGetNano")
+    int nano = value.getNano();
+    if (nanosExceed499(nano)) {
+      value = value.plus(ONE_MICROSECOND);
+    }
+    writeMicros(usesDouble, out, pgMicros(value.getEpochSecond(), nano, value, "timestamptz"));
+  }
+
   private static long microsOfDay(LocalTime value) {
     if (value.isAfter(MAX_TIME)) {
       return MICROS_PER_DAY;
@@ -2227,11 +2295,11 @@ public class TimestampUtils {
     return value.toNanoOfDay() / 1000L;
   }
 
-  private static byte[] pgMicrosTimestamp(boolean usesDouble, long javaEpochSec, int nano,
-      Object value, String pgType) throws PSQLException {
-    long micros;
+  /** Microseconds since the PostgreSQL epoch (2000-01-01), the scalar behind {@code timestamp[tz]}. */
+  private static long pgMicros(long javaEpochSec, int nano, Object value, String pgType)
+      throws PSQLException {
     try {
-      micros = Math.addExact(
+      return Math.addExact(
           Math.multiplyExact(Math.subtractExact(javaEpochSec, PG_EPOCH_SECS), 1_000_000L),
           nano / 1000L);
     } catch (ArithmeticException e) {
@@ -2241,8 +2309,12 @@ public class TimestampUtils {
       throw new PSQLException(GT.tr("Value ''{0}'' is out of range for type {1}", value, pgType),
           PSQLState.DATETIME_OVERFLOW, e);
     }
+  }
+
+  private static byte[] pgMicrosTimestamp(boolean usesDouble, long javaEpochSec, int nano,
+      Object value, String pgType) throws PSQLException {
     byte[] out = new byte[8];
-    writeMicros(usesDouble, out, 0, micros);
+    writeMicros(usesDouble, out, 0, pgMicros(javaEpochSec, nano, value, pgType));
     return out;
   }
 
@@ -2251,6 +2323,16 @@ public class TimestampUtils {
       ByteConverter.float8(out, offset, micros / 1_000_000d);
     } else {
       ByteConverter.int8(out, offset, micros);
+    }
+  }
+
+  /** Streaming counterpart of {@link #writeMicros(boolean, byte[], int, long)}. */
+  private static void writeMicros(boolean usesDouble, BackpatchingBinarySink out, long micros)
+      throws IOException {
+    if (usesDouble) {
+      out.writeDouble(micros / 1_000_000d);
+    } else {
+      out.writeInt64(micros);
     }
   }
 

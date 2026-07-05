@@ -8,14 +8,18 @@ package org.postgresql.jdbc.codec;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import org.postgresql.PGStatement;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.jdbc.TestCodecContext;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -130,6 +134,39 @@ class TemporalBinaryRoundtripTest {
   // element through the scalar codec's encodeBinary and reading it back through readLeaf. These
   // round-trips confirm a binary temporal array decodes element-for-element through readLeaf, the
   // same path a binary-received temporal array would take.
+
+  // The streaming binary encoder must write byte-for-byte the same wire form as the materializing
+  // byte[] encoder (this asserts output equivalence, not the absence of an intermediate byte[]).
+  private static void assertStreamMatchesMaterialized(BinaryCodec codec, PgType type, Object value,
+      CodecContext ctx) throws SQLException, IOException {
+    byte[] materialized = codec.encodeBinary(value, type, ctx);
+    BackpatchByteArrayOutputStream sink = new BackpatchByteArrayOutputStream();
+    ((StreamingBinaryCodec) codec).encodeBinary(value, type, ctx, sink);
+    assertArrayEquals(materialized, sink.toByteArray());
+  }
+
+  @Test
+  void streamingMatchesMaterializedForEachTemporalCodec() throws SQLException, IOException {
+    assertStreamMatchesMaterialized(DateCodec.INSTANCE, type("date", "date", 1082),
+        Date.valueOf("2023-09-05"), TestCodecContext.create());
+    assertStreamMatchesMaterialized(TimeCodec.INSTANCE, type("time", "time without time zone", 1083),
+        LocalTime.of(16, 21, 50, 123456000), TestCodecContext.create(false, true, false, false, false));
+    assertStreamMatchesMaterialized(TimetzCodec.INSTANCE, type("timetz", "time with time zone", 1266),
+        OffsetTime.of(16, 21, 50, 123456000, ZoneOffset.ofHoursMinutes(3, 30)),
+        TestCodecContext.create(false, false, true, false, false));
+    assertStreamMatchesMaterialized(TimestampCodec.INSTANCE,
+        type("timestamp", "timestamp without time zone", 1114),
+        LocalDateTime.of(2023, 9, 5, 16, 21, 50, 123456000),
+        TestCodecContext.create(false, false, false, true, false));
+    assertStreamMatchesMaterialized(TimestamptzCodec.INSTANCE,
+        type("timestamptz", "timestamp with time zone", 1184),
+        Instant.ofEpochSecond(1_693_931_310L, 123456000),
+        TestCodecContext.create(false, false, false, false, true));
+    // Infinity sentinel: exercises the branch that skips the micros computation.
+    assertStreamMatchesMaterialized(TimestampCodec.INSTANCE,
+        type("timestamp", "timestamp without time zone", 1114),
+        new Timestamp(PGStatement.DATE_POSITIVE_INFINITY), TestCodecContext.create());
+  }
 
   @Test
   void timeArrayViaGenericLeaf() throws SQLException {
