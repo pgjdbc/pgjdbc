@@ -52,7 +52,7 @@ public final class CoercionFuzzSupport {
     PgType comp = FuzzComposites.singleField(oid);
     boolean[] p = c.prefersJavaTime;
     Map<String, String> config = ReadOracle.configFor(p);
-    PgCodecContext ctx = (PgCodecContext) PgCodecContext.offlineBuilder()
+    PgCodecContext ctx = (PgCodecContext) OfflineCodecContexts.offlineBuilder()
         .type(comp)
         .timeZone(TimeZone.getDefault())
         .prefersJavaTime(p[0], p[1], p[2], p[3], p[4])

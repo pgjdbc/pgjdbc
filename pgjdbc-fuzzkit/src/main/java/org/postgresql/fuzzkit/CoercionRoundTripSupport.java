@@ -127,7 +127,7 @@ public final class CoercionRoundTripSupport {
   public static void run(CoercionRoundTripCase c) throws SQLException {
     int oid = c.attr.oid();
     PgType comp = FuzzComposites.singleField(oid);
-    PgCodecContext ctx = (PgCodecContext) PgCodecContext.offlineBuilder()
+    PgCodecContext ctx = (PgCodecContext) OfflineCodecContexts.offlineBuilder()
         .type(comp)
         .timeZone(TimeZone.getDefault())
         .build();

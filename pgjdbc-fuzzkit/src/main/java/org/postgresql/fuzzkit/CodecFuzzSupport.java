@@ -149,12 +149,12 @@ public final class CodecFuzzSupport {
 
   /** A context with only the built-in types (scalars and built-in arrays resolve offline). */
   public static CodecContext builtins() {
-    return PgCodecContext.offlineBuilder().build();
+    return OfflineCodecContexts.offlineBuilder().build();
   }
 
   /** A context that also resolves one user-defined type by OID (composites, custom arrays). */
   public static CodecContext with(PgType type) {
-    return PgCodecContext.offlineBuilder().type(type).build();
+    return OfflineCodecContexts.offlineBuilder().type(type).build();
   }
 
   // --- Streaming-parity property: stream(v) == materialise(v) ---------------------------------
@@ -686,7 +686,7 @@ public final class CodecFuzzSupport {
   public static void structRoundTrip(FuzzNode root) throws SQLException {
     List<PgType> registry = new ArrayList<>();
     Built built = build(root, new int[]{90_000}, registry);
-    PgCodecContext.OfflineBuilder builder = PgCodecContext.offlineBuilder();
+    PgCodecContext.OfflineBuilder builder = OfflineCodecContexts.offlineBuilder();
     for (PgType type : registry) {
       builder.type(type);
     }
@@ -724,7 +724,7 @@ public final class CodecFuzzSupport {
     PgType element = PgTypeDescriptors.composite(PgTypeDescriptors.POINT_OID).pgType();
     PgType arrayType = new PgType(new ObjectName("public", "_fuzz_point"), "public.fuzz_point[]",
         90_010, 'b', 'A', -1, PgTypeDescriptors.POINT_OID, 0, 0);
-    CodecContext ctx = PgCodecContext.offlineBuilder().type(element).type(arrayType).build();
+    CodecContext ctx = OfflineCodecContexts.offlineBuilder().type(element).type(arrayType).build();
 
     PgStruct[] structs = new PgStruct[rows.length];
     for (int i = 0; i < rows.length; i++) {
@@ -767,7 +767,7 @@ public final class CodecFuzzSupport {
       Object value, Class<?> target) throws SQLException {
     PgType domain = new PgType(new ObjectName("public", "dom_" + baseTypeName),
         "public.dom_" + baseTypeName, DOMAIN_OID, 'd', baseCategory, -1, 0, 0, baseOid);
-    CodecContext ctx = PgCodecContext.offlineBuilder().type(domain).build();
+    CodecContext ctx = OfflineCodecContexts.offlineBuilder().type(domain).build();
     roundTrip(value, domain, target, ctx);
   }
 
@@ -786,7 +786,7 @@ public final class CodecFuzzSupport {
       PGRange<?> value) throws SQLException {
     PgType rangeType = new PgType(new ObjectName("pg_catalog", rangeTypeName), rangeTypeName,
         rangeOid, 'r', 'R', -1, 0, 0, 0).withRangeSubtype(subtypeOid);
-    CodecContext ctx = PgCodecContext.offlineBuilder().type(rangeType).build();
+    CodecContext ctx = OfflineCodecContexts.offlineBuilder().type(rangeType).build();
     streamVsMaterializeParity(value, rangeType, ctx);
   }
 
@@ -809,7 +809,7 @@ public final class CodecFuzzSupport {
         rangeOid, 'r', 'R', -1, 0, 0, 0).withRangeSubtype(subtypeOid);
     PgType multirangeType = new PgType(new ObjectName("pg_catalog", multirangeTypeName),
         multirangeTypeName, multirangeOid, 'm', 'R', -1, 0, 0, 0).withMultirangeRange(rangeOid);
-    CodecContext ctx = PgCodecContext.offlineBuilder().type(rangeType).type(multirangeType).build();
+    CodecContext ctx = OfflineCodecContexts.offlineBuilder().type(rangeType).type(multirangeType).build();
     streamVsMaterializeParity(value, multirangeType, ctx);
   }
 
@@ -825,7 +825,7 @@ public final class CodecFuzzSupport {
   public static void sqlDataRoundTrip(FuzzSqlData value) throws SQLException {
     PgType type = new PgType(new ObjectName("public", "fuzz_sqldata"), "public.fuzz_sqldata",
         90_020, 'c', 'C', -1, 0, 0, 0, ',', SQL_DATA_FIELDS);
-    CodecContext ctx = PgCodecContext.offlineBuilder().type(type)
+    CodecContext ctx = OfflineCodecContexts.offlineBuilder().type(type)
         .timeZone(TimeZone.getDefault()).build();
 
     for (Format format : Format.values()) {

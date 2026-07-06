@@ -26,7 +26,7 @@ public final class CoercionWriteSupport {
   public static void run(CoercionWriteCase c) throws SQLException {
     int oid = c.attr.oid();
     PgType comp = FuzzComposites.singleField(oid);
-    PgCodecContext ctx = (PgCodecContext) PgCodecContext.offlineBuilder()
+    PgCodecContext ctx = (PgCodecContext) OfflineCodecContexts.offlineBuilder()
         .type(comp)
         .timeZone(TimeZone.getDefault())
         .build();
