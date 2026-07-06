@@ -33,8 +33,8 @@ dependencies {
     testImplementation("org.ops4j.pax.exam:pax-exam-link-mvn:4.14.0")
     testImplementation("org.ops4j.pax.url:pax-url-aether:3.0.3")
     testImplementation("org.apache.felix:org.apache.felix.framework:7.0.5")
-    testImplementation("ch.qos.logback:logback-core:1.5.34")
-    testImplementation("ch.qos.logback:logback-classic:1.5.34")
+    testImplementation("ch.qos.logback:logback-core:1.5.37")
+    testImplementation("ch.qos.logback:logback-classic:1.5.37")
     testRuntimeOnly(platform("org.ow2.asm:asm-bom:9.10.1"))
     testRuntimeOnly("org.apache.aries.spifly:org.apache.aries.spifly.dynamic.bundle:1.3.7")
 }
