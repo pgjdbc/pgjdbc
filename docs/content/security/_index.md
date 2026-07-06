@@ -22,6 +22,38 @@ For security purposes, we sign our releases with these PGP keys:
 
 ## Security Advisories
 
+### Silent Channel-Binding Authentication Downgrade (CVE-2026-54291)
+
+#### Impact
+
+`channelBinding=require` connections can be silently downgraded from `SCRAM-SHA-256-PLUS` (with channel binding) to plain `SCRAM-SHA-256` (without it), losing the man-in-the-middle protection the setting is meant to guarantee. An attacker who can intercept the TLS connection triggers the downgrade with a certificate whose signature algorithm has no `tls-server-end-point` channel-binding hash. Examples are Ed25519, Ed448, and post-quantum algorithms.
+
+Two issues combine in releases 42.7.4 through 42.7.11:
+
+1. The bundled `com.ongres.scram:scram-client` (3.1 or 3.2) returns an empty byte array instead of failing when it cannot derive the binding hash for such a certificate. This is the library issue tracked as [CVE-2026-53712](https://github.com/advisories/GHSA-p9jg-fcr6-3mhf).
+2. pgJDBC does not enforce `channelBinding=require` where it matters. `ScramAuthenticator` checks only that the server *advertised* a `-PLUS` mechanism; it neither rejects the empty binding nor checks that the *negotiated* mechanism uses channel binding. The connection therefore downgrades silently.
+
+Only connections that set `channelBinding=require` are affected. Under the default `prefer` policy, and under `allow` or `disable`, falling back to plain SCRAM is the documented behaviour. Releases before 42.7.4 are unaffected, because they do not support channel binding.
+
+#### Patches
+
+Fixed in pgJDBC 42.7.12. The driver now enforces channel binding in its own code, independently of the `scram-client` version:
+
+- Under `channelBinding=require`, it fails the connection when no channel-binding data can be extracted from the server certificate, instead of passing an empty value to the SCRAM client. The error names the certificate signature algorithm.
+- After negotiation, it requires the selected mechanism to use channel binding (a `-PLUS` mechanism) whenever `channelBinding=require` is set, regardless of how negotiation resolved.
+
+Upgrade to 42.7.12 or later.
+
+#### Workarounds
+
+No pgJDBC setting restores channel-binding enforcement on an affected release; upgrading is the fix.
+
+If you cannot upgrade immediately, verify the server certificate at the TLS layer so that a man-in-the-middle cannot present a substitute certificate. Set `sslmode=verify-full` with a truststore that contains only your server's CA. This defence is independent of channel binding and blocks the same attacker.
+
+Reported by [KEIJOT](https://github.com/KEIJOT)
+
+See the [Security Advisory](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-j92g-9f8w-j867) for full detail.
+
 ### SQL Injection via line comment generation
 
 #### Impact

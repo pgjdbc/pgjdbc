@@ -15,8 +15,8 @@
             Latest Releases
         </h2>
         <p>
-            Current release is 42.7.11 This is a security and maintenance release. This fixes a SCRAM PBKDF2 iteration DoS vulnerability (CVE-2026-42198), adds the require_auth connection property, and includes numerous bug fixes.
-            See the <a href="https://jdbc.postgresql.org/changelogs/2026-04-28-42/">Changelog</a> for details
+            Current release is 42.7.13. This is a maintenance release with numerous bug fixes and new connection properties (flushCacheOnDdl, connectExecutor, classLoaderStrategy). It follows the 42.7.12 security release, which fixed a silent channel-binding authentication downgrade (CVE-2026-54291).
+            See the <a href="https://jdbc.postgresql.org/changelogs/2026-07-06-42.7.13-release/">Changelog</a> for details
         </p>
         <ul role="list">
             {{ range $.Site.Data.homepagedata.info }}
