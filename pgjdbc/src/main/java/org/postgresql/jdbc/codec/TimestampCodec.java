@@ -12,9 +12,6 @@ import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.TemporalCodecs;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -218,20 +215,6 @@ public final class TimestampCodec implements StreamingBinaryCodec, TextCodec {
   public @Nullable String decodeAsString(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     // Preserve the original text (with microsecond precision).
     return data;
-  }
-
-  @Override
-  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert timestamp to int"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert timestamp to int"),
-        PSQLState.DATA_TYPE_MISMATCH);
   }
 
 }

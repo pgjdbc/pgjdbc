@@ -157,36 +157,6 @@ public final class IntervalCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert interval to int"), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert interval to int"), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert interval to long"), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert interval to long"), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert interval to double"), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert interval to double"), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
   @SuppressWarnings("unchecked")
   public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {

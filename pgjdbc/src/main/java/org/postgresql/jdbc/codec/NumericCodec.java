@@ -5,10 +5,10 @@
 
 package org.postgresql.jdbc.codec;
 
-import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
-import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.PrimitiveBinaryDecoder;
+import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
@@ -24,7 +24,7 @@ import java.sql.SQLException;
 /**
  * Codec for PostgreSQL numeric (DECIMAL) type.
  */
-public final class NumericCodec implements BinaryCodec, TextCodec {
+public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveTextDecoder {
 
   public static final NumericCodec INSTANCE = new NumericCodec();
 
@@ -132,7 +132,12 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
 
   @Override
   public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Number result = numericFromWire(data, 0, data.length);
+    return bigDecimalFromWire(data, 0, data.length);
+  }
+
+  private static @Nullable BigDecimal bigDecimalFromWire(byte[] data, int offset, int length)
+      throws SQLException {
+    Number result = numericFromWire(data, offset, length);
     if (result instanceof BigDecimal) {
       return (BigDecimal) result;
     }
@@ -182,9 +187,14 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
     }
   }
 
-  @Override
   public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Number result = numericFromWire(data, 0, data.length);
+    return decodeAsDouble(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public double decodeAsDouble(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    Number result = numericFromWire(data, offset, length);
     return result.doubleValue();
   }
 
@@ -209,9 +219,14 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
     }
   }
 
-  @Override
   public float decodeAsFloat(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return (float) decodeAsDouble(data, type, ctx);
+    return decodeAsFloat(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public float decodeAsFloat(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    return (float) decodeAsDouble(data, offset, length, type, ctx);
   }
 
   @Override
@@ -219,9 +234,14 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
     return (float) decodeAsDouble(data, type, ctx);
   }
 
-  @Override
   public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    BigDecimal bd = decodeAsBigDecimal(data, type, ctx);
+    return decodeAsInt(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    BigDecimal bd = bigDecimalFromWire(data, offset, length);
     return bd == null ? 0 : bigDecimalToInt(bd);
   }
 
@@ -231,9 +251,14 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
     return bd == null ? 0 : bigDecimalToInt(bd);
   }
 
-  @Override
   public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    BigDecimal bd = decodeAsBigDecimal(data, type, ctx);
+    return decodeAsLong(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public long decodeAsLong(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    BigDecimal bd = bigDecimalFromWire(data, offset, length);
     return bd == null ? 0 : bigDecimalToLong(bd);
   }
 

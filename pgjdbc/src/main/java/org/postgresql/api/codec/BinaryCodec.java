@@ -24,15 +24,10 @@ import java.util.Arrays;
  *
  * <h2>Primitive Specializations</h2>
  *
- * <p>The interface provides specialized methods for primitive types to avoid boxing
- * overhead. Implementations should override these methods for numeric types:</p>
- * <ul>
- *   <li>{@link #decodeAsInt} - for int4, int2, and similar types</li>
- *   <li>{@link #decodeAsLong} - for int8 and similar types</li>
- *   <li>{@link #decodeAsFloat} - for float4 type</li>
- *   <li>{@link #decodeAsDouble} - for float8 type</li>
- *   <li>{@link #decodeAsBoolean} - for bool type</li>
- * </ul>
+ * <p>Decoding a value to a Java primitive without boxing it first is an opt-in capability: a codec
+ * that can produce a primitive from its binary wire form implements {@link PrimitiveBinaryDecoder}.
+ * A caller holding a base-typed reference goes through {@link PrimitiveDecoders}, which falls back to
+ * boxing through {@link #decodeBinary} when the codec does not implement that capability.</p>
  *
  * <h2>Overflow Handling</h2>
  *
@@ -143,109 +138,6 @@ public interface BinaryCodec extends Codec {
    */
   default boolean supportsBinaryRead() {
     return true;
-  }
-
-  /**
-   * Decodes binary data as an int value.
-   *
-   * <p>Default implementation boxes via {@link #decodeBinary} and unboxes.
-   * Numeric codecs should override for efficiency.</p>
-   *
-   * <p>IMPORTANT: Implementations MUST check for overflow and throw
-   * {@link SQLException} if the value cannot be represented as int.</p>
-   *
-   * @param data the binary data
-   * @param type the PostgreSQL type information
-   * @param ctx the codec context
-   * @return the int value
-   * @throws SQLException if decoding fails or value overflows int range
-   */
-  default int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Object value = decodeBinary(data, type, ctx);
-    if (value instanceof Number) {
-      return ((Number) value).intValue();
-    }
-    throw Codec.cannotDecode(value, "int");
-  }
-
-  /**
-   * Decodes binary data as a long value.
-   *
-   * <p>Default implementation boxes via {@link #decodeBinary} and unboxes.
-   * Numeric codecs should override for efficiency.</p>
-   *
-   * <p>IMPORTANT: Implementations MUST check for overflow and throw
-   * {@link SQLException} if the value cannot be represented as long.</p>
-   *
-   * @param data the binary data
-   * @param type the PostgreSQL type information
-   * @param ctx the codec context
-   * @return the long value
-   * @throws SQLException if decoding fails or value overflows long range
-   */
-  default long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Object value = decodeBinary(data, type, ctx);
-    if (value instanceof Number) {
-      return ((Number) value).longValue();
-    }
-    throw Codec.cannotDecode(value, "long");
-  }
-
-  /**
-   * Decodes binary data as a float value.
-   *
-   * <p>Default implementation boxes via {@link #decodeBinary} and unboxes.
-   * Numeric codecs should override for efficiency.</p>
-   *
-   * @param data the binary data
-   * @param type the PostgreSQL type information
-   * @param ctx the codec context
-   * @return the float value
-   * @throws SQLException if decoding fails
-   */
-  default float decodeAsFloat(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Object value = decodeBinary(data, type, ctx);
-    if (value instanceof Number) {
-      return ((Number) value).floatValue();
-    }
-    throw Codec.cannotDecode(value, "float");
-  }
-
-  /**
-   * Decodes binary data as a double value.
-   *
-   * <p>Default implementation boxes via {@link #decodeBinary} and unboxes.
-   * Numeric codecs should override for efficiency.</p>
-   *
-   * @param data the binary data
-   * @param type the PostgreSQL type information
-   * @param ctx the codec context
-   * @return the double value
-   * @throws SQLException if decoding fails
-   */
-  default double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Object value = decodeBinary(data, type, ctx);
-    if (value instanceof Number) {
-      return ((Number) value).doubleValue();
-    }
-    throw Codec.cannotDecode(value, "double");
-  }
-
-  /**
-   * Decodes binary data as a boolean value.
-   *
-   * <p>Default implementation boxes via {@link #decodeBinary} and unboxes.</p>
-   *
-   * @param data the binary data
-   * @param type the PostgreSQL type information
-   * @param ctx the codec context
-   * @return the boolean value
-   * @throws SQLException if decoding fails
-   */
-  default boolean decodeAsBoolean(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Object value = decodeBinary(data, type, ctx);
-    return BooleanCoercion.castAndCheck(
-        value, () -> decodeAsString(data, type, ctx));
   }
 
   /**

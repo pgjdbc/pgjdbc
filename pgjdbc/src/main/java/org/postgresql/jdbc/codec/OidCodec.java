@@ -8,8 +8,9 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.PrimitiveBinaryDecoder;
+import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.StreamingBinaryCodec;
-import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
@@ -29,7 +30,8 @@ import java.sql.SQLException;
  * <p>OID is an unsigned 32-bit integer, represented as Long in Java
  * to handle the full range without overflow.</p>
  */
-public final class OidCodec implements StreamingBinaryCodec, TextCodec, ArrayElementCodec {
+public final class OidCodec implements StreamingBinaryCodec, PrimitiveBinaryDecoder,
+    PrimitiveTextDecoder, ArrayElementCodec {
 
   public static final OidCodec INSTANCE = new OidCodec();
 
@@ -113,14 +115,19 @@ public final class OidCodec implements StreamingBinaryCodec, TextCodec, ArrayEle
     return String.valueOf(toLong(value));
   }
 
-  @Override
   public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    if (data.length != 4) {
+    return decodeAsInt(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    if (length != 4) {
       throw new PSQLException(
-          GT.tr("Invalid oid binary data length: {0}", data.length),
+          GT.tr("Invalid oid binary data length: {0}", length),
           PSQLState.DATA_ERROR);
     }
-    return ByteConverter.int4(data, 0);
+    return ByteConverter.int4(data, offset);
   }
 
   @Override
@@ -135,15 +142,20 @@ public final class OidCodec implements StreamingBinaryCodec, TextCodec, ArrayEle
     }
   }
 
-  @Override
   public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    if (data.length != 4) {
+    return decodeAsLong(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public long decodeAsLong(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    if (length != 4) {
       throw new PSQLException(
-          GT.tr("Invalid oid binary data length: {0}", data.length),
+          GT.tr("Invalid oid binary data length: {0}", length),
           PSQLState.DATA_ERROR);
     }
     // Treat as unsigned 32-bit
-    return ByteConverter.int4(data, 0) & 0xFFFFFFFFL;
+    return ByteConverter.int4(data, offset) & 0xFFFFFFFFL;
   }
 
   @Override
@@ -157,9 +169,14 @@ public final class OidCodec implements StreamingBinaryCodec, TextCodec, ArrayEle
     }
   }
 
-  @Override
   public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsLong(data, type, ctx);
+    return decodeAsDouble(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public double decodeAsDouble(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    return decodeAsLong(data, offset, length, type, ctx);
   }
 
   @Override

@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.core.Oid;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGcircle;
@@ -77,7 +78,7 @@ class GeometricCodecTest {
   void point_decodeAsInt_throws() {
     PgType pointType = makeType("point", Oid.POINT);
     assertThrows(PSQLException.class,
-        () -> GeometricCodec.POINT.decodeAsInt("(1,2)", pointType, null));
+        () -> PrimitiveDecoders.asInt(GeometricCodec.POINT, "(1,2)", pointType, null));
   }
 
   // ==================== Box (Binary-capable) ====================
@@ -134,7 +135,7 @@ class GeometricCodecTest {
   void circle_decodeAsInt_throws() {
     PgType circleType = makeType("circle", Oid.CIRCLE);
     assertThrows(PSQLException.class,
-        () -> GeometricCodec.CIRCLE.decodeAsInt("<(1,2),3>", circleType, null));
+        () -> PrimitiveDecoders.asInt(GeometricCodec.CIRCLE, "<(1,2),3>", circleType, null));
   }
 
   // ==================== Other geometric types metadata ====================

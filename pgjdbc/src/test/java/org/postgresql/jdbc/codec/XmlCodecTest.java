@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
@@ -88,17 +89,17 @@ class XmlCodecTest {
 
   @Test
   void decodeAsInt_throws() {
-    assertThrows(PSQLException.class, () -> codec.decodeAsInt("<root/>", xmlType, null));
+    assertThrows(PSQLException.class, () -> PrimitiveDecoders.asInt(codec, "<root/>", xmlType, null));
   }
 
   @Test
   void decodeAsLong_throws() {
-    assertThrows(PSQLException.class, () -> codec.decodeAsLong("<root/>", xmlType, null));
+    assertThrows(PSQLException.class, () -> PrimitiveDecoders.asLong(codec, "<root/>", xmlType, null));
   }
 
   @Test
   void decodeAsDouble_throws() {
-    assertThrows(PSQLException.class, () -> codec.decodeAsDouble("<root/>", xmlType, null));
+    assertThrows(PSQLException.class, () -> PrimitiveDecoders.asDouble(codec, "<root/>", xmlType, null));
   }
 
   @Test

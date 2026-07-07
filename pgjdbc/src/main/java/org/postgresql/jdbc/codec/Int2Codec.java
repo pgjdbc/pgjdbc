@@ -8,7 +8,9 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.PrimitiveBinaryDecoder;
 import org.postgresql.api.codec.PrimitiveBinaryEncoder;
+import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.PrimitiveTextEncoder;
 import org.postgresql.api.codec.TextSink;
 import org.postgresql.api.codec.TypeDescriptor;
@@ -30,7 +32,8 @@ import java.sql.SQLException;
  * <p>Note: getObject() returns Integer for backward compatibility,
  * not Short as might be expected.</p>
  */
-public final class Int2Codec implements PrimitiveBinaryEncoder, PrimitiveTextEncoder, ArrayElementCodec {
+public final class Int2Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryDecoder,
+    PrimitiveTextEncoder, PrimitiveTextDecoder, ArrayElementCodec {
 
   public static final Int2Codec INSTANCE = new Int2Codec();
 
@@ -146,14 +149,19 @@ public final class Int2Codec implements PrimitiveBinaryEncoder, PrimitiveTextEnc
     return String.valueOf(toShort(value));
   }
 
-  @Override
   public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    if (data.length != 2) {
+    return decodeAsInt(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    if (length != 2) {
       throw new PSQLException(
-          GT.tr("Invalid int2 binary data length: {0}", data.length),
+          GT.tr("Invalid int2 binary data length: {0}", length),
           PSQLState.DATA_ERROR);
     }
-    return ByteConverter.int2(data, 0);
+    return ByteConverter.int2(data, offset);
   }
 
   @Override
@@ -167,9 +175,14 @@ public final class Int2Codec implements PrimitiveBinaryEncoder, PrimitiveTextEnc
     }
   }
 
-  @Override
   public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsInt(data, type, ctx);
+  }
+
+  @Override
+  public long decodeAsLong(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    return decodeAsInt(data, offset, length, type, ctx);
   }
 
   @Override
@@ -177,9 +190,14 @@ public final class Int2Codec implements PrimitiveBinaryEncoder, PrimitiveTextEnc
     return decodeAsInt(data, type, ctx);
   }
 
-  @Override
   public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsInt(data, type, ctx);
+  }
+
+  @Override
+  public double decodeAsDouble(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    return decodeAsInt(data, offset, length, type, ctx);
   }
 
   @Override

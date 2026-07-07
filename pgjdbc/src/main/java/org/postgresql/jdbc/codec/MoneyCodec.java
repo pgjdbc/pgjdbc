@@ -5,9 +5,9 @@
 
 package org.postgresql.jdbc.codec;
 
-import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.CodecContext;
-import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.PrimitiveBinaryDecoder;
+import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.PGmoney;
 import org.postgresql.util.PGobject;
@@ -25,7 +25,7 @@ import java.sql.SQLException;
  * through the array codec walker rather than the legacy {@code ArrayDecoding} path — see
  * {@link MoneyArrayLeafCodec}.</p>
  */
-public final class MoneyCodec implements BinaryCodec, TextCodec, ArrayElementCodec {
+public final class MoneyCodec implements PrimitiveBinaryDecoder, PrimitiveTextDecoder, ArrayElementCodec {
 
   public static final MoneyCodec INSTANCE = new MoneyCodec();
 
@@ -115,9 +115,14 @@ public final class MoneyCodec implements BinaryCodec, TextCodec, ArrayElementCod
     return targetClass == PGmoney.class || targetClass == PGobject.class || targetClass == Object.class;
   }
 
-  @Override
   public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return SCALAR.decodeAsInt(data, type, ctx);
+    return decodeAsInt(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    return SCALAR.decodeAsInt(data, offset, length, type, ctx);
   }
 
   @Override
@@ -125,9 +130,14 @@ public final class MoneyCodec implements BinaryCodec, TextCodec, ArrayElementCod
     return SCALAR.decodeAsInt(data, type, ctx);
   }
 
-  @Override
   public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return SCALAR.decodeAsLong(data, type, ctx);
+    return decodeAsLong(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public long decodeAsLong(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    return SCALAR.decodeAsLong(data, offset, length, type, ctx);
   }
 
   @Override
@@ -135,9 +145,14 @@ public final class MoneyCodec implements BinaryCodec, TextCodec, ArrayElementCod
     return SCALAR.decodeAsLong(data, type, ctx);
   }
 
-  @Override
   public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return SCALAR.decodeAsDouble(data, type, ctx);
+    return decodeAsDouble(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public double decodeAsDouble(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    return SCALAR.decodeAsDouble(data, offset, length, type, ctx);
   }
 
   @Override

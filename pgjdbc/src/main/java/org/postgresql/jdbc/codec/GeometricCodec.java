@@ -101,21 +101,6 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
   }
 
   @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert {0} to int", typeName), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert {0} to long", typeName), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert {0} to double", typeName), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
   public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert {0} to BigDecimal", typeName), PSQLState.DATA_TYPE_MISMATCH);
   }
@@ -262,36 +247,6 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
             GT.tr("Failed to instantiate {0}", targetClass.getName()),
             PSQLState.DATA_TYPE_MISMATCH, e);
       }
-    }
-
-    @Override
-    public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-      throw new PSQLException(GT.tr("Cannot convert {0} to int", typeName), PSQLState.DATA_TYPE_MISMATCH);
-    }
-
-    @Override
-    public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-      throw new PSQLException(GT.tr("Cannot convert {0} to int", typeName), PSQLState.DATA_TYPE_MISMATCH);
-    }
-
-    @Override
-    public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-      throw new PSQLException(GT.tr("Cannot convert {0} to long", typeName), PSQLState.DATA_TYPE_MISMATCH);
-    }
-
-    @Override
-    public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-      throw new PSQLException(GT.tr("Cannot convert {0} to long", typeName), PSQLState.DATA_TYPE_MISMATCH);
-    }
-
-    @Override
-    public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-      throw new PSQLException(GT.tr("Cannot convert {0} to double", typeName), PSQLState.DATA_TYPE_MISMATCH);
-    }
-
-    @Override
-    public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-      throw new PSQLException(GT.tr("Cannot convert {0} to double", typeName), PSQLState.DATA_TYPE_MISMATCH);
     }
 
     @Override

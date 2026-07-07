@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.jdbc.TestCodecContext;
@@ -135,21 +136,21 @@ class ByteaCodecTest {
   void decodeAsInt_throwsException() {
     byte[] data = {0x01, 0x02};
     assertThrows(PSQLException.class, () ->
-        ByteaCodec.INSTANCE.decodeAsInt(data, byteaType, ctx));
+        PrimitiveDecoders.asInt(ByteaCodec.INSTANCE, data, byteaType, ctx));
   }
 
   @Test
   void decodeAsLong_throwsException() {
     byte[] data = {0x01, 0x02};
     assertThrows(PSQLException.class, () ->
-        ByteaCodec.INSTANCE.decodeAsLong(data, byteaType, ctx));
+        PrimitiveDecoders.asLong(ByteaCodec.INSTANCE, data, byteaType, ctx));
   }
 
   @Test
   void decodeAsDouble_throwsException() {
     byte[] data = {0x01, 0x02};
     assertThrows(PSQLException.class, () ->
-        ByteaCodec.INSTANCE.decodeAsDouble(data, byteaType, ctx));
+        PrimitiveDecoders.asDouble(ByteaCodec.INSTANCE, data, byteaType, ctx));
   }
 
   @Test

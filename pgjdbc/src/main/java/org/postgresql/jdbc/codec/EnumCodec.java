@@ -10,9 +10,6 @@ import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -98,62 +95,6 @@ public final class EnumCodec implements BinaryCodec, TextCodec {
       return (T) data;
     }
     throw Codec.cannotDecode("enum", targetClass.getName());
-  }
-
-  @Override
-  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert enum to int"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert enum to int"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert enum to long"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert enum to long"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert enum to double"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert enum to double"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public boolean decodeAsBoolean(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert enum to boolean"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public boolean decodeAsBoolean(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert enum to boolean"),
-        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   /**

@@ -8,7 +8,9 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.PrimitiveBinaryDecoder;
 import org.postgresql.api.codec.PrimitiveBinaryEncoder;
+import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.PrimitiveTextEncoder;
 import org.postgresql.api.codec.TextSink;
 import org.postgresql.api.codec.TypeDescriptor;
@@ -26,7 +28,8 @@ import java.sql.SQLException;
 /**
  * Codec for PostgreSQL float4 (REAL) type.
  */
-public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveTextEncoder, ArrayElementCodec {
+public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryDecoder,
+    PrimitiveTextEncoder, PrimitiveTextDecoder, ArrayElementCodec {
 
   public static final Float4Codec INSTANCE = new Float4Codec();
 
@@ -113,14 +116,19 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveTextE
     TextSink.appendFloat(out, value);
   }
 
-  @Override
   public float decodeAsFloat(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    if (data.length != 4) {
+    return decodeAsFloat(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public float decodeAsFloat(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    if (length != 4) {
       throw new PSQLException(
-          GT.tr("Invalid float4 binary data length: {0}", data.length),
+          GT.tr("Invalid float4 binary data length: {0}", length),
           PSQLState.DATA_ERROR);
     }
-    return ByteConverter.float4(data, 0);
+    return ByteConverter.float4(data, offset);
   }
 
   @Override
@@ -134,9 +142,14 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveTextE
     }
   }
 
-  @Override
   public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsFloat(data, type, ctx);
+  }
+
+  @Override
+  public double decodeAsDouble(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    return decodeAsFloat(data, offset, length, type, ctx);
   }
 
   @Override
@@ -144,9 +157,14 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveTextE
     return decodeAsFloat(data, type, ctx);
   }
 
-  @Override
   public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    float value = decodeAsFloat(data, type, ctx);
+    return decodeAsInt(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    float value = decodeAsFloat(data, offset, length, type, ctx);
     if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
       throw new PSQLException(
           GT.tr("Value {0} is out of range for int", value),
@@ -166,9 +184,14 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveTextE
     return (int) value;
   }
 
-  @Override
   public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    float value = decodeAsFloat(data, type, ctx);
+    return decodeAsLong(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public long decodeAsLong(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    float value = decodeAsFloat(data, offset, length, type, ctx);
     // Check bounds for float to long conversion
     // Float can't exactly represent Long.MAX_VALUE, so we use a conservative bound
     if (value < Long.MIN_VALUE || value >= 9.223372036854776E18) {

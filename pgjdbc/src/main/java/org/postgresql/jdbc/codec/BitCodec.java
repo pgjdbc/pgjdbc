@@ -5,10 +5,10 @@
 
 package org.postgresql.jdbc.codec;
 
-import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
-import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.PrimitiveBinaryDecoder;
+import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.BooleanTypeUtil;
 import org.postgresql.util.ByteConverter;
@@ -42,7 +42,7 @@ import java.sql.SQLException;
  * always {@link PGobject}, so {@code bit[]}/{@code varbit[]} decode to {@code PGobject[]} via the
  * array codec walker.</p>
  */
-public final class BitCodec implements BinaryCodec, TextCodec {
+public final class BitCodec implements PrimitiveBinaryDecoder, PrimitiveTextDecoder {
 
   public static final BitCodec INSTANCE = new BitCodec();
 
@@ -100,8 +100,15 @@ public final class BitCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public boolean decodeAsBoolean(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return BooleanTypeUtil.fromString(binaryToBitString(data, 0, data.length));
+  public boolean decodeAsBoolean(char[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return BooleanTypeUtil.fromString(new String(data, offset, length));
+  }
+
+  @Override
+  public boolean decodeAsBoolean(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return BooleanTypeUtil.fromString(binaryToBitString(data, offset, length));
   }
 
   @Override

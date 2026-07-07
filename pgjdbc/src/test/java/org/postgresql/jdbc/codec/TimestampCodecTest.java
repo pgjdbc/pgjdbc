@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.jdbc.TestCodecContext;
@@ -296,7 +297,7 @@ class TimestampCodecTest {
   @Test
   void decodeAsLong_text_throws() {
     assertThrows(PSQLException.class, () ->
-        codec.decodeAsLong("2024-01-15 10:30:00", timestampType, ctx));
+        PrimitiveDecoders.asLong(codec, "2024-01-15 10:30:00", timestampType, ctx));
   }
 
   // ==================== decodeAsInt throws ====================
@@ -304,7 +305,7 @@ class TimestampCodecTest {
   @Test
   void decodeAsInt_text_throws() {
     assertThrows(PSQLException.class, () ->
-        codec.decodeAsInt("2024-01-15 10:30:00", timestampType, ctx));
+        PrimitiveDecoders.asInt(codec, "2024-01-15 10:30:00", timestampType, ctx));
   }
 
   // ==================== decodeAsDouble ====================
@@ -312,7 +313,7 @@ class TimestampCodecTest {
   @Test
   void decodeAsDouble_text_throws() {
     assertThrows(PSQLException.class, () ->
-        codec.decodeAsDouble("2024-01-15 10:30:00", timestampType, ctx));
+        PrimitiveDecoders.asDouble(codec, "2024-01-15 10:30:00", timestampType, ctx));
   }
 
   // ==================== Roundtrip ====================

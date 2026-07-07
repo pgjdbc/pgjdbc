@@ -133,48 +133,6 @@ public final class UuidCodec implements StreamingBinaryCodec, TextCodec {
     throw Codec.cannotDecode("uuid", targetClass.getName());
   }
 
-  @Override
-  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert uuid to int"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert uuid to int"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert uuid to long"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert uuid to long"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert uuid to double"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert uuid to double"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
   private static UUID toUuid(Object value) throws SQLException {
     if (value instanceof UUID) {
       return (UUID) value;

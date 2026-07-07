@@ -901,45 +901,4 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
-  @Override
-  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert composite to int"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert composite to int"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert composite to long"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert composite to long"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert composite to double"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert composite to double"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
 }

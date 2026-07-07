@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.api.codec.Codec;
+import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.codec.CompositeCodec;
@@ -99,27 +100,27 @@ public final class PgSQLInputText extends PgSQLInput<String> {
 
   @Override
   protected int decodeInt(String data, PgType fieldType) throws SQLException {
-    return getCodec().decodeAsInt(data, getCurrentType(), ctx);
+    return PrimitiveDecoders.asInt(getCodec(),data, getCurrentType(), ctx);
   }
 
   @Override
   protected long decodeLong(String data, PgType fieldType) throws SQLException {
-    return getCodec().decodeAsLong(data, getCurrentType(), ctx);
+    return PrimitiveDecoders.asLong(getCodec(),data, getCurrentType(), ctx);
   }
 
   @Override
   protected double decodeDouble(String data, PgType fieldType) throws SQLException {
-    return getCodec().decodeAsDouble(data, getCurrentType(), ctx);
+    return PrimitiveDecoders.asDouble(getCodec(),data, getCurrentType(), ctx);
   }
 
   @Override
   protected float decodeFloat(String data, PgType fieldType) throws SQLException {
-    return getCodec().decodeAsFloat(data, getCurrentType(), ctx);
+    return PrimitiveDecoders.asFloat(getCodec(),data, getCurrentType(), ctx);
   }
 
   @Override
   protected boolean decodeBoolean(String data, PgType fieldType) throws SQLException {
-    return getCodec().decodeAsBoolean(data, getCurrentType(), ctx);
+    return PrimitiveDecoders.asBoolean(getCodec(),data, getCurrentType(), ctx);
   }
 
   @Override

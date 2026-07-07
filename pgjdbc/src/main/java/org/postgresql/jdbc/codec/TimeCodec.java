@@ -12,9 +12,6 @@ import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.TemporalCodecs;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -177,20 +174,6 @@ public final class TimeCodec implements StreamingBinaryCodec, TextCodec {
     // Preserve the original text (including microseconds) — java.sql.Time.toString()
     // would truncate the fractional part.
     return data;
-  }
-
-  @Override
-  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert time to int"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert time to int"),
-        PSQLState.DATA_TYPE_MISMATCH);
   }
 
 }

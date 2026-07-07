@@ -8,7 +8,9 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.PrimitiveBinaryDecoder;
 import org.postgresql.api.codec.PrimitiveBinaryEncoder;
+import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.PrimitiveTextEncoder;
 import org.postgresql.api.codec.TextSink;
 import org.postgresql.api.codec.TypeDescriptor;
@@ -28,7 +30,8 @@ import java.sql.SQLException;
 /**
  * Codec for PostgreSQL int8 (BIGINT) type.
  */
-public final class Int8Codec implements PrimitiveBinaryEncoder, PrimitiveTextEncoder, ArrayElementCodec {
+public final class Int8Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryDecoder,
+    PrimitiveTextEncoder, PrimitiveTextDecoder, ArrayElementCodec {
 
   public static final Int8Codec INSTANCE = new Int8Codec();
 
@@ -139,9 +142,14 @@ public final class Int8Codec implements PrimitiveBinaryEncoder, PrimitiveTextEnc
     TextSink.appendLong(out, value);
   }
 
-  @Override
   public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    long value = decodeAsLong(data, type, ctx);
+    return decodeAsInt(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    long value = decodeAsLong(data, offset, length, type, ctx);
     if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
       throw new PSQLException(
           GT.tr("Value {0} is out of range for int", value),
@@ -161,14 +169,19 @@ public final class Int8Codec implements PrimitiveBinaryEncoder, PrimitiveTextEnc
     return (int) value;
   }
 
-  @Override
   public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    if (data.length != 8) {
+    return decodeAsLong(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public long decodeAsLong(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    if (length != 8) {
       throw new PSQLException(
-          GT.tr("Invalid int8 binary data length: {0}", data.length),
+          GT.tr("Invalid int8 binary data length: {0}", length),
           PSQLState.DATA_ERROR);
     }
-    return ByteConverter.int8(data, 0);
+    return ByteConverter.int8(data, offset);
   }
 
   @Override
@@ -205,9 +218,14 @@ public final class Int8Codec implements PrimitiveBinaryEncoder, PrimitiveTextEnc
     return (int) value;
   }
 
-  @Override
   public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsLong(data, type, ctx);
+  }
+
+  @Override
+  public double decodeAsDouble(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    return decodeAsLong(data, offset, length, type, ctx);
   }
 
   @Override

@@ -8,8 +8,9 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.PrimitiveBinaryDecoder;
 import org.postgresql.api.codec.PrimitiveBinaryEncoder;
-import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.BooleanTypeUtil;
 import org.postgresql.util.GT;
@@ -28,7 +29,8 @@ import java.sql.SQLException;
  * <p>Based on values accepted by PostgreSQL server:
  * https://www.postgresql.org/docs/current/static/datatype-boolean.html</p>
  */
-public final class BoolCodec implements PrimitiveBinaryEncoder, TextCodec, ArrayElementCodec {
+public final class BoolCodec implements PrimitiveBinaryEncoder, PrimitiveBinaryDecoder,
+    PrimitiveTextDecoder, ArrayElementCodec {
 
   public static final BoolCodec INSTANCE = new BoolCodec();
 
@@ -96,14 +98,19 @@ public final class BoolCodec implements PrimitiveBinaryEncoder, TextCodec, Array
     return b ? "t" : "f";
   }
 
-  @Override
   public boolean decodeAsBoolean(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    if (data.length != 1) {
+    return decodeAsBoolean(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public boolean decodeAsBoolean(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    if (length != 1) {
       throw new PSQLException(
-          GT.tr("Invalid bool binary data length: {0}", data.length),
+          GT.tr("Invalid bool binary data length: {0}", length),
           PSQLState.DATA_ERROR);
     }
-    return data[0] == 1;
+    return data[offset] == 1;
   }
 
   @Override
@@ -111,10 +118,15 @@ public final class BoolCodec implements PrimitiveBinaryEncoder, TextCodec, Array
     return BooleanTypeUtil.fromString(data);
   }
 
-  @Override
   public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return decodeAsInt(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
     requireBooleanToNumeric(ctx, "int");
-    return decodeAsBoolean(data, type, ctx) ? 1 : 0;
+    return decodeAsBoolean(data, offset, length, type, ctx) ? 1 : 0;
   }
 
   @Override
@@ -123,10 +135,15 @@ public final class BoolCodec implements PrimitiveBinaryEncoder, TextCodec, Array
     return decodeAsBoolean(data, type, ctx) ? 1 : 0;
   }
 
-  @Override
   public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return decodeAsLong(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public long decodeAsLong(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
     requireBooleanToNumeric(ctx, "long");
-    return decodeAsBoolean(data, type, ctx) ? 1L : 0L;
+    return decodeAsBoolean(data, offset, length, type, ctx) ? 1L : 0L;
   }
 
   @Override
@@ -135,10 +152,15 @@ public final class BoolCodec implements PrimitiveBinaryEncoder, TextCodec, Array
     return decodeAsBoolean(data, type, ctx) ? 1L : 0L;
   }
 
-  @Override
   public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return decodeAsDouble(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public double decodeAsDouble(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
     requireBooleanToNumeric(ctx, "double");
-    return decodeAsBoolean(data, type, ctx) ? 1.0 : 0.0;
+    return decodeAsBoolean(data, offset, length, type, ctx) ? 1.0 : 0.0;
   }
 
   @Override
@@ -147,10 +169,15 @@ public final class BoolCodec implements PrimitiveBinaryEncoder, TextCodec, Array
     return decodeAsBoolean(data, type, ctx) ? 1.0 : 0.0;
   }
 
-  @Override
   public float decodeAsFloat(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return decodeAsFloat(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public float decodeAsFloat(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
     requireBooleanToNumeric(ctx, "float");
-    return decodeAsBoolean(data, type, ctx) ? 1.0f : 0.0f;
+    return decodeAsBoolean(data, offset, length, type, ctx) ? 1.0f : 0.0f;
   }
 
   @Override

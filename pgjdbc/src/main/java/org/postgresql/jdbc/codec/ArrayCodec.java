@@ -659,33 +659,4 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     return data;
   }
 
-  @Override
-  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw Codec.cannotDecode("array", "int");
-  }
-
-  @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw Codec.cannotDecode("array", "int");
-  }
-
-  @Override
-  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw Codec.cannotDecode("array", "long");
-  }
-
-  @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw Codec.cannotDecode("array", "long");
-  }
-
-  @Override
-  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw Codec.cannotDecode("array", "double");
-  }
-
-  @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw Codec.cannotDecode("array", "double");
-  }
 }

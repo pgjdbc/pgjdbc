@@ -116,36 +116,6 @@ public final class HstoreCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert hstore to int"), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert hstore to int"), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert hstore to long"), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert hstore to long"), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert hstore to double"), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert hstore to double"), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
   public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert hstore to BigDecimal"), PSQLState.DATA_TYPE_MISMATCH);
   }

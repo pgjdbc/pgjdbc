@@ -8,6 +8,7 @@ package org.postgresql.jdbc.codec;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
@@ -152,17 +153,17 @@ class IntervalCodecTest {
 
   @Test
   void decodeAsInt_throws() {
-    assertThrows(PSQLException.class, () -> codec.decodeAsInt("1 hour", intervalType, null));
+    assertThrows(PSQLException.class, () -> PrimitiveDecoders.asInt(codec, "1 hour", intervalType, null));
   }
 
   @Test
   void decodeAsLong_throws() {
-    assertThrows(PSQLException.class, () -> codec.decodeAsLong("1 hour", intervalType, null));
+    assertThrows(PSQLException.class, () -> PrimitiveDecoders.asLong(codec, "1 hour", intervalType, null));
   }
 
   @Test
   void decodeAsDouble_throws() {
-    assertThrows(PSQLException.class, () -> codec.decodeAsDouble("1 hour", intervalType, null));
+    assertThrows(PSQLException.class, () -> PrimitiveDecoders.asDouble(codec, "1 hour", intervalType, null));
   }
 
   @Test

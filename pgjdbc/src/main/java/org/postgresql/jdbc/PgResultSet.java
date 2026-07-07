@@ -11,6 +11,7 @@ import org.postgresql.Driver;
 import org.postgresql.PGRefCursorResultSet;
 import org.postgresql.PGResultSetMetaData;
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
@@ -2464,7 +2465,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (codec == null) {
         throw cannotConvert(field, "boolean");
       }
-      return codec.decodeAsBoolean(value, pgType, ctx);
+      return PrimitiveDecoders.asBoolean(codec,value, pgType, ctx);
     }
 
     // Text format
@@ -2473,7 +2474,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       throw cannotConvert(field, "boolean");
     }
     String s = castNonNull(getString(columnIndex));
-    return codec.decodeAsBoolean(s, pgType, ctx);
+    return PrimitiveDecoders.asBoolean(codec,s, pgType, ctx);
   }
 
   @Override
@@ -2493,7 +2494,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (codec == null) {
         throw cannotConvert(field, "byte");
       }
-      int intValue = codec.decodeAsInt(value, pgType, ctx);
+      int intValue = PrimitiveDecoders.asInt(codec,value, pgType, ctx);
       if (intValue < Byte.MIN_VALUE || intValue > Byte.MAX_VALUE) {
         throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "byte", intValue),
             PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
@@ -2507,7 +2508,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (codec == null) {
       throw cannotConvert(field, "byte");
     }
-    int intValue = codec.decodeTextBytesAsInt(value, pgType, ctx);
+    int intValue = PrimitiveDecoders.asIntFromTextBytes(codec,value, pgType, ctx);
     if (intValue < Byte.MIN_VALUE || intValue > Byte.MAX_VALUE) {
       throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "byte", intValue),
           PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
@@ -2532,7 +2533,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (codec == null) {
         throw cannotConvert(field, "short");
       }
-      int intValue = codec.decodeAsInt(value, pgType, ctx);
+      int intValue = PrimitiveDecoders.asInt(codec,value, pgType, ctx);
       if (intValue < Short.MIN_VALUE || intValue > Short.MAX_VALUE) {
         throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "short", intValue),
             PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
@@ -2546,7 +2547,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (codec == null) {
       throw cannotConvert(field, "short");
     }
-    int intValue = codec.decodeTextBytesAsInt(value, pgType, ctx);
+    int intValue = PrimitiveDecoders.asIntFromTextBytes(codec,value, pgType, ctx);
     if (intValue < Short.MIN_VALUE || intValue > Short.MAX_VALUE) {
       throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "short", intValue),
           PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
@@ -2572,7 +2573,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (codec == null) {
         throw cannotConvert(field, "int");
       }
-      return codec.decodeAsInt(value, pgType, ctx);
+      return PrimitiveDecoders.asInt(codec,value, pgType, ctx);
     }
 
     // Text format - delegate to codec. BOOL→numeric is handled by BoolCodec
@@ -2581,7 +2582,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (codec == null) {
       throw cannotConvert(field, "int");
     }
-    return codec.decodeTextBytesAsInt(value, pgType, ctx);
+    return PrimitiveDecoders.asIntFromTextBytes(codec,value, pgType, ctx);
   }
 
   @Pure
@@ -2602,7 +2603,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (codec == null) {
         throw cannotConvert(field, "long");
       }
-      return codec.decodeAsLong(value, pgType, ctx);
+      return PrimitiveDecoders.asLong(codec,value, pgType, ctx);
     }
 
     // Text format - delegate to codec. BOOL→numeric is handled by BoolCodec
@@ -2611,7 +2612,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (codec == null) {
       throw cannotConvert(field, "long");
     }
-    return codec.decodeTextBytesAsLong(value, pgType, ctx);
+    return PrimitiveDecoders.asLongFromTextBytes(codec,value, pgType, ctx);
   }
 
   /**
@@ -2711,7 +2712,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (codec == null) {
         throw cannotConvert(field, "float");
       }
-      return codec.decodeAsFloat(value, pgType, ctx);
+      return PrimitiveDecoders.asFloat(codec,value, pgType, ctx);
     }
 
     // Text format - delegate to codec. BOOL→numeric is handled by BoolCodec
@@ -2720,7 +2721,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (codec == null) {
       throw cannotConvert(field, "float");
     }
-    return codec.decodeAsFloat(castNonNull(getFixedString(columnIndex)), pgType, ctx);
+    return PrimitiveDecoders.asFloat(codec,castNonNull(getFixedString(columnIndex)), pgType, ctx);
   }
 
   @Pure
@@ -2741,7 +2742,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (codec == null) {
         throw cannotConvert(field, "double");
       }
-      return codec.decodeAsDouble(value, pgType, ctx);
+      return PrimitiveDecoders.asDouble(codec,value, pgType, ctx);
     }
 
     // Text format - delegate to codec. BOOL→numeric is handled by BoolCodec
@@ -2750,7 +2751,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (codec == null) {
       throw cannotConvert(field, "double");
     }
-    return codec.decodeAsDouble(castNonNull(getFixedString(columnIndex)), pgType, ctx);
+    return PrimitiveDecoders.asDouble(codec,castNonNull(getFixedString(columnIndex)), pgType, ctx);
   }
 
   @Override

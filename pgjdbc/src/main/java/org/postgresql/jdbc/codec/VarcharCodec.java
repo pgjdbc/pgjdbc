@@ -5,9 +5,9 @@
 
 package org.postgresql.jdbc.codec;
 
-import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.CodecContext;
-import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.PrimitiveBinaryDecoder;
+import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.TypeDescriptor;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -20,7 +20,7 @@ import java.sql.SQLException;
  *
  * <p>Delegates to {@link TextCodecImpl} for all operations.</p>
  */
-public final class VarcharCodec implements BinaryCodec, TextCodec {
+public final class VarcharCodec implements PrimitiveBinaryDecoder, PrimitiveTextDecoder {
 
   public static final VarcharCodec INSTANCE = new VarcharCodec();
 
@@ -69,9 +69,14 @@ public final class VarcharCodec implements BinaryCodec, TextCodec {
     return TextCodecImpl.INSTANCE.decodeAsString(data, type, ctx);
   }
 
-  @Override
   public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return TextCodecImpl.INSTANCE.decodeAsInt(data, type, ctx);
+    return decodeAsInt(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    return TextCodecImpl.INSTANCE.decodeAsInt(data, offset, length, type, ctx);
   }
 
   @Override
@@ -79,9 +84,14 @@ public final class VarcharCodec implements BinaryCodec, TextCodec {
     return TextCodecImpl.INSTANCE.decodeAsInt(data, type, ctx);
   }
 
-  @Override
   public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return TextCodecImpl.INSTANCE.decodeAsLong(data, type, ctx);
+    return decodeAsLong(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public long decodeAsLong(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    return TextCodecImpl.INSTANCE.decodeAsLong(data, offset, length, type, ctx);
   }
 
   @Override
@@ -89,9 +99,14 @@ public final class VarcharCodec implements BinaryCodec, TextCodec {
     return TextCodecImpl.INSTANCE.decodeAsLong(data, type, ctx);
   }
 
-  @Override
   public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return TextCodecImpl.INSTANCE.decodeAsDouble(data, type, ctx);
+    return decodeAsDouble(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public double decodeAsDouble(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return TextCodecImpl.INSTANCE.decodeAsDouble(data, offset, length, type, ctx);
   }
 
   @Override
@@ -99,9 +114,14 @@ public final class VarcharCodec implements BinaryCodec, TextCodec {
     return TextCodecImpl.INSTANCE.decodeAsDouble(data, type, ctx);
   }
 
-  @Override
   public float decodeAsFloat(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return TextCodecImpl.INSTANCE.decodeAsFloat(data, type, ctx);
+    return decodeAsFloat(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public float decodeAsFloat(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return TextCodecImpl.INSTANCE.decodeAsFloat(data, offset, length, type, ctx);
   }
 
   @Override
@@ -119,9 +139,14 @@ public final class VarcharCodec implements BinaryCodec, TextCodec {
     return TextCodecImpl.INSTANCE.decodeAsBigDecimal(data, type, ctx);
   }
 
-  @Override
   public boolean decodeAsBoolean(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return TextCodecImpl.INSTANCE.decodeAsBoolean(data, type, ctx);
+    return decodeAsBoolean(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public boolean decodeAsBoolean(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return TextCodecImpl.INSTANCE.decodeAsBoolean(data, offset, length, type, ctx);
   }
 
   @Override

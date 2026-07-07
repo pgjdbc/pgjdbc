@@ -266,21 +266,6 @@ public final class RangeCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert range to int"), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert range to long"), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert range to double"), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
   public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert range to BigDecimal"), PSQLState.DATA_TYPE_MISMATCH);
   }
@@ -444,21 +429,6 @@ public final class RangeCodec implements StreamingBinaryCodec, TextCodec {
     throw new PSQLException(
         GT.tr("Cannot decode range to {0}", targetClass.getName()),
         PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert range to int"), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert range to long"), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert range to double"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override

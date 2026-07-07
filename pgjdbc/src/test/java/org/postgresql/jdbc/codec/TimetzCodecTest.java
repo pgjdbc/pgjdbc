@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.jdbc.TestCodecContext;
@@ -178,7 +179,7 @@ class TimetzCodecTest {
   @Test
   void decodeAsInt_text_throws() {
     assertThrows(PSQLException.class, () ->
-        codec.decodeAsInt("10:30:00+00", timetzType, ctx));
+        PrimitiveDecoders.asInt(codec, "10:30:00+00", timetzType, ctx));
   }
 
   // ==================== Roundtrip ====================

@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.jdbc.TestCodecContext;
@@ -104,28 +105,28 @@ class EnumCodecTest {
   void decodeAsInt_throwsException() {
     byte[] data = "value".getBytes(StandardCharsets.UTF_8);
     assertThrows(PSQLException.class, () ->
-        EnumCodec.INSTANCE.decodeAsInt(data, enumType, ctx));
+        PrimitiveDecoders.asInt(EnumCodec.INSTANCE, data, enumType, ctx));
   }
 
   @Test
   void decodeAsLong_throwsException() {
     byte[] data = "value".getBytes(StandardCharsets.UTF_8);
     assertThrows(PSQLException.class, () ->
-        EnumCodec.INSTANCE.decodeAsLong(data, enumType, ctx));
+        PrimitiveDecoders.asLong(EnumCodec.INSTANCE, data, enumType, ctx));
   }
 
   @Test
   void decodeAsDouble_throwsException() {
     byte[] data = "value".getBytes(StandardCharsets.UTF_8);
     assertThrows(PSQLException.class, () ->
-        EnumCodec.INSTANCE.decodeAsDouble(data, enumType, ctx));
+        PrimitiveDecoders.asDouble(EnumCodec.INSTANCE, data, enumType, ctx));
   }
 
   @Test
   void decodeAsBoolean_throwsException() {
     byte[] data = "value".getBytes(StandardCharsets.UTF_8);
     assertThrows(PSQLException.class, () ->
-        EnumCodec.INSTANCE.decodeAsBoolean(data, enumType, ctx));
+        PrimitiveDecoders.asBoolean(EnumCodec.INSTANCE, data, enumType, ctx));
   }
 
   // Test enum for Java enum encoding

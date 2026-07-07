@@ -5,10 +5,10 @@
 
 package org.postgresql.jdbc.codec;
 
-import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
-import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.PrimitiveBinaryDecoder;
+import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.TemporalCodecs;
 import org.postgresql.util.GT;
@@ -30,7 +30,7 @@ import java.sql.Timestamp;
  * <p>Returns values as {@link PGobject} for text format.
  * For binary format, stores raw bytes in PGobject.</p>
  */
-public final class FallbackCodec implements BinaryCodec, TextCodec {
+public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTextDecoder {
 
   public static final FallbackCodec INSTANCE = new FallbackCodec();
 
@@ -155,12 +155,14 @@ public final class FallbackCodec implements BinaryCodec, TextCodec {
     throw Codec.cannotDecode(type.getTypeName().getName(), targetClass.getName());
   }
 
-  @Override
   public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    String s = decodeAsString(data, type, ctx);
-    if (s == null) {
-      return 0;
-    }
+    return decodeAsInt(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    String s = new String(data, offset, length, ctx.getCharset());
     try {
       return Integer.parseInt(s.trim());
     } catch (NumberFormatException e) {
@@ -181,12 +183,14 @@ public final class FallbackCodec implements BinaryCodec, TextCodec {
     }
   }
 
-  @Override
   public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    String s = decodeAsString(data, type, ctx);
-    if (s == null) {
-      return 0;
-    }
+    return decodeAsLong(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public long decodeAsLong(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    String s = new String(data, offset, length, ctx.getCharset());
     try {
       return Long.parseLong(s.trim());
     } catch (NumberFormatException e) {
@@ -207,12 +211,14 @@ public final class FallbackCodec implements BinaryCodec, TextCodec {
     }
   }
 
-  @Override
   public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    String s = decodeAsString(data, type, ctx);
-    if (s == null) {
-      return 0;
-    }
+    return decodeAsDouble(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public double decodeAsDouble(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    String s = new String(data, offset, length, ctx.getCharset());
     try {
       return Double.parseDouble(s.trim());
     } catch (NumberFormatException e) {

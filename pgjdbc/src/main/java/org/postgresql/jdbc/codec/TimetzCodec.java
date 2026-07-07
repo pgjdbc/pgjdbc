@@ -12,9 +12,6 @@ import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.TemporalCodecs;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -191,20 +188,6 @@ public final class TimetzCodec implements StreamingBinaryCodec, TextCodec {
   @Override
   public @Nullable String decodeAsString(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return data;
-  }
-
-  @Override
-  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert timetz to int"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(
-        GT.tr("Cannot convert timetz to int"),
-        PSQLState.DATA_TYPE_MISMATCH);
   }
 
 }

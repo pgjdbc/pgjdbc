@@ -10,6 +10,8 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.PrimitiveBinaryDecoder;
+import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
@@ -32,7 +34,9 @@ import java.sql.Timestamp;
 /**
  * Codec for PostgreSQL text type.
  */
-public final class TextCodecImpl implements StreamingBinaryCodec, StreamingTextCodec {
+public final class TextCodecImpl
+    implements StreamingBinaryCodec, PrimitiveBinaryDecoder, StreamingTextCodec,
+    PrimitiveTextDecoder {
 
   public static final TextCodecImpl INSTANCE = new TextCodecImpl();
 
@@ -98,9 +102,14 @@ public final class TextCodecImpl implements StreamingBinaryCodec, StreamingTextC
     return new String(data, encoding);
   }
 
-  @Override
   public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    String s = castNonNull(decodeAsString(data, type, ctx));
+    return decodeAsInt(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    String s = new String(data, offset, length, ctx.getCharset());
     return parseAsInt(s);
   }
 
@@ -109,9 +118,14 @@ public final class TextCodecImpl implements StreamingBinaryCodec, StreamingTextC
     return parseAsInt(data);
   }
 
-  @Override
   public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    String s = castNonNull(decodeAsString(data, type, ctx));
+    return decodeAsLong(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public long decodeAsLong(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    String s = new String(data, offset, length, ctx.getCharset());
     return parseAsLong(s);
   }
 
@@ -120,9 +134,14 @@ public final class TextCodecImpl implements StreamingBinaryCodec, StreamingTextC
     return parseAsLong(data);
   }
 
-  @Override
   public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    String s = castNonNull(decodeAsString(data, type, ctx));
+    return decodeAsDouble(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public double decodeAsDouble(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    String s = new String(data, offset, length, ctx.getCharset());
     return parseAsDouble(s);
   }
 
@@ -131,9 +150,14 @@ public final class TextCodecImpl implements StreamingBinaryCodec, StreamingTextC
     return parseAsDouble(data);
   }
 
-  @Override
   public float decodeAsFloat(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    String s = castNonNull(decodeAsString(data, type, ctx));
+    return decodeAsFloat(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public float decodeAsFloat(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    String s = new String(data, offset, length, ctx.getCharset());
     return (float) parseAsDouble(s);
   }
 
@@ -153,9 +177,14 @@ public final class TextCodecImpl implements StreamingBinaryCodec, StreamingTextC
     return parseAsBigDecimal(data);
   }
 
-  @Override
   public boolean decodeAsBoolean(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    String s = castNonNull(decodeAsString(data, type, ctx));
+    return decodeAsBoolean(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public boolean decodeAsBoolean(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    String s = new String(data, offset, length, ctx.getCharset());
     return parseAsBoolean(s);
   }
 

@@ -8,6 +8,7 @@ package org.postgresql.jdbc.codec;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
@@ -105,17 +106,17 @@ class JsonbCodecTest {
 
   @Test
   void decodeAsInt_throws() {
-    assertThrows(PSQLException.class, () -> codec.decodeAsInt("42", jsonbType, null));
+    assertThrows(PSQLException.class, () -> PrimitiveDecoders.asInt(codec, "42", jsonbType, null));
   }
 
   @Test
   void decodeAsLong_throws() {
-    assertThrows(PSQLException.class, () -> codec.decodeAsLong("42", jsonbType, null));
+    assertThrows(PSQLException.class, () -> PrimitiveDecoders.asLong(codec, "42", jsonbType, null));
   }
 
   @Test
   void decodeAsDouble_throws() {
-    assertThrows(PSQLException.class, () -> codec.decodeAsDouble("3.14", jsonbType, null));
+    assertThrows(PSQLException.class, () -> PrimitiveDecoders.asDouble(codec, "3.14", jsonbType, null));
   }
 
   @Test
