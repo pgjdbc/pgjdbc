@@ -70,10 +70,6 @@ public final class BpcharCodec implements PrimitiveBinaryDecoder, PrimitiveTextD
     return TextCodecImpl.INSTANCE.decodeAsString(data, type, ctx);
   }
 
-  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsInt(data, 0, data.length, type, ctx);
-  }
-
   @Override
   public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
@@ -83,10 +79,6 @@ public final class BpcharCodec implements PrimitiveBinaryDecoder, PrimitiveTextD
   @Override
   public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return TextCodecImpl.INSTANCE.decodeAsInt(data, type, ctx);
-  }
-
-  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsLong(data, 0, data.length, type, ctx);
   }
 
   @Override
@@ -100,10 +92,6 @@ public final class BpcharCodec implements PrimitiveBinaryDecoder, PrimitiveTextD
     return TextCodecImpl.INSTANCE.decodeAsLong(data, type, ctx);
   }
 
-  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsDouble(data, 0, data.length, type, ctx);
-  }
-
   @Override
   public double decodeAsDouble(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
@@ -113,10 +101,6 @@ public final class BpcharCodec implements PrimitiveBinaryDecoder, PrimitiveTextD
   @Override
   public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return TextCodecImpl.INSTANCE.decodeAsDouble(data, type, ctx);
-  }
-
-  public float decodeAsFloat(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsFloat(data, 0, data.length, type, ctx);
   }
 
   @Override
@@ -138,10 +122,6 @@ public final class BpcharCodec implements PrimitiveBinaryDecoder, PrimitiveTextD
   @Override
   public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return TextCodecImpl.INSTANCE.decodeAsBigDecimal(data, type, ctx);
-  }
-
-  public boolean decodeAsBoolean(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsBoolean(data, 0, data.length, type, ctx);
   }
 
   @Override

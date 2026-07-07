@@ -8,6 +8,7 @@ package org.postgresql.jdbc.codec;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
@@ -104,7 +105,7 @@ class Int2CodecTest {
   void decodeAsInt_binary() throws SQLException {
     byte[] data = new byte[2];
     ByteConverter.int2(data, 0, 42);
-    int result = codec.decodeAsInt(data, int2Type, null);
+    int result = PrimitiveDecoders.asInt(codec, data, int2Type, null);
     assertEquals(42, result);
   }
 
@@ -112,7 +113,7 @@ class Int2CodecTest {
   void decodeAsLong_binary() throws SQLException {
     byte[] data = new byte[2];
     ByteConverter.int2(data, 0, 42);
-    long result = codec.decodeAsLong(data, int2Type, null);
+    long result = PrimitiveDecoders.asLong(codec, data, int2Type, null);
     assertEquals(42L, result);
   }
 
@@ -128,7 +129,7 @@ class Int2CodecTest {
   void binaryRoundtrip() throws SQLException {
     short original = 12345;
     byte[] encoded = codec.encodeBinary((int) original, int2Type, null);
-    int decoded = codec.decodeAsInt(encoded, int2Type, null);
+    int decoded = PrimitiveDecoders.asInt(codec, encoded, int2Type, null);
     assertEquals(original, decoded);
   }
 

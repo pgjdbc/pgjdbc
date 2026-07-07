@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
@@ -229,7 +230,7 @@ class Int8CodecTest {
     byte[] data = new byte[8];
     ByteConverter.int8(data, 0, 42L);
 
-    int result = codec.decodeAsInt(data, int8Type, null);
+    int result = PrimitiveDecoders.asInt(codec, data, int8Type, null);
     assertEquals(42, result);
   }
 
@@ -238,7 +239,7 @@ class Int8CodecTest {
     byte[] data = new byte[8];
     ByteConverter.int8(data, 0, Integer.MAX_VALUE);
 
-    int result = codec.decodeAsInt(data, int8Type, null);
+    int result = PrimitiveDecoders.asInt(codec, data, int8Type, null);
     assertEquals(Integer.MAX_VALUE, result);
   }
 
@@ -247,7 +248,7 @@ class Int8CodecTest {
     byte[] data = new byte[8];
     ByteConverter.int8(data, 0, Integer.MIN_VALUE);
 
-    int result = codec.decodeAsInt(data, int8Type, null);
+    int result = PrimitiveDecoders.asInt(codec, data, int8Type, null);
     assertEquals(Integer.MIN_VALUE, result);
   }
 
@@ -256,7 +257,7 @@ class Int8CodecTest {
     byte[] data = new byte[8];
     ByteConverter.int8(data, 0, (long) Integer.MAX_VALUE + 1);
 
-    assertThrows(PSQLException.class, () -> codec.decodeAsInt(data, int8Type, null));
+    assertThrows(PSQLException.class, () -> PrimitiveDecoders.asInt(codec, data, int8Type, null));
   }
 
   @Test
@@ -264,7 +265,7 @@ class Int8CodecTest {
     byte[] data = new byte[8];
     ByteConverter.int8(data, 0, (long) Integer.MIN_VALUE - 1);
 
-    assertThrows(PSQLException.class, () -> codec.decodeAsInt(data, int8Type, null));
+    assertThrows(PSQLException.class, () -> PrimitiveDecoders.asInt(codec, data, int8Type, null));
   }
 
   @Test
@@ -386,7 +387,7 @@ class Int8CodecTest {
   void binaryRoundtrip_positiveValue() throws SQLException {
     long original = 123456789012345L;
     byte[] encoded = codec.encodeBinary(original, int8Type, null);
-    long decoded = codec.decodeAsLong(encoded, int8Type, null);
+    long decoded = PrimitiveDecoders.asLong(codec, encoded, int8Type, null);
     assertEquals(original, decoded);
   }
 
@@ -394,7 +395,7 @@ class Int8CodecTest {
   void binaryRoundtrip_negativeValue() throws SQLException {
     long original = -123456789012345L;
     byte[] encoded = codec.encodeBinary(original, int8Type, null);
-    long decoded = codec.decodeAsLong(encoded, int8Type, null);
+    long decoded = PrimitiveDecoders.asLong(codec, encoded, int8Type, null);
     assertEquals(original, decoded);
   }
 
@@ -402,7 +403,7 @@ class Int8CodecTest {
   void binaryRoundtrip_maxValue() throws SQLException {
     long original = Long.MAX_VALUE;
     byte[] encoded = codec.encodeBinary(original, int8Type, null);
-    long decoded = codec.decodeAsLong(encoded, int8Type, null);
+    long decoded = PrimitiveDecoders.asLong(codec, encoded, int8Type, null);
     assertEquals(original, decoded);
   }
 
@@ -410,7 +411,7 @@ class Int8CodecTest {
   void binaryRoundtrip_minValue() throws SQLException {
     long original = Long.MIN_VALUE;
     byte[] encoded = codec.encodeBinary(original, int8Type, null);
-    long decoded = codec.decodeAsLong(encoded, int8Type, null);
+    long decoded = PrimitiveDecoders.asLong(codec, encoded, int8Type, null);
     assertEquals(original, decoded);
   }
 
@@ -439,6 +440,6 @@ class Int8CodecTest {
   @Test
   void decodeBinary_invalidLength() {
     byte[] data = new byte[4]; // Should be 8
-    assertThrows(PSQLException.class, () -> codec.decodeAsLong(data, int8Type, null));
+    assertThrows(PSQLException.class, () -> PrimitiveDecoders.asLong(codec, data, int8Type, null));
   }
 }

@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
@@ -247,7 +248,7 @@ class Int4CodecTest {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, 42);
 
-    int result = codec.decodeAsInt(data, int4Type, null);
+    int result = PrimitiveDecoders.asInt(codec, data, int4Type, null);
     assertEquals(42, result);
   }
 
@@ -262,7 +263,7 @@ class Int4CodecTest {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, 42);
 
-    long result = codec.decodeAsLong(data, int4Type, null);
+    long result = PrimitiveDecoders.asLong(codec, data, int4Type, null);
     assertEquals(42L, result);
   }
 
@@ -277,7 +278,7 @@ class Int4CodecTest {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, 42);
 
-    double result = codec.decodeAsDouble(data, int4Type, null);
+    double result = PrimitiveDecoders.asDouble(codec, data, int4Type, null);
     assertEquals(42.0, result);
   }
 
@@ -370,7 +371,7 @@ class Int4CodecTest {
   void binaryRoundtrip_positiveValue() throws SQLException {
     int original = 12345;
     byte[] encoded = codec.encodeBinary(original, int4Type, null);
-    int decoded = codec.decodeAsInt(encoded, int4Type, null);
+    int decoded = PrimitiveDecoders.asInt(codec, encoded, int4Type, null);
     assertEquals(original, decoded);
   }
 
@@ -378,7 +379,7 @@ class Int4CodecTest {
   void binaryRoundtrip_negativeValue() throws SQLException {
     int original = -12345;
     byte[] encoded = codec.encodeBinary(original, int4Type, null);
-    int decoded = codec.decodeAsInt(encoded, int4Type, null);
+    int decoded = PrimitiveDecoders.asInt(codec, encoded, int4Type, null);
     assertEquals(original, decoded);
   }
 
@@ -386,7 +387,7 @@ class Int4CodecTest {
   void binaryRoundtrip_maxValue() throws SQLException {
     int original = Integer.MAX_VALUE;
     byte[] encoded = codec.encodeBinary(original, int4Type, null);
-    int decoded = codec.decodeAsInt(encoded, int4Type, null);
+    int decoded = PrimitiveDecoders.asInt(codec, encoded, int4Type, null);
     assertEquals(original, decoded);
   }
 
@@ -394,7 +395,7 @@ class Int4CodecTest {
   void binaryRoundtrip_minValue() throws SQLException {
     int original = Integer.MIN_VALUE;
     byte[] encoded = codec.encodeBinary(original, int4Type, null);
-    int decoded = codec.decodeAsInt(encoded, int4Type, null);
+    int decoded = PrimitiveDecoders.asInt(codec, encoded, int4Type, null);
     assertEquals(original, decoded);
   }
 

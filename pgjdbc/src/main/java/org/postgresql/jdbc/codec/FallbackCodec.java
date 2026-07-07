@@ -155,10 +155,6 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
     throw Codec.cannotDecode(type.getTypeName().getName(), targetClass.getName());
   }
 
-  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsInt(data, 0, data.length, type, ctx);
-  }
-
   @Override
   public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
@@ -183,10 +179,6 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
     }
   }
 
-  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsLong(data, 0, data.length, type, ctx);
-  }
-
   @Override
   public long decodeAsLong(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
@@ -209,10 +201,6 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
           GT.tr("Cannot convert value to long: {0}", data),
           PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
     }
-  }
-
-  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsDouble(data, 0, data.length, type, ctx);
   }
 
   @Override

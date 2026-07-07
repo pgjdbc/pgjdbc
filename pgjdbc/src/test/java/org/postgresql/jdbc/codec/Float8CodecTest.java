@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
@@ -104,7 +105,7 @@ class Float8CodecTest {
   void decodeAsDouble_binary() throws SQLException {
     byte[] data = new byte[8];
     ByteConverter.float8(data, 0, 3.14);
-    double result = codec.decodeAsDouble(data, float8Type, null);
+    double result = PrimitiveDecoders.asDouble(codec, data, float8Type, null);
     assertEquals(3.14, result);
   }
 
@@ -112,7 +113,7 @@ class Float8CodecTest {
   void decodeAsFloat_binary() throws SQLException {
     byte[] data = new byte[8];
     ByteConverter.float8(data, 0, 3.14);
-    float result = codec.decodeAsFloat(data, float8Type, null);
+    float result = PrimitiveDecoders.asFloat(codec, data, float8Type, null);
     assertEquals(3.14f, result, 0.001f);
   }
 
@@ -120,7 +121,7 @@ class Float8CodecTest {
   void binaryRoundtrip() throws SQLException {
     double original = 123456.789;
     byte[] encoded = codec.encodeBinary(original, float8Type, null);
-    double decoded = codec.decodeAsDouble(encoded, float8Type, null);
+    double decoded = PrimitiveDecoders.asDouble(codec, encoded, float8Type, null);
     assertEquals(original, decoded);
   }
 

@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
@@ -315,7 +316,7 @@ class NumericCodecTest {
     byte[] data = ByteConverter.numeric(new BigDecimal("12.5"));
     assertEquals(new BigDecimal("12.5"), codec.decodeBinary(data, numericType, null));
     assertEquals(new BigDecimal("12.5"), codec.decodeAsBigDecimal(data, numericType, null));
-    assertEquals(12.5, codec.decodeAsDouble(data, numericType, null), 0.0);
+    assertEquals(12.5, PrimitiveDecoders.asDouble(codec, data, numericType, null), 0.0);
     assertEquals(new BigDecimal("12.5"),
         codec.decodeBinaryAs(data, numericType, BigDecimal.class, null));
   }
@@ -328,7 +329,7 @@ class NumericCodecTest {
     assertBinaryPathRefused("decodeBinary", () -> codec.decodeBinary(data, numericType, null));
     assertBinaryPathRefused("decodeAsBigDecimal",
         () -> codec.decodeAsBigDecimal(data, numericType, null));
-    assertBinaryPathRefused("decodeAsDouble", () -> codec.decodeAsDouble(data, numericType, null));
+    assertBinaryPathRefused("decodeAsDouble", () -> PrimitiveDecoders.asDouble(codec, data, numericType, null));
     // decodeBinaryAs(BigDecimal) is the exact path the Jazzer numericBinary target exercises.
     assertBinaryPathRefused("decodeBinaryAs",
         () -> codec.decodeBinaryAs(data, numericType, BigDecimal.class, null));

@@ -187,10 +187,6 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
     }
   }
 
-  public double decodeAsDouble(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsDouble(data, 0, data.length, type, ctx);
-  }
-
   @Override
   public double decodeAsDouble(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
@@ -219,10 +215,6 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
     }
   }
 
-  public float decodeAsFloat(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsFloat(data, 0, data.length, type, ctx);
-  }
-
   @Override
   public float decodeAsFloat(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
@@ -232,10 +224,6 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
   @Override
   public float decodeAsFloat(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return (float) decodeAsDouble(data, type, ctx);
-  }
-
-  public int decodeAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsInt(data, 0, data.length, type, ctx);
   }
 
   @Override
@@ -249,10 +237,6 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
   public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     BigDecimal bd = decodeAsBigDecimal(data, type, ctx);
     return bd == null ? 0 : bigDecimalToInt(bd);
-  }
-
-  public long decodeAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsLong(data, 0, data.length, type, ctx);
   }
 
   @Override
@@ -298,10 +282,10 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
     // Double and Float must preserve NaN / ±Infinity, which BigDecimal cannot represent, so they
     // read the value as a double instead of going through decodeBigDecimalAs.
     if (targetClass == Double.class) {
-      return (T) Double.valueOf(decodeAsDouble(data, type, ctx));
+      return (T) Double.valueOf(decodeAsDouble(data, 0, data.length, type, ctx));
     }
     if (targetClass == Float.class) {
-      return (T) Float.valueOf(decodeAsFloat(data, type, ctx));
+      return (T) Float.valueOf(decodeAsFloat(data, 0, data.length, type, ctx));
     }
     return decodeBigDecimalAs(decodeAsBigDecimal(data, type, ctx), targetClass);
   }

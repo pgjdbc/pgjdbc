@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
@@ -78,14 +79,14 @@ class OidCodecTest {
   void decodeBinary_unsignedHighBit() throws SQLException {
     // 0xFFFFFFFF should be 4294967295L (unsigned)
     byte[] data = {(byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
-    long result = codec.decodeAsLong(data, oidType, null);
+    long result = PrimitiveDecoders.asLong(codec, data, oidType, null);
     assertEquals(4294967295L, result);
   }
 
   @Test
   void decodeBinary_invalidLength() {
     byte[] data = new byte[3]; // wrong length
-    assertThrows(PSQLException.class, () -> codec.decodeAsLong(data, oidType, null));
+    assertThrows(PSQLException.class, () -> PrimitiveDecoders.asLong(codec, data, oidType, null));
   }
 
   // ==================== Encoding ====================
@@ -117,7 +118,7 @@ class OidCodecTest {
   void decodeAsInt_binary() throws SQLException {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, 42);
-    assertEquals(42, codec.decodeAsInt(data, oidType, null));
+    assertEquals(42, PrimitiveDecoders.asInt(codec, data, oidType, null));
   }
 
   @Test
@@ -129,7 +130,7 @@ class OidCodecTest {
   void decodeAsLong_binary() throws SQLException {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, 42);
-    assertEquals(42L, codec.decodeAsLong(data, oidType, null));
+    assertEquals(42L, PrimitiveDecoders.asLong(codec, data, oidType, null));
   }
 
   @Test
@@ -141,7 +142,7 @@ class OidCodecTest {
   void decodeAsDouble_binary() throws SQLException {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, 42);
-    assertEquals(42.0, codec.decodeAsDouble(data, oidType, null));
+    assertEquals(42.0, PrimitiveDecoders.asDouble(codec, data, oidType, null));
   }
 
   @Test
@@ -188,7 +189,7 @@ class OidCodecTest {
   void binaryRoundtrip() throws SQLException {
     long original = 12345L;
     byte[] encoded = codec.encodeBinary(original, oidType, null);
-    long decoded = codec.decodeAsLong(encoded, oidType, null);
+    long decoded = PrimitiveDecoders.asLong(codec, encoded, oidType, null);
     assertEquals(original, decoded);
   }
 
