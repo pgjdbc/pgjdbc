@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
@@ -282,8 +283,12 @@ public final class CodecFuzzSupport {
    * @param ctx the offline codec context, which must resolve {@code oid}
    */
   public static void intPrimitiveParity(int value, int oid, CodecContext ctx) throws SQLException {
-    PgType type = PgTypeDescriptors.scalar(oid).pgType();
-    Codec codec = ctx.resolveCodec(oid);
+    intPrimitiveParity(value, PgTypeDescriptors.scalar(oid).pgType(), ctx);
+  }
+
+  /** Same, against an explicit type -- lets a domain forward the accessors to its base codec. */
+  public static void intPrimitiveParity(int value, PgType type, CodecContext ctx) throws SQLException {
+    Codec codec = ctx.resolveCodec(type.getOid());
     Integer boxed = value;
     String name = type.getTypeName().toString();
     if (codec instanceof PrimitiveBinaryEncoder) {
@@ -340,8 +345,12 @@ public final class CodecFuzzSupport {
    * @param ctx the offline codec context, which must resolve {@code oid}
    */
   public static void longPrimitiveParity(long value, int oid, CodecContext ctx) throws SQLException {
-    PgType type = PgTypeDescriptors.scalar(oid).pgType();
-    Codec codec = ctx.resolveCodec(oid);
+    longPrimitiveParity(value, PgTypeDescriptors.scalar(oid).pgType(), ctx);
+  }
+
+  /** Same, against an explicit type -- lets a domain forward the accessors to its base codec. */
+  public static void longPrimitiveParity(long value, PgType type, CodecContext ctx) throws SQLException {
+    Codec codec = ctx.resolveCodec(type.getOid());
     Long boxed = value;
     String name = type.getTypeName().toString();
     if (codec instanceof PrimitiveBinaryEncoder) {
@@ -398,8 +407,12 @@ public final class CodecFuzzSupport {
    * @param ctx the offline codec context, which must resolve {@code oid}
    */
   public static void floatPrimitiveParity(float value, int oid, CodecContext ctx) throws SQLException {
-    PgType type = PgTypeDescriptors.scalar(oid).pgType();
-    Codec codec = ctx.resolveCodec(oid);
+    floatPrimitiveParity(value, PgTypeDescriptors.scalar(oid).pgType(), ctx);
+  }
+
+  /** Same, against an explicit type -- lets a domain forward the accessors to its base codec. */
+  public static void floatPrimitiveParity(float value, PgType type, CodecContext ctx) throws SQLException {
+    Codec codec = ctx.resolveCodec(type.getOid());
     Float boxed = value;
     String name = type.getTypeName().toString();
     if (codec instanceof PrimitiveBinaryEncoder) {
@@ -454,8 +467,12 @@ public final class CodecFuzzSupport {
    * @param ctx the offline codec context, which must resolve {@code oid}
    */
   public static void doublePrimitiveParity(double value, int oid, CodecContext ctx) throws SQLException {
-    PgType type = PgTypeDescriptors.scalar(oid).pgType();
-    Codec codec = ctx.resolveCodec(oid);
+    doublePrimitiveParity(value, PgTypeDescriptors.scalar(oid).pgType(), ctx);
+  }
+
+  /** Same, against an explicit type -- lets a domain forward the accessors to its base codec. */
+  public static void doublePrimitiveParity(double value, PgType type, CodecContext ctx) throws SQLException {
+    Codec codec = ctx.resolveCodec(type.getOid());
     Double boxed = value;
     String name = type.getTypeName().toString();
     if (codec instanceof PrimitiveBinaryEncoder) {
@@ -513,8 +530,12 @@ public final class CodecFuzzSupport {
    * @param ctx the offline codec context, which must resolve {@code oid}
    */
   public static void booleanPrimitiveParity(boolean value, int oid, CodecContext ctx) throws SQLException {
-    PgType type = PgTypeDescriptors.scalar(oid).pgType();
-    Codec codec = ctx.resolveCodec(oid);
+    booleanPrimitiveParity(value, PgTypeDescriptors.scalar(oid).pgType(), ctx);
+  }
+
+  /** Same, against an explicit type -- lets a domain forward the accessors to its base codec. */
+  public static void booleanPrimitiveParity(boolean value, PgType type, CodecContext ctx) throws SQLException {
+    Codec codec = ctx.resolveCodec(type.getOid());
     Boolean boxed = value;
     String name = type.getTypeName().toString();
     if (codec instanceof PrimitiveBinaryDecoder) {
@@ -536,6 +557,67 @@ public final class CodecFuzzSupport {
           Outcome.capture(() -> dec.decodeAsBoolean(text, type, ctx)));
       assertSameOutcome(name + " decodeAsBoolean(char[]) vs decodeText", viaText,
           Outcome.capture(() -> dec.decodeAsBoolean(chars, 0, chars.length, type, ctx)));
+    }
+  }
+
+  // --- Domain parity: a domain forwards the primitive accessors to its base codec's no-box path,
+  // so a domain over a codec with a pure accessor inherits the same outcome parity. Built here because
+  // a domain type is not a registered scalar descriptor -- it needs its own offline context.
+
+  /** Outcome parity for a domain over an {@code int}-valued base (for example {@code int4}). */
+  public static void domainIntPrimitiveParity(int value, int baseOid, String baseName, char baseCat)
+      throws SQLException {
+    PgType domain = domainOver(baseOid, baseName, baseCat);
+    intPrimitiveParity(value, domain, OfflineCodecContexts.offlineBuilder().type(domain).build());
+  }
+
+  /** Outcome parity for a domain over a {@code long}-valued base (for example {@code int8}). */
+  public static void domainLongPrimitiveParity(long value, int baseOid, String baseName, char baseCat)
+      throws SQLException {
+    PgType domain = domainOver(baseOid, baseName, baseCat);
+    longPrimitiveParity(value, domain, OfflineCodecContexts.offlineBuilder().type(domain).build());
+  }
+
+  /** Outcome parity for a domain over a {@code double}-valued base (for example {@code float8}). */
+  public static void domainDoublePrimitiveParity(double value, int baseOid, String baseName, char baseCat)
+      throws SQLException {
+    PgType domain = domainOver(baseOid, baseName, baseCat);
+    doublePrimitiveParity(value, domain, OfflineCodecContexts.offlineBuilder().type(domain).build());
+  }
+
+  /** Outcome parity for a domain over a {@code boolean}-valued base ({@code bool}). */
+  public static void domainBooleanPrimitiveParity(boolean value, int baseOid, String baseName, char baseCat)
+      throws SQLException {
+    PgType domain = domainOver(baseOid, baseName, baseCat);
+    booleanPrimitiveParity(value, domain, OfflineCodecContexts.offlineBuilder().type(domain).build());
+  }
+
+  private static PgType domainOver(int baseOid, String baseName, char baseCat) {
+    return new PgType(new ObjectName("public", "dom_" + baseName), "public.dom_" + baseName,
+        DOMAIN_OID, 'd', baseCat, -1, 0, 0, baseOid);
+  }
+
+  /**
+   * Guards the narrowing {@code int8 -> int} accessor: reading a {@code bigint} as an {@code int} must
+   * return the exact value when it fits and THROW when it does not -- never silently truncate the way
+   * the boxing fallback's {@code Long.intValue()} would. This is the narrowing-accessor property the
+   * outcome-parity oracle deliberately does not check, because there the override is meant to differ.
+   *
+   * @param value the {@code int8} value; the generator ranges well past int, so overflow is exercised
+   * @param ctx the offline codec context resolving {@code int8}
+   */
+  public static void int8NarrowingRejectsOverflow(long value, CodecContext ctx) throws SQLException {
+    PgType type = PgTypeDescriptors.scalar(Oid.INT8).pgType();
+    BinaryCodec codec = (BinaryCodec) ctx.resolveCodec(Oid.INT8);
+    byte[] wire = codec.encodeBinary((Long) value, type, ctx);
+    PrimitiveBinaryDecoder dec = (PrimitiveBinaryDecoder) codec;
+    Outcome out = Outcome.capture(() -> dec.decodeAsInt(wire, 0, wire.length, type, ctx));
+    if (value >= Integer.MIN_VALUE && value <= Integer.MAX_VALUE) {
+      assertFalse(out.threw, () -> "int8 " + value + " fits int but decodeAsInt threw " + out.state);
+      assertEquals((int) value, out.value, "int8 decodeAsInt returns the exact value when it fits");
+    } else {
+      assertTrue(out.threw, () -> "int8 " + value + " overflows int; decodeAsInt must reject it, not"
+          + " truncate to " + out.value);
     }
   }
 

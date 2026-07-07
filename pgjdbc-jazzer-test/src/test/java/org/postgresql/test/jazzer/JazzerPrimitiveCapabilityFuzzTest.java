@@ -70,4 +70,35 @@ class JazzerPrimitiveCapabilityFuzzTest {
   void boolParity(boolean value) throws SQLException {
     CodecFuzzSupport.booleanPrimitiveParity(value, Oid.BOOL, CodecFuzzSupport.builtins());
   }
+
+  // A domain forwards its base type's primitive accessors, so a domain over a pure codec inherits the
+  // same outcome parity -- the no-box path that DomainCodec restores.
+
+  @FuzzTest
+  void domainOverInt4Parity(int value) throws SQLException {
+    CodecFuzzSupport.domainIntPrimitiveParity(value, Oid.INT4, "int4", 'N');
+  }
+
+  @FuzzTest
+  void domainOverInt8Parity(long value) throws SQLException {
+    CodecFuzzSupport.domainLongPrimitiveParity(value, Oid.INT8, "int8", 'N');
+  }
+
+  @FuzzTest
+  void domainOverFloat8Parity(double value) throws SQLException {
+    CodecFuzzSupport.domainDoublePrimitiveParity(value, Oid.FLOAT8, "float8", 'N');
+  }
+
+  @FuzzTest
+  void domainOverBoolParity(boolean value) throws SQLException {
+    CodecFuzzSupport.domainBooleanPrimitiveParity(value, Oid.BOOL, "bool", 'B');
+  }
+
+  // A narrowing accessor (int8 -> int) is NOT outcome-parity with its boxing default, which truncates
+  // via Long.intValue(); instead it must reject an out-of-range value rather than silently truncate.
+
+  @FuzzTest
+  void int8NarrowingRejectsOverflow(long value) throws SQLException {
+    CodecFuzzSupport.int8NarrowingRejectsOverflow(value, CodecFuzzSupport.builtins());
+  }
 }
