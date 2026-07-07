@@ -745,9 +745,11 @@ public final class CodecFuzzSupport {
 
   // --- Delegating codecs: range, multirange, domain ------------------------------------------
 
-  // A fixed OID for the offline domain type. Codec resolution keys on typtype 'd', not the OID, so
-  // any value that does not collide with a registered type serves.
-  private static final int DOMAIN_OID = 90_030;
+  // A fixed OID for the offline domain type. Codec resolution keys on typtype 'd', not the OID, but
+  // the value must still be unique across the fuzz suite: OfflineCodecContexts shares one registry
+  // whose OID cache outlives a single test, so reusing an OID that another target maps to a different
+  // codec (SINGLE_FIELD_COMPOSITE_OID once did) leaks that codec here and breaks encode.
+  private static final int DOMAIN_OID = 90_040;
 
   /**
    * Round-trips a domain value through the {@link org.postgresql.jdbc.codec.DomainCodec}, which
