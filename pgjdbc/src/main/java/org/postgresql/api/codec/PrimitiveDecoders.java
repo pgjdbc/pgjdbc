@@ -87,6 +87,57 @@ public final class PrimitiveDecoders {
         codec.decodeBinary(data, type, ctx), () -> codec.decodeAsString(data, type, ctx));
   }
 
+  // ---------------------------------------------------------------------------
+  // Binary, slice form -- decode a value in place off a larger buffer. A wrapping
+  // codec (a domain over its base type) forwards the slice straight through.
+  // ---------------------------------------------------------------------------
+
+  /** Slice form of {@link #asInt(BinaryCodec, byte[], TypeDescriptor, CodecContext)}. */
+  public static int asInt(BinaryCodec codec, byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    if (codec instanceof PrimitiveBinaryDecoder) {
+      return ((PrimitiveBinaryDecoder) codec).decodeAsInt(data, offset, length, type, ctx);
+    }
+    return boxToInt(codec.decodeBinary(data, offset, length, type, ctx));
+  }
+
+  /** Slice form of {@link #asLong(BinaryCodec, byte[], TypeDescriptor, CodecContext)}. */
+  public static long asLong(BinaryCodec codec, byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    if (codec instanceof PrimitiveBinaryDecoder) {
+      return ((PrimitiveBinaryDecoder) codec).decodeAsLong(data, offset, length, type, ctx);
+    }
+    return boxToLong(codec.decodeBinary(data, offset, length, type, ctx));
+  }
+
+  /** Slice form of {@link #asFloat(BinaryCodec, byte[], TypeDescriptor, CodecContext)}. */
+  public static float asFloat(BinaryCodec codec, byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    if (codec instanceof PrimitiveBinaryDecoder) {
+      return ((PrimitiveBinaryDecoder) codec).decodeAsFloat(data, offset, length, type, ctx);
+    }
+    return boxToFloat(codec.decodeBinary(data, offset, length, type, ctx));
+  }
+
+  /** Slice form of {@link #asDouble(BinaryCodec, byte[], TypeDescriptor, CodecContext)}. */
+  public static double asDouble(BinaryCodec codec, byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    if (codec instanceof PrimitiveBinaryDecoder) {
+      return ((PrimitiveBinaryDecoder) codec).decodeAsDouble(data, offset, length, type, ctx);
+    }
+    return boxToDouble(codec.decodeBinary(data, offset, length, type, ctx));
+  }
+
+  /** Slice form of {@link #asBoolean(BinaryCodec, byte[], TypeDescriptor, CodecContext)}. */
+  public static boolean asBoolean(BinaryCodec codec, byte[] data, int offset, int length,
+      TypeDescriptor type, CodecContext ctx) throws SQLException {
+    if (codec instanceof PrimitiveBinaryDecoder) {
+      return ((PrimitiveBinaryDecoder) codec).decodeAsBoolean(data, offset, length, type, ctx);
+    }
+    return BooleanCoercion.castAndCheck(
+        codec.decodeBinary(data, offset, length, type, ctx), () -> codec.decodeAsString(data, type, ctx));
+  }
+
   // ===========================================================================
   // Text
   // ===========================================================================

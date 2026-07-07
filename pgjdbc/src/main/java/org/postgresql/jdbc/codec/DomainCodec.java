@@ -9,6 +9,9 @@ import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.PrimitiveBinaryDecoder;
+import org.postgresql.api.codec.PrimitiveDecoders;
+import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TextCodec;
@@ -55,7 +58,8 @@ import java.sql.SQLException;
  *   {@link TypeDescriptor#getTyptypmod()}, not from anything this codec forwards.</li>
  * </ul>
  */
-public final class DomainCodec implements StreamingBinaryCodec, StreamingTextCodec {
+public final class DomainCodec implements StreamingBinaryCodec, StreamingTextCodec,
+    PrimitiveBinaryDecoder, PrimitiveTextDecoder {
 
   public static final DomainCodec INSTANCE = new DomainCodec();
 
@@ -222,6 +226,165 @@ public final class DomainCodec implements StreamingBinaryCodec, StreamingTextCod
         return ((TextCodec) baseCodec).decodeTextAs(data, baseType, targetClass, ctx);
       }
       return FallbackCodec.INSTANCE.decodeTextAs(data, baseType, targetClass, ctx);
+    } finally {
+      CodecDepth.exit();
+    }
+  }
+
+  // A domain shares its base type's wire form, so the primitive accessors forward the slice (binary)
+  // or string (text) straight to the base codec's own no-box path via PrimitiveDecoders, which boxes
+  // through the base's decodeBinary/decodeText only when the base is not itself a primitive decoder.
+
+  @Override
+  public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    CodecDepth.enter();
+    try {
+      Codec baseCodec = getBaseCodec(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
+      if (baseCodec instanceof BinaryCodec) {
+        return PrimitiveDecoders.asInt((BinaryCodec) baseCodec, data, offset, length, baseType, ctx);
+      }
+      return PrimitiveDecoders.asInt(FallbackCodec.INSTANCE, data, offset, length, baseType, ctx);
+    } finally {
+      CodecDepth.exit();
+    }
+  }
+
+  @Override
+  public long decodeAsLong(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    CodecDepth.enter();
+    try {
+      Codec baseCodec = getBaseCodec(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
+      if (baseCodec instanceof BinaryCodec) {
+        return PrimitiveDecoders.asLong((BinaryCodec) baseCodec, data, offset, length, baseType, ctx);
+      }
+      return PrimitiveDecoders.asLong(FallbackCodec.INSTANCE, data, offset, length, baseType, ctx);
+    } finally {
+      CodecDepth.exit();
+    }
+  }
+
+  @Override
+  public float decodeAsFloat(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    CodecDepth.enter();
+    try {
+      Codec baseCodec = getBaseCodec(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
+      if (baseCodec instanceof BinaryCodec) {
+        return PrimitiveDecoders.asFloat((BinaryCodec) baseCodec, data, offset, length, baseType, ctx);
+      }
+      return PrimitiveDecoders.asFloat(FallbackCodec.INSTANCE, data, offset, length, baseType, ctx);
+    } finally {
+      CodecDepth.exit();
+    }
+  }
+
+  @Override
+  public double decodeAsDouble(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    CodecDepth.enter();
+    try {
+      Codec baseCodec = getBaseCodec(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
+      if (baseCodec instanceof BinaryCodec) {
+        return PrimitiveDecoders.asDouble((BinaryCodec) baseCodec, data, offset, length, baseType, ctx);
+      }
+      return PrimitiveDecoders.asDouble(FallbackCodec.INSTANCE, data, offset, length, baseType, ctx);
+    } finally {
+      CodecDepth.exit();
+    }
+  }
+
+  @Override
+  public boolean decodeAsBoolean(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    CodecDepth.enter();
+    try {
+      Codec baseCodec = getBaseCodec(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
+      if (baseCodec instanceof BinaryCodec) {
+        return PrimitiveDecoders.asBoolean((BinaryCodec) baseCodec, data, offset, length, baseType, ctx);
+      }
+      return PrimitiveDecoders.asBoolean(FallbackCodec.INSTANCE, data, offset, length, baseType, ctx);
+    } finally {
+      CodecDepth.exit();
+    }
+  }
+
+  @Override
+  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    CodecDepth.enter();
+    try {
+      Codec baseCodec = getBaseCodec(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
+      if (baseCodec instanceof TextCodec) {
+        return PrimitiveDecoders.asInt((TextCodec) baseCodec, data, baseType, ctx);
+      }
+      return PrimitiveDecoders.asInt(FallbackCodec.INSTANCE, data, baseType, ctx);
+    } finally {
+      CodecDepth.exit();
+    }
+  }
+
+  @Override
+  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    CodecDepth.enter();
+    try {
+      Codec baseCodec = getBaseCodec(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
+      if (baseCodec instanceof TextCodec) {
+        return PrimitiveDecoders.asLong((TextCodec) baseCodec, data, baseType, ctx);
+      }
+      return PrimitiveDecoders.asLong(FallbackCodec.INSTANCE, data, baseType, ctx);
+    } finally {
+      CodecDepth.exit();
+    }
+  }
+
+  @Override
+  public float decodeAsFloat(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    CodecDepth.enter();
+    try {
+      Codec baseCodec = getBaseCodec(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
+      if (baseCodec instanceof TextCodec) {
+        return PrimitiveDecoders.asFloat((TextCodec) baseCodec, data, baseType, ctx);
+      }
+      return PrimitiveDecoders.asFloat(FallbackCodec.INSTANCE, data, baseType, ctx);
+    } finally {
+      CodecDepth.exit();
+    }
+  }
+
+  @Override
+  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    CodecDepth.enter();
+    try {
+      Codec baseCodec = getBaseCodec(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
+      if (baseCodec instanceof TextCodec) {
+        return PrimitiveDecoders.asDouble((TextCodec) baseCodec, data, baseType, ctx);
+      }
+      return PrimitiveDecoders.asDouble(FallbackCodec.INSTANCE, data, baseType, ctx);
+    } finally {
+      CodecDepth.exit();
+    }
+  }
+
+  @Override
+  public boolean decodeAsBoolean(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    CodecDepth.enter();
+    try {
+      Codec baseCodec = getBaseCodec(type, ctx);
+      TypeDescriptor baseType = getBaseType(type, ctx);
+      if (baseCodec instanceof TextCodec) {
+        return PrimitiveDecoders.asBoolean((TextCodec) baseCodec, data, baseType, ctx);
+      }
+      return PrimitiveDecoders.asBoolean(FallbackCodec.INSTANCE, data, baseType, ctx);
     } finally {
       CodecDepth.exit();
     }

@@ -10,6 +10,9 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.PrimitiveBinaryDecoder;
+import org.postgresql.api.codec.PrimitiveDecoders;
+import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
@@ -137,6 +140,26 @@ class ContainerCodecInterfaceContextTest {
     Object value = DomainCodec.INSTANCE.decodeBinary(
         new byte[]{0, 0, 0, 42}, domain, new InterfaceOnlyContext());
     assertEquals(42, value);
+  }
+
+  @Test
+  void domainCodecForwardsPrimitiveAccessorsToBaseType() throws SQLException {
+    // A domain over int4 must decode straight to a primitive: it advertises the primitive-decoder
+    // capabilities so a caller through PrimitiveDecoders takes the base int4 codec's no-box path
+    // rather than boxing decodeBinary. The slice form must honour the offset off a larger buffer.
+    PgType domain = new PgType(
+        new ObjectName("public", "positive_int"), "positive_int", 99_999,
+        'd', 'N', -1, 0, 0, Oid.INT4);
+    CodecContext ctx = new InterfaceOnlyContext();
+    assertInstanceOf(PrimitiveBinaryDecoder.class, DomainCodec.INSTANCE);
+    assertInstanceOf(PrimitiveTextDecoder.class, DomainCodec.INSTANCE);
+    assertEquals(42, PrimitiveDecoders.asInt(DomainCodec.INSTANCE, new byte[]{0, 0, 0, 42}, domain, ctx));
+    assertEquals(42L, PrimitiveDecoders.asLong(DomainCodec.INSTANCE, new byte[]{0, 0, 0, 42}, domain, ctx));
+    assertEquals(42.0, PrimitiveDecoders.asDouble(
+        DomainCodec.INSTANCE, new byte[]{0, 0, 0, 42}, domain, ctx), 0.0);
+    assertEquals(42, PrimitiveDecoders.asInt(
+        DomainCodec.INSTANCE, new byte[]{9, 9, 0, 0, 0, 42}, 2, 4, domain, ctx));
+    assertEquals(42, PrimitiveDecoders.asInt(DomainCodec.INSTANCE, "42", domain, ctx));
   }
 
   @Test
