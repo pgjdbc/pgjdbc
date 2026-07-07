@@ -172,6 +172,19 @@ public final class Int2Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   }
 
   @Override
+  public int decodeAsInt(char[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    try {
+      return (int) NumberParser.getFastLong(
+          data, offset, length, Short.MIN_VALUE, Short.MAX_VALUE);
+    } catch (NumberFormatException fast) {
+      // The fast path rejects a leading '+', whitespace, or an out-of-range value; the String
+      // primitive form owns the parse and the error message.
+      return decodeAsInt(new String(data, offset, length), type, ctx);
+    }
+  }
+
+  @Override
   public long decodeAsLong(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     return decodeAsInt(data, offset, length, type, ctx);

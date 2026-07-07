@@ -62,6 +62,16 @@ class OidCodecTest {
   }
 
   @Test
+  void decodeAsLong_charSlice() throws SQLException {
+    // The fast path reads the digits off the slice with no String and no box.
+    char[] buf = "x4294967295y".toCharArray();
+    assertEquals(4294967295L, codec.decodeAsLong(buf, 1, 10, oidType, null));
+    // A leading '+' is rejected by the fast path and handled by the String fallback.
+    char[] plus = "+7".toCharArray();
+    assertEquals(7L, codec.decodeAsLong(plus, 0, plus.length, oidType, null));
+  }
+
+  @Test
   void decodeText_zero() throws SQLException {
     assertEquals(0L, codec.decodeText("0", oidType, null));
   }

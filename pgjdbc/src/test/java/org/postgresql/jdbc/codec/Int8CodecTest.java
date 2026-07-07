@@ -114,6 +114,20 @@ class Int8CodecTest {
   }
 
   @Test
+  void decodeAsLong_charSlice() throws SQLException {
+    // The fast path reads the digits off the slice with no String and no box.
+    char[] buf = "x-42y".toCharArray();
+    assertEquals(-42L, codec.decodeAsLong(buf, 1, 3, int8Type, null));
+    // A leading '+' is rejected by the fast path and handled by the String fallback.
+    char[] plus = "+7".toCharArray();
+    assertEquals(7L, codec.decodeAsLong(plus, 0, plus.length, int8Type, null));
+    // Out of int8 range surfaces the same error as the String form.
+    char[] overflow = "99999999999999999999".toCharArray();
+    assertThrows(PSQLException.class,
+        () -> codec.decodeAsLong(overflow, 0, overflow.length, int8Type, null));
+  }
+
+  @Test
   void decodeText_negativeValue() throws SQLException {
     Object result = codec.decodeText("-42", int8Type, null);
     assertEquals(-42L, result);

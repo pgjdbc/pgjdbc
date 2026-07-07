@@ -162,6 +162,20 @@ public final class OidCodec implements StreamingBinaryCodec, PrimitiveBinaryDeco
   }
 
   @Override
+  public long decodeAsLong(char[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    // Long bounds, matching decodeAsLong(String)/decodeText(char[]): the oid text is parsed as a
+    // signed long without masking to unsigned 32-bit.
+    try {
+      return NumberParser.getFastLong(data, offset, length, Long.MIN_VALUE, Long.MAX_VALUE);
+    } catch (NumberFormatException fast) {
+      // The fast path rejects a leading '+', whitespace, or an out-of-range value; the String
+      // primitive form owns the parse and the error message.
+      return decodeAsLong(new String(data, offset, length), type, ctx);
+    }
+  }
+
+  @Override
   public double decodeAsDouble(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     return decodeAsLong(data, offset, length, type, ctx);

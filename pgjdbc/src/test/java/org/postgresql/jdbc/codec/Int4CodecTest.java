@@ -114,6 +114,20 @@ class Int4CodecTest {
   }
 
   @Test
+  void decodeAsInt_charSlice() throws SQLException {
+    // The fast path reads the digits off the slice with no String and no box.
+    char[] buf = "x-42y".toCharArray();
+    assertEquals(-42, codec.decodeAsInt(buf, 1, 3, int4Type, null));
+    // A leading '+' is rejected by the fast path and handled by the String fallback.
+    char[] plus = "+7".toCharArray();
+    assertEquals(7, codec.decodeAsInt(plus, 0, plus.length, int4Type, null));
+    // Out of int4 range surfaces the same error as the String form.
+    char[] overflow = "99999999999".toCharArray();
+    assertThrows(PSQLException.class,
+        () -> codec.decodeAsInt(overflow, 0, overflow.length, int4Type, null));
+  }
+
+  @Test
   void decodeText_negativeValue() throws SQLException {
     Object result = codec.decodeText("-42", int4Type, null);
     assertEquals(-42, result);

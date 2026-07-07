@@ -188,6 +188,18 @@ public final class Int8Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   }
 
   @Override
+  public long decodeAsLong(char[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    try {
+      return NumberParser.getFastLong(data, offset, length, Long.MIN_VALUE, Long.MAX_VALUE);
+    } catch (NumberFormatException fast) {
+      // The fast path rejects a leading '+', whitespace, or an out-of-range value; the String
+      // primitive form owns the parse and the error message.
+      return decodeAsLong(new String(data, offset, length), type, ctx);
+    }
+  }
+
+  @Override
   public long decodeTextBytesAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     if (Encoding.hasAsciiNumbers(ctx.getCharset())) {
       try {
