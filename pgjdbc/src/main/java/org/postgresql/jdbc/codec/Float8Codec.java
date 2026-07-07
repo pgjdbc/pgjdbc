@@ -8,8 +8,9 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
-import org.postgresql.api.codec.StreamingBinaryCodec;
-import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.PrimitiveBinaryEncoder;
+import org.postgresql.api.codec.PrimitiveTextEncoder;
+import org.postgresql.api.codec.TextSink;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
@@ -25,7 +26,7 @@ import java.sql.SQLException;
 /**
  * Codec for PostgreSQL float8 (DOUBLE PRECISION) type.
  */
-public final class Float8Codec implements StreamingBinaryCodec, TextCodec, ArrayElementCodec {
+public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveTextEncoder, ArrayElementCodec {
 
   public static final Float8Codec INSTANCE = new Float8Codec();
 
@@ -89,6 +90,12 @@ public final class Float8Codec implements StreamingBinaryCodec, TextCodec, Array
   }
 
   @Override
+  public void encodeDouble(double value, TypeDescriptor type, CodecContext ctx, BackpatchingBinarySink out)
+      throws SQLException, IOException {
+    out.writeDouble(value);
+  }
+
+  @Override
   public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsDouble(data, type, ctx);
   }
@@ -96,6 +103,18 @@ public final class Float8Codec implements StreamingBinaryCodec, TextCodec, Array
   @Override
   public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return String.valueOf(toDouble(value));
+  }
+
+  @Override
+  public void encodeText(Object value, TypeDescriptor type, CodecContext ctx, Appendable out)
+      throws SQLException, IOException {
+    TextSink.appendDouble(out, toDouble(value));
+  }
+
+  @Override
+  public void encodeDouble(double value, TypeDescriptor type, CodecContext ctx, Appendable out)
+      throws SQLException, IOException {
+    TextSink.appendDouble(out, value);
   }
 
   @Override

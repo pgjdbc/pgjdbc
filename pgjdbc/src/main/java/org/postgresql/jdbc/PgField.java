@@ -5,11 +5,13 @@
 
 package org.postgresql.jdbc;
 
+import org.postgresql.api.codec.PGField;
+
 /**
  * Represents a field in a PostgreSQL composite type.
  * Fields are loaded eagerly when a composite type is first accessed.
  */
-public final class PgField implements org.postgresql.api.codec.PgField {
+public final class PgField implements PGField {
   private final String name;
   private final int typeOid;
   private final int position;

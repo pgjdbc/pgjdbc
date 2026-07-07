@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc.codec;
 
+import org.postgresql.api.codec.TextSink;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
@@ -26,7 +28,7 @@ import java.io.IOException;
  * intentional and represents nested text formats, for example an array element
  * that is a composite whose field is itself an array.</p>
  */
-public final class EscapingAppendable implements Appendable {
+public final class EscapingAppendable implements TextSink {
 
   private final Appendable delegate;
   private final boolean recordStyle;
@@ -66,6 +68,30 @@ public final class EscapingAppendable implements Appendable {
       delegate.append(recordStyle ? c : '\\');
     }
     delegate.append(c);
+    return this;
+  }
+
+  @Override
+  public TextSink append(int value) throws IOException {
+    TextSink.appendInt(delegate, value);
+    return this;
+  }
+
+  @Override
+  public TextSink append(long value) throws IOException {
+    TextSink.appendLong(delegate, value);
+    return this;
+  }
+
+  @Override
+  public TextSink append(float value) throws IOException {
+    TextSink.appendFloat(delegate, value);
+    return this;
+  }
+
+  @Override
+  public TextSink append(double value) throws IOException {
+    TextSink.appendDouble(delegate, value);
     return this;
   }
 }

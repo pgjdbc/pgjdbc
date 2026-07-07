@@ -8,8 +8,9 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
-import org.postgresql.api.codec.StreamingBinaryCodec;
-import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.PrimitiveBinaryEncoder;
+import org.postgresql.api.codec.PrimitiveTextEncoder;
+import org.postgresql.api.codec.TextSink;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
@@ -25,7 +26,7 @@ import java.sql.SQLException;
 /**
  * Codec for PostgreSQL float4 (REAL) type.
  */
-public final class Float4Codec implements StreamingBinaryCodec, TextCodec, ArrayElementCodec {
+public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveTextEncoder, ArrayElementCodec {
 
   public static final Float4Codec INSTANCE = new Float4Codec();
 
@@ -85,6 +86,12 @@ public final class Float4Codec implements StreamingBinaryCodec, TextCodec, Array
   }
 
   @Override
+  public void encodeFloat(float value, TypeDescriptor type, CodecContext ctx, BackpatchingBinarySink out)
+      throws SQLException, IOException {
+    out.writeFloat(value);
+  }
+
+  @Override
   public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsFloat(data, type, ctx);
   }
@@ -92,6 +99,18 @@ public final class Float4Codec implements StreamingBinaryCodec, TextCodec, Array
   @Override
   public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return String.valueOf(toFloat(value));
+  }
+
+  @Override
+  public void encodeText(Object value, TypeDescriptor type, CodecContext ctx, Appendable out)
+      throws SQLException, IOException {
+    TextSink.appendFloat(out, toFloat(value));
+  }
+
+  @Override
+  public void encodeFloat(float value, TypeDescriptor type, CodecContext ctx, Appendable out)
+      throws SQLException, IOException {
+    TextSink.appendFloat(out, value);
   }
 
   @Override

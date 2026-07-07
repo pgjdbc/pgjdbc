@@ -200,7 +200,7 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
         out.append('"');
       }
     } else {
-      appendEscapedArrayElement(out, codec.encodeText(element, elementType, ctx));
+      appendQuotedArrayElement(out, codec.encodeText(element, elementType, ctx));
     }
   }
 
@@ -234,7 +234,7 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
     }
   }
 
-  private static void appendEscapedArrayElement(Appendable out, String value) throws IOException {
+  private static void appendQuotedArrayElement(Appendable out, String value) throws IOException {
     out.append('"');
     for (int i = 0; i < value.length(); i++) {
       char c = value.charAt(i);

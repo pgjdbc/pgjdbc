@@ -117,7 +117,7 @@ final class JsonArrayLeafCodec implements ArrayLeafCodec {
       if (element == null) {
         out.append("NULL");
       } else {
-        appendQuotedEscaped(out, textCodec.encodeText(element, elementType, ctx));
+        appendQuotedValue(out, textCodec.encodeText(element, elementType, ctx));
       }
     }
   }
@@ -142,7 +142,7 @@ final class JsonArrayLeafCodec implements ArrayLeafCodec {
     }
   }
 
-  private static void appendQuotedEscaped(Appendable out, String value) throws IOException {
+  private static void appendQuotedValue(Appendable out, String value) throws IOException {
     out.append('"');
     for (int i = 0; i < value.length(); i++) {
       char c = value.charAt(i);

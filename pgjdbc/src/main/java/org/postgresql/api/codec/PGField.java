@@ -18,7 +18,7 @@ import org.postgresql.api.Experimental;
  * @since 42.8.0
  */
 @Experimental("Codec API is experimental and may change in future releases")
-public interface PgField {
+public interface PGField {
 
   /**
    * Returns the field name.

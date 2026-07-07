@@ -7,27 +7,27 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.api.codec.PrimitiveTextEncoder;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.codec.CompositeCodec;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-import java.math.BigDecimal;
-import java.sql.Date;
+import java.io.IOException;
 import java.sql.SQLException;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.util.List;
 
 /**
  * Text format SQLOutput implementation.
  *
- * <p>Encodes values to text format using the codec infrastructure.</p>
- *
- * <p>Codecs are pre-cached at construction time for performance.</p>
+ * <p>Each {@code writeXxx} call appends its field to the composite text literal {@code (f0,f1,...)} in
+ * the caller-provided {@link Appendable} as it arrives. A field codec that implements
+ * {@link PrimitiveTextEncoder} and never needs quoting receives the primitive unboxed and streams its
+ * digits straight in; every other value goes through {@link CompositeCodec#writeTextFieldValue}, the
+ * same per-field encoder the {@code Struct} path uses. Because the writer streams into the caller's
+ * sink, a nested {@code SQLData} composite serializes directly into the enclosing literal, its
+ * escaping compounding through the enclosing composite. Codecs and field types are pre-cached at
+ * construction time; {@link #close()} checks the arity and appends the closing parenthesis.</p>
  */
-public final class PgSQLOutputText extends PgSQLOutput<String> {
+public final class PgSQLOutputText extends PgSQLOutput {
 
   /**
    * Pre-cached codecs for each field.
@@ -40,16 +40,30 @@ public final class PgSQLOutputText extends PgSQLOutput<String> {
   private final TypeDescriptor[] cachedTypes;
 
   /**
-   * Creates a new PgSQLOutputText.
+   * The caller-owned sink the composite text literal is written into.
+   */
+  private final Appendable out;
+
+  private boolean firstField = true;
+
+  /**
+   * Creates a new PgSQLOutputText that streams into {@code out}.
    *
    * @param type the composite type
    * @param ctx the codec context
+   * @param out the sink the composite text literal is written into; owned by the caller
    */
-  public PgSQLOutputText(PgType type, PgCodecContext ctx) throws SQLException {
+  public PgSQLOutputText(PgType type, PgCodecContext ctx, Appendable out) throws SQLException {
     super(type, ctx);
     this.cachedCodecs = new TextCodec[fields.size()];
     this.cachedTypes = new TypeDescriptor[fields.size()];
+    this.out = out;
     cacheCodecs();
+    try {
+      out.append('(');
+    } catch (IOException e) {
+      throw new AssertionError(e); // the in-memory sink never throws
+    }
   }
 
   private void cacheCodecs() throws SQLException {
@@ -72,91 +86,112 @@ public final class PgSQLOutputText extends PgSQLOutput<String> {
     return cachedTypes[fieldIndex - 1];
   }
 
-  @Override
-  protected String encodeInt(int value, PgType fieldType) throws SQLException {
-    return getCodec().encodeText(value, getCurrentType(), ctx);
-  }
-
-  @Override
-  protected String encodeLong(long value, PgType fieldType) throws SQLException {
-    return getCodec().encodeText(value, getCurrentType(), ctx);
-  }
-
-  @Override
-  protected String encodeDouble(double value, PgType fieldType) throws SQLException {
-    return getCodec().encodeText(value, getCurrentType(), ctx);
-  }
-
-  @Override
-  protected String encodeFloat(float value, PgType fieldType) throws SQLException {
-    return getCodec().encodeText(value, getCurrentType(), ctx);
-  }
-
-  @Override
-  protected String encodeBoolean(boolean value, PgType fieldType) throws SQLException {
-    return getCodec().encodeText(value, getCurrentType(), ctx);
-  }
-
-  @Override
-  protected String encodeString(String value, PgType fieldType) throws SQLException {
-    return getCodec().encodeText(value, getCurrentType(), ctx);
-  }
-
-  @Override
-  protected String encodeBigDecimal(BigDecimal value, PgType fieldType) throws SQLException {
-    return getCodec().encodeText(value, getCurrentType(), ctx);
-  }
-
-  @Override
-  protected String encodeBytes(byte[] value, PgType fieldType) throws SQLException {
-    return getCodec().encodeText(value, getCurrentType(), ctx);
-  }
-
-  @Override
-  protected String encodeDate(Date value, PgType fieldType) throws SQLException {
-    return getCodec().encodeText(value, getCurrentType(), ctx);
-  }
-
-  @Override
-  protected String encodeTime(Time value, PgType fieldType) throws SQLException {
-    return getCodec().encodeText(value, getCurrentType(), ctx);
-  }
-
-  @Override
-  protected String encodeTimestamp(Timestamp value, PgType fieldType) throws SQLException {
-    return getCodec().encodeText(value, getCurrentType(), ctx);
-  }
-
-  @Override
-  protected String encodeObject(Object value, PgType fieldType) throws SQLException {
-    return getCodec().encodeText(value, getCurrentType(), ctx);
-  }
-
-  /**
-   * Serializes the collected values to PostgreSQL text composite format "(val1,val2,...)".
-   *
-   * @return the composite text representation
-   */
-  public String toCompositeString() {
-    List<@Nullable String> values = getAttributeValues();
-    StringBuilder sb = new StringBuilder();
-    sb.append('(');
-    for (int i = 0; i < values.size(); i++) {
-      if (i > 0) {
-        sb.append(',');
-      }
-      String val = values.get(i);
-      if (val != null) {
-        if (CompositeCodec.needsQuoting(val)) {
-          sb.append('"');
-          sb.append(val.replace("\\", "\\\\").replace("\"", "\\\""));
-          sb.append('"');
-        } else {
-          sb.append(val);
-        }
-      }
+  /** Appends the inter-field comma; the first field emits none. */
+  private void separator() throws IOException {
+    if (firstField) {
+      firstField = false;
+    } else {
+      out.append(',');
     }
-    sb.append(')');
-    return sb.toString();
+  }
+
+  @Override
+  protected void writeFieldNull() {
+    // A SQL NULL attribute is an empty, unquoted field.
+    try {
+      separator();
+    } catch (IOException e) {
+      throw new AssertionError(e); // the in-memory sink never throws
+    }
+  }
+
+  @Override
+  protected void writeFieldInt(int value) throws SQLException {
+    TextCodec codec = getCodec();
+    try {
+      separator();
+      if (codec instanceof PrimitiveTextEncoder && !codec.mayRequireQuoting()) {
+        ((PrimitiveTextEncoder) codec).encodeInt(value, getCurrentType(), ctx, out);
+      } else {
+        CompositeCodec.writeTextFieldValue(out, value, getCurrentType(), codec, ctx);
+      }
+    } catch (IOException e) {
+      throw new AssertionError(e); // the in-memory sink never throws
+    }
+  }
+
+  @Override
+  protected void writeFieldLong(long value) throws SQLException {
+    TextCodec codec = getCodec();
+    try {
+      separator();
+      if (codec instanceof PrimitiveTextEncoder && !codec.mayRequireQuoting()) {
+        ((PrimitiveTextEncoder) codec).encodeLong(value, getCurrentType(), ctx, out);
+      } else {
+        CompositeCodec.writeTextFieldValue(out, value, getCurrentType(), codec, ctx);
+      }
+    } catch (IOException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  @Override
+  protected void writeFieldFloat(float value) throws SQLException {
+    TextCodec codec = getCodec();
+    try {
+      separator();
+      if (codec instanceof PrimitiveTextEncoder && !codec.mayRequireQuoting()) {
+        ((PrimitiveTextEncoder) codec).encodeFloat(value, getCurrentType(), ctx, out);
+      } else {
+        CompositeCodec.writeTextFieldValue(out, value, getCurrentType(), codec, ctx);
+      }
+    } catch (IOException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  @Override
+  protected void writeFieldDouble(double value) throws SQLException {
+    TextCodec codec = getCodec();
+    try {
+      separator();
+      if (codec instanceof PrimitiveTextEncoder && !codec.mayRequireQuoting()) {
+        ((PrimitiveTextEncoder) codec).encodeDouble(value, getCurrentType(), ctx, out);
+      } else {
+        CompositeCodec.writeTextFieldValue(out, value, getCurrentType(), codec, ctx);
+      }
+    } catch (IOException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  @Override
+  protected void writeFieldBoolean(boolean value) throws SQLException {
+    TextCodec codec = getCodec();
+    try {
+      separator();
+      CompositeCodec.writeTextFieldValue(out, value, getCurrentType(), codec, ctx);
+    } catch (IOException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  @Override
+  protected void writeFieldObject(Object value) throws SQLException {
+    try {
+      separator();
+      CompositeCodec.writeTextFieldValue(out, value, getCurrentType(), getCodec(), ctx);
+    } catch (IOException e) {
+      throw new AssertionError(e); // the in-memory sink never throws
+    }
+  }
+
+  @Override
+  protected void finish() {
+    try {
+      out.append(')');
+    } catch (IOException e) {
+      throw new AssertionError(e); // the in-memory sink never throws
+    }
   }
 }

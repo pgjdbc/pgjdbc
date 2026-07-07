@@ -8,8 +8,9 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
-import org.postgresql.api.codec.StreamingBinaryCodec;
-import org.postgresql.api.codec.StreamingTextCodec;
+import org.postgresql.api.codec.PrimitiveBinaryEncoder;
+import org.postgresql.api.codec.PrimitiveTextEncoder;
+import org.postgresql.api.codec.TextSink;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Encoding;
 import org.postgresql.util.ByteConverter;
@@ -27,7 +28,7 @@ import java.sql.SQLException;
 /**
  * Codec for PostgreSQL int4 (INTEGER) type.
  */
-public final class Int4Codec implements StreamingBinaryCodec, StreamingTextCodec, ArrayElementCodec {
+public final class Int4Codec implements PrimitiveBinaryEncoder, PrimitiveTextEncoder, ArrayElementCodec {
 
   public static final Int4Codec INSTANCE = new Int4Codec();
 
@@ -89,7 +90,41 @@ public final class Int4Codec implements StreamingBinaryCodec, StreamingTextCodec
   @Override
   public void encodeText(Object value, TypeDescriptor type, CodecContext ctx, Appendable out)
       throws SQLException, IOException {
-    out.append(Integer.toString(toInt(value)));
+    TextSink.appendInt(out, toInt(value));
+  }
+
+  @Override
+  public void encodeInt(int value, TypeDescriptor type, CodecContext ctx, BackpatchingBinarySink out)
+      throws SQLException, IOException {
+    out.writeInt32(value);
+  }
+
+  @Override
+  public void encodeLong(long value, TypeDescriptor type, CodecContext ctx, BackpatchingBinarySink out)
+      throws SQLException, IOException {
+    if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
+      throw new PSQLException(
+          GT.tr("Value {0} is out of int4 range", value),
+          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+    }
+    out.writeInt32((int) value);
+  }
+
+  @Override
+  public void encodeInt(int value, TypeDescriptor type, CodecContext ctx, Appendable out)
+      throws SQLException, IOException {
+    TextSink.appendInt(out, value);
+  }
+
+  @Override
+  public void encodeLong(long value, TypeDescriptor type, CodecContext ctx, Appendable out)
+      throws SQLException, IOException {
+    if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
+      throw new PSQLException(
+          GT.tr("Value {0} is out of int4 range", value),
+          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+    }
+    TextSink.appendInt(out, (int) value);
   }
 
   @Override

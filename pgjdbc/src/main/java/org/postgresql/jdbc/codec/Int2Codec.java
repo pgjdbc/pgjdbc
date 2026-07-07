@@ -8,8 +8,9 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
-import org.postgresql.api.codec.StreamingBinaryCodec;
-import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.PrimitiveBinaryEncoder;
+import org.postgresql.api.codec.PrimitiveTextEncoder;
+import org.postgresql.api.codec.TextSink;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
@@ -29,7 +30,7 @@ import java.sql.SQLException;
  * <p>Note: getObject() returns Integer for backward compatibility,
  * not Short as might be expected.</p>
  */
-public final class Int2Codec implements StreamingBinaryCodec, TextCodec, ArrayElementCodec {
+public final class Int2Codec implements PrimitiveBinaryEncoder, PrimitiveTextEncoder, ArrayElementCodec {
 
   public static final Int2Codec INSTANCE = new Int2Codec();
 
@@ -91,6 +92,18 @@ public final class Int2Codec implements StreamingBinaryCodec, TextCodec, ArrayEl
   }
 
   @Override
+  public void encodeInt(int value, TypeDescriptor type, CodecContext ctx, BackpatchingBinarySink out)
+      throws SQLException, IOException {
+    out.writeInt16(toShort(value));
+  }
+
+  @Override
+  public void encodeLong(long value, TypeDescriptor type, CodecContext ctx, BackpatchingBinarySink out)
+      throws SQLException, IOException {
+    out.writeInt16(toShort(value));
+  }
+
+  @Override
   public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsInt(data, type, ctx);
   }
@@ -106,6 +119,26 @@ public final class Int2Codec implements StreamingBinaryCodec, TextCodec, ArrayEl
       // falls back to the String parser, which owns the error message.
       return decodeText(new String(data, offset, length), type, ctx);
     }
+  }
+
+  @Override
+  public void encodeText(Object value, TypeDescriptor type, CodecContext ctx, Appendable out)
+      throws SQLException, IOException {
+    TextSink.appendInt(out, toShort(value));
+  }
+
+  @Override
+  public void encodeInt(int value, TypeDescriptor type, CodecContext ctx, Appendable out)
+      throws SQLException, IOException {
+    // writeShort/writeByte always fit; writeInt into an int2 field is range-checked like toShort.
+    TextSink.appendInt(out, toShort(value));
+  }
+
+  @Override
+  public void encodeLong(long value, TypeDescriptor type, CodecContext ctx, Appendable out)
+      throws SQLException, IOException {
+    // writeShort/writeByte always fit; writeInt into an int2 field is range-checked like toShort.
+    TextSink.appendInt(out, toShort(value));
   }
 
   @Override
@@ -183,15 +216,27 @@ public final class Int2Codec implements StreamingBinaryCodec, TextCodec, ArrayEl
     return NumberDecoders.decodeIntegralAs(value, targetClass, "int2");
   }
 
+  static short toShort(int value) throws SQLException {
+    if (value < Short.MIN_VALUE || value > Short.MAX_VALUE) {
+      throw new PSQLException(
+          GT.tr("Value {0} is out of range for int2", value),
+          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+    }
+    return (short) value;
+  }
+
+  static short toShort(long value) throws SQLException {
+    if (value < Short.MIN_VALUE || value > Short.MAX_VALUE) {
+      throw new PSQLException(
+          GT.tr("Value {0} is out of range for int2", value),
+          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+    }
+    return (short) value;
+  }
+
   static short toShort(Object value) throws SQLException {
     if (value instanceof Number) {
-      long longValue = ((Number) value).longValue();
-      if (longValue < Short.MIN_VALUE || longValue > Short.MAX_VALUE) {
-        throw new PSQLException(
-            GT.tr("Value {0} is out of range for int2", longValue),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-      }
-      return (short) longValue;
+      return toShort(((Number) value).longValue());
     }
     if (value instanceof String) {
       try {

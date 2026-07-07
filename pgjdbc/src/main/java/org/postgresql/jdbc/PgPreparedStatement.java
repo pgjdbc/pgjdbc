@@ -531,25 +531,25 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         }
         break;
       case Types.INTEGER:
-        setInt(parameterIndex, castToInt(in));
+        setInt(parameterIndex, TypeCoercion.toInt(in));
         break;
       case Types.TINYINT:
       case Types.SMALLINT:
-        setShort(parameterIndex, castToShort(in));
+        setShort(parameterIndex, TypeCoercion.toShort(in));
         break;
       case Types.BIGINT:
-        setLong(parameterIndex, castToLong(in));
+        setLong(parameterIndex, TypeCoercion.toLong(in));
         break;
       case Types.REAL:
-        setFloat(parameterIndex, castToFloat(in));
+        setFloat(parameterIndex, TypeCoercion.toFloat(in));
         break;
       case Types.DOUBLE:
       case Types.FLOAT:
-        setDouble(parameterIndex, castToDouble(in));
+        setDouble(parameterIndex, TypeCoercion.toDouble(in));
         break;
       case Types.DECIMAL:
       case Types.NUMERIC:
-        setBigDecimal(parameterIndex, castToBigDecimal(in, scale));
+        bindNumericParameter(parameterIndex, in, scale);
         break;
       case Types.CHAR:
         setString(parameterIndex, castToString(in), Oid.BPCHAR);
@@ -774,30 +774,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     bindString(parameterIndex, codec.encodeText(value, arrayType, ctx), oid);
   }
 
-  private static int castToInt(final Object in) throws SQLException {
-    return TypeCoercion.toInt(in);
-  }
-
-  private static short castToShort(final Object in) throws SQLException {
-    return TypeCoercion.toShort(in);
-  }
-
-  private static long castToLong(final Object in) throws SQLException {
-    return TypeCoercion.toLong(in);
-  }
-
-  private static float castToFloat(final Object in) throws SQLException {
-    return TypeCoercion.toFloat(in);
-  }
-
-  private static double castToDouble(final Object in) throws SQLException {
-    return TypeCoercion.toDouble(in);
-  }
-
-  private static BigDecimal castToBigDecimal(final Object in, final int scale) throws SQLException {
-    return TypeCoercion.toBigDecimal(in, scale);
-  }
-
   private static String castToString(final Object in) throws SQLException {
     return TypeCoercion.toString(in);
   }
@@ -892,12 +868,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
             GT.tr("Cannot cast an instance of {0} to type {1}", x.getClass().getName(), "Types.ARRAY"),
             PSQLState.INVALID_PARAMETER_TYPE, e);
       }
-    } else if (x instanceof java.sql.SQLData) {
-      // Handle SQLData — encode via the registered composite codec.
-      setSQLData(parameterIndex, (java.sql.SQLData) x);
-    } else if (x instanceof java.sql.Struct) {
-      // Handle Struct - encode as composite type
-      setStruct(parameterIndex, (java.sql.Struct) x);
     } else {
       // Can't infer a type.
       throw new PSQLException(GT.tr(
@@ -986,6 +956,31 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     PgCodecContext ctx = connection.getCodecContext();
     String text = codec.encodeText(value, pgType, ctx);
     bindString(parameterIndex, text, oid);
+  }
+
+  /**
+   * Binds a {@code NUMERIC}/{@code DECIMAL} parameter for {@code setObject(..., targetSqlType, scale)}.
+   *
+   * <p>Finite values keep the legacy {@link #setBigDecimal} path (byte-identical wire form). PostgreSQL
+   * {@code numeric} also carries {@code NaN} and {@code ±Infinity} (the latter since v14), which
+   * {@link BigDecimal} cannot represent, so {@link SqlTypeCoercion} hands those through as a non-finite
+   * {@code Double}/{@code Float} sentinel that the numeric codec spells out. This is the only scalar
+   * target routed through the codec, because it is the only one whose value space {@code BigDecimal}
+   * cannot cover; the primitive targets stay on the boxing-free typed setters.</p>
+   *
+   * @param parameterIndex the parameter index (1-based)
+   * @param in the value to coerce and bind
+   * @param scale the scale to apply, or -1 for none
+   * @throws SQLException if coercion, encoding, or binding fails
+   */
+  private void bindNumericParameter(@Positive int parameterIndex, Object in, int scale)
+      throws SQLException {
+    Object value = SqlTypeCoercion.coerce(in, Types.NUMERIC, scale);
+    if (value instanceof BigDecimal) {
+      setBigDecimal(parameterIndex, (BigDecimal) value);
+      return;
+    }
+    bindViaCodec(parameterIndex, value, connection.getTypeInfo().getPgTypeByOid(Oid.NUMERIC));
   }
 
   @Override

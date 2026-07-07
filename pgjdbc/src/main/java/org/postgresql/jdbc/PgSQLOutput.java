@@ -34,22 +34,27 @@ import java.sql.SQLXML;
 import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Base class for SQLOutput implementations.
- * Uses generic BufferType to avoid code duplication between binary and text formats.
  *
- * @param <BufferType> the type of buffer for attribute values (byte[] for binary, String for text)
+ * <p>Each JDBC {@code writeXxx} call advances to the next composite field and streams that field
+ * straight into the caller-provided sink — the primitive writers ({@code writeInt},
+ * {@code writeLong}, ...) pass their value through the abstract {@code writeFieldXxx} hooks without
+ * boxing, while the object writers funnel through {@code writeFieldObject}. The subclass owns the
+ * framing (composite header/lengths for binary, the {@code (...)} literal for text). Call
+ * {@link #close()} once all attributes are written to finish the framing and check the arity; the
+ * completed value then lives in the sink the caller passed to the subclass constructor. This is an
+ * {@link AutoCloseable}, so the writer is meant to drive it in a try-with-resources block.</p>
  */
-public abstract class PgSQLOutput<BufferType> implements SQLOutput {
+public abstract class PgSQLOutput implements SQLOutput, AutoCloseable {
 
-  protected final List<@Nullable BufferType> attributeValues = new ArrayList<>();
   protected final PgType compositeType;
   protected final PgCodecContext ctx;
   protected final List<PgField> fields;
   protected int fieldIndex = 0;
+  private boolean closed;
 
   /**
    * Creates a new PgSQLOutput.
@@ -98,185 +103,199 @@ public abstract class PgSQLOutput<BufferType> implements SQLOutput {
     if (ctx.isConnectionBound()) {
       return ctx.getTypeInfo().getPgTypeByOid(field.getTypeOid());
     }
-    // Offline: the result is discarded by every concrete encoder (they read the cached per-field
-    // type), so resolve through the context without a type cache. Offline descriptors are PgType.
+    // Offline: resolve through the context without a type cache. Offline descriptors are PgType.
     TypeDescriptor resolved = ctx.resolveType(field.getTypeOid());
     return resolved instanceof PgType ? (PgType) resolved : compositeType;
   }
 
-  /**
-   * Adds a null value to the output.
-   */
-  protected void writeNull() {
-    attributeValues.add(null);
-  }
+  // Abstract per-field hooks implemented by subclasses. The primitive hooks take the value unboxed so
+  // a codec that opts into the primitive encoder capability writes it straight into the sink. All are
+  // called after nextField() has advanced the index, so the subclass reads the just-consumed field.
+
+  /** Writes a SQL NULL for the current field. */
+  protected abstract void writeFieldNull() throws SQLException;
+
+  /** Writes an {@code int} value (also the target of {@code writeByte}/{@code writeShort}). */
+  protected abstract void writeFieldInt(int value) throws SQLException;
+
+  /** Writes a {@code long} value. */
+  protected abstract void writeFieldLong(long value) throws SQLException;
+
+  /** Writes a {@code float} value. */
+  protected abstract void writeFieldFloat(float value) throws SQLException;
+
+  /** Writes a {@code double} value. */
+  protected abstract void writeFieldDouble(double value) throws SQLException;
+
+  /** Writes a {@code boolean} value. */
+  protected abstract void writeFieldBoolean(boolean value) throws SQLException;
+
+  /** Writes a non-null object value, delegating to the field codec. */
+  protected abstract void writeFieldObject(Object value) throws SQLException;
 
   /**
-   * Gets the collected attribute values.
+   * Finishes the composite: checks that every declared attribute was written, then applies the
+   * format-specific finalization ({@link #finish()}). The completed value lives in the sink the
+   * subclass wrote into. Idempotent — a second call is a no-op — so it is safe to drive the writer
+   * in a try-with-resources block.
    *
-   * @return the attribute values (null elements for SQL NULL)
+   * @throws SQLException if fewer (or more) than the composite's attributes were written
    */
-  public List<@Nullable BufferType> getAttributeValues() {
-    return attributeValues;
+  @Override
+  public final void close() throws SQLException {
+    if (closed) {
+      return;
+    }
+    closed = true;
+    if (fieldIndex != fields.size()) {
+      throw new PSQLException(
+          GT.tr("Composite type {0} expects {1} attribute(s), but {2} were written",
+              compositeType.getFullName(), fields.size(), fieldIndex),
+          PSQLState.DATA_ERROR);
+    }
+    finish();
   }
 
-  // Abstract encode methods to be implemented by subclasses
-  protected abstract BufferType encodeInt(int value, PgType fieldType) throws SQLException;
-
-  protected abstract BufferType encodeLong(long value, PgType fieldType) throws SQLException;
-
-  protected abstract BufferType encodeDouble(double value, PgType fieldType) throws SQLException;
-
-  protected abstract BufferType encodeFloat(float value, PgType fieldType) throws SQLException;
-
-  protected abstract BufferType encodeBoolean(boolean value, PgType fieldType) throws SQLException;
-
-  protected abstract BufferType encodeString(String value, PgType fieldType) throws SQLException;
-
-  protected abstract BufferType encodeBigDecimal(BigDecimal value, PgType fieldType) throws SQLException;
-
-  protected abstract BufferType encodeBytes(byte[] value, PgType fieldType) throws SQLException;
-
-  protected abstract BufferType encodeDate(Date value, PgType fieldType) throws SQLException;
-
-  protected abstract BufferType encodeTime(Time value, PgType fieldType) throws SQLException;
-
-  protected abstract BufferType encodeTimestamp(Timestamp value, PgType fieldType) throws SQLException;
-
-  protected abstract BufferType encodeObject(Object value, PgType fieldType) throws SQLException;
+  /**
+   * Format-specific finalization after the last field, run by {@link #close()} once the arity check
+   * passes. The default does nothing (binary needs no trailer); the text form appends the closing
+   * parenthesis.
+   */
+  protected void finish() throws SQLException {
+  }
 
   // SQLOutput implementation methods
 
   @Override
   public void writeString(@Nullable String x) throws SQLException {
-    PgField field = nextField();
+    nextField();
     if (x == null) {
-      writeNull();
+      writeFieldNull();
       return;
     }
-    attributeValues.add(encodeString(x, getFieldType(field)));
+    writeFieldObject(x);
   }
 
   @Override
   public void writeBoolean(boolean x) throws SQLException {
-    PgField field = nextField();
-    attributeValues.add(encodeBoolean(x, getFieldType(field)));
+    nextField();
+    writeFieldBoolean(x);
   }
 
   @Override
   public void writeByte(byte x) throws SQLException {
-    PgField field = nextField();
-    attributeValues.add(encodeInt(x, getFieldType(field)));
+    nextField();
+    writeFieldInt(x);
   }
 
   @Override
   public void writeShort(short x) throws SQLException {
-    PgField field = nextField();
-    attributeValues.add(encodeInt(x, getFieldType(field)));
+    nextField();
+    writeFieldInt(x);
   }
 
   @Override
   public void writeInt(int x) throws SQLException {
-    PgField field = nextField();
-    attributeValues.add(encodeInt(x, getFieldType(field)));
+    nextField();
+    writeFieldInt(x);
   }
 
   @Override
   public void writeLong(long x) throws SQLException {
-    PgField field = nextField();
-    attributeValues.add(encodeLong(x, getFieldType(field)));
+    nextField();
+    writeFieldLong(x);
   }
 
   @Override
   public void writeFloat(float x) throws SQLException {
-    PgField field = nextField();
-    attributeValues.add(encodeFloat(x, getFieldType(field)));
+    nextField();
+    writeFieldFloat(x);
   }
 
   @Override
   public void writeDouble(double x) throws SQLException {
-    PgField field = nextField();
-    attributeValues.add(encodeDouble(x, getFieldType(field)));
+    nextField();
+    writeFieldDouble(x);
   }
 
   @Override
   public void writeBigDecimal(@Nullable BigDecimal x) throws SQLException {
-    PgField field = nextField();
+    nextField();
     if (x == null) {
-      writeNull();
+      writeFieldNull();
       return;
     }
-    attributeValues.add(encodeBigDecimal(x, getFieldType(field)));
+    writeFieldObject(x);
   }
 
   @Override
   public void writeBytes(byte @Nullable [] x) throws SQLException {
-    PgField field = nextField();
+    nextField();
     if (x == null) {
-      writeNull();
+      writeFieldNull();
       return;
     }
-    attributeValues.add(encodeBytes(x, getFieldType(field)));
+    writeFieldObject(x);
   }
 
   @Override
   public void writeDate(@Nullable Date x) throws SQLException {
-    PgField field = nextField();
+    nextField();
     if (x == null) {
-      writeNull();
+      writeFieldNull();
       return;
     }
-    attributeValues.add(encodeDate(x, getFieldType(field)));
+    writeFieldObject(x);
   }
 
   @Override
   public void writeTime(@Nullable Time x) throws SQLException {
-    PgField field = nextField();
+    nextField();
     if (x == null) {
-      writeNull();
+      writeFieldNull();
       return;
     }
-    attributeValues.add(encodeTime(x, getFieldType(field)));
+    writeFieldObject(x);
   }
 
   @Override
   public void writeTimestamp(@Nullable Timestamp x) throws SQLException {
-    PgField field = nextField();
+    nextField();
     if (x == null) {
-      writeNull();
+      writeFieldNull();
       return;
     }
-    attributeValues.add(encodeTimestamp(x, getFieldType(field)));
+    writeFieldObject(x);
   }
 
   @Override
   public void writeCharacterStream(@Nullable Reader x) throws SQLException {
-    PgField field = nextField();
+    nextField();
     if (x == null) {
-      writeNull();
+      writeFieldNull();
       return;
     }
-    attributeValues.add(encodeString(readAll(x), getFieldType(field)));
+    writeFieldObject(readAll(x));
   }
 
   @Override
   public void writeAsciiStream(@Nullable InputStream x) throws SQLException {
-    PgField field = nextField();
+    nextField();
     if (x == null) {
-      writeNull();
+      writeFieldNull();
       return;
     }
-    attributeValues.add(encodeString(new String(readAll(x), US_ASCII), getFieldType(field)));
+    writeFieldObject(new String(readAll(x), US_ASCII));
   }
 
   @Override
   public void writeBinaryStream(@Nullable InputStream x) throws SQLException {
-    PgField field = nextField();
+    nextField();
     if (x == null) {
-      writeNull();
+      writeFieldNull();
       return;
     }
-    attributeValues.add(encodeBytes(readAll(x), getFieldType(field)));
+    writeFieldObject(readAll(x));
   }
 
   /**
@@ -318,12 +337,12 @@ public abstract class PgSQLOutput<BufferType> implements SQLOutput {
 
   @Override
   public void writeObject(@Nullable SQLData x) throws SQLException {
-    PgField field = nextField();
+    nextField();
     if (x == null) {
-      writeNull();
+      writeFieldNull();
       return;
     }
-    attributeValues.add(encodeObject(x, getFieldType(field)));
+    writeFieldObject(x);
   }
 
   @Override
@@ -343,33 +362,33 @@ public abstract class PgSQLOutput<BufferType> implements SQLOutput {
 
   @Override
   public void writeStruct(@Nullable Struct x) throws SQLException {
-    PgField field = nextField();
+    nextField();
     if (x == null) {
-      writeNull();
+      writeFieldNull();
       return;
     }
-    attributeValues.add(encodeObject(x, getFieldType(field)));
+    writeFieldObject(x);
   }
 
   @Override
   public void writeArray(@Nullable Array x) throws SQLException {
-    PgField field = nextField();
+    nextField();
     if (x == null) {
-      writeNull();
+      writeFieldNull();
       return;
     }
-    // Encode array using the encodeObject method which delegates to codec
-    attributeValues.add(encodeObject(x, getFieldType(field)));
+    // Encode array using the object path which delegates to the field codec.
+    writeFieldObject(x);
   }
 
   @Override
   public void writeURL(@Nullable URL x) throws SQLException {
-    PgField field = nextField();
+    nextField();
     if (x == null) {
-      writeNull();
+      writeFieldNull();
       return;
     }
-    attributeValues.add(encodeString(x.toString(), getFieldType(field)));
+    writeFieldObject(x.toString());
   }
 
   @Override
@@ -389,26 +408,34 @@ public abstract class PgSQLOutput<BufferType> implements SQLOutput {
 
   @Override
   public void writeSQLXML(@Nullable SQLXML x) throws SQLException {
-    PgField field = nextField();
+    nextField();
     if (x == null) {
-      writeNull();
+      writeFieldNull();
       return;
     }
     String xml = x.getString();
     if (xml == null) {
-      writeNull();
+      writeFieldNull();
       return;
     }
-    attributeValues.add(encodeString(xml, getFieldType(field)));
+    writeFieldObject(xml);
   }
 
   @Override
   public void writeObject(@Nullable Object x, java.sql.SQLType targetSqlType) throws SQLException {
     PgField field = nextField();
     if (x == null) {
-      writeNull();
+      writeFieldNull();
       return;
     }
-    attributeValues.add(encodeObject(x, getFieldType(field)));
+    // JDBC's writeObject(Object, SQLType) converts the value to targetSqlType before writing it. The
+    // composite field's declared type still owns the wire format — the record framing depends on it
+    // — so targetSqlType only steers the input coercion, the same normalisation
+    // PgPreparedStatement.setObject applies, and a hint that disagrees with the slot simply yields a
+    // value the field codec then rejects. With no usable hint, coerce toward the field's own SQL type
+    // so a bare writeObject behaves like the typed writeInt/writeString paths.
+    Integer vendorType = targetSqlType == null ? null : targetSqlType.getVendorTypeNumber();
+    int coercionType = vendorType != null ? vendorType : getFieldType(field).getSqlType();
+    writeFieldObject(SqlTypeCoercion.coerce(x, coercionType, -1));
   }
 }

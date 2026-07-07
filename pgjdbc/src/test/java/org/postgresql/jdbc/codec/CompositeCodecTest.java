@@ -93,24 +93,6 @@ public class CompositeCodecTest {
   }
 
   @Test
-  void testEncodeBinaryFields() throws Exception {
-    int[] oids = {23, 25}; // int4, text
-    byte[][] fieldData = {null, new byte[]{'h', 'i'}};
-
-    byte[] result = CompositeCodec.encodeBinaryFields(oids, fieldData);
-
-    // Decode it back
-    List<CompositeCodec.DecodedField> decoded = CompositeCodec.decodeBinaryFields(result);
-    assertEquals(2, decoded.size());
-
-    assertEquals(23, decoded.get(0).getTypeOid());
-    assertTrue(decoded.get(0).isNull());
-
-    assertEquals(25, decoded.get(1).getTypeOid());
-    assertArrayEquals(new byte[]{'h', 'i'}, decoded.get(1).getData());
-  }
-
-  @Test
   void testDecodeBinaryFieldsEmpty() throws Exception {
     // Empty composite: just field count = 0
     byte[] data = {0, 0, 0, 0};

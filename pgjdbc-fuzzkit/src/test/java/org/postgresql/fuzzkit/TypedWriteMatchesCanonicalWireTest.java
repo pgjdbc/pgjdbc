@@ -19,6 +19,8 @@ import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.jdbc.PgSQLOutputBinary;
 import org.postgresql.jdbc.PgSQLOutputText;
 import org.postgresql.jdbc.PgType;
+import org.postgresql.jdbc.codec.BackpatchByteArrayOutputStream;
+import org.postgresql.jdbc.codec.CompositeCodec;
 
 import org.junit.jupiter.api.Test;
 
@@ -51,9 +53,9 @@ import java.util.TreeMap;
  * <p>The comparison is on <em>field</em> bytes, so the composite framing is stripped: rather than
  * running the value through {@code Codecs.encode(SQLData, composite, ...)} -- which wraps the field in
  * the composite header (binary) or the {@code (...)} text form -- the write is driven straight through a
- * {@link PgSQLOutputBinary} / {@link PgSQLOutputText} built on the single-field composite, and the field
- * bytes are read back from {@code getAttributeValues().get(0)} before any framing runs. That is exactly
- * the field value the reader adapter is handed on the canonical path.
+ * {@link PgSQLOutputBinary} / {@link PgSQLOutputText} built on the single-field composite, and the single
+ * field is then recovered by stripping the one-field composite framing back off. That is exactly the
+ * field value the reader adapter is handed on the canonical path.
  *
  * <p>Two axes of scalar are covered, split by whether the descriptor carries a typed writer:
  *
@@ -140,25 +142,32 @@ class TypedWriteMatchesCanonicalWireTest {
 
   /**
    * Drives one write into the single-field composite through the format's {@link SQLOutput} and returns
-   * the single field's buffer (a {@code String} for text, a {@code byte[]} for binary) before the
-   * composite framing runs. A diagonal scalar uses its descriptor's {@code typedWriter}; an object-axis
-   * scalar ({@code timetz}/{@code timestamptz}) uses {@code writeObject(value, jdbcType)}.
+   * the single field recovered from the composite framing (a {@code String} for text, a {@code byte[]}
+   * for binary). A diagonal scalar uses its descriptor's {@code typedWriter}; an object-axis scalar
+   * ({@code timetz}/{@code timestamptz}) uses {@code writeObject(value, jdbcType)}.
    */
   private static Object typedFieldValue(ScalarDescriptor descriptor, Object value, PgType comp,
       PgCodecContext ctx, Format format) throws SQLException {
     Method typedWriter = descriptor.typedWriter();
     if (format == Format.TEXT) {
-      PgSQLOutputText out = new PgSQLOutputText(comp, ctx);
-      writeField(out, descriptor, typedWriter, value);
-      List<String> fields = out.getAttributeValues();
-      assertEquals(1, fields.size(), "one field written");
-      return fields.get(0);
+      StringBuilder sb = new StringBuilder();
+      try (PgSQLOutputText out = new PgSQLOutputText(comp, ctx, sb)) {
+        writeField(out, descriptor, typedWriter, value);
+      }
+      // Strip the composite framing back off the single-field literal: parseCompositeText unquotes
+      // and unescapes the field, recovering the exact value the reader adapter is handed.
+      String[] fields = CompositeCodec.parseCompositeText(sb.toString());
+      assertEquals(1, fields.length, "one field written");
+      return fields[0];
     }
-    PgSQLOutputBinary out = new PgSQLOutputBinary(comp, ctx);
-    writeField(out, descriptor, typedWriter, value);
-    List<byte[]> fields = out.getAttributeValues();
+    BackpatchByteArrayOutputStream sink = new BackpatchByteArrayOutputStream();
+    try (PgSQLOutputBinary out = new PgSQLOutputBinary(comp, ctx, sink)) {
+      writeField(out, descriptor, typedWriter, value);
+    }
+    // Strip the composite framing (field count + per-field oid + length) to recover the field bytes.
+    List<CompositeCodec.DecodedField> fields = CompositeCodec.decodeBinaryFields(sink.toByteArray());
     assertEquals(1, fields.size(), "one field written");
-    return fields.get(0);
+    return fields.get(0).getData();
   }
 
   private static void writeField(SQLOutput out, ScalarDescriptor descriptor, Method typedWriter,

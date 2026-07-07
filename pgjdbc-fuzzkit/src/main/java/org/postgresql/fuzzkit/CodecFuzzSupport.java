@@ -663,7 +663,7 @@ public final class CodecFuzzSupport {
     PgType type;
     if (node.anonymous) {
       // An anonymous RECORD is not resolvable by OID; the PgStruct carries its own type so the
-      // encoder can read the fields (CompositeCodec.binaryFieldType prefers the carried type for a
+      // encoder can read the fields (CompositeCodec.fieldTypeFor prefers the carried type for a
       // RECORD field).
       type = new PgType(new ObjectName("pg_catalog", "record"), "record", Oid.RECORD, 'c', 'C', -1,
           0, 0, 0, ',', pgFields);

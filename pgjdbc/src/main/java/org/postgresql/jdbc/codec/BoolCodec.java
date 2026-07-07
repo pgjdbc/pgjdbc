@@ -8,7 +8,7 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
-import org.postgresql.api.codec.StreamingBinaryCodec;
+import org.postgresql.api.codec.PrimitiveBinaryEncoder;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.BooleanTypeUtil;
@@ -28,7 +28,7 @@ import java.sql.SQLException;
  * <p>Based on values accepted by PostgreSQL server:
  * https://www.postgresql.org/docs/current/static/datatype-boolean.html</p>
  */
-public final class BoolCodec implements StreamingBinaryCodec, TextCodec, ArrayElementCodec {
+public final class BoolCodec implements PrimitiveBinaryEncoder, TextCodec, ArrayElementCodec {
 
   public static final BoolCodec INSTANCE = new BoolCodec();
 

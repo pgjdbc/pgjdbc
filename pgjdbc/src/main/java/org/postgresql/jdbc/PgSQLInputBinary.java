@@ -65,7 +65,7 @@ public final class PgSQLInputBinary extends PgSQLInput<byte[]> {
    * @param ctx the codec context
    */
   @SuppressWarnings("argument")
-  public PgSQLInputBinary(byte @Nullable [][] attributeValues, PgType type, PgCodecContext ctx)
+  public PgSQLInputBinary(byte[] @Nullable [] attributeValues, PgType type, PgCodecContext ctx)
       throws SQLException {
     super(attributeValues, type, ctx);
     this.cachedCodecs = new BinaryCodec[fields.size()];
