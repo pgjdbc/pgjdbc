@@ -15,6 +15,10 @@ import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.Codecs;
 import org.postgresql.api.codec.Format;
+import org.postgresql.api.codec.PrimitiveBinaryDecoder;
+import org.postgresql.api.codec.PrimitiveBinaryEncoder;
+import org.postgresql.api.codec.PrimitiveTextDecoder;
+import org.postgresql.api.codec.PrimitiveTextEncoder;
 import org.postgresql.api.codec.RawValue;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
@@ -44,10 +48,12 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.Struct;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 
@@ -248,6 +254,281 @@ public final class CodecFuzzSupport {
       assertArrayEquals(streamed, materialised,
           type.getTypeName() + " " + format + " streamed vs materialised child path");
     }
+  }
+
+  // --- Primitive-capability parity: no-box path == boxing path --------------------------------
+  //
+  // PrimitiveBinaryEncoder/PrimitiveTextEncoder/PrimitiveBinaryDecoder/PrimitiveTextDecoder each
+  // override a boxing default; the whole point is that the override produces the same result. These
+  // oracles assert exactly that, value for value, for whichever capabilities the resolved codec
+  // advertises: the primitive encoder against encodeBinary/encodeText on the box, the primitive
+  // decoder against decodeBinary/decodeText then unbox. The decoders are also fed the value at a
+  // non-zero offset into a padded buffer, so an off-by-one in the new slice arithmetic surfaces.
+
+  /**
+   * Parity oracle for the primitive capabilities on an {@code int}-valued scalar codec (int2, int4).
+   *
+   * @param value the value to check
+   * @param oid the scalar type OID whose codec is under test
+   * @param ctx the offline codec context, which must resolve {@code oid}
+   */
+  public static void intPrimitiveParity(int value, int oid, CodecContext ctx) throws SQLException {
+    PgType type = PgTypeDescriptors.scalar(oid).pgType();
+    Codec codec = ctx.resolveCodec(oid);
+    Integer boxed = value;
+    if (codec instanceof PrimitiveBinaryEncoder) {
+      byte[] viaBox = ((BinaryCodec) codec).encodeBinary(boxed, type, ctx);
+      assertArrayEquals(viaBox, encodeToBytes(sink -> ((PrimitiveBinaryEncoder) codec)
+          .encodeInt(value, type, ctx, sink), type), type.getTypeName() + " encodeInt vs encodeBinary");
+    }
+    if (codec instanceof PrimitiveTextEncoder) {
+      String viaBox = ((TextCodec) codec).encodeText(boxed, type, ctx);
+      assertEquals(viaBox, encodeToText(out -> ((PrimitiveTextEncoder) codec)
+          .encodeInt(value, type, ctx, out), type), type.getTypeName() + " encodeInt vs encodeText");
+    }
+    if (codec instanceof PrimitiveBinaryDecoder) {
+      byte[] wire = ((BinaryCodec) codec).encodeBinary(boxed, type, ctx);
+      int viaBox = ((Number) Objects.requireNonNull(
+          ((BinaryCodec) codec).decodeBinary(wire, type, ctx))).intValue();
+      PrimitiveBinaryDecoder dec = (PrimitiveBinaryDecoder) codec;
+      assertEquals(viaBox, dec.decodeAsInt(wire, 0, wire.length, type, ctx),
+          type.getTypeName() + " decodeAsInt(byte[]) vs decodeBinary");
+      assertEquals(viaBox, dec.decodeAsInt(pad(wire), 3, wire.length, type, ctx),
+          type.getTypeName() + " decodeAsInt(byte[]) honours offset");
+    }
+    if (codec instanceof PrimitiveTextDecoder) {
+      String text = ((TextCodec) codec).encodeText(boxed, type, ctx);
+      int viaBox = ((Number) Objects.requireNonNull(
+          ((TextCodec) codec).decodeText(text, type, ctx))).intValue();
+      PrimitiveTextDecoder dec = (PrimitiveTextDecoder) codec;
+      char[] chars = text.toCharArray();
+      assertEquals(viaBox, dec.decodeAsInt(text, type, ctx),
+          type.getTypeName() + " decodeAsInt(String) vs decodeText");
+      assertEquals(viaBox, dec.decodeAsInt(chars, 0, chars.length, type, ctx),
+          type.getTypeName() + " decodeAsInt(char[]) vs decodeText");
+      assertEquals(viaBox, dec.decodeAsInt(pad(chars), 3, chars.length, type, ctx),
+          type.getTypeName() + " decodeAsInt(char[]) honours offset");
+      assertEquals(viaBox, dec.decodeTextBytesAsInt(text.getBytes(ctx.getCharset()), type, ctx),
+          type.getTypeName() + " decodeTextBytesAsInt vs decodeText");
+    }
+  }
+
+  /**
+   * Parity oracle for the primitive capabilities on a {@code long}-valued scalar codec (int8, oid).
+   *
+   * @param value the value to check
+   * @param oid the scalar type OID whose codec is under test
+   * @param ctx the offline codec context, which must resolve {@code oid}
+   */
+  public static void longPrimitiveParity(long value, int oid, CodecContext ctx) throws SQLException {
+    PgType type = PgTypeDescriptors.scalar(oid).pgType();
+    Codec codec = ctx.resolveCodec(oid);
+    Long boxed = value;
+    if (codec instanceof PrimitiveBinaryEncoder) {
+      byte[] viaBox = ((BinaryCodec) codec).encodeBinary(boxed, type, ctx);
+      assertArrayEquals(viaBox, encodeToBytes(sink -> ((PrimitiveBinaryEncoder) codec)
+          .encodeLong(value, type, ctx, sink), type), type.getTypeName() + " encodeLong vs encodeBinary");
+    }
+    if (codec instanceof PrimitiveTextEncoder) {
+      String viaBox = ((TextCodec) codec).encodeText(boxed, type, ctx);
+      assertEquals(viaBox, encodeToText(out -> ((PrimitiveTextEncoder) codec)
+          .encodeLong(value, type, ctx, out), type), type.getTypeName() + " encodeLong vs encodeText");
+    }
+    if (codec instanceof PrimitiveBinaryDecoder) {
+      byte[] wire = ((BinaryCodec) codec).encodeBinary(boxed, type, ctx);
+      long viaBox = ((Number) Objects.requireNonNull(
+          ((BinaryCodec) codec).decodeBinary(wire, type, ctx))).longValue();
+      PrimitiveBinaryDecoder dec = (PrimitiveBinaryDecoder) codec;
+      assertEquals(viaBox, dec.decodeAsLong(wire, 0, wire.length, type, ctx),
+          type.getTypeName() + " decodeAsLong(byte[]) vs decodeBinary");
+      assertEquals(viaBox, dec.decodeAsLong(pad(wire), 3, wire.length, type, ctx),
+          type.getTypeName() + " decodeAsLong(byte[]) honours offset");
+    }
+    if (codec instanceof PrimitiveTextDecoder) {
+      String text = ((TextCodec) codec).encodeText(boxed, type, ctx);
+      long viaBox = ((Number) Objects.requireNonNull(
+          ((TextCodec) codec).decodeText(text, type, ctx))).longValue();
+      PrimitiveTextDecoder dec = (PrimitiveTextDecoder) codec;
+      char[] chars = text.toCharArray();
+      assertEquals(viaBox, dec.decodeAsLong(text, type, ctx),
+          type.getTypeName() + " decodeAsLong(String) vs decodeText");
+      assertEquals(viaBox, dec.decodeAsLong(chars, 0, chars.length, type, ctx),
+          type.getTypeName() + " decodeAsLong(char[]) vs decodeText");
+      assertEquals(viaBox, dec.decodeAsLong(pad(chars), 3, chars.length, type, ctx),
+          type.getTypeName() + " decodeAsLong(char[]) honours offset");
+      assertEquals(viaBox, dec.decodeTextBytesAsLong(text.getBytes(ctx.getCharset()), type, ctx),
+          type.getTypeName() + " decodeTextBytesAsLong vs decodeText");
+    }
+  }
+
+  /**
+   * Parity oracle for the primitive capabilities on a {@code float}-valued scalar codec (float4).
+   *
+   * @param value the value to check
+   * @param oid the scalar type OID whose codec is under test
+   * @param ctx the offline codec context, which must resolve {@code oid}
+   */
+  public static void floatPrimitiveParity(float value, int oid, CodecContext ctx) throws SQLException {
+    PgType type = PgTypeDescriptors.scalar(oid).pgType();
+    Codec codec = ctx.resolveCodec(oid);
+    Float boxed = value;
+    if (codec instanceof PrimitiveBinaryEncoder) {
+      byte[] viaBox = ((BinaryCodec) codec).encodeBinary(boxed, type, ctx);
+      assertArrayEquals(viaBox, encodeToBytes(sink -> ((PrimitiveBinaryEncoder) codec)
+          .encodeFloat(value, type, ctx, sink), type), type.getTypeName() + " encodeFloat vs encodeBinary");
+    }
+    if (codec instanceof PrimitiveTextEncoder) {
+      String viaBox = ((TextCodec) codec).encodeText(boxed, type, ctx);
+      assertEquals(viaBox, encodeToText(out -> ((PrimitiveTextEncoder) codec)
+          .encodeFloat(value, type, ctx, out), type), type.getTypeName() + " encodeFloat vs encodeText");
+    }
+    if (codec instanceof PrimitiveBinaryDecoder) {
+      byte[] wire = ((BinaryCodec) codec).encodeBinary(boxed, type, ctx);
+      float viaBox = ((Number) Objects.requireNonNull(
+          ((BinaryCodec) codec).decodeBinary(wire, type, ctx))).floatValue();
+      PrimitiveBinaryDecoder dec = (PrimitiveBinaryDecoder) codec;
+      assertEquals(viaBox, dec.decodeAsFloat(wire, 0, wire.length, type, ctx),
+          type.getTypeName() + " decodeAsFloat(byte[]) vs decodeBinary");
+      assertEquals(viaBox, dec.decodeAsFloat(pad(wire), 3, wire.length, type, ctx),
+          type.getTypeName() + " decodeAsFloat(byte[]) honours offset");
+    }
+    if (codec instanceof PrimitiveTextDecoder) {
+      String text = ((TextCodec) codec).encodeText(boxed, type, ctx);
+      float viaBox = ((Number) Objects.requireNonNull(
+          ((TextCodec) codec).decodeText(text, type, ctx))).floatValue();
+      PrimitiveTextDecoder dec = (PrimitiveTextDecoder) codec;
+      char[] chars = text.toCharArray();
+      assertEquals(viaBox, dec.decodeAsFloat(text, type, ctx),
+          type.getTypeName() + " decodeAsFloat(String) vs decodeText");
+      assertEquals(viaBox, dec.decodeAsFloat(chars, 0, chars.length, type, ctx),
+          type.getTypeName() + " decodeAsFloat(char[]) vs decodeText");
+    }
+  }
+
+  /**
+   * Parity oracle for the primitive capabilities on a {@code double}-valued scalar codec (float8).
+   *
+   * @param value the value to check
+   * @param oid the scalar type OID whose codec is under test
+   * @param ctx the offline codec context, which must resolve {@code oid}
+   */
+  public static void doublePrimitiveParity(double value, int oid, CodecContext ctx) throws SQLException {
+    PgType type = PgTypeDescriptors.scalar(oid).pgType();
+    Codec codec = ctx.resolveCodec(oid);
+    Double boxed = value;
+    if (codec instanceof PrimitiveBinaryEncoder) {
+      byte[] viaBox = ((BinaryCodec) codec).encodeBinary(boxed, type, ctx);
+      assertArrayEquals(viaBox, encodeToBytes(sink -> ((PrimitiveBinaryEncoder) codec)
+          .encodeDouble(value, type, ctx, sink), type), type.getTypeName() + " encodeDouble vs encodeBinary");
+    }
+    if (codec instanceof PrimitiveTextEncoder) {
+      String viaBox = ((TextCodec) codec).encodeText(boxed, type, ctx);
+      assertEquals(viaBox, encodeToText(out -> ((PrimitiveTextEncoder) codec)
+          .encodeDouble(value, type, ctx, out), type), type.getTypeName() + " encodeDouble vs encodeText");
+    }
+    if (codec instanceof PrimitiveBinaryDecoder) {
+      byte[] wire = ((BinaryCodec) codec).encodeBinary(boxed, type, ctx);
+      double viaBox = ((Number) Objects.requireNonNull(
+          ((BinaryCodec) codec).decodeBinary(wire, type, ctx))).doubleValue();
+      PrimitiveBinaryDecoder dec = (PrimitiveBinaryDecoder) codec;
+      assertEquals(viaBox, dec.decodeAsDouble(wire, 0, wire.length, type, ctx),
+          type.getTypeName() + " decodeAsDouble(byte[]) vs decodeBinary");
+      assertEquals(viaBox, dec.decodeAsDouble(pad(wire), 3, wire.length, type, ctx),
+          type.getTypeName() + " decodeAsDouble(byte[]) honours offset");
+    }
+    if (codec instanceof PrimitiveTextDecoder) {
+      String text = ((TextCodec) codec).encodeText(boxed, type, ctx);
+      double viaBox = ((Number) Objects.requireNonNull(
+          ((TextCodec) codec).decodeText(text, type, ctx))).doubleValue();
+      PrimitiveTextDecoder dec = (PrimitiveTextDecoder) codec;
+      char[] chars = text.toCharArray();
+      assertEquals(viaBox, dec.decodeAsDouble(text, type, ctx),
+          type.getTypeName() + " decodeAsDouble(String) vs decodeText");
+      assertEquals(viaBox, dec.decodeAsDouble(chars, 0, chars.length, type, ctx),
+          type.getTypeName() + " decodeAsDouble(char[]) vs decodeText");
+    }
+  }
+
+  /**
+   * Parity oracle for the primitive decode capabilities on a {@code boolean}-valued scalar codec
+   * (bool). There is no primitive boolean encode -- neither {@code PrimitiveBinaryEncoder} nor
+   * {@code PrimitiveTextEncoder} carries a boolean writer, so a boolean always encodes through the
+   * boxing {@code encodeBinary(Boolean)} / {@code encodeText(Boolean)} path.
+   *
+   * @param value the value to check
+   * @param oid the scalar type OID whose codec is under test
+   * @param ctx the offline codec context, which must resolve {@code oid}
+   */
+  public static void booleanPrimitiveParity(boolean value, int oid, CodecContext ctx) throws SQLException {
+    PgType type = PgTypeDescriptors.scalar(oid).pgType();
+    Codec codec = ctx.resolveCodec(oid);
+    Boolean boxed = value;
+    if (codec instanceof PrimitiveBinaryDecoder) {
+      byte[] wire = ((BinaryCodec) codec).encodeBinary(boxed, type, ctx);
+      boolean viaBox = (Boolean) Objects.requireNonNull(
+          ((BinaryCodec) codec).decodeBinary(wire, type, ctx));
+      PrimitiveBinaryDecoder dec = (PrimitiveBinaryDecoder) codec;
+      assertEquals(viaBox, dec.decodeAsBoolean(wire, 0, wire.length, type, ctx),
+          type.getTypeName() + " decodeAsBoolean(byte[]) vs decodeBinary");
+      assertEquals(viaBox, dec.decodeAsBoolean(pad(wire), 3, wire.length, type, ctx),
+          type.getTypeName() + " decodeAsBoolean(byte[]) honours offset");
+    }
+    if (codec instanceof PrimitiveTextDecoder) {
+      String text = ((TextCodec) codec).encodeText(boxed, type, ctx);
+      boolean viaBox = (Boolean) Objects.requireNonNull(
+          ((TextCodec) codec).decodeText(text, type, ctx));
+      PrimitiveTextDecoder dec = (PrimitiveTextDecoder) codec;
+      char[] chars = text.toCharArray();
+      assertEquals(viaBox, dec.decodeAsBoolean(text, type, ctx),
+          type.getTypeName() + " decodeAsBoolean(String) vs decodeText");
+      assertEquals(viaBox, dec.decodeAsBoolean(chars, 0, chars.length, type, ctx),
+          type.getTypeName() + " decodeAsBoolean(char[]) vs decodeText");
+    }
+  }
+
+  /** A primitive binary encode driven into a fresh sink, as the raw value bytes. */
+  private interface BinaryEncode {
+    void writeTo(BackpatchByteArrayOutputStream sink) throws SQLException, IOException;
+  }
+
+  /** A primitive text encode driven into a fresh buffer. */
+  private interface TextEncode {
+    void writeTo(StringBuilder out) throws SQLException, IOException;
+  }
+
+  private static byte[] encodeToBytes(BinaryEncode encode, PgType type) throws SQLException {
+    BackpatchByteArrayOutputStream sink = new BackpatchByteArrayOutputStream();
+    try {
+      encode.writeTo(sink);
+    } catch (IOException e) {
+      throw new AssertionError(type.getTypeName() + " primitive binary encode threw IOException", e);
+    }
+    return sink.toByteArray();
+  }
+
+  private static String encodeToText(TextEncode encode, PgType type) throws SQLException {
+    StringBuilder out = new StringBuilder();
+    try {
+      encode.writeTo(out);
+    } catch (IOException e) {
+      throw new AssertionError(type.getTypeName() + " primitive text encode threw IOException", e);
+    }
+    return out.toString();
+  }
+
+  /** Copies {@code data} to offset 3 of a 5-byte-larger buffer, so a slice decode must skip the pad. */
+  private static byte[] pad(byte[] data) {
+    byte[] padded = new byte[3 + data.length + 2];
+    System.arraycopy(data, 0, padded, 3, data.length);
+    return padded;
+  }
+
+  /** Copies {@code data} to offset 3 of a buffer padded with a non-digit, catching an over-read. */
+  private static char[] pad(char[] data) {
+    char[] padded = new char[3 + data.length + 2];
+    Arrays.fill(padded, 'x');
+    System.arraycopy(data, 0, padded, 3, data.length);
+    return padded;
   }
 
   /**
