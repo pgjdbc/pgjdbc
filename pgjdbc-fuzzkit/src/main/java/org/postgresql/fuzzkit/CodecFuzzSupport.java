@@ -256,14 +256,23 @@ public final class CodecFuzzSupport {
     }
   }
 
-  // --- Primitive-capability parity: no-box path == boxing path --------------------------------
+  // --- Primitive-capability parity: no-box path has the same OUTCOME as the boxing path ----------
   //
   // PrimitiveBinaryEncoder/PrimitiveTextEncoder/PrimitiveBinaryDecoder/PrimitiveTextDecoder each
-  // override a boxing default; the whole point is that the override produces the same result. These
-  // oracles assert exactly that, value for value, for whichever capabilities the resolved codec
-  // advertises: the primitive encoder against encodeBinary/encodeText on the box, the primitive
-  // decoder against decodeBinary/decodeText then unbox. The decoders are also fed the value at a
-  // non-zero offset into a padded buffer, so an off-by-one in the new slice arithmetic surfaces.
+  // override a boxing default; the whole point is that the override produces the same OUTCOME -- the
+  // same bytes/value on success, AND the same failure on a bad input. These oracles compare outcomes
+  // (see assertSameOutcome), so encoding a value out of the codec's range must throw on both the
+  // primitive and the boxing path, with the same SQLState, or the property fails. The generators feed
+  // the range-checked codecs their wider type (an int to int2, a long to int4) so the overflow path
+  // is actually reached, and each text decode parses toString(value) so an out-of-range value yields
+  // out-of-range text both paths must reject alike.
+  //
+  // Only the codec's own width is checked (int2/int4 -> int, int8 -> long, ...). A narrowing accessor
+  // (int8.decodeAsInt, float8.decodeAsLong) is deliberately NOT compared here: its whole reason to
+  // exist is to add a range check the boxing default lacks -- Long.intValue() truncates, the override
+  // throws -- so there the two are meant to differ. The decoders are also fed the value at a non-zero
+  // offset into a padded buffer, and a truncated wire, so a slice off-by-one or a missing length check
+  // surfaces.
 
   /**
    * Parity oracle for the primitive capabilities on an {@code int}-valued scalar codec (int2, int4).
@@ -276,40 +285,50 @@ public final class CodecFuzzSupport {
     PgType type = PgTypeDescriptors.scalar(oid).pgType();
     Codec codec = ctx.resolveCodec(oid);
     Integer boxed = value;
+    String name = type.getTypeName().toString();
     if (codec instanceof PrimitiveBinaryEncoder) {
-      byte[] viaBox = ((BinaryCodec) codec).encodeBinary(boxed, type, ctx);
-      assertArrayEquals(viaBox, encodeToBytes(sink -> ((PrimitiveBinaryEncoder) codec)
-          .encodeInt(value, type, ctx, sink), type), type.getTypeName() + " encodeInt vs encodeBinary");
+      PrimitiveBinaryEncoder enc = (PrimitiveBinaryEncoder) codec;
+      assertSameOutcome(name + " encodeInt(binary) vs encodeBinary",
+          Outcome.capture(() -> ((BinaryCodec) codec).encodeBinary(boxed, type, ctx)),
+          Outcome.capture(() -> encodeToBytes(sink -> enc.encodeInt(value, type, ctx, sink), type)));
     }
     if (codec instanceof PrimitiveTextEncoder) {
-      String viaBox = ((TextCodec) codec).encodeText(boxed, type, ctx);
-      assertEquals(viaBox, encodeToText(out -> ((PrimitiveTextEncoder) codec)
-          .encodeInt(value, type, ctx, out), type), type.getTypeName() + " encodeInt vs encodeText");
+      PrimitiveTextEncoder enc = (PrimitiveTextEncoder) codec;
+      assertSameOutcome(name + " encodeInt(text) vs encodeText",
+          Outcome.capture(() -> ((TextCodec) codec).encodeText(boxed, type, ctx)),
+          Outcome.capture(() -> encodeToText(out -> enc.encodeInt(value, type, ctx, out), type)));
     }
     if (codec instanceof PrimitiveBinaryDecoder) {
-      byte[] wire = ((BinaryCodec) codec).encodeBinary(boxed, type, ctx);
-      int viaBox = ((Number) Objects.requireNonNull(
-          ((BinaryCodec) codec).decodeBinary(wire, type, ctx))).intValue();
       PrimitiveBinaryDecoder dec = (PrimitiveBinaryDecoder) codec;
-      assertEquals(viaBox, dec.decodeAsInt(wire, 0, wire.length, type, ctx),
-          type.getTypeName() + " decodeAsInt(byte[]) vs decodeBinary");
-      assertEquals(viaBox, dec.decodeAsInt(pad(wire), 3, wire.length, type, ctx),
-          type.getTypeName() + " decodeAsInt(byte[]) honours offset");
+      byte[] wire = tryEncodeBinary((BinaryCodec) codec, boxed, type, ctx);
+      if (wire != null) {
+        assertSameOutcome(name + " decodeAsInt(byte[]) vs decodeBinary",
+            Outcome.capture(() -> intOf(((BinaryCodec) codec).decodeBinary(wire, type, ctx))),
+            Outcome.capture(() -> dec.decodeAsInt(wire, 0, wire.length, type, ctx)));
+        assertEquals(dec.decodeAsInt(wire, 0, wire.length, type, ctx),
+            dec.decodeAsInt(pad(wire), 3, wire.length, type, ctx),
+            name + " decodeAsInt(byte[]) honours offset");
+        if (wire.length > 1) {
+          byte[] shortWire = Arrays.copyOf(wire, wire.length - 1);
+          assertSameOutcome(name + " decodeAsInt(byte[]) rejects a short wire",
+              Outcome.capture(() -> intOf(((BinaryCodec) codec).decodeBinary(shortWire, type, ctx))),
+              Outcome.capture(() -> dec.decodeAsInt(shortWire, 0, shortWire.length, type, ctx)));
+        }
+      }
     }
     if (codec instanceof PrimitiveTextDecoder) {
-      String text = ((TextCodec) codec).encodeText(boxed, type, ctx);
-      int viaBox = ((Number) Objects.requireNonNull(
-          ((TextCodec) codec).decodeText(text, type, ctx))).intValue();
       PrimitiveTextDecoder dec = (PrimitiveTextDecoder) codec;
+      String text = Integer.toString(value);
       char[] chars = text.toCharArray();
-      assertEquals(viaBox, dec.decodeAsInt(text, type, ctx),
-          type.getTypeName() + " decodeAsInt(String) vs decodeText");
-      assertEquals(viaBox, dec.decodeAsInt(chars, 0, chars.length, type, ctx),
-          type.getTypeName() + " decodeAsInt(char[]) vs decodeText");
-      assertEquals(viaBox, dec.decodeAsInt(pad(chars), 3, chars.length, type, ctx),
-          type.getTypeName() + " decodeAsInt(char[]) honours offset");
-      assertEquals(viaBox, dec.decodeTextBytesAsInt(text.getBytes(ctx.getCharset()), type, ctx),
-          type.getTypeName() + " decodeTextBytesAsInt vs decodeText");
+      Outcome viaText = Outcome.capture(() -> intOf(((TextCodec) codec).decodeText(text, type, ctx)));
+      assertSameOutcome(name + " decodeAsInt(String) vs decodeText", viaText,
+          Outcome.capture(() -> dec.decodeAsInt(text, type, ctx)));
+      assertSameOutcome(name + " decodeAsInt(char[]) vs decodeText", viaText,
+          Outcome.capture(() -> dec.decodeAsInt(chars, 0, chars.length, type, ctx)));
+      assertSameOutcome(name + " decodeAsInt(char[]) at offset vs decodeText", viaText,
+          Outcome.capture(() -> dec.decodeAsInt(pad(chars), 3, chars.length, type, ctx)));
+      assertSameOutcome(name + " decodeTextBytesAsInt vs decodeText", viaText,
+          Outcome.capture(() -> dec.decodeTextBytesAsInt(text.getBytes(ctx.getCharset()), type, ctx)));
     }
   }
 
@@ -324,40 +343,50 @@ public final class CodecFuzzSupport {
     PgType type = PgTypeDescriptors.scalar(oid).pgType();
     Codec codec = ctx.resolveCodec(oid);
     Long boxed = value;
+    String name = type.getTypeName().toString();
     if (codec instanceof PrimitiveBinaryEncoder) {
-      byte[] viaBox = ((BinaryCodec) codec).encodeBinary(boxed, type, ctx);
-      assertArrayEquals(viaBox, encodeToBytes(sink -> ((PrimitiveBinaryEncoder) codec)
-          .encodeLong(value, type, ctx, sink), type), type.getTypeName() + " encodeLong vs encodeBinary");
+      PrimitiveBinaryEncoder enc = (PrimitiveBinaryEncoder) codec;
+      assertSameOutcome(name + " encodeLong(binary) vs encodeBinary",
+          Outcome.capture(() -> ((BinaryCodec) codec).encodeBinary(boxed, type, ctx)),
+          Outcome.capture(() -> encodeToBytes(sink -> enc.encodeLong(value, type, ctx, sink), type)));
     }
     if (codec instanceof PrimitiveTextEncoder) {
-      String viaBox = ((TextCodec) codec).encodeText(boxed, type, ctx);
-      assertEquals(viaBox, encodeToText(out -> ((PrimitiveTextEncoder) codec)
-          .encodeLong(value, type, ctx, out), type), type.getTypeName() + " encodeLong vs encodeText");
+      PrimitiveTextEncoder enc = (PrimitiveTextEncoder) codec;
+      assertSameOutcome(name + " encodeLong(text) vs encodeText",
+          Outcome.capture(() -> ((TextCodec) codec).encodeText(boxed, type, ctx)),
+          Outcome.capture(() -> encodeToText(out -> enc.encodeLong(value, type, ctx, out), type)));
     }
     if (codec instanceof PrimitiveBinaryDecoder) {
-      byte[] wire = ((BinaryCodec) codec).encodeBinary(boxed, type, ctx);
-      long viaBox = ((Number) Objects.requireNonNull(
-          ((BinaryCodec) codec).decodeBinary(wire, type, ctx))).longValue();
       PrimitiveBinaryDecoder dec = (PrimitiveBinaryDecoder) codec;
-      assertEquals(viaBox, dec.decodeAsLong(wire, 0, wire.length, type, ctx),
-          type.getTypeName() + " decodeAsLong(byte[]) vs decodeBinary");
-      assertEquals(viaBox, dec.decodeAsLong(pad(wire), 3, wire.length, type, ctx),
-          type.getTypeName() + " decodeAsLong(byte[]) honours offset");
+      byte[] wire = tryEncodeBinary((BinaryCodec) codec, boxed, type, ctx);
+      if (wire != null) {
+        assertSameOutcome(name + " decodeAsLong(byte[]) vs decodeBinary",
+            Outcome.capture(() -> longOf(((BinaryCodec) codec).decodeBinary(wire, type, ctx))),
+            Outcome.capture(() -> dec.decodeAsLong(wire, 0, wire.length, type, ctx)));
+        assertEquals(dec.decodeAsLong(wire, 0, wire.length, type, ctx),
+            dec.decodeAsLong(pad(wire), 3, wire.length, type, ctx),
+            name + " decodeAsLong(byte[]) honours offset");
+        if (wire.length > 1) {
+          byte[] shortWire = Arrays.copyOf(wire, wire.length - 1);
+          assertSameOutcome(name + " decodeAsLong(byte[]) rejects a short wire",
+              Outcome.capture(() -> longOf(((BinaryCodec) codec).decodeBinary(shortWire, type, ctx))),
+              Outcome.capture(() -> dec.decodeAsLong(shortWire, 0, shortWire.length, type, ctx)));
+        }
+      }
     }
     if (codec instanceof PrimitiveTextDecoder) {
-      String text = ((TextCodec) codec).encodeText(boxed, type, ctx);
-      long viaBox = ((Number) Objects.requireNonNull(
-          ((TextCodec) codec).decodeText(text, type, ctx))).longValue();
       PrimitiveTextDecoder dec = (PrimitiveTextDecoder) codec;
+      String text = Long.toString(value);
       char[] chars = text.toCharArray();
-      assertEquals(viaBox, dec.decodeAsLong(text, type, ctx),
-          type.getTypeName() + " decodeAsLong(String) vs decodeText");
-      assertEquals(viaBox, dec.decodeAsLong(chars, 0, chars.length, type, ctx),
-          type.getTypeName() + " decodeAsLong(char[]) vs decodeText");
-      assertEquals(viaBox, dec.decodeAsLong(pad(chars), 3, chars.length, type, ctx),
-          type.getTypeName() + " decodeAsLong(char[]) honours offset");
-      assertEquals(viaBox, dec.decodeTextBytesAsLong(text.getBytes(ctx.getCharset()), type, ctx),
-          type.getTypeName() + " decodeTextBytesAsLong vs decodeText");
+      Outcome viaText = Outcome.capture(() -> longOf(((TextCodec) codec).decodeText(text, type, ctx)));
+      assertSameOutcome(name + " decodeAsLong(String) vs decodeText", viaText,
+          Outcome.capture(() -> dec.decodeAsLong(text, type, ctx)));
+      assertSameOutcome(name + " decodeAsLong(char[]) vs decodeText", viaText,
+          Outcome.capture(() -> dec.decodeAsLong(chars, 0, chars.length, type, ctx)));
+      assertSameOutcome(name + " decodeAsLong(char[]) at offset vs decodeText", viaText,
+          Outcome.capture(() -> dec.decodeAsLong(pad(chars), 3, chars.length, type, ctx)));
+      assertSameOutcome(name + " decodeTextBytesAsLong vs decodeText", viaText,
+          Outcome.capture(() -> dec.decodeTextBytesAsLong(text.getBytes(ctx.getCharset()), type, ctx)));
     }
   }
 
@@ -372,36 +401,48 @@ public final class CodecFuzzSupport {
     PgType type = PgTypeDescriptors.scalar(oid).pgType();
     Codec codec = ctx.resolveCodec(oid);
     Float boxed = value;
+    String name = type.getTypeName().toString();
     if (codec instanceof PrimitiveBinaryEncoder) {
-      byte[] viaBox = ((BinaryCodec) codec).encodeBinary(boxed, type, ctx);
-      assertArrayEquals(viaBox, encodeToBytes(sink -> ((PrimitiveBinaryEncoder) codec)
-          .encodeFloat(value, type, ctx, sink), type), type.getTypeName() + " encodeFloat vs encodeBinary");
+      PrimitiveBinaryEncoder enc = (PrimitiveBinaryEncoder) codec;
+      assertSameOutcome(name + " encodeFloat(binary) vs encodeBinary",
+          Outcome.capture(() -> ((BinaryCodec) codec).encodeBinary(boxed, type, ctx)),
+          Outcome.capture(() -> encodeToBytes(sink -> enc.encodeFloat(value, type, ctx, sink), type)));
     }
     if (codec instanceof PrimitiveTextEncoder) {
-      String viaBox = ((TextCodec) codec).encodeText(boxed, type, ctx);
-      assertEquals(viaBox, encodeToText(out -> ((PrimitiveTextEncoder) codec)
-          .encodeFloat(value, type, ctx, out), type), type.getTypeName() + " encodeFloat vs encodeText");
+      PrimitiveTextEncoder enc = (PrimitiveTextEncoder) codec;
+      assertSameOutcome(name + " encodeFloat(text) vs encodeText",
+          Outcome.capture(() -> ((TextCodec) codec).encodeText(boxed, type, ctx)),
+          Outcome.capture(() -> encodeToText(out -> enc.encodeFloat(value, type, ctx, out), type)));
     }
     if (codec instanceof PrimitiveBinaryDecoder) {
-      byte[] wire = ((BinaryCodec) codec).encodeBinary(boxed, type, ctx);
-      float viaBox = ((Number) Objects.requireNonNull(
-          ((BinaryCodec) codec).decodeBinary(wire, type, ctx))).floatValue();
       PrimitiveBinaryDecoder dec = (PrimitiveBinaryDecoder) codec;
-      assertEquals(viaBox, dec.decodeAsFloat(wire, 0, wire.length, type, ctx),
-          type.getTypeName() + " decodeAsFloat(byte[]) vs decodeBinary");
-      assertEquals(viaBox, dec.decodeAsFloat(pad(wire), 3, wire.length, type, ctx),
-          type.getTypeName() + " decodeAsFloat(byte[]) honours offset");
+      byte[] wire = tryEncodeBinary((BinaryCodec) codec, boxed, type, ctx);
+      if (wire != null) {
+        assertSameOutcome(name + " decodeAsFloat(byte[]) vs decodeBinary",
+            Outcome.capture(() -> floatOf(((BinaryCodec) codec).decodeBinary(wire, type, ctx))),
+            Outcome.capture(() -> dec.decodeAsFloat(wire, 0, wire.length, type, ctx)));
+        assertEquals(dec.decodeAsFloat(wire, 0, wire.length, type, ctx),
+            dec.decodeAsFloat(pad(wire), 3, wire.length, type, ctx),
+            name + " decodeAsFloat(byte[]) honours offset");
+        if (wire.length > 1) {
+          byte[] shortWire = Arrays.copyOf(wire, wire.length - 1);
+          assertSameOutcome(name + " decodeAsFloat(byte[]) rejects a short wire",
+              Outcome.capture(() -> floatOf(((BinaryCodec) codec).decodeBinary(shortWire, type, ctx))),
+              Outcome.capture(() -> dec.decodeAsFloat(shortWire, 0, shortWire.length, type, ctx)));
+        }
+      }
     }
     if (codec instanceof PrimitiveTextDecoder) {
-      String text = ((TextCodec) codec).encodeText(boxed, type, ctx);
-      float viaBox = ((Number) Objects.requireNonNull(
-          ((TextCodec) codec).decodeText(text, type, ctx))).floatValue();
       PrimitiveTextDecoder dec = (PrimitiveTextDecoder) codec;
+      String text = Float.toString(value);
       char[] chars = text.toCharArray();
-      assertEquals(viaBox, dec.decodeAsFloat(text, type, ctx),
-          type.getTypeName() + " decodeAsFloat(String) vs decodeText");
-      assertEquals(viaBox, dec.decodeAsFloat(chars, 0, chars.length, type, ctx),
-          type.getTypeName() + " decodeAsFloat(char[]) vs decodeText");
+      Outcome viaText = Outcome.capture(() -> floatOf(((TextCodec) codec).decodeText(text, type, ctx)));
+      assertSameOutcome(name + " decodeAsFloat(String) vs decodeText", viaText,
+          Outcome.capture(() -> dec.decodeAsFloat(text, type, ctx)));
+      assertSameOutcome(name + " decodeAsFloat(char[]) vs decodeText", viaText,
+          Outcome.capture(() -> dec.decodeAsFloat(chars, 0, chars.length, type, ctx)));
+      assertSameOutcome(name + " decodeAsFloat(char[]) at offset vs decodeText", viaText,
+          Outcome.capture(() -> dec.decodeAsFloat(pad(chars), 3, chars.length, type, ctx)));
     }
   }
 
@@ -416,36 +457,48 @@ public final class CodecFuzzSupport {
     PgType type = PgTypeDescriptors.scalar(oid).pgType();
     Codec codec = ctx.resolveCodec(oid);
     Double boxed = value;
+    String name = type.getTypeName().toString();
     if (codec instanceof PrimitiveBinaryEncoder) {
-      byte[] viaBox = ((BinaryCodec) codec).encodeBinary(boxed, type, ctx);
-      assertArrayEquals(viaBox, encodeToBytes(sink -> ((PrimitiveBinaryEncoder) codec)
-          .encodeDouble(value, type, ctx, sink), type), type.getTypeName() + " encodeDouble vs encodeBinary");
+      PrimitiveBinaryEncoder enc = (PrimitiveBinaryEncoder) codec;
+      assertSameOutcome(name + " encodeDouble(binary) vs encodeBinary",
+          Outcome.capture(() -> ((BinaryCodec) codec).encodeBinary(boxed, type, ctx)),
+          Outcome.capture(() -> encodeToBytes(sink -> enc.encodeDouble(value, type, ctx, sink), type)));
     }
     if (codec instanceof PrimitiveTextEncoder) {
-      String viaBox = ((TextCodec) codec).encodeText(boxed, type, ctx);
-      assertEquals(viaBox, encodeToText(out -> ((PrimitiveTextEncoder) codec)
-          .encodeDouble(value, type, ctx, out), type), type.getTypeName() + " encodeDouble vs encodeText");
+      PrimitiveTextEncoder enc = (PrimitiveTextEncoder) codec;
+      assertSameOutcome(name + " encodeDouble(text) vs encodeText",
+          Outcome.capture(() -> ((TextCodec) codec).encodeText(boxed, type, ctx)),
+          Outcome.capture(() -> encodeToText(out -> enc.encodeDouble(value, type, ctx, out), type)));
     }
     if (codec instanceof PrimitiveBinaryDecoder) {
-      byte[] wire = ((BinaryCodec) codec).encodeBinary(boxed, type, ctx);
-      double viaBox = ((Number) Objects.requireNonNull(
-          ((BinaryCodec) codec).decodeBinary(wire, type, ctx))).doubleValue();
       PrimitiveBinaryDecoder dec = (PrimitiveBinaryDecoder) codec;
-      assertEquals(viaBox, dec.decodeAsDouble(wire, 0, wire.length, type, ctx),
-          type.getTypeName() + " decodeAsDouble(byte[]) vs decodeBinary");
-      assertEquals(viaBox, dec.decodeAsDouble(pad(wire), 3, wire.length, type, ctx),
-          type.getTypeName() + " decodeAsDouble(byte[]) honours offset");
+      byte[] wire = tryEncodeBinary((BinaryCodec) codec, boxed, type, ctx);
+      if (wire != null) {
+        assertSameOutcome(name + " decodeAsDouble(byte[]) vs decodeBinary",
+            Outcome.capture(() -> doubleOf(((BinaryCodec) codec).decodeBinary(wire, type, ctx))),
+            Outcome.capture(() -> dec.decodeAsDouble(wire, 0, wire.length, type, ctx)));
+        assertEquals(dec.decodeAsDouble(wire, 0, wire.length, type, ctx),
+            dec.decodeAsDouble(pad(wire), 3, wire.length, type, ctx),
+            name + " decodeAsDouble(byte[]) honours offset");
+        if (wire.length > 1) {
+          byte[] shortWire = Arrays.copyOf(wire, wire.length - 1);
+          assertSameOutcome(name + " decodeAsDouble(byte[]) rejects a short wire",
+              Outcome.capture(() -> doubleOf(((BinaryCodec) codec).decodeBinary(shortWire, type, ctx))),
+              Outcome.capture(() -> dec.decodeAsDouble(shortWire, 0, shortWire.length, type, ctx)));
+        }
+      }
     }
     if (codec instanceof PrimitiveTextDecoder) {
-      String text = ((TextCodec) codec).encodeText(boxed, type, ctx);
-      double viaBox = ((Number) Objects.requireNonNull(
-          ((TextCodec) codec).decodeText(text, type, ctx))).doubleValue();
       PrimitiveTextDecoder dec = (PrimitiveTextDecoder) codec;
+      String text = Double.toString(value);
       char[] chars = text.toCharArray();
-      assertEquals(viaBox, dec.decodeAsDouble(text, type, ctx),
-          type.getTypeName() + " decodeAsDouble(String) vs decodeText");
-      assertEquals(viaBox, dec.decodeAsDouble(chars, 0, chars.length, type, ctx),
-          type.getTypeName() + " decodeAsDouble(char[]) vs decodeText");
+      Outcome viaText = Outcome.capture(() -> doubleOf(((TextCodec) codec).decodeText(text, type, ctx)));
+      assertSameOutcome(name + " decodeAsDouble(String) vs decodeText", viaText,
+          Outcome.capture(() -> dec.decodeAsDouble(text, type, ctx)));
+      assertSameOutcome(name + " decodeAsDouble(char[]) vs decodeText", viaText,
+          Outcome.capture(() -> dec.decodeAsDouble(chars, 0, chars.length, type, ctx)));
+      assertSameOutcome(name + " decodeAsDouble(char[]) at offset vs decodeText", viaText,
+          Outcome.capture(() -> dec.decodeAsDouble(pad(chars), 3, chars.length, type, ctx)));
     }
   }
 
@@ -463,27 +516,100 @@ public final class CodecFuzzSupport {
     PgType type = PgTypeDescriptors.scalar(oid).pgType();
     Codec codec = ctx.resolveCodec(oid);
     Boolean boxed = value;
+    String name = type.getTypeName().toString();
     if (codec instanceof PrimitiveBinaryDecoder) {
-      byte[] wire = ((BinaryCodec) codec).encodeBinary(boxed, type, ctx);
-      boolean viaBox = (Boolean) Objects.requireNonNull(
-          ((BinaryCodec) codec).decodeBinary(wire, type, ctx));
       PrimitiveBinaryDecoder dec = (PrimitiveBinaryDecoder) codec;
-      assertEquals(viaBox, dec.decodeAsBoolean(wire, 0, wire.length, type, ctx),
-          type.getTypeName() + " decodeAsBoolean(byte[]) vs decodeBinary");
-      assertEquals(viaBox, dec.decodeAsBoolean(pad(wire), 3, wire.length, type, ctx),
-          type.getTypeName() + " decodeAsBoolean(byte[]) honours offset");
+      byte[] wire = ((BinaryCodec) codec).encodeBinary(boxed, type, ctx);
+      assertSameOutcome(name + " decodeAsBoolean(byte[]) vs decodeBinary",
+          Outcome.capture(() -> boolOf(((BinaryCodec) codec).decodeBinary(wire, type, ctx))),
+          Outcome.capture(() -> dec.decodeAsBoolean(wire, 0, wire.length, type, ctx)));
+      assertEquals(dec.decodeAsBoolean(wire, 0, wire.length, type, ctx),
+          dec.decodeAsBoolean(pad(wire), 3, wire.length, type, ctx),
+          name + " decodeAsBoolean(byte[]) honours offset");
     }
     if (codec instanceof PrimitiveTextDecoder) {
-      String text = ((TextCodec) codec).encodeText(boxed, type, ctx);
-      boolean viaBox = (Boolean) Objects.requireNonNull(
-          ((TextCodec) codec).decodeText(text, type, ctx));
       PrimitiveTextDecoder dec = (PrimitiveTextDecoder) codec;
+      String text = ((TextCodec) codec).encodeText(boxed, type, ctx);
       char[] chars = text.toCharArray();
-      assertEquals(viaBox, dec.decodeAsBoolean(text, type, ctx),
-          type.getTypeName() + " decodeAsBoolean(String) vs decodeText");
-      assertEquals(viaBox, dec.decodeAsBoolean(chars, 0, chars.length, type, ctx),
-          type.getTypeName() + " decodeAsBoolean(char[]) vs decodeText");
+      Outcome viaText = Outcome.capture(() -> boolOf(((TextCodec) codec).decodeText(text, type, ctx)));
+      assertSameOutcome(name + " decodeAsBoolean(String) vs decodeText", viaText,
+          Outcome.capture(() -> dec.decodeAsBoolean(text, type, ctx)));
+      assertSameOutcome(name + " decodeAsBoolean(char[]) vs decodeText", viaText,
+          Outcome.capture(() -> dec.decodeAsBoolean(chars, 0, chars.length, type, ctx)));
     }
+  }
+
+  // The result of one codec call: the value it returned, or the SQLState it failed with. Two calls
+  // have "the same outcome" when they both returned equal values or both failed with the same state.
+  private static final class Outcome {
+    private final boolean threw;
+    private final @Nullable String state;
+    private final @Nullable Object value;
+
+    private Outcome(boolean threw, @Nullable String state, @Nullable Object value) {
+      this.threw = threw;
+      this.state = state;
+      this.value = value;
+    }
+
+    static Outcome capture(ThrowingSupplier call) {
+      try {
+        return new Outcome(false, null, call.get());
+      } catch (SQLException e) {
+        return new Outcome(true, e.getSQLState(), null);
+      }
+    }
+  }
+
+  @FunctionalInterface
+  private interface ThrowingSupplier {
+    @Nullable Object get() throws SQLException;
+  }
+
+  private static void assertSameOutcome(String label, Outcome boxed, Outcome primitive) {
+    if (boxed.threw || primitive.threw) {
+      assertEquals(boxed.threw, primitive.threw, () -> label
+          + ": boxed " + describe(boxed) + " but primitive " + describe(primitive));
+      assertEquals(boxed.state, primitive.state, () -> label + ": both threw, but with a different"
+          + " SQLState (boxed " + boxed.state + ", primitive " + primitive.state + ")");
+      return;
+    }
+    if (boxed.value instanceof byte[] && primitive.value instanceof byte[]) {
+      assertArrayEquals((byte[]) boxed.value, (byte[]) primitive.value, label);
+    } else {
+      assertEquals(boxed.value, primitive.value, label);
+    }
+  }
+
+  private static String describe(Outcome o) {
+    return o.threw ? "threw SQLState " + o.state : "returned " + o.value;
+  }
+
+  /** Encodes {@code boxed}, or {@code null} when the codec rejects it as out of range. */
+  private static byte @Nullable [] tryEncodeBinary(BinaryCodec codec, Object boxed, TypeDescriptor type,
+      CodecContext ctx) {
+    Outcome enc = Outcome.capture(() -> codec.encodeBinary(boxed, type, ctx));
+    return enc.threw ? null : (byte[]) Objects.requireNonNull(enc.value);
+  }
+
+  private static int intOf(@Nullable Object value) {
+    return ((Number) Objects.requireNonNull(value)).intValue();
+  }
+
+  private static long longOf(@Nullable Object value) {
+    return ((Number) Objects.requireNonNull(value)).longValue();
+  }
+
+  private static float floatOf(@Nullable Object value) {
+    return ((Number) Objects.requireNonNull(value)).floatValue();
+  }
+
+  private static double doubleOf(@Nullable Object value) {
+    return ((Number) Objects.requireNonNull(value)).doubleValue();
+  }
+
+  private static boolean boolOf(@Nullable Object value) {
+    return (Boolean) Objects.requireNonNull(value);
   }
 
   /** A primitive binary encode driven into a fresh sink, as the raw value bytes. */

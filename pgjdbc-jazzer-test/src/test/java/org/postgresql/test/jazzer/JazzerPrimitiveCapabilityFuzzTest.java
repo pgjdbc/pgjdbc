@@ -3,31 +3,27 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.test.fuzz;
+package org.postgresql.test.jazzer;
 
 import org.postgresql.core.Oid;
 import org.postgresql.fuzzkit.CodecFuzzSupport;
 
-import edu.berkeley.cs.jqf.junit5.FuzzTest;
+import com.code_intelligence.jazzer.junit.FuzzTest;
 
 import java.sql.SQLException;
 
 /**
- * Coverage-guided outcome-parity properties for the opt-in primitive-capability interfaces
- * ({@code PrimitiveBinaryEncoder}, {@code PrimitiveTextEncoder}, {@code PrimitiveBinaryDecoder},
- * {@code PrimitiveTextDecoder}). Each capability method overrides a boxing default; the property is
- * that the no-box override has the same outcome as the boxing path -- the same bytes/value on
- * success, and the same failure (same SQLState) on a bad input. The round-trip and coercion fuzzers
- * reach these paths only indirectly, where a compensating encode-plus-decode bug survives.
+ * The Jazzer counterpart of {@code PrimitiveCapabilityFuzzTest} in pgjdbc-jqf-test: the same
+ * outcome-parity properties for the primitive-capability interfaces, over the shared fuzzkit oracle
+ * ({@link CodecFuzzSupport}). The two classes are line-for-line comparable -- same targets, same
+ * oracle -- differing only in how arguments arrive. Jazzer's mutators map the primitives straight from
+ * the {@code @FuzzTest} signature, so the range-checked codecs see values well outside their range and
+ * the "too large a value throws on both paths" property is exercised.
  *
- * <p>Each range-checked codec is fed its wider type -- an {@code int} to int2, a {@code long} to int4
- * -- so the overflow path is actually generated and the "too large a value throws on both paths"
- * property has teeth. The Jazzer counterpart is {@code JazzerPrimitiveCapabilityFuzzTest}.
- *
- * <p>Run as bounded regression with {@code gradle :pgjdbc-jqf-test:test}; fuzz with
- * {@code -Djqf.fuzz=true -Djqf.fuzz.trials=10000}.
+ * <p>Run as bounded regression with {@code gradle :pgjdbc-jazzer-test:test}; fuzz one target with
+ * {@code gradle :pgjdbc-jazzer-test:test -Pjazzer.fuzz=1 --tests '*int2Parity'}.
  */
-class PrimitiveCapabilityFuzzTest {
+class JazzerPrimitiveCapabilityFuzzTest {
 
   @FuzzTest
   void int2Parity(int value) throws SQLException {
