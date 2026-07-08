@@ -3118,6 +3118,13 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return internalGetObject(columnIndex, field);
     }
 
+    // Special case: numeric/decimal must be rescaled to the column's typmod scale
+    // (e.g. a negative scale from numeric(2,-2), PostgreSQL 15+) — the codec path below
+    // decodes the wire value as-is and knows nothing about the column's typmod.
+    if (oid == Oid.NUMERIC) {
+      return internalGetObject(columnIndex, field);
+    }
+
     // Special case: XML returns SQLXML wrapper for the JDBC contract; the
     // codec layer otherwise hands back String.
     if (oid == Oid.XML) {
