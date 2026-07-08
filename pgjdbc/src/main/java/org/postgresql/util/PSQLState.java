@@ -106,7 +106,9 @@ public enum PSQLState {
   SYSTEM_ERROR("60000"),
   IO_ERROR("58030"),
 
-  UNEXPECTED_ERROR("99999");
+  UNEXPECTED_ERROR("99999"),
+
+  INTERNAL_ERROR("XX000");
 
   private final String state;
 
