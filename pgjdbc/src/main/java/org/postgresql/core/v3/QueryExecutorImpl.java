@@ -3255,14 +3255,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if ("search_path".equals(name)) {
       // PostgreSQL 18 and later report search_path changes to the client (GUC_REPORT) wherever the
       // change happens, including inside PL/pgSQL or a function. Invalidate the server-prepared
-      // statement cache only when the value actually changes -- compared against the previously
-      // reported value, which is still in the parameter status map until onParameterStatus updates
-      // it below -- so the next execution re-prepares against the new path. The first report just
-      // records the baseline; from then on the SET/RESET command-tag scan in processResults is
-      // skipped in favour of this report.
+      // statement cache *and* the per-connection type cache only when the value actually changes --
+      // compared against the previously reported value, which is still in the parameter status map
+      // until onParameterStatus updates it below -- so the next execution re-prepares against the
+      // new path and name-keyed lookups (TypeInfoCache.getPgTypeByPgName) re-resolve against it. The
+      // first report just records the baseline; from then on the SET/RESET command-tag scan in
+      // processResults is skipped in favour of this report.
       String previousSearchPath = getParameterStatus(name);
       if (previousSearchPath != null && !previousSearchPath.equals(value)) {
         deallocateEpoch++;
+        typeCacheEpoch++;
       }
     }
 
