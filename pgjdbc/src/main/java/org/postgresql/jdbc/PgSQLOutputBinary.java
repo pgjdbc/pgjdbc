@@ -9,9 +9,10 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveBinaryEncoder;
+import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.TypeDescriptor;
-import org.postgresql.jdbc.codec.CompositeCodec;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -22,8 +23,9 @@ import java.sql.SQLException;
  * <p>Each {@code writeXxx} call streams its field straight into the caller-provided
  * {@link BackpatchingBinarySink}: the type OID, a back-patched length prefix, and the body. A field
  * codec that implements {@link PrimitiveBinaryEncoder} receives the primitive unboxed; other values
- * go through {@link CompositeCodec#writeBinaryFieldValue}, the same per-field encoder the
- * {@code Struct} path uses. Because the writer streams into the caller's sink, a nested
+ * go through the field's {@link StreamingBinaryCodec#encodeBinary(Object, TypeDescriptor, CodecContext,
+ * BackpatchingBinarySink)} when available, otherwise a plain {@link BinaryCodec#encodeBinary}. Because
+ * the writer streams into the caller's sink, a nested
  * {@code SQLData} composite serializes directly into the enclosing array or composite buffer with no
  * intermediate copy. Codecs and field types are pre-cached at construction time; {@link #close()}
  * checks the arity.</p>
@@ -181,7 +183,13 @@ public final class PgSQLOutputBinary extends PgSQLOutput {
   protected void writeFieldObject(Object value) throws SQLException {
     try {
       int slot = openField();
-      CompositeCodec.writeBinaryFieldValue(sink, value, getCurrentType(), getCodec(), ctx);
+      TypeDescriptor fieldType = getCurrentType();
+      BinaryCodec codec = getCodec();
+      if (codec instanceof StreamingBinaryCodec) {
+        ((StreamingBinaryCodec) codec).encodeBinary(value, fieldType, (CodecContext) ctx, sink);
+      } else {
+        sink.write(codec.encodeBinary(value, fieldType, (CodecContext) ctx));
+      }
       closeField(slot);
     } catch (IOException e) {
       throw new AssertionError(e); // the in-memory sink never throws

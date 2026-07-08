@@ -53,8 +53,7 @@ final class ByteaArrayLeafCodec implements ArrayLeafCodec {
   }
 
   @Override
-  public boolean writeLeaf(Object leaf, BackpatchingBinarySink out, byte[] scratch,
-      CodecContext ctx)
+  public boolean writeLeaf(Object leaf, BackpatchingBinarySink out, CodecContext ctx)
       throws IOException, SQLException {
     if (leaf instanceof Object[]) {
       Object[] arr = (Object[]) leaf;

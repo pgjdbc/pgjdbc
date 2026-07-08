@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.sql.Array;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -65,26 +66,10 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   }
 
   /**
-   * Validates a Java array for PostgreSQL array serialization without encoding it.
-   *
-   * <p>The array must be rectangular, and intermediate array levels must not
-   * contain {@code null}. Leaf values may be {@code null}.</p>
-   *
-   * @param javaArray Java array to validate
-   * @throws SQLException if the value is not an array, is jagged, or contains
-   *         {@code null} at an intermediate array level
-   */
-  public static void validateJavaArray(Object javaArray) throws SQLException {
-    validateJavaArray(javaArray, null);
-  }
-
-  /**
    * Validates a Java array whose SQL element type's Java representation is
    * {@code leafElementClass}, so an array-typed element (a {@code byte[]} for
    * {@code bytea}) is treated as a leaf rather than an inner dimension. This
    * lets {@code bytea[]} hold {@code byte[]} elements of differing lengths.
-   * A {@code null} or non-array {@code leafElementClass} behaves like
-   * {@link #validateJavaArray(Object)}.
    *
    * @param javaArray Java array to validate
    * @param leafElementClass the Java class of one SQL element, or {@code null}
@@ -103,14 +88,17 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeBinary(byte[] buf, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    // PgArray and the offline array decoder own a whole array payload; copy only for a genuine sub-slice.
     PgCodecContext impl = impl(ctx);
     if (impl.isConnectionBound()) {
+      byte[] data = offset == 0 && length == buf.length ? buf : Arrays.copyOfRange(buf, offset, offset + length);
       // Lazy PgArray over the binary payload; elements decode on access through the connection.
       return new PgArray(impl.getConnection(), type.getOid(), data);
     }
     // Offline: no connection to back a lazy java.sql.Array, so decode eagerly to a Java array.
-    return decodeBinaryArray(data, type, ctx);
+    return decodeBinaryArray(buf, offset, length, type, ctx);
   }
 
   @Override
@@ -123,43 +111,11 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
           return bytes;
         }
       }
-      // Text-mode PgArray: decode to Java array, then re-encode as binary
-      Object javaArray = pgArray.getArray();
-      if (javaArray != null) {
-        return encodeBinaryJavaArray(javaArray, type, ctx);
-      }
-      return new byte[0];
     }
-    if (value instanceof Array) {
-      // Generic JDBC Array - get the underlying array and encode
-      Object javaArray = ((Array) value).getArray();
-      if (javaArray != null) {
-        return encodeBinaryJavaArray(javaArray, type, ctx);
-      }
-      return new byte[0];
-    }
-    if (value.getClass().isArray()) {
-      return encodeBinaryJavaArray(value, type, ctx);
-    }
-    throw new PSQLException(
-        GT.tr("Cannot convert {0} to array", value.getClass().getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
-  }
-
-  private static byte[] encodeBinaryJavaArray(Object javaArray, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    ArrayLeafCodec fastLeaf = fastLeafFor(type, ctx);
-    if (fastLeaf != null) {
-      return MultiDimArrayBinary.encode(javaArray, ctx, fastLeaf);
-    }
-    // No primitive fast leaf: encode every leaf through the element type's binary codec via the
-    // shared walker. This covers reference arrays (String[], UUID[], the temporal types,
-    // BigDecimal[], composite, SQLData, ...) and boxed primitive leaves (for example an int[]
-    // bound to numeric[]). The binary path is only reached after canEncodeBinary() confirmed the
-    // element codec can binary-encode the leaves, so this never feeds the server a text-only payload.
+    // Reuse streaming encoder
     BackpatchByteArrayOutputStream out = new BackpatchByteArrayOutputStream();
     try {
-      MultiDimArrayBinary.encode(javaArray, (BackpatchingBinarySink) out, ctx,
-          getGenericArrayLeafCodec(type, ctx));
+      encodeBinary(value, type, ctx, out);
     } catch (IOException e) {
       // BackpatchByteArrayOutputStream never throws.
       throw new AssertionError(e);
@@ -328,12 +284,54 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   @Override
   public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx,
       BackpatchingBinarySink out) throws SQLException, IOException {
-    // Defer to the non-streaming path for unwrap/native-encoder dispatch;
-    // the via-codec branch internally back-patches lengths via
-    // BackpatchByteArrayOutputStream when the element codec is streaming,
-    // so the per-element byte[] is avoided there. The outer byte[] is the
-    // payload we hand to out.
-    out.write(encodeBinary(value, type, ctx));
+    if (value instanceof PgArray) {
+      PgArray pgArray = (PgArray) value;
+      if (pgArray.isBinary()) {
+        byte[] bytes = pgArray.toBytes();
+        if (bytes != null) {
+          out.write(bytes);
+          return;
+        }
+      }
+      // Text-mode PgArray: decode to Java array, then stream it as binary.
+      Object javaArray = pgArray.getArray();
+      if (javaArray != null) {
+        encodeBinaryJavaArray(javaArray, type, ctx, out);
+      }
+      return;
+    }
+    if (value instanceof Array) {
+      // Generic JDBC Array - get the underlying array and stream it.
+      Object javaArray = ((Array) value).getArray();
+      if (javaArray != null) {
+        encodeBinaryJavaArray(javaArray, type, ctx, out);
+      }
+      return;
+    }
+    if (value.getClass().isArray()) {
+      encodeBinaryJavaArray(value, type, ctx, out);
+      return;
+    }
+    throw new PSQLException(
+        GT.tr("Cannot convert {0} to array", value.getClass().getName()),
+        PSQLState.INVALID_PARAMETER_TYPE);
+  }
+
+  /**
+   * Writes the array body directly into {@code out} instead of materializing the whole array as a
+   * {@code byte[]} first. The fast leaf and the generic per-element walker both dispatch through
+   * {@link MultiDimArrayBinary}'s sink-based {@code encode}, so an element that is itself a
+   * {@link org.postgresql.api.codec.StreamingBinaryCodec} (a nested array, a composite, ...) streams
+   * straight into {@code out} without an intermediate per-element {@code byte[]}.
+   */
+  private static void encodeBinaryJavaArray(Object javaArray, TypeDescriptor type, CodecContext ctx,
+      BackpatchingBinarySink out) throws SQLException, IOException {
+    ArrayLeafCodec fastLeaf = fastLeafFor(type, ctx);
+    if (fastLeaf != null) {
+      MultiDimArrayBinary.encode(javaArray, out, ctx, fastLeaf);
+      return;
+    }
+    MultiDimArrayBinary.encode(javaArray, out, ctx, getGenericArrayLeafCodec(type, ctx));
   }
 
   @Override
@@ -476,23 +474,25 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
    * types). Gate on {@link #canDecodeArrayViaWalker}.
    *
    * @param data the binary array payload
+   * @param offset start of this value's bytes within {@code data}
+   * @param length number of bytes for this value
    * @param arrayType the array type metadata
    * @param ctx the codec context
    * @return the decoded array
    * @throws SQLException if decoding fails
    */
-  public static Object decodeBinaryArray(byte[] data, TypeDescriptor arrayType, CodecContext ctx)
-      throws SQLException {
+  public static Object decodeBinaryArray(byte[] data, int offset, int length,
+      TypeDescriptor arrayType, CodecContext ctx) throws SQLException {
     ArrayLeafCodec fast = fastLeafFor(arrayType, ctx);
     if (fast != null) {
-      return MultiDimArrayBinary.decode(data, fast.getBoxedComponentType(), ctx, fast);
+      return MultiDimArrayBinary.decode(data, offset, length, fast.getBoxedComponentType(), ctx, fast);
     }
     TypeDescriptor elementType = ctx.resolveType(arrayType.getTypelem());
     Codec elementCodec = ctx.resolveCodec(arrayType.getTypelem());
     Class<?> componentType = genericComponentType(elementType, elementCodec);
     Class<?> componentType1 = componentType != null ? componentType : Object.class;
-    return MultiDimArrayBinary.decode(data, componentType1, leafContext(componentType1, ctx),
-        getGenericArrayLeafCodec(arrayType, ctx));
+    return MultiDimArrayBinary.decode(data, offset, length, componentType1,
+        leafContext(componentType1, ctx), getGenericArrayLeafCodec(arrayType, ctx));
   }
 
   /**
@@ -584,32 +584,37 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
+  public <T> @Nullable T decodeBinaryAs(byte[] buf, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
     if (targetClass == Object.class) {
-      // Connection-bound: a lazy PgArray; offline: an eagerly decoded Java array.
-      return (T) decodeBinary(data, type, ctx);
+      // Connection-bound: a lazy PgArray; offline: an eagerly decoded Java array. Either way,
+      // decodeBinary already reads buf as a [offset, offset + length) slice without copying.
+      return (T) decodeBinary(buf, offset, length, type, ctx);
     }
     if (targetClass == Array.class || targetClass == PgArray.class) {
       // A java.sql.Array is connection-bound (lazy getResultSet); offline cannot back one, so this
       // reports a clear error rather than silently handing back a Java array of a different type.
+      // PgArray retains the byte[] beyond this call, so — unlike the walker paths below, which only
+      // read the slice for the duration of this call — it needs its own copy whenever buf is a larger
+      // shared buffer that may be reused or overwritten afterwards.
+      byte[] data = offset == 0 && length == buf.length ? buf : Arrays.copyOfRange(buf, offset, offset + length);
       return (T) new PgArray(impl(ctx).requireConnection(type), type.getOid(), data);
     }
     if (targetClass.isArray()) {
       Class<?> leafComponentType = MultiDimArraySupport.leafComponentType(targetClass);
       ArrayLeafCodec fastLeaf = fastLeafFor(type, ctx);
       if (fastLeaf != null && fastLeaf.supportsTargetComponent(leafComponentType)) {
-        return (T) MultiDimArrayBinary.decode(data, leafComponentType, ctx, fastLeaf);
+        return (T) MultiDimArrayBinary.decode(buf, offset, length, leafComponentType, ctx, fastLeaf);
       }
       GenericArrayLeafCodec typedLeaf = typedElementLeaf(type, leafComponentType, fastLeaf, ctx);
       if (typedLeaf != null) {
         // Decode each element to the requested component type (e.g. CustomDto[] over a composite).
-        return (T) MultiDimArrayBinary.decode(data, leafComponentType, ctx, typedLeaf);
+        return (T) MultiDimArrayBinary.decode(buf, offset, length, leafComponentType, ctx, typedLeaf);
       }
       // Element type has no matching fast leaf: decode through the shared codec walker, which
       // yields the same component type the legacy decoder produced (typed array, String[], or
       // Object[] for composite/range), so getObject(col, T[].class) is unchanged.
-      return (T) decodeBinaryArray(data, type, ctx);
+      return (T) decodeBinaryArray(buf, offset, length, type, ctx);
     }
     throw new PSQLException(
         GT.tr("Cannot convert array to {0}", targetClass.getName()),

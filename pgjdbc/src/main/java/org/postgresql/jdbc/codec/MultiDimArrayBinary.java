@@ -15,6 +15,7 @@ import org.postgresql.util.PSQLState;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.sql.SQLException;
 
 /**
@@ -30,7 +31,7 @@ import java.sql.SQLException;
  *       (or {@code -1} for NULL) followed by the bytes</li>
  * </ul>
  *
- * <p>Outer dimensions are walked via {@link java.lang.reflect.Array}
+ * <p>Outer dimensions are walked via {@link Array}
  * ({@code get}/{@code getLength}/{@code newInstance}) — cost is bounded by the
  * outer-dimension product, not by element count. The leaf level is delegated
  * to caller-provided {@link LeafBinaryWriter}/{@link LeafBinaryReader}
@@ -74,10 +75,9 @@ public final class MultiDimArrayBinary {
      * (or {@code -1} for null) followed by the encoded bytes.
      *
      * @param leaf the leaf-level Java array (e.g. {@code int[]}, {@code Object[]})
-     * @param out the output sink
-     * @param buf a reusable 4-byte scratch buffer
+     * @param out  the output sink
      */
-    boolean writeLeaf(Object leaf, BackpatchingBinarySink out, byte[] buf, CodecContext ctx)
+    boolean writeLeaf(Object leaf, BackpatchingBinarySink out, CodecContext ctx)
         throws IOException, SQLException;
   }
 
@@ -98,21 +98,18 @@ public final class MultiDimArrayBinary {
 
   // ---------------------------- encode ----------------------------
 
-  public static byte[] encode(Object javaArray, int elementOid, CodecContext ctx, LeafBinaryWriter leaf) throws SQLException {
+  public static byte[] encode(Object javaArray, CodecContext ctx, ArrayLeafCodec leaf)
+      throws SQLException {
+    int elementOid = leaf.getElementOid();
     BackpatchByteArrayOutputStream baos =
         new BackpatchByteArrayOutputStream(estimateInitialCapacityFor(javaArray, leaf));
     try {
-      encode(javaArray, elementOid, leaf, baos, ctx);
+      encode(javaArray, elementOid, (LeafBinaryWriter) leaf, baos, ctx);
     } catch (IOException e) {
       // BackpatchByteArrayOutputStream never throws.
       throw new AssertionError(e);
     }
     return baos.toByteArray();
-  }
-
-  public static byte[] encode(Object javaArray, CodecContext ctx, ArrayLeafCodec leaf)
-      throws SQLException {
-    return encode(javaArray, leaf.getElementOid(), ctx, leaf);
   }
 
   /**
@@ -143,7 +140,6 @@ public final class MultiDimArrayBinary {
       return;
     }
 
-    byte[] scratch = new byte[4];
     out.writeInt32(dimensions);
     int hasNullsSlot = out.reserveInt32();
     out.writeInt32(elementOid);
@@ -151,7 +147,7 @@ public final class MultiDimArrayBinary {
       out.writeInt32(dimLengths[d]);
       out.writeInt32(1); // lower bound
     }
-    boolean hasNulls = walkAndEncode(javaArray, dimensions, out, scratch, ctx, leaf);
+    boolean hasNulls = walkAndEncode(javaArray, dimensions, out, ctx, leaf);
     out.setInt32At(hasNullsSlot, hasNulls ? 1 : 0);
   }
 
@@ -161,14 +157,14 @@ public final class MultiDimArrayBinary {
   }
 
   private static boolean walkAndEncode(Object array, int depth, BackpatchingBinarySink out,
-      byte[] buf, CodecContext ctx, LeafBinaryWriter leaf) throws IOException, SQLException {
+      CodecContext ctx, LeafBinaryWriter leaf) throws IOException, SQLException {
     if (depth == 1) {
-      return leaf.writeLeaf(array, out, buf, ctx);
+      return leaf.writeLeaf(array, out, ctx);
     }
-    int length = java.lang.reflect.Array.getLength(array);
+    int length = Array.getLength(array);
     boolean hasNulls = false;
     for (int i = 0; i < length; i++) {
-      hasNulls |= walkAndEncode(java.lang.reflect.Array.get(array, i), depth - 1, out, buf, ctx, leaf);
+      hasNulls |= walkAndEncode(Array.get(array, i), depth - 1, out, ctx, leaf);
     }
     return hasNulls;
   }
@@ -201,16 +197,23 @@ public final class MultiDimArrayBinary {
    * driven by the wire dimensions, with leaf component type
    * {@code leafComponentType} (e.g. {@code int.class}, {@code Integer.class},
    * {@code Object.class}).
+   *
+   * @param data the backing buffer; only the {@code [offset, offset + length)} slice belongs to
+   *        this value — {@code data} may be a larger shared buffer (e.g. a composite field or a
+   *        connection receive buffer), so decoding must never read outside that slice
+   * @param offset start of this value's bytes within {@code data}
+   * @param length number of bytes for this value
    */
-  public static Object decode(byte[] data, Class<?> leafComponentType, LeafBinaryReader leaf,
-      CodecContext ctx) throws SQLException {
-    int[] cursor = {0};
-    int dimensions = readInt4(data, cursor);
-    boolean hasNulls = readInt4(data, cursor) != 0;
-    readInt4(data, cursor); // element OID — caller already knows it
+  public static Object decode(byte[] data, int offset, int length, Class<?> leafComponentType,
+      LeafBinaryReader leaf, CodecContext ctx) throws SQLException {
+    int[] cursor = {offset};
+    int dataEnd = offset + length;
+    int dimensions = readInt4(data, cursor, dataEnd);
+    boolean hasNulls = readInt4(data, cursor, dataEnd) != 0;
+    readInt4(data, cursor, dataEnd); // element OID — caller already knows it
 
     if (dimensions == 0) {
-      return java.lang.reflect.Array.newInstance(leafComponentType, 0);
+      return Array.newInstance(leafComponentType, 0);
     }
     // dimensions is read straight from the wire: a negative count would throw
     // NegativeArraySizeException on the array allocations below, and an oversized one would drive an
@@ -228,8 +231,8 @@ public final class MultiDimArrayBinary {
     }
     int[] dimLengths = new int[dimensions];
     for (int d = 0; d < dimensions; d++) {
-      int dimLength = readInt4(data, cursor);
-      readInt4(data, cursor); // lower bound
+      int dimLength = readInt4(data, cursor, dataEnd);
+      readInt4(data, cursor, dataEnd); // lower bound
       if (dimLength < 0) {
         throw new PSQLException(
             GT.tr("Invalid binary array data: negative dimension length {0}", dimLength),
@@ -246,7 +249,7 @@ public final class MultiDimArrayBinary {
     // (remaining bytes / 4); a valid array has every dimension >= 1, so its partial products never
     // exceed the final element count and are never rejected here. Products accumulate in long to avoid
     // int overflow.
-    long remainingBytes = (long) data.length - cursor[0];
+    long remainingBytes = (long) dataEnd - cursor[0];
     long maxElements = remainingBytes / 4;
     long partialProduct = 1;
     for (int d = 0; d < dimensions; d++) {
@@ -257,7 +260,7 @@ public final class MultiDimArrayBinary {
             PSQLState.DATA_ERROR);
       }
     }
-    Object result = java.lang.reflect.Array.newInstance(leafComponentType, dimLengths);
+    Object result = Array.newInstance(leafComponentType, dimLengths);
     try {
       walkAndDecode(data, cursor, result, dimensions, ctx, leaf);
     } catch (IndexOutOfBoundsException e) {
@@ -269,17 +272,27 @@ public final class MultiDimArrayBinary {
           GT.tr("Invalid binary array data: truncated element body"),
           PSQLState.DATA_ERROR, e);
     }
+    if (cursor[0] > dataEnd) {
+      // data is a slice of a possibly larger shared buffer, so a leaf reader that over-consumes past
+      // this value's declared length would silently read bytes belonging to whatever follows instead
+      // of tripping an AIOOBE — reject it explicitly instead of returning a container decoded from
+      // borrowed bytes.
+      throw new PSQLException(
+          GT.tr("Invalid binary array data: element body extends past the declared length"),
+          PSQLState.DATA_ERROR);
+    }
     return result;
   }
 
-  public static Object decode(byte[] data, Class<?> leafComponentType, CodecContext ctx, ArrayLeafCodec leaf) throws SQLException {
+  public static Object decode(byte[] data, int offset, int length, Class<?> leafComponentType,
+      CodecContext ctx, ArrayLeafCodec leaf) throws SQLException {
     if (!leaf.supportsTargetComponent(leafComponentType)) {
       throw new PSQLException(
           GT.tr("Array leaf codec for oid {0} does not support {1}",
               leaf.getElementOid(), leafComponentType.getName()),
           PSQLState.DATA_TYPE_MISMATCH);
     }
-    return decode(data, leafComponentType, (LeafBinaryReader) leaf, ctx);
+    return decode(data, offset, length, leafComponentType, leaf, ctx);
   }
 
   private static void walkAndDecode(byte[] data, int[] cursor, Object container, int depth,
@@ -288,9 +301,9 @@ public final class MultiDimArrayBinary {
       leaf.readLeaf(data, cursor, container, ctx);
       return;
     }
-    int length = java.lang.reflect.Array.getLength(container);
+    int length = Array.getLength(container);
     for (int i = 0; i < length; i++) {
-      walkAndDecode(data, cursor, java.lang.reflect.Array.get(container, i),
+      walkAndDecode(data, cursor, Array.get(container, i),
           depth - 1, ctx, leaf);
     }
   }
@@ -307,11 +320,12 @@ public final class MultiDimArrayBinary {
     return est > 1 << 20 ? 1 << 20 : (int) Math.max(64, est);
   }
 
-  private static int readInt4(byte[] data, int[] cursor) throws SQLException {
+  private static int readInt4(byte[] data, int[] cursor, int dataEnd) throws SQLException {
     int pos = cursor[0];
-    if (pos < 0 || pos > data.length - 4) {
-      // A truncated header (fewer than 4 bytes left for this int4) would AIOOBE out of
-      // ByteConverter.int4; refuse the corrupt wire with a checked failure instead.
+    if (pos < 0 || pos > dataEnd - 4) {
+      // A truncated header (fewer than 4 bytes left for this int4 within the value's slice) would
+      // either AIOOBE out of ByteConverter.int4 or, if the backing buffer extends past dataEnd, read
+      // past this value's declared bytes; refuse the corrupt wire with a checked failure instead.
       throw new PSQLException(
           GT.tr("Invalid binary array data: truncated header"),
           PSQLState.DATA_ERROR);

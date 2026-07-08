@@ -50,8 +50,7 @@ final class Int4ArrayLeafCodec implements ArrayLeafCodec {
   }
 
   @Override
-  public boolean writeLeaf(Object leaf, BackpatchingBinarySink out, byte[] scratch,
-      CodecContext ctx)
+  public boolean writeLeaf(Object leaf, BackpatchingBinarySink out, CodecContext ctx)
       throws IOException, SQLException {
     if (leaf instanceof int[]) {
       int[] arr = (int[]) leaf;

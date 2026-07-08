@@ -45,9 +45,10 @@ public final class EnumCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
     // Binary format for enum is the text representation as bytes
-    return new String(data, ctx.getCharset());
+    return new String(data, offset, length, ctx.getCharset());
   }
 
   @Override
@@ -68,8 +69,9 @@ public final class EnumCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return new String(data, ctx.getCharset());
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return new String(data, offset, length, ctx.getCharset());
   }
 
   @Override
@@ -79,10 +81,10 @@ public final class EnumCodec implements BinaryCodec, TextCodec {
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
     if (targetClass == String.class || targetClass == Object.class) {
-      return (T) decodeAsString(data, type, ctx);
+      return (T) decodeAsString(data, offset, length, type, ctx);
     }
     throw Codec.cannotDecode("enum", targetClass.getName());
   }

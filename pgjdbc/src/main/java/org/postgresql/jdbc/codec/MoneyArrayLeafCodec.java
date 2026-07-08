@@ -61,7 +61,7 @@ final class MoneyArrayLeafCodec implements ArrayLeafCodec {
   }
 
   @Override
-  public boolean writeLeaf(Object leaf, BackpatchingBinarySink out, byte[] scratch, CodecContext ctx)
+  public boolean writeLeaf(Object leaf, BackpatchingBinarySink out, CodecContext ctx)
       throws IOException, SQLException {
     if (!(leaf instanceof Object[])) {
       throw unsupportedLeaf(leaf, ctx);
@@ -73,9 +73,7 @@ final class MoneyArrayLeafCodec implements ArrayLeafCodec {
         hasNulls = true;
       } else {
         out.writeInt32(8);
-        byte[] buf = new byte[8];
-        ByteConverter.int8(buf, 0, Math.round(toDouble(element) * SCALE));
-        out.write(buf);
+        out.writeInt64(Math.round(toDouble(element) * SCALE));
       }
     }
     return hasNulls;

@@ -65,7 +65,7 @@ class Int4CodecTest {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, 42);
 
-    Object result = codec.decodeBinary(data, int4Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, int4Type, null);
     assertEquals(42, result);
   }
 
@@ -74,7 +74,7 @@ class Int4CodecTest {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, -42);
 
-    Object result = codec.decodeBinary(data, int4Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, int4Type, null);
     assertEquals(-42, result);
   }
 
@@ -83,7 +83,7 @@ class Int4CodecTest {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, 0);
 
-    Object result = codec.decodeBinary(data, int4Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, int4Type, null);
     assertEquals(0, result);
   }
 
@@ -92,7 +92,7 @@ class Int4CodecTest {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, Integer.MAX_VALUE);
 
-    Object result = codec.decodeBinary(data, int4Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, int4Type, null);
     assertEquals(Integer.MAX_VALUE, result);
   }
 
@@ -101,7 +101,7 @@ class Int4CodecTest {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, Integer.MIN_VALUE);
 
-    Object result = codec.decodeBinary(data, int4Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, int4Type, null);
     assertEquals(Integer.MIN_VALUE, result);
   }
 
@@ -307,7 +307,7 @@ class Int4CodecTest {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, 42);
 
-    BigDecimal result = codec.decodeAsBigDecimal(data, int4Type, null);
+    BigDecimal result = codec.decodeAsBigDecimal(data, 0, data.length, int4Type, null);
     assertEquals(BigDecimal.valueOf(42), result);
   }
 
@@ -322,7 +322,7 @@ class Int4CodecTest {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, 42);
 
-    String result = codec.decodeAsString(data, int4Type, null);
+    String result = codec.decodeAsString(data, 0, data.length, int4Type, null);
     assertEquals("42", result);
   }
 
@@ -339,7 +339,7 @@ class Int4CodecTest {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, 42);
 
-    Integer result = codec.decodeBinaryAs(data, int4Type, Integer.class, null);
+    Integer result = codec.decodeBinaryAs(data, 0, data.length, int4Type, Integer.class, null);
     assertEquals(Integer.valueOf(42), result);
   }
 
@@ -348,7 +348,7 @@ class Int4CodecTest {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, 42);
 
-    Long result = codec.decodeBinaryAs(data, int4Type, Long.class, null);
+    Long result = codec.decodeBinaryAs(data, 0, data.length, int4Type, Long.class, null);
     assertEquals(Long.valueOf(42), result);
   }
 
@@ -357,7 +357,7 @@ class Int4CodecTest {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, 42);
 
-    String result = codec.decodeBinaryAs(data, int4Type, String.class, null);
+    String result = codec.decodeBinaryAs(data, 0, data.length, int4Type, String.class, null);
     assertEquals("42", result);
   }
 

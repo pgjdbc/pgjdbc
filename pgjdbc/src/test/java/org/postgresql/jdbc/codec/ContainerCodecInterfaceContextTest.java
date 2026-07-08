@@ -137,8 +137,9 @@ class ContainerCodecInterfaceContextTest {
     PgType domain = new PgType(
         new ObjectName("public", "positive_int"), "positive_int", 99_999,
         'd', 'N', -1, 0, 0, Oid.INT4);
-    Object value = DomainCodec.INSTANCE.decodeBinary(
-        new byte[]{0, 0, 0, 42}, domain, new InterfaceOnlyContext());
+    byte[] data = new byte[]{0, 0, 0, 42};
+    CodecContext ctx = new InterfaceOnlyContext();
+    Object value = DomainCodec.INSTANCE.decodeBinary(data, 0, data.length, domain, ctx);
     assertEquals(42, value);
   }
 
@@ -174,7 +175,8 @@ class ContainerCodecInterfaceContextTest {
     ByteConverter.int4(wire, 5, 1);
     ByteConverter.int4(wire, 9, 4);
     ByteConverter.int4(wire, 13, 10);
-    Object value = RangeCodec.INSTANCE.decodeBinary(wire, int4range, new InterfaceOnlyContext());
+    CodecContext ctx = new InterfaceOnlyContext();
+    Object value = RangeCodec.INSTANCE.decodeBinary(wire, 0, wire.length, int4range, ctx);
     PGRange<?> range = assertInstanceOf(PGRange.class, value);
     assertEquals(1, range.getLower());
     assertEquals(10, range.getUpper());

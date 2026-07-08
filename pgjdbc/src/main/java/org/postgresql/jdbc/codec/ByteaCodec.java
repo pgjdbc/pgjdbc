@@ -46,8 +46,9 @@ public final class ByteaCodec implements BinaryCodec, TextCodec, ArrayElementCod
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsBytes(data, type, ctx);
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return decodeAsBytes(data, offset, length, type, ctx);
   }
 
   @Override
@@ -67,29 +68,33 @@ public final class ByteaCodec implements BinaryCodec, TextCodec, ArrayElementCod
   }
 
   @Override
-  public byte @Nullable [] decodeAsBytes(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    // Return a copy to prevent modification
-    return Arrays.copyOf(data, data.length);
+  public byte @Nullable [] decodeAsBytes(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    // Return a copy to prevent modification; the value owns its bytes.
+    return Arrays.copyOfRange(data, offset, offset + length);
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return PGbytea.toPGString(data);
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    // PGbytea.toPGString hex-encodes a whole array; copy only for a genuine sub-slice.
+    byte[] bytes = offset == 0 && length == data.length ? data : Arrays.copyOfRange(data, offset, offset + length);
+    return PGbytea.toPGString(bytes);
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
     if (targetClass == byte[].class || targetClass == Object.class) {
-      return (T) decodeAsBytes(data, type, ctx);
+      return (T) decodeAsBytes(data, offset, length, type, ctx);
     }
     if (targetClass == String.class) {
-      return (T) decodeAsString(data, type, ctx);
+      return (T) decodeAsString(data, offset, length, type, ctx);
     }
     if (targetClass == InputStream.class) {
-      // Return InputStream wrapping the raw bytes
-      return (T) new ByteArrayInputStream(data);
+      // Return InputStream wrapping the raw bytes of this value's slice.
+      return (T) new ByteArrayInputStream(data, offset, length);
     }
     throw Codec.cannotDecode("bytea", targetClass.getName());
   }

@@ -39,7 +39,7 @@ class Float4CodecTest {
   void decodeBinary_positiveValue() throws SQLException {
     byte[] data = new byte[4];
     ByteConverter.float4(data, 0, 3.14f);
-    Object result = codec.decodeBinary(data, float4Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, float4Type, null);
     assertEquals(3.14f, result);
   }
 
@@ -47,7 +47,7 @@ class Float4CodecTest {
   void decodeBinary_negativeValue() throws SQLException {
     byte[] data = new byte[4];
     ByteConverter.float4(data, 0, -3.14f);
-    Object result = codec.decodeBinary(data, float4Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, float4Type, null);
     assertEquals(-3.14f, result);
   }
 
@@ -55,7 +55,7 @@ class Float4CodecTest {
   void decodeBinary_zero() throws SQLException {
     byte[] data = new byte[4];
     ByteConverter.float4(data, 0, 0.0f);
-    Object result = codec.decodeBinary(data, float4Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, float4Type, null);
     assertEquals(0.0f, result);
   }
 

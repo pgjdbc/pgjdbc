@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveDecoders;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
@@ -48,14 +49,14 @@ class BoolCodecTest {
   @Test
   void decodeBinary_true() throws SQLException {
     byte[] data = new byte[]{1};
-    Object result = codec.decodeBinary(data, boolType, null);
+    Object result = codec.decodeBinary(data, 0, data.length, boolType, null);
     assertEquals(true, result);
   }
 
   @Test
   void decodeBinary_false() throws SQLException {
     byte[] data = new byte[]{0};
-    Object result = codec.decodeBinary(data, boolType, null);
+    Object result = codec.decodeBinary(data, 0, data.length, boolType, null);
     assertEquals(false, result);
   }
 
@@ -200,19 +201,22 @@ class BoolCodecTest {
   @Test
   void decodeAsBigDecimal_throwsWhenConvertDisabled() {
     assertThrows(PSQLException.class,
-        () -> codec.decodeAsBigDecimal(new byte[]{1}, boolType, ctxNoConvert));
+        () -> {
+          byte[] data = new byte[]{1};
+          codec.decodeAsBigDecimal(data, 0, data.length, (TypeDescriptor) boolType, ctxNoConvert);
+        });
   }
 
   @Test
   void decodeAsString_binary_true() throws SQLException {
     byte[] data = new byte[]{1};
-    assertEquals("true", codec.decodeAsString(data, boolType, null));
+    assertEquals("true", codec.decodeAsString(data, 0, data.length, boolType, null));
   }
 
   @Test
   void decodeAsString_binary_false() throws SQLException {
     byte[] data = new byte[]{0};
-    assertEquals("false", codec.decodeAsString(data, boolType, null));
+    assertEquals("false", codec.decodeAsString(data, 0, data.length, boolType, null));
   }
 
   @Test

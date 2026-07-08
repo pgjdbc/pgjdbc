@@ -43,11 +43,12 @@ public final class XmlCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    if (data == null || data.length == 0) {
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    if (length == 0) {
       return null;
     }
-    return new String(data, StandardCharsets.UTF_8);
+    return new String(data, offset, length, StandardCharsets.UTF_8);
   }
 
   @Override
@@ -67,11 +68,12 @@ public final class XmlCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    if (data == null || data.length == 0) {
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    if (length == 0) {
       return null;
     }
-    return new String(data, StandardCharsets.UTF_8);
+    return new String(data, offset, length, StandardCharsets.UTF_8);
   }
 
   @Override
@@ -81,12 +83,12 @@ public final class XmlCodec implements BinaryCodec, TextCodec {
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
-    if (data == null || data.length == 0) {
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
+    if (length == 0) {
       return null;
     }
-    String value = new String(data, StandardCharsets.UTF_8);
+    String value = new String(data, offset, length, StandardCharsets.UTF_8);
     if (targetClass == String.class || targetClass == Object.class) {
       return (T) value;
     }

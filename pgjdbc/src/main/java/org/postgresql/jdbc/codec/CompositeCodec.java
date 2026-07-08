@@ -382,20 +382,9 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    if (data == null || data.length == 0) {
-      return null;
-    }
-    // PgStruct extends PGobject and implements Struct, so the same return value
-    // satisfies both the legacy "(PGobject) rs.getObject(i)" contract and the
-    // new "(Struct) rs.getObject(i)" contract.
-    return decodeBinaryAsStruct(data, 0, data.length, type, ctx);
-  }
-
-  @Override
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
-    if (length == 0) {
+    if (data == null || length == 0) {
       return null;
     }
     // Decode an array-of-struct element in place: decodeBinaryFields records the
@@ -484,22 +473,6 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       value.writeSQL(output);
     } finally {
       CodecDepth.exit();
-    }
-  }
-
-  /**
-   * Writes one composite field's binary body (no length prefix) into {@code out}, streaming through
-   * the codec's {@link StreamingBinaryCodec} form when available and otherwise copying the codec's
-   * {@code byte[]}. The caller writes the field's type OID and frames the body length. Shared by
-   * {@link #encodeAttributes} (the {@link Struct} path) and {@link PgSQLOutputBinary} (the
-   * {@link SQLData} path) so both encode a field the same way.
-   */
-  public static void writeBinaryFieldValue(BackpatchingBinarySink out, Object value,
-      TypeDescriptor fieldType, BinaryCodec codec, CodecContext ctx) throws SQLException, IOException {
-    if (codec instanceof StreamingBinaryCodec) {
-      ((StreamingBinaryCodec) codec).encodeBinary(value, fieldType, ctx, out);
-    } else {
-      out.write(codec.encodeBinary(value, fieldType, ctx));
     }
   }
 
@@ -786,10 +759,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
                   fieldOid, field.getName(), compositeType.getTypeName()),
               PSQLState.SYSTEM_ERROR);
         }
-        int lengthSlot = out.reserveInt32();
-        int startPos = out.position();
-        writeBinaryFieldValue(out, attr, fieldType, codec, ctx);
-        out.setInt32At(lengthSlot, out.position() - startPos);
+        BinaryCodec.writeElement(out, attr, codec, fieldType, ctx);
       }
     } catch (IOException e) {
       throw new PSQLException(
@@ -824,19 +794,20 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
-    if (data == null || data.length == 0) {
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
+    if (data == null || length == 0) {
       return null;
     }
 
-    // Handle SQLData implementations
+    // Handle SQLData implementations — read the nested record straight off the enclosing buffer via the
+    // slice constructor, so a composite field decodes in place without copying its bytes out first.
     if (SQLData.class.isAssignableFrom(targetClass)) {
       CodecDepth.enter();
       try {
         Class<? extends SQLData> sqlDataClass = (Class<? extends SQLData>) targetClass;
         SQLData sqlData = createSQLDataInstance(sqlDataClass);
-        SQLInput input = new PgSQLInputBinary(data, (PgType) type, impl(ctx));
+        SQLInput input = new PgSQLInputBinary(data, offset, length, (PgType) type, impl(ctx));
         sqlData.readSQL(input, type.getFullName());
         return (T) sqlData;
       } finally {
@@ -846,12 +817,12 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
 
     // Structured access — build a PgStruct with per-field decoded attributes.
     if (targetClass == Struct.class || targetClass == PgStruct.class) {
-      return (T) decodeBinaryAsStruct(data, 0, data.length, type, ctx);
+      return (T) decodeBinaryAsStruct(data, offset, length, type, ctx);
     }
 
     // Legacy access — return the typed PGobject wrapper produced by decodeBinary.
     if (targetClass == PGobject.class || targetClass == Object.class) {
-      return (T) decodeBinary(data, type, ctx);
+      return (T) decodeBinary(data, offset, length, type, ctx);
     }
 
     throw new PSQLException(

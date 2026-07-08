@@ -9,7 +9,9 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveDecoders;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
@@ -43,7 +45,7 @@ class Float8CodecTest {
   void decodeBinary_positiveValue() throws SQLException {
     byte[] data = new byte[8];
     ByteConverter.float8(data, 0, 3.14159265358979);
-    Object result = codec.decodeBinary(data, float8Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, float8Type, null);
     assertEquals(3.14159265358979, result);
   }
 
@@ -51,7 +53,7 @@ class Float8CodecTest {
   void decodeBinary_negativeValue() throws SQLException {
     byte[] data = new byte[8];
     ByteConverter.float8(data, 0, -3.14159265358979);
-    Object result = codec.decodeBinary(data, float8Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, float8Type, null);
     assertEquals(-3.14159265358979, result);
   }
 
@@ -59,7 +61,7 @@ class Float8CodecTest {
   void decodeBinary_zero() throws SQLException {
     byte[] data = new byte[8];
     ByteConverter.float8(data, 0, 0.0);
-    Object result = codec.decodeBinary(data, float8Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, float8Type, null);
     assertEquals(0.0, result);
   }
 
@@ -156,7 +158,7 @@ class Float8CodecTest {
     byte[] data = new byte[8];
     ByteConverter.float8(data, 0, Double.NEGATIVE_INFINITY);
     PSQLException e = assertThrows(PSQLException.class,
-        () -> codec.decodeAsBigDecimal(data, float8Type, null));
+        () -> codec.decodeAsBigDecimal(data, 0, data.length, (TypeDescriptor) float8Type, (CodecContext) null));
     assertEquals(PSQLState.NUMERIC_VALUE_OUT_OF_RANGE.getState(), e.getSQLState());
   }
 

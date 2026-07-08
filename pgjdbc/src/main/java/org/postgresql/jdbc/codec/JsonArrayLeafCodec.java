@@ -16,7 +16,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.Arrays;
 
 /**
  * Leaf-level codec for {@code json[]} / {@code jsonb[]} arrays.
@@ -60,7 +59,7 @@ final class JsonArrayLeafCodec implements ArrayLeafCodec {
   }
 
   @Override
-  public boolean writeLeaf(Object leaf, BackpatchingBinarySink out, byte[] scratch, CodecContext ctx)
+  public boolean writeLeaf(Object leaf, BackpatchingBinarySink out, CodecContext ctx)
       throws IOException, SQLException {
     if (!(leaf instanceof Object[])) {
       throw unsupportedLeaf(leaf, ctx);
@@ -72,9 +71,7 @@ final class JsonArrayLeafCodec implements ArrayLeafCodec {
         out.writeInt32(-1);
         hasNulls = true;
       } else {
-        byte[] encoded = binaryCodec.encodeBinary(element, elementType, ctx);
-        out.writeInt32(encoded.length);
-        out.write(encoded);
+        BinaryCodec.writeElement(out, element, binaryCodec, elementType, ctx);
       }
     }
     return hasNulls;
@@ -94,7 +91,7 @@ final class JsonArrayLeafCodec implements ArrayLeafCodec {
       if (len == -1) {
         arr[i] = null;
       } else {
-        arr[i] = binaryCodec.decodeAsString(Arrays.copyOfRange(data, pos, pos + len), elementType, ctx);
+        arr[i] = binaryCodec.decodeAsString(data, pos, len, elementType, ctx);
         pos += len;
       }
     }

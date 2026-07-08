@@ -308,7 +308,7 @@ public final class CodecFuzzSupport {
       byte[] wire = tryEncodeBinary((BinaryCodec) codec, boxed, type, ctx);
       if (wire != null) {
         assertSameOutcome(name + " decodeAsInt(byte[]) vs decodeBinary",
-            Outcome.capture(() -> intOf(((BinaryCodec) codec).decodeBinary(wire, type, ctx))),
+            Outcome.capture(() -> intOf(((BinaryCodec) codec).decodeBinary(wire, 0, wire.length, type, ctx))),
             Outcome.capture(() -> dec.decodeAsInt(wire, 0, wire.length, type, ctx)));
         assertEquals(dec.decodeAsInt(wire, 0, wire.length, type, ctx),
             dec.decodeAsInt(pad(wire), 3, wire.length, type, ctx),
@@ -316,7 +316,7 @@ public final class CodecFuzzSupport {
         if (wire.length > 1) {
           byte[] shortWire = Arrays.copyOf(wire, wire.length - 1);
           assertSameOutcome(name + " decodeAsInt(byte[]) rejects a short wire",
-              Outcome.capture(() -> intOf(((BinaryCodec) codec).decodeBinary(shortWire, type, ctx))),
+              Outcome.capture(() -> intOf(((BinaryCodec) codec).decodeBinary(shortWire, 0, shortWire.length, type, ctx))),
               Outcome.capture(() -> dec.decodeAsInt(shortWire, 0, shortWire.length, type, ctx)));
         }
       }
@@ -370,7 +370,7 @@ public final class CodecFuzzSupport {
       byte[] wire = tryEncodeBinary((BinaryCodec) codec, boxed, type, ctx);
       if (wire != null) {
         assertSameOutcome(name + " decodeAsLong(byte[]) vs decodeBinary",
-            Outcome.capture(() -> longOf(((BinaryCodec) codec).decodeBinary(wire, type, ctx))),
+            Outcome.capture(() -> longOf(((BinaryCodec) codec).decodeBinary(wire, 0, wire.length, type, ctx))),
             Outcome.capture(() -> dec.decodeAsLong(wire, 0, wire.length, type, ctx)));
         assertEquals(dec.decodeAsLong(wire, 0, wire.length, type, ctx),
             dec.decodeAsLong(pad(wire), 3, wire.length, type, ctx),
@@ -378,7 +378,7 @@ public final class CodecFuzzSupport {
         if (wire.length > 1) {
           byte[] shortWire = Arrays.copyOf(wire, wire.length - 1);
           assertSameOutcome(name + " decodeAsLong(byte[]) rejects a short wire",
-              Outcome.capture(() -> longOf(((BinaryCodec) codec).decodeBinary(shortWire, type, ctx))),
+              Outcome.capture(() -> longOf(((BinaryCodec) codec).decodeBinary(shortWire, 0, shortWire.length, type, ctx))),
               Outcome.capture(() -> dec.decodeAsLong(shortWire, 0, shortWire.length, type, ctx)));
         }
       }
@@ -432,7 +432,7 @@ public final class CodecFuzzSupport {
       byte[] wire = tryEncodeBinary((BinaryCodec) codec, boxed, type, ctx);
       if (wire != null) {
         assertSameOutcome(name + " decodeAsFloat(byte[]) vs decodeBinary",
-            Outcome.capture(() -> floatOf(((BinaryCodec) codec).decodeBinary(wire, type, ctx))),
+            Outcome.capture(() -> floatOf(((BinaryCodec) codec).decodeBinary(wire, 0, wire.length, type, ctx))),
             Outcome.capture(() -> dec.decodeAsFloat(wire, 0, wire.length, type, ctx)));
         assertEquals(dec.decodeAsFloat(wire, 0, wire.length, type, ctx),
             dec.decodeAsFloat(pad(wire), 3, wire.length, type, ctx),
@@ -440,7 +440,7 @@ public final class CodecFuzzSupport {
         if (wire.length > 1) {
           byte[] shortWire = Arrays.copyOf(wire, wire.length - 1);
           assertSameOutcome(name + " decodeAsFloat(byte[]) rejects a short wire",
-              Outcome.capture(() -> floatOf(((BinaryCodec) codec).decodeBinary(shortWire, type, ctx))),
+              Outcome.capture(() -> floatOf(((BinaryCodec) codec).decodeBinary(shortWire, 0, shortWire.length, type, ctx))),
               Outcome.capture(() -> dec.decodeAsFloat(shortWire, 0, shortWire.length, type, ctx)));
         }
       }
@@ -492,7 +492,7 @@ public final class CodecFuzzSupport {
       byte[] wire = tryEncodeBinary((BinaryCodec) codec, boxed, type, ctx);
       if (wire != null) {
         assertSameOutcome(name + " decodeAsDouble(byte[]) vs decodeBinary",
-            Outcome.capture(() -> doubleOf(((BinaryCodec) codec).decodeBinary(wire, type, ctx))),
+            Outcome.capture(() -> doubleOf(((BinaryCodec) codec).decodeBinary(wire, 0, wire.length, type, ctx))),
             Outcome.capture(() -> dec.decodeAsDouble(wire, 0, wire.length, type, ctx)));
         assertEquals(dec.decodeAsDouble(wire, 0, wire.length, type, ctx),
             dec.decodeAsDouble(pad(wire), 3, wire.length, type, ctx),
@@ -500,7 +500,7 @@ public final class CodecFuzzSupport {
         if (wire.length > 1) {
           byte[] shortWire = Arrays.copyOf(wire, wire.length - 1);
           assertSameOutcome(name + " decodeAsDouble(byte[]) rejects a short wire",
-              Outcome.capture(() -> doubleOf(((BinaryCodec) codec).decodeBinary(shortWire, type, ctx))),
+              Outcome.capture(() -> doubleOf(((BinaryCodec) codec).decodeBinary(shortWire, 0, shortWire.length, type, ctx))),
               Outcome.capture(() -> dec.decodeAsDouble(shortWire, 0, shortWire.length, type, ctx)));
         }
       }
@@ -542,7 +542,7 @@ public final class CodecFuzzSupport {
       PrimitiveBinaryDecoder dec = (PrimitiveBinaryDecoder) codec;
       byte[] wire = ((BinaryCodec) codec).encodeBinary(boxed, type, ctx);
       assertSameOutcome(name + " decodeAsBoolean(byte[]) vs decodeBinary",
-          Outcome.capture(() -> boolOf(((BinaryCodec) codec).decodeBinary(wire, type, ctx))),
+          Outcome.capture(() -> boolOf(((BinaryCodec) codec).decodeBinary(wire, 0, wire.length, type, ctx))),
           Outcome.capture(() -> dec.decodeAsBoolean(wire, 0, wire.length, type, ctx)));
       assertEquals(dec.decodeAsBoolean(wire, 0, wire.length, type, ctx),
           dec.decodeAsBoolean(pad(wire), 3, wire.length, type, ctx),
@@ -875,11 +875,6 @@ public final class CodecFuzzSupport {
     @Override
     public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
       return bin.encodeBinary(value, type, ctx);
-    }
-
-    @Override
-    public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-      return bin.decodeBinary(data, type, ctx);
     }
 
     @Override

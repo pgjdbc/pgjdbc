@@ -54,8 +54,8 @@ final class OidArrayLeafCodec implements ArrayLeafCodec {
   }
 
   @Override
-  public boolean writeLeaf(Object leaf, BackpatchingBinarySink out, byte[] scratch,
-      CodecContext ctx)
+  public boolean writeLeaf(Object leaf, BackpatchingBinarySink out,
+                           CodecContext ctx)
       throws IOException, SQLException {
     if (leaf instanceof long[]) {
       long[] arr = (long[]) leaf;

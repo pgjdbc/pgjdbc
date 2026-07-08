@@ -114,6 +114,6 @@ public interface PrimitiveBinaryDecoder extends BinaryCodec {
   default boolean decodeAsBoolean(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     return BooleanCoercion.castAndCheck(
-        decodeBinary(data, offset, length, type, ctx), () -> decodeAsString(data, type, ctx));
+        decodeBinary(data, offset, length, type, ctx), () -> decodeAsString(data, offset, length, type, ctx));
   }
 }

@@ -63,11 +63,6 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsDouble(data, 0, data.length, type, ctx);
-  }
-
-  @Override
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (length != 8) {
@@ -200,8 +195,9 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    double value = decodeAsDouble(data, 0, data.length, type, ctx);
+  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    double value = decodeAsDouble(data, offset, length, type, ctx);
     if (Double.isNaN(value) || Double.isInfinite(value)) {
       throw new PSQLException(
           GT.tr("Cannot convert {0} to BigDecimal", value),
@@ -211,9 +207,9 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   }
 
   @Override
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
-    double value = decodeAsDouble(data, 0, data.length, type, ctx);
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
+    double value = decodeAsDouble(data, offset, length, type, ctx);
     return decodeDoubleAs(value, targetClass);
   }
 

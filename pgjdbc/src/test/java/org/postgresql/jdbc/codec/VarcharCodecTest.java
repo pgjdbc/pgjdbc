@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 
 class VarcharCodecTest {
 
@@ -61,7 +62,7 @@ class VarcharCodecTest {
   @Test
   void decodeBinary() throws SQLException {
     byte[] data = "hello".getBytes(StandardCharsets.UTF_8);
-    assertEquals("hello", codec.decodeBinary(data, varcharType, ctx));
+    assertEquals("hello", codec.decodeBinary(data, 0, data.length, varcharType, ctx));
   }
 
   @Test
@@ -92,6 +93,6 @@ class VarcharCodecTest {
     byte[] data = "2024-01-02 12:34:56".getBytes(StandardCharsets.UTF_8);
     assertEquals(
         org.postgresql.jdbc.TemporalCodecs.decodeTimestampText("2024-01-02 12:34:56", ctx),
-        codec.decodeBinaryAs(data, varcharType, java.sql.Timestamp.class, ctx));
+        codec.decodeBinaryAs(data, 0, data.length, varcharType, Timestamp.class, ctx));
   }
 }

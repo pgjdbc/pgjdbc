@@ -85,25 +85,14 @@ public final class Codecs {
       if (!(codec instanceof BinaryCodec)) {
         throw noCodecForFormat(type, "binary");
       }
-      return ((BinaryCodec) codec).decodeBinaryAs(bytesOf(value), type, targetClass, ctx);
+      return ((BinaryCodec) codec).decodeBinaryAs(
+          value.backingArray(), value.getOffset(), value.getLength(), type, targetClass, ctx);
     }
     if (!(codec instanceof TextCodec)) {
       throw noCodecForFormat(type, "text");
     }
     return ((TextCodec) codec)
         .decodeTextAs(value.asString(ctx.getCharset()), type, targetClass, ctx);
-  }
-
-  /**
-   * Returns the value's bytes as a standalone array. Reuses the backing array when the value spans it
-   * exactly, so the common {@link #encode}-then-{@link #decode} round-trip copies nothing.
-   */
-  private static byte[] bytesOf(RawValue value) {
-    byte[] backing = value.backingArray();
-    if (value.getOffset() == 0 && value.getLength() == backing.length) {
-      return backing;
-    }
-    return value.toByteArray();
   }
 
   private static SQLException noCodecForFormat(TypeDescriptor type, String format) {

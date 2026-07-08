@@ -41,7 +41,7 @@ class Int2CodecTest {
   void decodeBinary_positiveValue() throws SQLException {
     byte[] data = new byte[2];
     ByteConverter.int2(data, 0, 42);
-    Object result = codec.decodeBinary(data, int2Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, int2Type, null);
     assertEquals(42, result);
   }
 
@@ -49,7 +49,7 @@ class Int2CodecTest {
   void decodeBinary_negativeValue() throws SQLException {
     byte[] data = new byte[2];
     ByteConverter.int2(data, 0, -42);
-    Object result = codec.decodeBinary(data, int2Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, int2Type, null);
     assertEquals(-42, result);
   }
 
@@ -57,7 +57,7 @@ class Int2CodecTest {
   void decodeBinary_zero() throws SQLException {
     byte[] data = new byte[2];
     ByteConverter.int2(data, 0, 0);
-    Object result = codec.decodeBinary(data, int2Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, int2Type, null);
     assertEquals(0, result);
   }
 
@@ -65,7 +65,7 @@ class Int2CodecTest {
   void decodeBinary_maxValue() throws SQLException {
     byte[] data = new byte[2];
     ByteConverter.int2(data, 0, Short.MAX_VALUE);
-    Object result = codec.decodeBinary(data, int2Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, int2Type, null);
     assertEquals((int) Short.MAX_VALUE, result);
   }
 
@@ -73,7 +73,7 @@ class Int2CodecTest {
   void decodeBinary_minValue() throws SQLException {
     byte[] data = new byte[2];
     ByteConverter.int2(data, 0, Short.MIN_VALUE);
-    Object result = codec.decodeBinary(data, int2Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, int2Type, null);
     assertEquals((int) Short.MIN_VALUE, result);
   }
 
@@ -137,7 +137,7 @@ class Int2CodecTest {
   void decodeAsString_binary() throws SQLException {
     byte[] data = new byte[2];
     ByteConverter.int2(data, 0, 42);
-    String result = codec.decodeAsString(data, int2Type, null);
+    String result = codec.decodeAsString(data, 0, data.length, int2Type, null);
     assertEquals("42", result);
   }
 

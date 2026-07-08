@@ -61,7 +61,7 @@ class CodecRegistryTest {
     }
 
     @Override
-    public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) {
+    public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx) {
       return null;
     }
 

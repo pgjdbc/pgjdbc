@@ -9,7 +9,9 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveDecoders;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
@@ -65,7 +67,7 @@ class XmlCodecTest {
   void decodeBinary_utf8() throws SQLException {
     String xml = "<root><child>value</child></root>";
     byte[] data = xml.getBytes(StandardCharsets.UTF_8);
-    assertEquals(xml, codec.decodeBinary(data, xmlType, null));
+    assertEquals(xml, codec.decodeBinary(data, 0, data.length, xmlType, null));
   }
 
   @Test
@@ -79,7 +81,7 @@ class XmlCodecTest {
   void decodeAsString_binary() throws SQLException {
     String xml = "<root/>";
     byte[] data = xml.getBytes(StandardCharsets.UTF_8);
-    assertEquals(xml, codec.decodeAsString(data, xmlType, null));
+    assertEquals(xml, codec.decodeAsString(data, 0, data.length, xmlType, null));
   }
 
   @Test
@@ -105,14 +107,14 @@ class XmlCodecTest {
   @Test
   void decodeBinaryAs_String() throws SQLException {
     byte[] data = "<root/>".getBytes(StandardCharsets.UTF_8);
-    assertEquals("<root/>", codec.decodeBinaryAs(data, xmlType, String.class, null));
+    assertEquals("<root/>", codec.decodeBinaryAs(data, 0, data.length, xmlType, String.class, null));
   }
 
   @Test
   void decodeBinaryAs_unsupported() {
     byte[] data = "<root/>".getBytes(StandardCharsets.UTF_8);
     assertThrows(PSQLException.class,
-        () -> codec.decodeBinaryAs(data, xmlType, Integer.class, null));
+        () -> codec.decodeBinaryAs(data, 0, data.length, (TypeDescriptor) xmlType, Integer.class, (CodecContext) null));
   }
 
   @Test
@@ -130,6 +132,6 @@ class XmlCodecTest {
   void binaryRoundtrip() throws SQLException {
     String xml = "<root><child attr=\"val\">text</child></root>";
     byte[] encoded = codec.encodeBinary(xml, xmlType, null);
-    assertEquals(xml, codec.decodeBinary(encoded, xmlType, null));
+    assertEquals(xml, codec.decodeBinary(encoded, 0, encoded.length, xmlType, null));
   }
 }

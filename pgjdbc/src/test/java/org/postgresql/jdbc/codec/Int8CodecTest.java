@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveDecoders;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
@@ -65,7 +66,7 @@ class Int8CodecTest {
     byte[] data = new byte[8];
     ByteConverter.int8(data, 0, 42L);
 
-    Object result = codec.decodeBinary(data, int8Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, int8Type, null);
     assertEquals(42L, result);
   }
 
@@ -74,7 +75,7 @@ class Int8CodecTest {
     byte[] data = new byte[8];
     ByteConverter.int8(data, 0, -42L);
 
-    Object result = codec.decodeBinary(data, int8Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, int8Type, null);
     assertEquals(-42L, result);
   }
 
@@ -83,7 +84,7 @@ class Int8CodecTest {
     byte[] data = new byte[8];
     ByteConverter.int8(data, 0, 0L);
 
-    Object result = codec.decodeBinary(data, int8Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, int8Type, null);
     assertEquals(0L, result);
   }
 
@@ -92,7 +93,7 @@ class Int8CodecTest {
     byte[] data = new byte[8];
     ByteConverter.int8(data, 0, Long.MAX_VALUE);
 
-    Object result = codec.decodeBinary(data, int8Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, int8Type, null);
     assertEquals(Long.MAX_VALUE, result);
   }
 
@@ -101,7 +102,7 @@ class Int8CodecTest {
     byte[] data = new byte[8];
     ByteConverter.int8(data, 0, Long.MIN_VALUE);
 
-    Object result = codec.decodeBinary(data, int8Type, null);
+    Object result = codec.decodeBinary(data, 0, data.length, int8Type, null);
     assertEquals(Long.MIN_VALUE, result);
   }
 
@@ -302,7 +303,7 @@ class Int8CodecTest {
     ByteConverter.int8(data, 0, (long) Integer.MAX_VALUE + 1);
 
     assertThrows(PSQLException.class, () ->
-        codec.decodeBinaryAs(data, int8Type, Integer.class, null));
+        codec.decodeBinaryAs(data, 0, data.length, (TypeDescriptor) int8Type, Integer.class, (CodecContext) null));
   }
 
   @Test
@@ -310,7 +311,7 @@ class Int8CodecTest {
     byte[] data = new byte[8];
     ByteConverter.int8(data, 0, 100L);
 
-    Short result = codec.decodeBinaryAs(data, int8Type, Short.class, null);
+    Short result = codec.decodeBinaryAs(data, 0, data.length, int8Type, Short.class, null);
     assertEquals(Short.valueOf((short) 100), result);
   }
 
@@ -320,7 +321,7 @@ class Int8CodecTest {
     ByteConverter.int8(data, 0, (long) Short.MAX_VALUE + 1);
 
     assertThrows(PSQLException.class, () ->
-        codec.decodeBinaryAs(data, int8Type, Short.class, null));
+        codec.decodeBinaryAs(data, 0, data.length, (TypeDescriptor) int8Type, Short.class, (CodecContext) null));
   }
 
   @Test
@@ -329,7 +330,7 @@ class Int8CodecTest {
     ByteConverter.int8(data, 0, (long) Short.MIN_VALUE - 1);
 
     assertThrows(PSQLException.class, () ->
-        codec.decodeBinaryAs(data, int8Type, Short.class, null));
+        codec.decodeBinaryAs(data, 0, data.length, (TypeDescriptor) int8Type, Short.class, (CodecContext) null));
   }
 
   @Test
@@ -337,7 +338,7 @@ class Int8CodecTest {
     byte[] data = new byte[8];
     ByteConverter.int8(data, 0, 100L);
 
-    Byte result = codec.decodeBinaryAs(data, int8Type, Byte.class, null);
+    Byte result = codec.decodeBinaryAs(data, 0, data.length, int8Type, Byte.class, null);
     assertEquals(Byte.valueOf((byte) 100), result);
   }
 
@@ -347,7 +348,7 @@ class Int8CodecTest {
     ByteConverter.int8(data, 0, (long) Byte.MAX_VALUE + 1);
 
     assertThrows(PSQLException.class, () ->
-        codec.decodeBinaryAs(data, int8Type, Byte.class, null));
+        codec.decodeBinaryAs(data, 0, data.length, (TypeDescriptor) int8Type, Byte.class, (CodecContext) null));
   }
 
   @Test
@@ -356,7 +357,7 @@ class Int8CodecTest {
     ByteConverter.int8(data, 0, (long) Byte.MIN_VALUE - 1);
 
     assertThrows(PSQLException.class, () ->
-        codec.decodeBinaryAs(data, int8Type, Byte.class, null));
+        codec.decodeBinaryAs(data, 0, data.length, (TypeDescriptor) int8Type, Byte.class, (CodecContext) null));
   }
 
   @Test
@@ -364,7 +365,7 @@ class Int8CodecTest {
     byte[] data = new byte[8];
     ByteConverter.int8(data, 0, Long.MAX_VALUE);
 
-    BigDecimal result = codec.decodeBinaryAs(data, int8Type, BigDecimal.class, null);
+    BigDecimal result = codec.decodeBinaryAs(data, 0, data.length, int8Type, BigDecimal.class, null);
     assertEquals(BigDecimal.valueOf(Long.MAX_VALUE), result);
   }
 
@@ -373,7 +374,7 @@ class Int8CodecTest {
     byte[] data = new byte[8];
     ByteConverter.int8(data, 0, 12345L);
 
-    String result = codec.decodeBinaryAs(data, int8Type, String.class, null);
+    String result = codec.decodeBinaryAs(data, 0, data.length, int8Type, String.class, null);
     assertEquals("12345", result);
   }
 
@@ -382,7 +383,7 @@ class Int8CodecTest {
     byte[] data = new byte[8];
     ByteConverter.int8(data, 0, 1L);
 
-    Boolean result = codec.decodeBinaryAs(data, int8Type, Boolean.class, null);
+    Boolean result = codec.decodeBinaryAs(data, 0, data.length, int8Type, Boolean.class, null);
     assertEquals(Boolean.TRUE, result);
   }
 
@@ -391,7 +392,7 @@ class Int8CodecTest {
     byte[] data = new byte[8];
     ByteConverter.int8(data, 0, 0L);
 
-    Boolean result = codec.decodeBinaryAs(data, int8Type, Boolean.class, null);
+    Boolean result = codec.decodeBinaryAs(data, 0, data.length, int8Type, Boolean.class, null);
     assertEquals(Boolean.FALSE, result);
   }
 

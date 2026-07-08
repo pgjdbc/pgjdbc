@@ -41,7 +41,7 @@ class UuidCodecTest {
     ByteConverter.int8(data, 0, expected.getMostSignificantBits());
     ByteConverter.int8(data, 8, expected.getLeastSignificantBits());
 
-    Object result = codec.decodeBinary(data, uuidType, null);
+    Object result = codec.decodeBinary(data, 0, data.length, uuidType, null);
     assertEquals(expected, result);
   }
 
@@ -62,7 +62,7 @@ class UuidCodecTest {
     ByteConverter.int8(expected, 8, uuid.getLeastSignificantBits());
     assertEquals(16, result.length);
     // Verify round-trip rather than byte comparison
-    Object decoded = codec.decodeBinary(result, uuidType, null);
+    Object decoded = codec.decodeBinary(result, 0, result.length, uuidType, null);
     assertEquals(uuid, decoded);
   }
 
@@ -77,7 +77,7 @@ class UuidCodecTest {
   void binaryRoundtrip() throws SQLException {
     UUID original = UUID.randomUUID();
     byte[] encoded = codec.encodeBinary(original, uuidType, null);
-    Object decoded = codec.decodeBinary(encoded, uuidType, null);
+    Object decoded = codec.decodeBinary(encoded, 0, encoded.length, uuidType, null);
     assertEquals(original, decoded);
   }
 
@@ -96,7 +96,7 @@ class UuidCodecTest {
     ByteConverter.int8(data, 0, uuid.getMostSignificantBits());
     ByteConverter.int8(data, 8, uuid.getLeastSignificantBits());
 
-    String result = codec.decodeAsString(data, uuidType, null);
+    String result = codec.decodeAsString(data, 0, data.length, uuidType, null);
     assertEquals("550e8400-e29b-41d4-a716-446655440000", result);
   }
 

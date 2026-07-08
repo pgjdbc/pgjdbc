@@ -44,18 +44,6 @@ public final class UuidCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    if (data.length != 16) {
-      throw new PSQLException(
-          GT.tr("Invalid uuid binary data length: {0}", data.length),
-          PSQLState.DATA_ERROR);
-    }
-    long msb = ByteConverter.int8(data, 0);
-    long lsb = ByteConverter.int8(data, 8);
-    return new UUID(msb, lsb);
-  }
-
-  @Override
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (length != 16) {
@@ -103,20 +91,21 @@ public final class UuidCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    UUID uuid = (UUID) decodeBinary(data, type, ctx);
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    UUID uuid = (UUID) decodeBinary(data, offset, length, type, ctx);
     return uuid != null ? uuid.toString() : null;
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
     if (targetClass == UUID.class || targetClass == Object.class) {
-      return (T) decodeBinary(data, type, ctx);
+      return (T) decodeBinary(data, offset, length, type, ctx);
     }
     if (targetClass == String.class) {
-      return (T) decodeAsString(data, type, ctx);
+      return (T) decodeAsString(data, offset, length, type, ctx);
     }
     throw Codec.cannotDecode("uuid", targetClass.getName());
   }

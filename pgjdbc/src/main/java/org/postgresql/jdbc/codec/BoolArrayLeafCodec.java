@@ -52,16 +52,13 @@ final class BoolArrayLeafCodec implements ArrayLeafCodec {
   }
 
   @Override
-  public boolean writeLeaf(Object leaf, BackpatchingBinarySink out, byte[] scratch,
-      CodecContext ctx)
+  public boolean writeLeaf(Object leaf, BackpatchingBinarySink out, CodecContext ctx)
       throws IOException, SQLException {
-    byte[] buf = new byte[1];
     if (leaf instanceof boolean[]) {
       boolean[] arr = (boolean[]) leaf;
       for (boolean v : arr) {
         out.writeInt32(1);
-        buf[0] = (byte) (v ? 1 : 0);
-        out.write(buf);
+        out.writeByte((byte) (v ? 1 : 0));
       }
       return false;
     }
@@ -74,8 +71,7 @@ final class BoolArrayLeafCodec implements ArrayLeafCodec {
           hasNulls = true;
         } else {
           out.writeInt32(1);
-          buf[0] = (byte) (BoolCodec.toBoolean(element) ? 1 : 0);
-          out.write(buf);
+          out.writeByte((byte) (BoolCodec.toBoolean(element) ? 1 : 0));
         }
       }
       return hasNulls;

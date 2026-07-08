@@ -56,16 +56,13 @@ final class Int2ArrayLeafCodec implements ArrayLeafCodec {
   }
 
   @Override
-  public boolean writeLeaf(Object leaf, BackpatchingBinarySink out, byte[] scratch,
-      CodecContext ctx)
+  public boolean writeLeaf(Object leaf, BackpatchingBinarySink out, CodecContext ctx)
       throws IOException, SQLException {
-    byte[] buf = new byte[2];
     if (leaf instanceof short[]) {
       short[] arr = (short[]) leaf;
       for (short v : arr) {
         out.writeInt32(2);
-        ByteConverter.int2(buf, 0, v);
-        out.write(buf);
+        out.writeInt16(v);
       }
       return false;
     }
@@ -78,8 +75,7 @@ final class Int2ArrayLeafCodec implements ArrayLeafCodec {
           hasNulls = true;
         } else {
           out.writeInt32(2);
-          ByteConverter.int2(buf, 0, Int2Codec.toShort(element));
-          out.write(buf);
+          out.writeInt16(Int2Codec.toShort(element));
         }
       }
       return hasNulls;

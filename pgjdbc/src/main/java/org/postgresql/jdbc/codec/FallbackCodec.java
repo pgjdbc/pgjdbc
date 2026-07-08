@@ -23,6 +23,7 @@ import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.Arrays;
 
 /**
  * Fallback codec for unknown/unmapped PostgreSQL types.
@@ -59,10 +60,13 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
     // Reached only when the server sends binary for an unmapped type anyway (e.g. a field inside a
-    // binary record): preserve the raw bytes as PGUnknownBinary instead of a lossy hex string.
-    return new PGUnknownBinary(type.getTypeName().getName(), data);
+    // binary record): preserve the raw bytes as PGUnknownBinary instead of a lossy hex string. The
+    // value owns its bytes, so copy only for a genuine sub-slice.
+    byte[] bytes = offset == 0 && length == data.length ? data : Arrays.copyOfRange(data, offset, offset + length);
+    return new PGUnknownBinary(type.getTypeName().getName(), bytes);
   }
 
   @Override
@@ -103,29 +107,30 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return new String(data, ctx.getCharset());
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return new String(data, offset, length, ctx.getCharset());
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
     if (targetClass == PGUnknownBinary.class || targetClass == Object.class) {
-      return (T) decodeBinary(data, type, ctx);
+      return (T) decodeBinary(data, offset, length, type, ctx);
     }
     if (targetClass == PGobject.class) {
       // Return text-based PGobject for compatibility
       PGobject obj = new PGobject();
       obj.setType(type.getTypeName().getName());
-      obj.setValue(decodeAsString(data, type, ctx));
+      obj.setValue(decodeAsString(data, offset, length, type, ctx));
       return (T) obj;
     }
     if (targetClass == String.class) {
-      return (T) decodeAsString(data, type, ctx);
+      return (T) decodeAsString(data, offset, length, type, ctx);
     }
     if (targetClass == byte[].class) {
-      return (T) data.clone();
+      return (T) Arrays.copyOfRange(data, offset, offset + length);
     }
     throw Codec.cannotDecode(type.getTypeName().getName(), targetClass.getName());
   }

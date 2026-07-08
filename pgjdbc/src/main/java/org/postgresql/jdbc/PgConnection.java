@@ -913,7 +913,7 @@ public class PgConnection implements BaseConnection {
         // that case rather than returning null from a non-null-declared method.
         Object decoded = null;
         if (byteValue != null && byteValue.length > 0) {
-          decoded = CompositeCodec.INSTANCE.decodeBinaryAs(byteValue, pgType, sqlDataClass, ctx);
+          decoded = CompositeCodec.INSTANCE.decodeBinaryAs(byteValue, 0, byteValue.length, pgType, sqlDataClass, ctx);
         } else if (value != null && !value.isEmpty()) {
           decoded = CompositeCodec.INSTANCE.decodeTextAs(value, pgType, sqlDataClass, ctx);
         }

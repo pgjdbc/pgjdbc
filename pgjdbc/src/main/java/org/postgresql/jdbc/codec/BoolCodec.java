@@ -60,11 +60,6 @@ public final class BoolCodec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsBoolean(data, 0, data.length, type, ctx);
-  }
-
-  @Override
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (length != 1) {
@@ -167,9 +162,10 @@ public final class BoolCodec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
     requireBooleanToNumeric(ctx, "BigDecimal");
-    return decodeAsBoolean(data, 0, data.length, type, ctx) ? BigDecimal.ONE : BigDecimal.ZERO;
+    return decodeAsBoolean(data, offset, length, type, ctx) ? BigDecimal.ONE : BigDecimal.ZERO;
   }
 
   @Override
@@ -195,9 +191,9 @@ public final class BoolCodec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   }
 
   @Override
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
-    boolean value = decodeAsBoolean(data, 0, data.length, type, ctx);
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
+    boolean value = decodeAsBoolean(data, offset, length, type, ctx);
     return decodeBoolAs(value, targetClass);
   }
 

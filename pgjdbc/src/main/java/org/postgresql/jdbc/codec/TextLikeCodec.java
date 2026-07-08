@@ -15,6 +15,7 @@ import org.postgresql.util.PGobject;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.SQLException;
+import java.util.Arrays;
 
 /**
  * Codec for codec-less types whose server {@code typsend} emits raw charset text
@@ -57,8 +58,9 @@ public final class TextLikeCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return toPgObject(type, new String(data, ctx.getCharset()));
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return toPgObject(type, new String(data, offset, length, ctx.getCharset()));
   }
 
   @Override
@@ -74,22 +76,23 @@ public final class TextLikeCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return new String(data, ctx.getCharset());
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return new String(data, offset, length, ctx.getCharset());
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
     if (targetClass == Object.class || targetClass == PGobject.class) {
-      return (T) decodeBinary(data, type, ctx);
+      return (T) decodeBinary(data, offset, length, type, ctx);
     }
     if (targetClass == String.class) {
-      return (T) decodeAsString(data, type, ctx);
+      return (T) decodeAsString(data, offset, length, type, ctx);
     }
     if (targetClass == byte[].class) {
-      return (T) data.clone();
+      return (T) Arrays.copyOfRange(data, offset, offset + length);
     }
     throw Codec.cannotDecode(getTypeName(), targetClass.getName());
   }

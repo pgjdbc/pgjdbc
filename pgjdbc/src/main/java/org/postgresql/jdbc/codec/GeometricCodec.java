@@ -26,6 +26,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.function.Supplier;
 
 /**
@@ -137,12 +138,13 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
     }
 
     @Override
-    public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-      if (data == null || data.length == 0) {
+    public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
+        CodecContext ctx) throws SQLException {
+      if (length == 0) {
         return null;
       }
       T obj = constructor.get();
-      obj.setByteValue(data, 0);
+      obj.setByteValue(data, offset);
       return obj;
     }
 
@@ -181,20 +183,21 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
 
     @Override
     @SuppressWarnings("unchecked")
-    public <R> @Nullable R decodeBinaryAs(byte[] data, TypeDescriptor type, Class<R> targetClass, CodecContext ctx)
-        throws SQLException {
+    public <R> @Nullable R decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+        Class<R> targetClass, CodecContext ctx) throws SQLException {
       if (targetClass == javaType || targetClass == Object.class || targetClass == PGobject.class) {
-        return (R) decodeBinary(data, type, ctx);
+        return (R) decodeBinary(data, offset, length, type, ctx);
       }
       // User-registered PGobject subclass for this PG type
       // (Connection.addDataType). Materialize the requested class and feed it
       // the bytes via PGBinaryObject.setByteValue.
       if (PGobject.class.isAssignableFrom(targetClass)) {
-        if (data == null || data.length == 0) {
+        if (length == 0) {
           return null;
         }
+        byte[] valueBytes = offset == 0 && length == data.length ? data : Arrays.copyOfRange(data, offset, offset + length);
         return (R) instantiateCustomPGobject(
-            (Class<? extends PGobject>) targetClass, data, /* text */ null, ctx);
+            (Class<? extends PGobject>) targetClass, valueBytes, /* text */ null, ctx);
       }
       throw new PSQLException(
           GT.tr("Cannot decode {0} to {1}", typeName, targetClass.getName()),
@@ -250,7 +253,8 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
     }
 
     @Override
-    public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
+        CodecContext ctx) throws SQLException {
       throw new PSQLException(GT.tr("Cannot convert {0} to BigDecimal", typeName), PSQLState.DATA_TYPE_MISMATCH);
     }
 
@@ -260,8 +264,9 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
     }
 
     @Override
-    public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-      PGobject obj = (PGobject) decodeBinary(data, type, ctx);
+    public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+        CodecContext ctx) throws SQLException {
+      PGobject obj = (PGobject) decodeBinary(data, offset, length, type, ctx);
       return obj != null ? obj.getValue() : null;
     }
 

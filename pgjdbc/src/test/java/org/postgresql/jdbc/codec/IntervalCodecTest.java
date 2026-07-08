@@ -8,7 +8,9 @@ package org.postgresql.jdbc.codec;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveDecoders;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
@@ -82,7 +84,7 @@ class IntervalCodecTest {
     ByteConverter.int4(data, 8, 2); // days
     ByteConverter.int4(data, 12, 3); // months
 
-    PGInterval result = (PGInterval) codec.decodeBinary(data, intervalType, null);
+    PGInterval result = (PGInterval) codec.decodeBinary(data, 0, data.length, intervalType, null);
     assertEquals(0, result.getYears());
     assertEquals(3, result.getMonths());
     assertEquals(2, result.getDays());
@@ -99,7 +101,7 @@ class IntervalCodecTest {
     ByteConverter.int4(data, 8, 0);
     ByteConverter.int4(data, 12, 14);
 
-    PGInterval result = (PGInterval) codec.decodeBinary(data, intervalType, null);
+    PGInterval result = (PGInterval) codec.decodeBinary(data, 0, data.length, intervalType, null);
     assertEquals(1, result.getYears());
     assertEquals(2, result.getMonths());
   }
@@ -107,7 +109,7 @@ class IntervalCodecTest {
   @Test
   void decodeBinary_invalidLength() {
     byte[] data = new byte[8]; // wrong length
-    assertThrows(PSQLException.class, () -> codec.decodeBinary(data, intervalType, null));
+    assertThrows(PSQLException.class, () -> codec.decodeBinary(data, 0, data.length, (TypeDescriptor) intervalType, (CodecContext) null));
   }
 
   // ==================== Encoding ====================
@@ -180,7 +182,7 @@ class IntervalCodecTest {
     ByteConverter.int4(data, 8, 5);
     ByteConverter.int4(data, 12, 0);
 
-    PGInterval result = codec.decodeBinaryAs(data, intervalType, PGInterval.class, null);
+    PGInterval result = codec.decodeBinaryAs(data, 0, data.length, intervalType, PGInterval.class, null);
     assertEquals(5, result.getDays());
   }
 
@@ -191,7 +193,7 @@ class IntervalCodecTest {
     ByteConverter.int4(data, 8, 5);
     ByteConverter.int4(data, 12, 0);
 
-    String result = codec.decodeBinaryAs(data, intervalType, String.class, null);
+    String result = codec.decodeBinaryAs(data, 0, data.length, intervalType, String.class, null);
     // Should contain the interval string representation
     assertEquals(new PGInterval(0, 0, 5, 0, 0, 0).getValue(), result);
   }
@@ -200,7 +202,7 @@ class IntervalCodecTest {
   void decodeBinaryAs_unsupported() {
     byte[] data = new byte[16];
     assertThrows(PSQLException.class,
-        () -> codec.decodeBinaryAs(data, intervalType, Integer.class, null));
+        () -> codec.decodeBinaryAs(data, 0, data.length, (TypeDescriptor) intervalType, Integer.class, (CodecContext) null));
   }
 
   @Test
@@ -220,7 +222,7 @@ class IntervalCodecTest {
   void binaryRoundtrip() throws SQLException {
     PGInterval original = new PGInterval(1, 2, 3, 4, 5, 6.0);
     byte[] encoded = codec.encodeBinary(original, intervalType, null);
-    PGInterval decoded = (PGInterval) codec.decodeBinary(encoded, intervalType, null);
+    PGInterval decoded = (PGInterval) codec.decodeBinary(encoded, 0, encoded.length, intervalType, null);
 
     assertEquals(original.getYears(), decoded.getYears());
     assertEquals(original.getMonths(), decoded.getMonths());
@@ -232,7 +234,7 @@ class IntervalCodecTest {
 
   private PGInterval binaryRoundTrip(PGInterval interval) throws SQLException {
     byte[] wire = codec.encodeBinary(interval, intervalType, null);
-    return (PGInterval) codec.decodeBinary(wire, intervalType, null);
+    return (PGInterval) codec.decodeBinary(wire, 0, wire.length, intervalType, null);
   }
 
   @Test

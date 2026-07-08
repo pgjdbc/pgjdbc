@@ -26,6 +26,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 /**
  * Codec for PostgreSQL range types.
@@ -74,10 +75,13 @@ public final class RangeCodec implements StreamingBinaryCodec, TextCodec {
   // ==================== Binary Codec Methods ====================
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    if (data == null || data.length == 0) {
+  public @Nullable Object decodeBinary(byte[] buf, int start, int len, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    if (len == 0) {
       return null;
     }
+    // Range binary parsing indexes from the value start; copy only for a genuine sub-slice.
+    byte[] data = start == 0 && len == buf.length ? buf : Arrays.copyOfRange(buf, start, start + len);
 
     CodecDepth.enter();
     try {
@@ -222,30 +226,17 @@ public final class RangeCodec implements StreamingBinaryCodec, TextCodec {
 
       // Write lower bound if not infinite
       if (range.hasLowerBound()) {
-        writeBound(out, subtypeCodec, castNonNull(range.getLower()), subtypeType, ctx);
+        Object bound = castNonNull(range.getLower());
+        BinaryCodec.writeElement(out, bound, subtypeCodec, subtypeType, ctx);
       }
 
       // Write upper bound if not infinite
       if (range.hasUpperBound()) {
-        writeBound(out, subtypeCodec, castNonNull(range.getUpper()), subtypeType, ctx);
+        Object bound = castNonNull(range.getUpper());
+        BinaryCodec.writeElement(out, bound, subtypeCodec, subtypeType, ctx);
       }
     } finally {
       CodecDepth.exit();
-    }
-  }
-
-  /** Writes one length-prefixed range bound, streaming the body when the subtype codec supports it. */
-  private static void writeBound(BackpatchingBinarySink out, BinaryCodec codec, Object bound,
-      TypeDescriptor subtypeType, CodecContext ctx) throws SQLException, IOException {
-    if (codec instanceof StreamingBinaryCodec) {
-      int lengthSlot = out.reserveInt32();
-      int startPos = out.position();
-      ((StreamingBinaryCodec) codec).encodeBinary(bound, subtypeType, ctx, out);
-      out.setInt32At(lengthSlot, out.position() - startPos);
-    } else {
-      byte[] data = codec.encodeBinary(bound, subtypeType, ctx);
-      out.writeInt32(data.length);
-      out.write(data);
     }
   }
 
@@ -266,25 +257,20 @@ public final class RangeCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert range to BigDecimal"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Object range = decodeBinary(data, type, ctx);
-    return range != null ? range.toString() : null;
-  }
-
-  @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
     if (targetClass == PGRange.class || targetClass == Object.class) {
-      return (T) decodeBinary(data, type, ctx);
+      return (T) decodeBinary(data, offset, length, type, ctx);
     }
     if (targetClass == String.class) {
-      return (T) decodeAsString(data, type, ctx);
+      return (T) decodeAsString(data, offset, length, type, ctx);
     }
     throw new PSQLException(
         GT.tr("Cannot decode range to {0}", targetClass.getName()),

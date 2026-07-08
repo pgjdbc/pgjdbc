@@ -21,6 +21,7 @@ import org.postgresql.util.ByteConverter;
 import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
+import java.util.Arrays;
 
 /**
  * Unit tests for {@link Int4ArrayLeafCodec}, the {@code int4} array fast leaf,
@@ -41,7 +42,7 @@ class Int4ArrayLeafCodecTest {
   }
 
   private static Object decodeBinary(byte[] data, Class<?> leafComponentType) throws SQLException {
-    return MultiDimArrayBinary.decode(data, leafComponentType, null, LEAF);
+    return MultiDimArrayBinary.decode(data, 0, data.length, leafComponentType, null, LEAF);
   }
 
   private static String encodeText(Object array) throws SQLException {
@@ -143,6 +144,36 @@ class Int4ArrayLeafCodecTest {
     assertNull(decoded[1]);
     assertEquals(7, decoded[2]);
     assertNull(decoded[3]);
+  }
+
+  // ---------------- binary decode: slice mode ----------------
+
+  @Test
+  void decodeBinary_sliceWithinLargerBuffer_ignoresSurroundingBytes() throws SQLException {
+    byte[] wire = encodeBinary(new int[]{7, -42, 3});
+    byte[] shared = new byte[5 + wire.length + 5];
+    Arrays.fill(shared, (byte) 0xAA);
+    System.arraycopy(wire, 0, shared, 5, wire.length);
+
+    int[] decoded = (int[]) MultiDimArrayBinary.decode(shared, 5, wire.length, int.class, LEAF, null);
+    assertArrayEquals(new int[]{7, -42, 3}, decoded);
+  }
+
+  @Test
+  void decodeBinary_rejectsElementBodyThatOverrunsDeclaredSlice() throws SQLException {
+    // Two encoded arrays back-to-back in one shared buffer, with the first value's declared length
+    // shortened by one element's worth of bytes. Reading the first value's last element would then
+    // reach into the second value's bytes -- that must be rejected rather than silently decoded, since
+    // the physical buffer is long enough that the read would not trip an ArrayIndexOutOfBoundsException.
+    byte[] first = encodeBinary(new int[]{1, 2, 3});
+    byte[] second = encodeBinary(new int[]{9});
+    byte[] shared = new byte[first.length + second.length];
+    System.arraycopy(first, 0, shared, 0, first.length);
+    System.arraycopy(second, 0, shared, first.length, second.length);
+
+    int truncatedLength = first.length - 8; // hides the last element's length+value pair
+    assertThrows(SQLException.class,
+        () -> MultiDimArrayBinary.decode(shared, 0, truncatedLength, int.class, LEAF, null));
   }
 
   // ---------------- text encode ----------------

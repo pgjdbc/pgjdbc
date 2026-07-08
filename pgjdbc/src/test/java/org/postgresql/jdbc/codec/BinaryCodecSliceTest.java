@@ -47,7 +47,7 @@ class BinaryCodecSliceTest {
 
   /** Asserts that decoding {@code value} at a non-zero offset matches decoding it alone. */
   private static void assertSliceMatches(BinaryCodec codec, byte[] value) throws SQLException {
-    Object whole = codec.decodeBinary(value, ANY, CTX);
+    Object whole = codec.decodeBinary(value, 0, value.length, ANY, CTX);
     Object slice = codec.decodeBinary(embed(value), 5, value.length, ANY, CTX);
     assertEquals(whole, slice);
   }
@@ -145,9 +145,9 @@ class BinaryCodecSliceTest {
   }
 
   @Test
-  void defaultSlice_copiesWindow_andDelegatesToWholeArrayForm() throws SQLException {
-    // A codec that does NOT override the slice form: it must still see exactly the
-    // [offset, offset + length) window via the BinaryCodec default.
+  void wholeArrayConvenience_delegatesToSliceForm() throws SQLException {
+    // A codec that overrides only the slice form: the whole-array decodeBinary(byte[], ...)
+    // convenience default must delegate to it.
     BinaryCodec stub = new BinaryCodec() {
       @Override
       public String getTypeName() {
@@ -160,8 +160,8 @@ class BinaryCodecSliceTest {
       }
 
       @Override
-      public Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) {
-        return new String(data, StandardCharsets.UTF_8);
+      public Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx) {
+        return new String(data, offset, length, StandardCharsets.UTF_8);
       }
 
       @Override
@@ -170,7 +170,9 @@ class BinaryCodecSliceTest {
       }
     };
     byte[] v = "wörld".getBytes(StandardCharsets.UTF_8);
+    // slice reads exactly the [offset, offset + length) window
     assertEquals("wörld", stub.decodeBinary(embed(v), 5, v.length, ANY, CTX));
+    // whole-array convenience delegates to the slice form
     assertEquals("wörld", stub.decodeBinary(v, 0, v.length, ANY, CTX));
   }
 }

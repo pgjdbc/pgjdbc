@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.jdbc.TemporalCodecs;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.sql.Date;
 import java.sql.SQLException;
 
 class FallbackCodecTest {
@@ -48,7 +50,7 @@ class FallbackCodecTest {
   @Test
   void decodeBinary_returnsPGUnknownBinary() throws SQLException {
     byte[] data = new byte[]{0x01, 0x02, 0x03, 0x04};
-    Object result = codec.decodeBinary(data, unknownType, null);
+    Object result = codec.decodeBinary(data, 0, data.length, unknownType, null);
 
     assertInstanceOf(PGUnknownBinary.class, result);
     PGUnknownBinary unknown = (PGUnknownBinary) result;
@@ -79,7 +81,7 @@ class FallbackCodecTest {
   @Test
   void decodeBinary_emptyData() throws SQLException {
     byte[] data = new byte[0];
-    Object result = codec.decodeBinary(data, unknownType, null);
+    Object result = codec.decodeBinary(data, 0, data.length, unknownType, null);
 
     assertInstanceOf(PGUnknownBinary.class, result);
     PGUnknownBinary unknown = (PGUnknownBinary) result;
@@ -133,6 +135,6 @@ class FallbackCodecTest {
   void decodeBinaryAs_Date_throws() {
     byte[] data = "2024-01-02".getBytes(StandardCharsets.UTF_8);
     assertThrows(PSQLException.class,
-        () -> codec.decodeBinaryAs(data, unknownType, java.sql.Date.class, ctx));
+        () -> codec.decodeBinaryAs(data, 0, data.length, (TypeDescriptor) unknownType, Date.class, ctx));
   }
 }

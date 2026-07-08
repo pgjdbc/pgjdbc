@@ -461,7 +461,7 @@ public final class ArrayDecoding {
                 elementType.getFullName()),
             PSQLState.DATA_TYPE_MISMATCH);
       }
-      return castNonNull(codec.decodeBinary(copy, elementType, ctx));
+      return castNonNull(codec.decodeBinary(copy, 0, copy.length, elementType, ctx));
     }
 
     /**

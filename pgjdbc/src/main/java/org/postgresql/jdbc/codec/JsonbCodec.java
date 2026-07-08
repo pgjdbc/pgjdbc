@@ -56,15 +56,13 @@ public final class JsonbCodec implements BinaryCodec, TextCodec, ArrayElementCod
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    if (data == null || data.length == 0) {
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    if (length == 0) {
       return null;
     }
-    // Skip version byte
-    if (data.length < 1) {
-      return wrap("");
-    }
-    return wrap(new String(data, 1, data.length - 1, StandardCharsets.UTF_8));
+    // Skip the leading version byte; the JSON text is the rest of the slice.
+    return wrap(new String(data, offset + 1, length - 1, StandardCharsets.UTF_8));
   }
 
   private static PGobject wrap(String value) throws SQLException {
@@ -96,15 +94,13 @@ public final class JsonbCodec implements BinaryCodec, TextCodec, ArrayElementCod
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    if (data == null || data.length == 0) {
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    if (length == 0) {
       return null;
     }
-    // Skip version byte
-    if (data.length < 1) {
-      return "";
-    }
-    return new String(data, 1, data.length - 1, StandardCharsets.UTF_8);
+    // Skip the leading version byte.
+    return new String(data, offset + 1, length - 1, StandardCharsets.UTF_8);
   }
 
   @Override
@@ -114,12 +110,12 @@ public final class JsonbCodec implements BinaryCodec, TextCodec, ArrayElementCod
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
-    if (data == null || data.length == 0) {
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
+    if (length == 0) {
       return null;
     }
-    String value = decodeAsString(data, type, ctx);
+    String value = decodeAsString(data, offset, length, type, ctx);
     if (value == null) {
       return null;
     }

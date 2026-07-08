@@ -9,7 +9,6 @@ import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
-import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
@@ -21,8 +20,8 @@ import org.postgresql.util.PSQLState;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.sql.SQLException;
-import java.util.Arrays;
 
 /**
  * Generic array leaf adapter that delegates each non-null element to the
@@ -81,8 +80,8 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
   }
 
   @Override
-  public boolean writeLeaf(Object leaf, BackpatchingBinarySink out, byte[] scratch,
-      CodecContext ctx) throws IOException, SQLException {
+  public boolean writeLeaf(Object leaf, BackpatchingBinarySink out, CodecContext ctx)
+      throws IOException, SQLException {
     BinaryCodec codec = binaryCodec;
     if (codec == null) {
       throw noBinaryCodec();
@@ -94,7 +93,7 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
           out.writeInt32(-1);
           hasNulls = true;
         } else {
-          writeElement(codec, element, out, ctx);
+          BinaryCodec.writeElement(out, element, codec, elementType, ctx);
         }
       }
       return hasNulls;
@@ -102,27 +101,14 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
     if (leaf.getClass().isArray()) {
       // Primitive leaf array (e.g. int[]/double[] bound to numeric[]): box each element and
       // dispatch to the element codec. Primitive arrays never contain nulls.
-      int len = java.lang.reflect.Array.getLength(leaf);
+      int len = Array.getLength(leaf);
       for (int i = 0; i < len; i++) {
-        writeElement(codec, java.lang.reflect.Array.get(leaf, i), out, ctx);
+        Object element = Array.get(leaf, i);
+        BinaryCodec.writeElement(out, element, codec, elementType, ctx);
       }
       return false;
     }
     throw unsupportedLeaf(leaf, ctx);
-  }
-
-  private void writeElement(BinaryCodec codec, Object element, BackpatchingBinarySink out,
-      CodecContext ctx) throws IOException, SQLException {
-    if (codec instanceof StreamingBinaryCodec) {
-      int lengthSlot = out.reserveInt32();
-      int startPos = out.position();
-      ((StreamingBinaryCodec) codec).encodeBinary(element, elementType, ctx, out);
-      out.setInt32At(lengthSlot, out.position() - startPos);
-    } else {
-      byte[] encoded = codec.encodeBinary(element, elementType, ctx);
-      out.writeInt32(encoded.length);
-      out.write(encoded);
-    }
   }
 
   @Override
@@ -145,7 +131,7 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
         arr[i] = null;
       } else {
         arr[i] = target != null
-            ? codec.decodeBinaryAs(Arrays.copyOfRange(data, pos, pos + length), elementType, target,
+            ? codec.decodeBinaryAs(data, pos, length, elementType, target,
                 ctx)
             : codec.decodeBinary(data, pos, length, elementType, ctx);
         pos += length;
@@ -174,12 +160,12 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
     if (leaf.getClass().isArray()) {
       // Primitive leaf array (e.g. int[]/double[] bound to numeric[]): box each element. Primitive
       // arrays never contain nulls.
-      int len = java.lang.reflect.Array.getLength(leaf);
+      int len = Array.getLength(leaf);
       for (int i = 0; i < len; i++) {
         if (i > 0) {
           out.append(delimiter);
         }
-        appendElement(codec, java.lang.reflect.Array.get(leaf, i), out, ctx);
+        appendElement(codec, Array.get(leaf, i), out, ctx);
       }
       return;
     }

@@ -35,7 +35,7 @@ class Int8ArrayLeafCodecTest {
   }
 
   private static Object decodeBinary(byte[] data, Class<?> leafComponentType) throws SQLException {
-    return MultiDimArrayBinary.decode(data, leafComponentType, null, LEAF);
+    return MultiDimArrayBinary.decode(data, 0, data.length, leafComponentType, null, LEAF);
   }
 
   private static String encodeText(Object array) throws SQLException {

@@ -78,14 +78,15 @@ public final class PGobjectCodec implements StreamingBinaryCodec, StreamingTextC
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
     if (binaryObject) {
-      return fromBinary(data, type);
+      return fromBinary(data, offset, type);
     }
     // A non-binary PGobject subclass is populated from text, so render the
     // binary wire through the delegate first.
     String text = delegate instanceof BinaryCodec
-        ? ((BinaryCodec) delegate).decodeAsString(data, type, ctx)
+        ? ((BinaryCodec) delegate).decodeAsString(data, offset, length, type, ctx)
         : null;
     return text == null ? null : fromText(text, type);
   }
@@ -105,13 +106,13 @@ public final class PGobjectCodec implements StreamingBinaryCodec, StreamingTextC
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
     if (targetClass.isAssignableFrom(pgObjectClass)) {
-      return (T) decodeBinary(data, type, ctx);
+      return (T) decodeBinary(data, offset, length, type, ctx);
     }
     if (delegate instanceof BinaryCodec) {
-      return ((BinaryCodec) delegate).decodeBinaryAs(data, type, targetClass, ctx);
+      return ((BinaryCodec) delegate).decodeBinaryAs(data, offset, length, type, targetClass, ctx);
     }
     throw Codec.cannotDecode(getTypeName(), targetClass.getName());
   }
@@ -182,9 +183,10 @@ public final class PGobjectCodec implements StreamingBinaryCodec, StreamingTextC
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
     if (delegate instanceof BinaryCodec) {
-      return ((BinaryCodec) delegate).decodeAsString(data, type, ctx);
+      return ((BinaryCodec) delegate).decodeAsString(data, offset, length, type, ctx);
     }
     throw Codec.cannotDecode(getTypeName(), "String");
   }
@@ -211,9 +213,9 @@ public final class PGobjectCodec implements StreamingBinaryCodec, StreamingTextC
     return obj;
   }
 
-  private PGobject fromBinary(byte[] data, TypeDescriptor type) throws SQLException {
+  private PGobject fromBinary(byte[] data, int offset, TypeDescriptor type) throws SQLException {
     PGobject obj = newInstance(type);
-    ((PGBinaryObject) obj).setByteValue(data, 0);
+    ((PGBinaryObject) obj).setByteValue(data, offset);
     return obj;
   }
 }

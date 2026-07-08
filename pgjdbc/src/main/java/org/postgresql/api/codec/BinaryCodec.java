@@ -9,9 +9,9 @@ import org.postgresql.api.Experimental;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
-import java.util.Arrays;
 
 /**
  * Codec for encoding and decoding PostgreSQL values in binary format.
@@ -21,6 +21,18 @@ import java.util.Arrays;
  *
  * <p>Implementations must be stateless and thread-safe. All connection-specific
  * settings are provided via {@link CodecContext}.</p>
+ *
+ * <h2>Slice-based decoding</h2>
+ *
+ * <p>Every decode method is expressed over a slice {@code data[offset, offset + length)} of a larger
+ * buffer, so a container codec (array, range, composite) decodes each element, bound, or field in
+ * place without a per-element {@link java.util.Arrays#copyOfRange}. A codec implements the primary
+ * {@link #decodeBinary(byte[], int, int, TypeDescriptor, CodecContext)}; the whole-array
+ * {@code decodeBinary(byte[], ...)} and the {@code decodeAsString}/{@code decodeAsBigDecimal}/
+ * {@code decodeAsBytes}/{@code decodeBinaryAs} accessors are convenience defaults that fan out from
+ * it. A codec overrides a slice accessor only when its result differs from decoding through
+ * {@code decodeBinary} and converting (for example {@code bytea}'s hex text, or a numeric codec that
+ * converts to {@code Long}/{@code Double}).</p>
  *
  * <h2>Primitive Specializations</h2>
  *
@@ -43,26 +55,11 @@ import java.util.Arrays;
 public interface BinaryCodec extends Codec {
 
   /**
-   * Decodes a value from binary format.
+   * Decodes the value in {@code data[offset, offset + length)} from binary format.
    *
-   * @param data the binary data (never null, may be empty)
-   * @param type the PostgreSQL type information
-   * @param ctx the codec context providing connection settings
-   * @return the decoded Java object
-   * @throws SQLException if decoding fails
-   */
-  @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException;
-
-  /**
-   * Decodes a value from a slice of a larger binary buffer, without copying the
-   * slice out first.
-   *
-   * <p>Container codecs (arrays, ranges, composites) call this so each element,
-   * bound, or field is decoded in place instead of through a per-element
-   * {@link java.util.Arrays#copyOfRange}. The default copies the slice and
-   * delegates to {@link #decodeBinary(byte[], TypeDescriptor, CodecContext)}, so codecs
-   * that do not override it keep the existing single-copy behaviour. Fixed-width
-   * and string codecs override it to read directly at {@code offset}.</p>
+   * <p>This is the primary decode method every {@link BinaryCodec} implements. Container codecs
+   * (arrays, ranges, composites) call it so each element, bound, or field is decoded in place instead
+   * of through a per-element {@link java.util.Arrays#copyOfRange}.</p>
    *
    * @param data the backing buffer; only {@code [offset, offset + length)} is this value
    * @param offset start of this value's bytes within {@code data}
@@ -72,13 +69,8 @@ public interface BinaryCodec extends Codec {
    * @return the decoded Java object
    * @throws SQLException if decoding fails
    */
-  default @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
-      CodecContext ctx) throws SQLException {
-    if (offset == 0 && length == data.length) {
-      return decodeBinary(data, type, ctx);
-    }
-    return decodeBinary(Arrays.copyOfRange(data, offset, offset + length), type, ctx);
-  }
+  @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException;
 
   /**
    * Encodes a value to binary format.
@@ -141,34 +133,44 @@ public interface BinaryCodec extends Codec {
   }
 
   /**
-   * Decodes binary data as a String value.
+   * Decodes {@code data[offset, offset + length)} as a String.
    *
-   * <p>Default implementation decodes and calls {@code toString()}.</p>
+   * <p>The default decodes through
+   * {@link #decodeBinary(byte[], int, int, TypeDescriptor, CodecContext)} and calls {@code toString()}.
+   * A codec whose canonical text differs from the decoded object's {@code toString()} — for example
+   * {@code bytea}'s hex form — overrides this to read the slice directly.</p>
    *
-   * @param data the binary data
+   * @param data the backing buffer
+   * @param offset start of this value's bytes within {@code data}
+   * @param length number of bytes for this value
    * @param type the PostgreSQL type information
    * @param ctx the codec context
    * @return the string value, or null if the decoded value is null
    * @throws SQLException if decoding fails
    */
-  default @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Object value = decodeBinary(data, type, ctx);
+  default @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    Object value = decodeBinary(data, offset, length, type, ctx);
     return value == null ? null : value.toString();
   }
 
   /**
-   * Decodes binary data as a BigDecimal value.
+   * Decodes {@code data[offset, offset + length)} as a BigDecimal.
    *
-   * <p>Default implementation converts from the decoded number.</p>
+   * <p>The default converts the number decoded through
+   * {@link #decodeBinary(byte[], int, int, TypeDescriptor, CodecContext)}.</p>
    *
-   * @param data the binary data
+   * @param data the backing buffer
+   * @param offset start of this value's bytes within {@code data}
+   * @param length number of bytes for this value
    * @param type the PostgreSQL type information
    * @param ctx the codec context
    * @return the BigDecimal value
    * @throws SQLException if decoding fails
    */
-  default @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Object value = decodeBinary(data, type, ctx);
+  default @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    Object value = decodeBinary(data, offset, length, type, ctx);
     if (value == null) {
       return null;
     }
@@ -185,18 +187,22 @@ public interface BinaryCodec extends Codec {
   }
 
   /**
-   * Decodes binary data as a byte array.
+   * Decodes {@code data[offset, offset + length)} as a byte array.
    *
-   * <p>Default implementation expects the decoded value to be a byte array.</p>
+   * <p>The default expects the value decoded through
+   * {@link #decodeBinary(byte[], int, int, TypeDescriptor, CodecContext)} to be a byte array.</p>
    *
-   * @param data the binary data
+   * @param data the backing buffer
+   * @param offset start of this value's bytes within {@code data}
+   * @param length number of bytes for this value
    * @param type the PostgreSQL type information
    * @param ctx the codec context
    * @return the byte array
    * @throws SQLException if decoding fails or value is not a byte array
    */
-  default byte @Nullable [] decodeAsBytes(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Object value = decodeBinary(data, type, ctx);
+  default byte @Nullable [] decodeAsBytes(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    Object value = decodeBinary(data, offset, length, type, ctx);
     if (value == null) {
       return null;
     }
@@ -207,16 +213,20 @@ public interface BinaryCodec extends Codec {
   }
 
   /**
-   * Decodes binary data into an instance of the specified target class.
+   * Decodes {@code data[offset, offset + length)} into an instance of {@code targetClass}.
    *
-   * <p>Codecs implement this method to support conversions to various Java types.
-   * For example, a timestamp codec might support conversion to
-   * {@code LocalDateTime}, {@code Instant}, {@code OffsetDateTime}, etc.</p>
+   * <p>Codecs override this to support conversions to various Java types — a timestamp codec to
+   * {@code LocalDateTime}/{@code Instant}/{@code OffsetDateTime}, a numeric codec to
+   * {@code Long}/{@code Double}, and so on. The default returns the value decoded through
+   * {@link #decodeBinary(byte[], int, int, TypeDescriptor, CodecContext)} when it is already an
+   * instance of {@code targetClass}, and otherwise fails.</p>
    *
    * <p>Note: primitive classes (int.class, long.class) are NOT supported.
    * Use boxed types (Integer.class, Long.class) instead.</p>
    *
-   * @param data the binary data
+   * @param data the backing buffer
+   * @param offset start of this value's bytes within {@code data}
+   * @param length number of bytes for this value
    * @param type the PostgreSQL type information
    * @param targetClass the desired Java class for the result
    * @param ctx the codec context
@@ -224,9 +234,9 @@ public interface BinaryCodec extends Codec {
    * @return the decoded object as the target type
    * @throws SQLException if conversion to the target class is not supported
    */
-  default <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
-    Object value = decodeBinary(data, type, ctx);
+  default <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
+    Object value = decodeBinary(data, offset, length, type, ctx);
     if (value == null) {
       return null;
     }
@@ -234,5 +244,19 @@ public interface BinaryCodec extends Codec {
       return targetClass.cast(value);
     }
     throw Codec.cannotDecode(getTypeName(), targetClass.getName());
+  }
+
+  static void writeElement(BackpatchingBinarySink out, Object element, BinaryCodec codec, TypeDescriptor type,
+      CodecContext ctx) throws IOException, SQLException {
+    if (codec instanceof StreamingBinaryCodec) {
+      int lengthSlot = out.reserveInt32();
+      int startPos = out.position();
+      ((StreamingBinaryCodec) codec).encodeBinary(element, type, ctx, out);
+      out.setInt32At(lengthSlot, out.position() - startPos);
+    } else {
+      byte[] encoded = codec.encodeBinary(element, type, ctx);
+      out.writeInt32(encoded.length);
+      out.write(encoded);
+    }
   }
 }

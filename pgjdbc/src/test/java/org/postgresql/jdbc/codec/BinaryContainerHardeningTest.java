@@ -56,7 +56,7 @@ class BinaryContainerHardeningTest {
   }
 
   private static Object decodeInt4Array(byte[] data) throws SQLException {
-    return MultiDimArrayBinary.decode(data, Integer.class, Int4ArrayLeafCodec.INSTANCE, null);
+    return MultiDimArrayBinary.decode(data, 0, data.length, Integer.class, Int4ArrayLeafCodec.INSTANCE, null);
   }
 
   @Test

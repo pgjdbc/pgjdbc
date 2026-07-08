@@ -6,7 +6,6 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.jdbc.PgArray;
-import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -143,12 +142,6 @@ final class MultiDimArraySupport {
       c = c.getComponentType();
     }
     return c;
-  }
-
-  static byte[] zeroDimBinaryArray(int elementOid) {
-    byte[] bytes = new byte[12];
-    ByteConverter.int4(bytes, 8, elementOid);
-    return bytes;
   }
 
   /**

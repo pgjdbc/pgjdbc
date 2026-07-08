@@ -49,11 +49,6 @@ public final class TimestamptzCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeBinary(data, 0, data.length, type, ctx);
-  }
-
-  @Override
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     // Check connection property for default type
@@ -124,21 +119,21 @@ public final class TimestamptzCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
     if (targetClass == Timestamp.class || targetClass == Object.class) {
-      return targetClass.cast(TemporalCodecs.decodeTimestampBin(data, 0, data.length, true, ctx));
+      return targetClass.cast(TemporalCodecs.decodeTimestampBin(data, offset, length, true, ctx));
     }
     if (targetClass == OffsetDateTime.class) {
-      return targetClass.cast(TemporalCodecs.decodeOffsetDateTimeBin(data, 0, data.length, ctx));
+      return targetClass.cast(TemporalCodecs.decodeOffsetDateTimeBin(data, offset, length, ctx));
     }
     if (targetClass == ZonedDateTime.class) {
       // timestamptz is stored as UTC
-      OffsetDateTime odt = TemporalCodecs.decodeOffsetDateTimeBin(data, 0, data.length, ctx);
+      OffsetDateTime odt = TemporalCodecs.decodeOffsetDateTimeBin(data, offset, length, ctx);
       return targetClass.cast(odt.toZonedDateTime());
     }
     if (targetClass == Instant.class) {
-      OffsetDateTime odt = TemporalCodecs.decodeOffsetDateTimeBin(data, 0, data.length, ctx);
+      OffsetDateTime odt = TemporalCodecs.decodeOffsetDateTimeBin(data, offset, length, ctx);
       return targetClass.cast(odt.toInstant());
     }
     // LocalDate / LocalTime / LocalDateTime are intentionally rejected — they
@@ -147,19 +142,19 @@ public final class TimestamptzCodec implements StreamingBinaryCodec, TextCodec {
     if (targetClass == Date.class) {
       // JDBC: getDate on a TIMESTAMPTZ column truncates the instant to midnight
       // in the target time zone.
-      Timestamp t = TemporalCodecs.decodeTimestampBin(data, 0, data.length, true, ctx);
+      Timestamp t = TemporalCodecs.decodeTimestampBin(data, offset, length, true, ctx);
       return t == null ? null : targetClass.cast(TemporalCodecs.extractDate(t.getTime(), ctx));
     }
     if (targetClass == Time.class) {
       // JDBC: getTime on a binary TIMESTAMPTZ truncates the UTC instant to the day.
-      Timestamp t = TemporalCodecs.decodeTimestampBin(data, 0, data.length, true, ctx);
+      Timestamp t = TemporalCodecs.decodeTimestampBin(data, offset, length, true, ctx);
       return t == null ? null : targetClass.cast(new Time(t.getTime() % TimeUnit.DAYS.toMillis(1)));
     }
     if (targetClass == java.util.Date.class) {
-      return targetClass.cast(TemporalCodecs.decodeTimestampBin(data, 0, data.length, true, ctx));
+      return targetClass.cast(TemporalCodecs.decodeTimestampBin(data, offset, length, true, ctx));
     }
     if (targetClass == Long.class) {
-      Timestamp t = TemporalCodecs.decodeTimestampBin(data, 0, data.length, true, ctx);
+      Timestamp t = TemporalCodecs.decodeTimestampBin(data, offset, length, true, ctx);
       return t == null ? null : targetClass.cast(t.getTime());
     }
     if (targetClass == String.class) {
@@ -207,7 +202,8 @@ public final class TimestamptzCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
     return TemporalCodecs.formatOffsetDateTimeBin(data, ctx);
   }
 

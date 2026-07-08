@@ -38,53 +38,34 @@ public final class PrimitiveDecoders {
   // Binary
   // ===========================================================================
 
-  /**
-   * Decodes {@code data} as an int through {@code codec}'s native path when it implements
-   * {@link PrimitiveBinaryDecoder}, otherwise by boxing through {@link BinaryCodec#decodeBinary}.
-   */
+  /** Decodes {@code data} as a int; see {@link #asInt(BinaryCodec, byte[], int, int, TypeDescriptor, CodecContext)}. */
   public static int asInt(BinaryCodec codec, byte[] data, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    if (codec instanceof PrimitiveBinaryDecoder) {
-      return ((PrimitiveBinaryDecoder) codec).decodeAsInt(data, 0, data.length, type, ctx);
-    }
-    return boxToInt(codec.decodeBinary(data, type, ctx));
+    return asInt(codec, data, 0, data.length, type, ctx);
   }
 
-  /** Decodes {@code data} as a long; see {@link #asInt(BinaryCodec, byte[], TypeDescriptor, CodecContext)}. */
+  /** Decodes {@code data} as a long; see {@link #asLong(BinaryCodec, byte[], int, int, TypeDescriptor, CodecContext)}. */
   public static long asLong(BinaryCodec codec, byte[] data, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    if (codec instanceof PrimitiveBinaryDecoder) {
-      return ((PrimitiveBinaryDecoder) codec).decodeAsLong(data, 0, data.length, type, ctx);
-    }
-    return boxToLong(codec.decodeBinary(data, type, ctx));
+    return asLong(codec, data, 0, data.length, type, ctx);
   }
 
-  /** Decodes {@code data} as a float; see {@link #asInt(BinaryCodec, byte[], TypeDescriptor, CodecContext)}. */
+  /** Decodes {@code data} as a float; see {@link #asFloat(BinaryCodec, byte[], int, int, TypeDescriptor, CodecContext)}. */
   public static float asFloat(BinaryCodec codec, byte[] data, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    if (codec instanceof PrimitiveBinaryDecoder) {
-      return ((PrimitiveBinaryDecoder) codec).decodeAsFloat(data, 0, data.length, type, ctx);
-    }
-    return boxToFloat(codec.decodeBinary(data, type, ctx));
+    return asFloat(codec, data, 0, data.length, type, ctx);
   }
 
-  /** Decodes {@code data} as a double; see {@link #asInt(BinaryCodec, byte[], TypeDescriptor, CodecContext)}. */
+  /** Decodes {@code data} as a double; see {@link #asDouble(BinaryCodec, byte[], int, int, TypeDescriptor, CodecContext)}. */
   public static double asDouble(BinaryCodec codec, byte[] data, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    if (codec instanceof PrimitiveBinaryDecoder) {
-      return ((PrimitiveBinaryDecoder) codec).decodeAsDouble(data, 0, data.length, type, ctx);
-    }
-    return boxToDouble(codec.decodeBinary(data, type, ctx));
+    return asDouble(codec, data, 0, data.length, type, ctx);
   }
 
-  /** Decodes {@code data} as a boolean; see {@link #asInt(BinaryCodec, byte[], TypeDescriptor, CodecContext)}. */
+  /** Decodes {@code data} as a boolean; see {@link #asBoolean(BinaryCodec, byte[], int, int, TypeDescriptor, CodecContext)}. */
   public static boolean asBoolean(BinaryCodec codec, byte[] data, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    if (codec instanceof PrimitiveBinaryDecoder) {
-      return ((PrimitiveBinaryDecoder) codec).decodeAsBoolean(data, 0, data.length, type, ctx);
-    }
-    return BooleanCoercion.castAndCheck(
-        codec.decodeBinary(data, type, ctx), () -> codec.decodeAsString(data, type, ctx));
+    return asBoolean(codec, data, 0, data.length, type, ctx);
   }
 
   // ---------------------------------------------------------------------------
@@ -135,7 +116,8 @@ public final class PrimitiveDecoders {
       return ((PrimitiveBinaryDecoder) codec).decodeAsBoolean(data, offset, length, type, ctx);
     }
     return BooleanCoercion.castAndCheck(
-        codec.decodeBinary(data, offset, length, type, ctx), () -> codec.decodeAsString(data, type, ctx));
+        codec.decodeBinary(data, offset, length, type, ctx),
+        () -> codec.decodeAsString(data, offset, length, type, ctx));
   }
 
   // ===========================================================================

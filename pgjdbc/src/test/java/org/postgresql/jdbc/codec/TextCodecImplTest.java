@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.sql.Date;
 import java.sql.SQLException;
 
 class TextCodecImplTest {
@@ -70,14 +72,14 @@ class TextCodecImplTest {
   @Test
   void decodeBinary_utf8() throws SQLException {
     byte[] data = "hello".getBytes(StandardCharsets.UTF_8);
-    assertEquals("hello", codec.decodeBinary(data, textType, ctx));
+    assertEquals("hello", codec.decodeBinary(data, 0, data.length, textType, ctx));
   }
 
   @Test
   void decodeBinary_unicode() throws SQLException {
     String unicode = "\u00e9\u00e8\u00ea"; // accented chars
     byte[] data = unicode.getBytes(StandardCharsets.UTF_8);
-    assertEquals(unicode, codec.decodeBinary(data, textType, ctx));
+    assertEquals(unicode, codec.decodeBinary(data, 0, data.length, textType, ctx));
   }
 
   // ==================== Encoding ====================
@@ -133,7 +135,7 @@ class TextCodecImplTest {
   @Test
   void decodeAsBigDecimal_text() throws SQLException {
     byte[] data = "3.14".getBytes(StandardCharsets.UTF_8);
-    assertEquals(new BigDecimal("3.14"), codec.decodeAsBigDecimal(data, textType, ctx));
+    assertEquals(new BigDecimal("3.14"), codec.decodeAsBigDecimal(data, 0, data.length, textType, ctx));
   }
 
   @Test
@@ -157,50 +159,50 @@ class TextCodecImplTest {
   @Test
   void decodeBinaryAs_String() throws SQLException {
     byte[] data = "hello".getBytes(StandardCharsets.UTF_8);
-    assertEquals("hello", codec.decodeBinaryAs(data, textType, String.class, ctx));
+    assertEquals("hello", codec.decodeBinaryAs(data, 0, data.length, textType, String.class, ctx));
   }
 
   @Test
   void decodeBinaryAs_Integer() throws SQLException {
     byte[] data = "42".getBytes(StandardCharsets.UTF_8);
-    assertEquals(Integer.valueOf(42), codec.decodeBinaryAs(data, textType, Integer.class, ctx));
+    assertEquals(Integer.valueOf(42), codec.decodeBinaryAs(data, 0, data.length, textType, Integer.class, ctx));
   }
 
   @Test
   void decodeBinaryAs_Long() throws SQLException {
     byte[] data = "42".getBytes(StandardCharsets.UTF_8);
-    assertEquals(Long.valueOf(42), codec.decodeBinaryAs(data, textType, Long.class, ctx));
+    assertEquals(Long.valueOf(42), codec.decodeBinaryAs(data, 0, data.length, textType, Long.class, ctx));
   }
 
   @Test
   void decodeBinaryAs_Double() throws SQLException {
     byte[] data = "3.14".getBytes(StandardCharsets.UTF_8);
-    assertEquals(Double.valueOf(3.14), codec.decodeBinaryAs(data, textType, Double.class, ctx));
+    assertEquals(Double.valueOf(3.14), codec.decodeBinaryAs(data, 0, data.length, textType, Double.class, ctx));
   }
 
   @Test
   void decodeBinaryAs_Boolean() throws SQLException {
     byte[] data = "true".getBytes(StandardCharsets.UTF_8);
-    assertEquals(Boolean.TRUE, codec.decodeBinaryAs(data, textType, Boolean.class, ctx));
+    assertEquals(Boolean.TRUE, codec.decodeBinaryAs(data, 0, data.length, textType, Boolean.class, ctx));
   }
 
   @Test
   void decodeBinaryAs_Short() throws SQLException {
     byte[] data = "42".getBytes(StandardCharsets.UTF_8);
-    assertEquals(Short.valueOf((short) 42), codec.decodeBinaryAs(data, textType, Short.class, ctx));
+    assertEquals(Short.valueOf((short) 42), codec.decodeBinaryAs(data, 0, data.length, textType, Short.class, ctx));
   }
 
   @Test
   void decodeBinaryAs_Byte() throws SQLException {
     byte[] data = "42".getBytes(StandardCharsets.UTF_8);
-    assertEquals(Byte.valueOf((byte) 42), codec.decodeBinaryAs(data, textType, Byte.class, ctx));
+    assertEquals(Byte.valueOf((byte) 42), codec.decodeBinaryAs(data, 0, data.length, textType, Byte.class, ctx));
   }
 
   @Test
   void decodeBinaryAs_unsupported() {
     byte[] data = "hello".getBytes(StandardCharsets.UTF_8);
     assertThrows(PSQLException.class,
-        () -> codec.decodeBinaryAs(data, textType, java.util.Date.class, ctx));
+        () -> codec.decodeBinaryAs(data, 0, data.length, (TypeDescriptor) textType, java.util.Date.class, ctx));
   }
 
   @Test
@@ -208,7 +210,7 @@ class TextCodecImplTest {
     byte[] data = "2024-01-02".getBytes(StandardCharsets.UTF_8);
     assertEquals(
         org.postgresql.jdbc.TemporalCodecs.decodeDateText("2024-01-02", ctx),
-        codec.decodeBinaryAs(data, textType, java.sql.Date.class, ctx));
+        codec.decodeBinaryAs(data, 0, data.length, textType, Date.class, ctx));
   }
 
   @Test
@@ -252,7 +254,7 @@ class TextCodecImplTest {
   void binaryRoundtrip() throws SQLException {
     String original = "Hello, World!";
     byte[] encoded = codec.encodeBinary(original, textType, ctx);
-    Object decoded = codec.decodeBinary(encoded, textType, ctx);
+    Object decoded = codec.decodeBinary(encoded, 0, encoded.length, textType, ctx);
     assertEquals(original, decoded);
   }
 }

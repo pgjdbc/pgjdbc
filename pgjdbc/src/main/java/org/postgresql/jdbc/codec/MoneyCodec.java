@@ -52,8 +52,9 @@ public final class MoneyCodec implements PrimitiveBinaryDecoder, PrimitiveTextDe
   // ----------------------------- scalar: delegate to the fallback codec -----------------------------
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return SCALAR.decodeBinary(data, type, ctx);
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return SCALAR.decodeBinary(data, offset, length, type, ctx);
   }
 
   @Override
@@ -77,8 +78,9 @@ public final class MoneyCodec implements PrimitiveBinaryDecoder, PrimitiveTextDe
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return SCALAR.decodeAsString(data, type, ctx);
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return SCALAR.decodeAsString(data, offset, length, type, ctx);
   }
 
   @Override
@@ -87,13 +89,13 @@ public final class MoneyCodec implements PrimitiveBinaryDecoder, PrimitiveTextDe
   }
 
   @Override
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
     if (isMoneyTarget(targetClass)) {
-      String text = SCALAR.decodeAsString(data, type, ctx);
+      String text = SCALAR.decodeAsString(data, offset, length, type, ctx);
       return text == null ? null : targetClass.cast(new PGmoney(text));
     }
-    return SCALAR.decodeBinaryAs(data, type, targetClass, ctx);
+    return SCALAR.decodeBinaryAs(data, offset, length, type, targetClass, ctx);
   }
 
   @Override

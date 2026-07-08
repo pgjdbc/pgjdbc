@@ -56,11 +56,6 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeBinary(data, 0, data.length, type, ctx);
-  }
-
-  @Override
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     // PostgreSQL numeric supports NaN / ±Infinity (the latter since v14).
@@ -131,8 +126,9 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return bigDecimalFromWire(data, 0, data.length);
+  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return bigDecimalFromWire(data, offset, length);
   }
 
   private static @Nullable BigDecimal bigDecimalFromWire(byte[] data, int offset, int length)
@@ -277,17 +273,17 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
     // Double and Float must preserve NaN / ±Infinity, which BigDecimal cannot represent, so they
     // read the value as a double instead of going through decodeBigDecimalAs.
     if (targetClass == Double.class) {
-      return (T) Double.valueOf(decodeAsDouble(data, 0, data.length, type, ctx));
+      return (T) Double.valueOf(decodeAsDouble(data, offset, length, type, ctx));
     }
     if (targetClass == Float.class) {
-      return (T) Float.valueOf(decodeAsFloat(data, 0, data.length, type, ctx));
+      return (T) Float.valueOf(decodeAsFloat(data, offset, length, type, ctx));
     }
-    return decodeBigDecimalAs(decodeAsBigDecimal(data, type, ctx), targetClass);
+    return decodeBigDecimalAs(decodeAsBigDecimal(data, offset, length, type, ctx), targetClass);
   }
 
   @Override

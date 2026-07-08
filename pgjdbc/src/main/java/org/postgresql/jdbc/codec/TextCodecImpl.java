@@ -5,8 +5,6 @@
 
 package org.postgresql.jdbc.codec;
 
-import static org.postgresql.util.internal.Nullness.castNonNull;
-
 import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
@@ -55,11 +53,6 @@ public final class TextCodecImpl
   }
 
   @Override
-  public Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsString(data, type, ctx);
-  }
-
-  @Override
   public Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     return new String(data, offset, length, ctx.getCharset());
@@ -94,12 +87,6 @@ public final class TextCodecImpl
   public void encodeText(Object value, TypeDescriptor type, CodecContext ctx, Appendable out)
       throws SQLException, IOException {
     out.append(toString(value));
-  }
-
-  @Override
-  public String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Charset encoding = ctx.getCharset();
-    return new String(data, encoding);
   }
 
   @Override
@@ -151,9 +138,9 @@ public final class TextCodecImpl
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    String s = castNonNull(decodeAsString(data, type, ctx));
-    return parseAsBigDecimal(s);
+  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return parseAsBigDecimal(new String(data, offset, length, ctx.getCharset()));
   }
 
   @Override
@@ -175,12 +162,9 @@ public final class TextCodecImpl
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
-    String value = decodeAsString(data, type, ctx);
-    if (value == null) {
-      return null;
-    }
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
+    String value = new String(data, offset, length, ctx.getCharset());
     if (targetClass == String.class || targetClass == Object.class) {
       return (T) value;
     }
@@ -237,7 +221,8 @@ public final class TextCodecImpl
       throws SQLException {
     Charset encoding = ctx.getCharset();
     // TODO: optimize
-    return decodeBinaryAs(data.getBytes(encoding), type, targetClass, ctx);
+    byte[] data1 = data.getBytes(encoding);
+    return decodeBinaryAs(data1, 0, data1.length, type, targetClass, ctx);
   }
 
   private static String toString(Object value) throws SQLException {

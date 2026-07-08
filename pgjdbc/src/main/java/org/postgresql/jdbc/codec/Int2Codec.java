@@ -64,12 +64,6 @@ public final class Int2Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    // Return Integer for backward compatibility
-    return decodeAsInt(data, 0, data.length, type, ctx);
-  }
-
-  @Override
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (length != 2) {
@@ -207,14 +201,15 @@ public final class Int2Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return BigDecimal.valueOf(decodeAsInt(data, 0, data.length, type, ctx));
+  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return BigDecimal.valueOf(decodeAsInt(data, offset, length, type, ctx));
   }
 
   @Override
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
-    int value = decodeAsInt(data, 0, data.length, type, ctx);
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
+    int value = decodeAsInt(data, offset, length, type, ctx);
     return decodeShortAs(value, targetClass);
   }
 

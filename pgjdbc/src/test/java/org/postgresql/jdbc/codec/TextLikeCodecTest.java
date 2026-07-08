@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.jdbc.TestCodecContext;
@@ -67,7 +68,7 @@ class TextLikeCodecTest {
 
   @Test
   void decodeBinary_decodesCharsetTextIntoPGobject() throws SQLException {
-    Object result = codec.decodeBinary(abcBytes, refcursorType, ctx);
+    Object result = codec.decodeBinary(abcBytes, 0, abcBytes.length, refcursorType, ctx);
 
     assertInstanceOf(PGobject.class, result);
     PGobject obj = (PGobject) result;
@@ -77,13 +78,13 @@ class TextLikeCodecTest {
 
   @Test
   void decodeBinaryAs_targetClasses() throws SQLException {
-    assertInstanceOf(PGobject.class, codec.decodeBinaryAs(abcBytes, refcursorType, Object.class, ctx));
-    assertInstanceOf(PGobject.class, codec.decodeBinaryAs(abcBytes, refcursorType, PGobject.class, ctx));
-    assertEquals("abc", codec.decodeBinaryAs(abcBytes, refcursorType, String.class, ctx));
-    assertArrayEquals(abcBytes, codec.decodeBinaryAs(abcBytes, refcursorType, byte[].class, ctx));
+    assertInstanceOf(PGobject.class, codec.decodeBinaryAs(abcBytes, 0, abcBytes.length, refcursorType, Object.class, ctx));
+    assertInstanceOf(PGobject.class, codec.decodeBinaryAs(abcBytes, 0, abcBytes.length, refcursorType, PGobject.class, ctx));
+    assertEquals("abc", codec.decodeBinaryAs(abcBytes, 0, abcBytes.length, refcursorType, String.class, ctx));
+    assertArrayEquals(abcBytes, codec.decodeBinaryAs(abcBytes, 0, abcBytes.length, refcursorType, byte[].class, ctx));
     // This codec is text, not raw binary: it does not produce PGUnknownBinary.
     assertThrows(PSQLException.class,
-        () -> codec.decodeBinaryAs(abcBytes, refcursorType, PGUnknownBinary.class, ctx));
+        () -> codec.decodeBinaryAs(abcBytes, 0, abcBytes.length, (TypeDescriptor) refcursorType, PGUnknownBinary.class, ctx));
   }
 
   @Test

@@ -40,11 +40,6 @@ public final class BpcharCodec implements PrimitiveBinaryDecoder, PrimitiveTextD
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return TextCodecImpl.INSTANCE.decodeBinary(data, type, ctx);
-  }
-
-  @Override
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     return TextCodecImpl.INSTANCE.decodeBinary(data, offset, length, type, ctx);
@@ -66,8 +61,9 @@ public final class BpcharCodec implements PrimitiveBinaryDecoder, PrimitiveTextD
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return TextCodecImpl.INSTANCE.decodeAsString(data, type, ctx);
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return TextCodecImpl.INSTANCE.decodeAsString(data, offset, length, type, ctx);
   }
 
   @Override
@@ -115,8 +111,9 @@ public final class BpcharCodec implements PrimitiveBinaryDecoder, PrimitiveTextD
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return TextCodecImpl.INSTANCE.decodeAsBigDecimal(data, type, ctx);
+  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return TextCodecImpl.INSTANCE.decodeAsBigDecimal(data, offset, length, type, ctx);
   }
 
   @Override
@@ -136,9 +133,9 @@ public final class BpcharCodec implements PrimitiveBinaryDecoder, PrimitiveTextD
   }
 
   @Override
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
-    return TextCodecImpl.INSTANCE.decodeBinaryAs(data, type, targetClass, ctx);
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
+    return TextCodecImpl.INSTANCE.decodeBinaryAs(data, offset, length, type, targetClass, ctx);
   }
 
   @Override

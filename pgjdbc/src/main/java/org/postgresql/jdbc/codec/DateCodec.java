@@ -43,11 +43,6 @@ public final class DateCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeBinary(data, 0, data.length, type, ctx);
-  }
-
-  @Override
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     // Check connection property for default type
@@ -123,28 +118,28 @@ public final class DateCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
     if (targetClass == Date.class || targetClass == Object.class) {
-      return targetClass.cast(TemporalCodecs.decodeDateBin(data, 0, data.length, ctx));
+      return targetClass.cast(TemporalCodecs.decodeDateBin(data, offset, length, ctx));
     }
     if (targetClass == LocalDate.class) {
-      return targetClass.cast(TemporalCodecs.decodeLocalDateBin(data, 0, data.length, ctx));
+      return targetClass.cast(TemporalCodecs.decodeLocalDateBin(data, offset, length, ctx));
     }
     if (targetClass == Timestamp.class) {
       // JDBC: getTimestamp on a DATE column yields midnight of that day.
-      Date d = TemporalCodecs.decodeDateBin(data, 0, data.length, ctx);
+      Date d = TemporalCodecs.decodeDateBin(data, offset, length, ctx);
       return d == null ? null : targetClass.cast(new Timestamp(d.getTime()));
     }
     if (targetClass == java.util.Date.class) {
-      return targetClass.cast(TemporalCodecs.decodeDateBin(data, 0, data.length, ctx));
+      return targetClass.cast(TemporalCodecs.decodeDateBin(data, offset, length, ctx));
     }
     if (targetClass == Long.class) {
-      Date d = TemporalCodecs.decodeDateBin(data, 0, data.length, ctx);
+      Date d = TemporalCodecs.decodeDateBin(data, offset, length, ctx);
       return d == null ? null : targetClass.cast(d.getTime());
     }
     if (targetClass == String.class) {
-      LocalDate ld = TemporalCodecs.decodeLocalDateBin(data, 0, data.length, ctx);
+      LocalDate ld = TemporalCodecs.decodeLocalDateBin(data, offset, length, ctx);
       return ld == null ? null : targetClass.cast(TemporalCodecs.formatLocalDate(ld, ctx));
     }
     throw Codec.cannotDecode("date", targetClass.getName());
@@ -177,8 +172,9 @@ public final class DateCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    LocalDate ld = TemporalCodecs.decodeLocalDateBin(data, 0, data.length, ctx);
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    LocalDate ld = TemporalCodecs.decodeLocalDateBin(data, offset, length, ctx);
     return ld == null ? null : TemporalCodecs.formatLocalDate(ld, ctx);
   }
 

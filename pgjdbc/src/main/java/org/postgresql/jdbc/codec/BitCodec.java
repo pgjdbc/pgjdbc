@@ -67,11 +67,6 @@ public final class BitCodec implements PrimitiveBinaryDecoder, PrimitiveTextDeco
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return toPGobject(type, binaryToBitString(data, 0, data.length));
-  }
-
-  @Override
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     return toPGobject(type, binaryToBitString(data, offset, length));
@@ -90,8 +85,9 @@ public final class BitCodec implements PrimitiveBinaryDecoder, PrimitiveTextDeco
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return binaryToBitString(data, 0, data.length);
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return binaryToBitString(data, offset, length);
   }
 
   @Override
@@ -129,9 +125,9 @@ public final class BitCodec implements PrimitiveBinaryDecoder, PrimitiveTextDeco
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
-    String bits = binaryToBitString(data, 0, data.length);
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
+    String bits = binaryToBitString(data, offset, length);
     if (targetClass == String.class) {
       return (T) bits;
     }

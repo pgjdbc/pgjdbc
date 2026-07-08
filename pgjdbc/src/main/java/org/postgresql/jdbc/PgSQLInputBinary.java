@@ -10,7 +10,10 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.api.codec.TypeDescriptor;
-import org.postgresql.jdbc.codec.CompositeCodec;
+import org.postgresql.util.ByteConverter;
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -20,28 +23,50 @@ import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.List;
+import java.util.Arrays;
 
 /**
  * Binary format SQLInput implementation.
  *
- * <p>Reads binary-encoded composite data using the codec infrastructure.</p>
+ * <p>Reads binary-encoded composite data with a forward cursor over the wire buffer rather than
+ * materialising every field up front: each {@code readXxx} advances past one field's
+ * {@code oid}/{@code length} header and decodes its body in place. Primitive reads
+ * ({@code readInt}, {@code readLong}, ...) go through the slice-form {@link PrimitiveDecoders} and
+ * never allocate; only the readers whose codec method has no slice form (String, BigDecimal, bytes,
+ * temporal, array, and the type-mapped object path) copy the field's bytes out, and only for the
+ * field actually read. This mirrors {@link PgSQLOutputBinary}, which streams into a sink.</p>
  *
- * <p>Codecs are pre-cached at construction time for performance - each field's
- * codec is looked up once rather than on every read operation.</p>
+ * <p>The cursor is bounded by the slice it was handed ({@code [offset, offset + length)}): every
+ * header and body read is checked against that end, so a truncated or sub-sliced buffer fails with a
+ * clear {@code DATA_ERROR} instead of reading neighbouring bytes. A field's codec is resolved once, in
+ * {@link #advanceIsNull()}, the moment the cursor reaches it - and only if it turns out non-null, since
+ * a null field is never decoded.</p>
  */
-public final class PgSQLInputBinary extends PgSQLInput<byte[]> {
+public final class PgSQLInputBinary extends PgSQLInput {
 
   /**
-   * Pre-cached codecs for each field, indexed by field position.
-   * This avoids repeated codec registry lookups during read operations.
+   * The codec for the current field (the one just entered by {@link #advanceIsNull()}). Valid only
+   * right after a non-null {@link #advanceIsNull()}.
    */
-  private final BinaryCodec[] cachedCodecs;
+  private @Nullable BinaryCodec currentCodec;
 
-  /**
-   * Pre-cached field types, indexed by field position.
-   */
-  private final TypeDescriptor[] cachedTypes;
+  /** The backing buffer; only {@code [pos, end)} is still to be read. */
+  private final byte[] source;
+
+  /** One past the last byte of this composite within {@link #source}. */
+  private final int end;
+
+  /** The number of fields the wire header declares. */
+  private final int wireFieldCount;
+
+  /** Cursor into {@link #source}: the start of the next field's header. */
+  private int pos;
+
+  /** Offset of the current field's body within {@link #source} (valid after {@link #advanceIsNull()}). */
+  private int curOffset;
+
+  /** Length of the current field's body, or -1 for SQL NULL. */
+  private int curLength = -1;
 
   /**
    * Creates a new PgSQLInputBinary from raw composite binary data.
@@ -52,140 +77,144 @@ public final class PgSQLInputBinary extends PgSQLInput<byte[]> {
    */
   public PgSQLInputBinary(byte[] compositeData, PgType type, PgCodecContext ctx)
       throws SQLException {
-    super(parseCompositeData(compositeData), type, ctx);
-    this.cachedCodecs = new BinaryCodec[fields.size()];
-    this.cachedTypes = new TypeDescriptor[fields.size()];
-    cacheCodecs();
+    this(compositeData, 0, compositeData.length, type, ctx);
   }
 
   /**
-   * Creates a new PgSQLInputBinary from pre-parsed attribute values.
+   * Creates a new PgSQLInputBinary over the composite that occupies {@code source[offset, offset +
+   * length)}. The slice bounds the cursor, so a nested composite can be read straight off its parent's
+   * buffer without copying it out first.
    *
-   * @param attributeValues the parsed attribute values (null for SQL NULL)
+   * @param source the backing buffer
+   * @param offset start of the composite within {@code source}
+   * @param length length of the composite in bytes
    * @param type the composite type
    * @param ctx the codec context
    */
-  @SuppressWarnings("argument")
-  public PgSQLInputBinary(byte[] @Nullable [] attributeValues, PgType type, PgCodecContext ctx)
+  public PgSQLInputBinary(byte[] source, int offset, int length, PgType type, PgCodecContext ctx)
       throws SQLException {
-    super(attributeValues, type, ctx);
-    this.cachedCodecs = new BinaryCodec[fields.size()];
-    this.cachedTypes = new TypeDescriptor[fields.size()];
-    cacheCodecs();
-  }
-
-  /**
-   * Pre-caches codecs and types for all fields.
-   */
-  private void cacheCodecs() throws SQLException {
-    for (int i = 0; i < fields.size(); i++) {
-      PgField field = fields.get(i);
-      int oid = field.getTypeOid();
-      cachedTypes[i] = ctx.resolveType(oid);
-      cachedCodecs[i] = castNonNull(ctx.resolveBinaryCodec(oid));
+    super(type, ctx);
+    if (length < 4) {
+      throw new PSQLException(
+          GT.tr("Invalid binary composite data: too short"),
+          PSQLState.DATA_ERROR);
     }
-  }
-
-  /**
-   * Parses binary composite data into individual field values.
-   *
-   * <p>Binary composite format:
-   * <pre>
-   * int4 nfields
-   * For each field:
-   *   int4 oid
-   *   int4 len (-1 for null)
-   *   byte[len] data (if len >= 0)
-   * </pre>
-   */
-  private static byte[] @Nullable [] parseCompositeData(byte[] data) throws SQLException {
-    List<CompositeCodec.DecodedField> decodedFields = CompositeCodec.decodeBinaryFields(data);
-
-    byte[] @Nullable [] result = new byte[decodedFields.size()][];
-    for (int i = 0; i < decodedFields.size(); i++) {
-      CompositeCodec.DecodedField field = decodedFields.get(i);
-      if (!field.isNull()) {
-        result[i] = field.getData();
-      }
+    this.source = source;
+    this.end = offset + length;
+    int count = ByteConverter.int4(source, offset);
+    if (count < 0) {
+      throw new PSQLException(
+          GT.tr("Invalid binary composite data: negative field count {0}", count),
+          PSQLState.DATA_ERROR);
     }
-    return result;
+    this.wireFieldCount = count;
+    this.pos = offset + 4;
+  }
+
+  @Override
+  protected boolean advanceIsNull() throws SQLException {
+    // Fewer wire fields than the type declares: the trailing attributes read back as NULL, matching
+    // the previous array-based reader (which returned null past the parsed attribute count).
+    if (fieldIndex - 1 >= wireFieldCount) {
+      curLength = -1;
+      return true;
+    }
+    // Field header: int4 oid, int4 length. Bound every read against `end` so a truncated or sub-sliced
+    // buffer fails cleanly instead of reading past the composite into neighbouring bytes.
+    if (end - pos < 8) {
+      throw new PSQLException(
+          GT.tr("Invalid binary composite data: unexpected end at field {0}", fieldIndex - 1),
+          PSQLState.DATA_ERROR);
+    }
+    // The declared field type drives decoding, so the wire OID is skipped.
+    pos += 4;
+    int length = ByteConverter.int4(source, pos);
+    pos += 4;
+    if (length == -1) {
+      curLength = -1;
+      return true;
+    }
+    if (length < 0) {
+      throw new PSQLException(
+          GT.tr("Invalid binary composite data: invalid length {0} at field {1}", length, fieldIndex - 1),
+          PSQLState.DATA_ERROR);
+    }
+    if (end - pos < length) {
+      throw new PSQLException(
+          GT.tr("Invalid binary composite data: not enough data for field {0}", fieldIndex - 1),
+          PSQLState.DATA_ERROR);
+    }
+    curOffset = pos;
+    curLength = length;
+    pos += length;
+    currentCodec = castNonNull(ctx.resolveBinaryCodec(fields.get(fieldIndex - 1).getTypeOid()));
+    return false;
   }
 
   /**
-   * Gets the codec for the current field (the one just read by nextValue()).
-   * Since fieldIndex is incremented by nextValue(), the current field is at fieldIndex - 1.
+   * Gets the codec for the current field (the one just entered by advanceIsNull()).
    */
   private BinaryCodec getCodec() {
-    return cachedCodecs[fieldIndex - 1];
-  }
-
-  /**
-   * Gets the type for the current field.
-   */
-  private TypeDescriptor getCurrentType() {
-    return cachedTypes[fieldIndex - 1];
+    return castNonNull(currentCodec);
   }
 
   @Override
-  protected int decodeInt(byte[] data, PgType fieldType) throws SQLException {
-    // Use cached codec and type for performance (ignore passed fieldType)
-    return PrimitiveDecoders.asInt(getCodec(),data, getCurrentType(), ctx);
+  protected int decodeInt() throws SQLException {
+    return PrimitiveDecoders.asInt(getCodec(), source, curOffset, curLength, getCurrentType(), ctx);
   }
 
   @Override
-  protected long decodeLong(byte[] data, PgType fieldType) throws SQLException {
-    return PrimitiveDecoders.asLong(getCodec(),data, getCurrentType(), ctx);
+  protected long decodeLong() throws SQLException {
+    return PrimitiveDecoders.asLong(getCodec(), source, curOffset, curLength, getCurrentType(), ctx);
   }
 
   @Override
-  protected double decodeDouble(byte[] data, PgType fieldType) throws SQLException {
-    return PrimitiveDecoders.asDouble(getCodec(),data, getCurrentType(), ctx);
+  protected double decodeDouble() throws SQLException {
+    return PrimitiveDecoders.asDouble(getCodec(), source, curOffset, curLength, getCurrentType(), ctx);
   }
 
   @Override
-  protected float decodeFloat(byte[] data, PgType fieldType) throws SQLException {
-    return (float) PrimitiveDecoders.asDouble(getCodec(),data, getCurrentType(), ctx);
+  protected float decodeFloat() throws SQLException {
+    return (float) PrimitiveDecoders.asDouble(getCodec(), source, curOffset, curLength, getCurrentType(), ctx);
   }
 
   @Override
-  protected boolean decodeBoolean(byte[] data, PgType fieldType) throws SQLException {
-    return PrimitiveDecoders.asBoolean(getCodec(),data, getCurrentType(), ctx);
+  protected boolean decodeBoolean() throws SQLException {
+    return PrimitiveDecoders.asBoolean(getCodec(), source, curOffset, curLength, getCurrentType(), ctx);
   }
 
   @Override
-  protected @Nullable String decodeString(byte[] data, PgType fieldType) throws SQLException {
-    return getCodec().decodeAsString(data, getCurrentType(), ctx);
+  protected @Nullable String decodeString() throws SQLException {
+    return getCodec().decodeAsString(source, curOffset, curLength, getCurrentType(), ctx);
   }
 
   @Override
-  protected @Nullable BigDecimal decodeBigDecimal(byte[] data, PgType fieldType)
-      throws SQLException {
-    return getCodec().decodeAsBigDecimal(data, getCurrentType(), ctx);
+  protected @Nullable BigDecimal decodeBigDecimal() throws SQLException {
+    return getCodec().decodeAsBigDecimal(source, curOffset, curLength, getCurrentType(), ctx);
   }
 
   @Override
-  protected byte @Nullable [] decodeBytes(byte[] data, PgType fieldType) throws SQLException {
-    return getCodec().decodeAsBytes(data, getCurrentType(), ctx);
+  protected byte @Nullable [] decodeBytes() throws SQLException {
+    return getCodec().decodeAsBytes(source, curOffset, curLength, getCurrentType(), ctx);
   }
 
   @Override
-  protected @Nullable Date decodeDate(byte[] data, PgType fieldType) throws SQLException {
-    return getCodec().decodeBinaryAs(data, getCurrentType(), Date.class, ctx);
+  protected @Nullable Date decodeDate() throws SQLException {
+    return getCodec().decodeBinaryAs(source, curOffset, curLength, getCurrentType(), Date.class, ctx);
   }
 
   @Override
-  protected @Nullable Time decodeTime(byte[] data, PgType fieldType) throws SQLException {
-    return getCodec().decodeBinaryAs(data, getCurrentType(), Time.class, ctx);
+  protected @Nullable Time decodeTime() throws SQLException {
+    return getCodec().decodeBinaryAs(source, curOffset, curLength, getCurrentType(), Time.class, ctx);
   }
 
   @Override
-  protected @Nullable Timestamp decodeTimestamp(byte[] data, PgType fieldType)
-      throws SQLException {
-    return getCodec().decodeBinaryAs(data, getCurrentType(), Timestamp.class, ctx);
+  protected @Nullable Timestamp decodeTimestamp() throws SQLException {
+    return getCodec().decodeBinaryAs(source, curOffset, curLength, getCurrentType(), Timestamp.class, ctx);
   }
 
   @Override
-  protected @Nullable Object decodeObject(byte[] data, PgType fieldType) throws SQLException {
+  protected @Nullable Object decodeObject() throws SQLException {
     // Honor only the explicit JDBC typeMap here. If no explicit mapping is
     // present, return the codec's default Java type so SPI-provided codecs can
     // surface their own Java objects instead of being forced through the
@@ -196,21 +225,22 @@ public final class PgSQLInputBinary extends PgSQLInput<byte[]> {
       mapped = ctx.getTypeMap().get(currentType.getTypeName().getName());
     }
     if (mapped != null) {
-      return getCodec().decodeBinaryAs(data, currentType, mapped, ctx);
+      return getCodec().decodeBinaryAs(source, curOffset, curLength, currentType, mapped, ctx);
     }
-    return getCodec().decodeBinary(data, currentType, ctx);
+    return getCodec().decodeBinary(source, curOffset, curLength, currentType, ctx);
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  protected <T> @Nullable T decodeObjectAs(byte[] data, PgType fieldType, Class<T> type)
-      throws SQLException {
-    return getCodec().decodeBinaryAs(data, getCurrentType(), type, ctx);
+  protected <T> @Nullable T decodeObjectAs(Class<T> type) throws SQLException {
+    return getCodec().decodeBinaryAs(source, curOffset, curLength, getCurrentType(), type, ctx);
   }
 
   @Override
-  protected Array decodeArray(byte[] data, PgType fieldType) throws SQLException {
-    // A nested array materializes a connection-bound PgArray; offline reports a clear limitation.
-    return new PgArray(ctx.requireConnection(getCurrentType()), getCurrentType().getOid(), data);
+  protected Array decodeArray() throws SQLException {
+    // A nested array materializes a connection-bound PgArray; offline reports a clear limitation. The
+    // field bytes must be copied out because the PgArray outlives this reader and owns its own buffer.
+    byte[] arrayBytes = Arrays.copyOfRange(source, curOffset, curOffset + curLength);
+    return new PgArray(ctx.requireConnection(getCurrentType()), getCurrentType().getOid(), arrayBytes);
   }
 }

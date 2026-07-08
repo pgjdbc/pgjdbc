@@ -50,16 +50,13 @@ final class Int8ArrayLeafCodec implements ArrayLeafCodec {
   }
 
   @Override
-  public boolean writeLeaf(Object leaf, BackpatchingBinarySink out, byte[] scratch,
-      CodecContext ctx)
+  public boolean writeLeaf(Object leaf, BackpatchingBinarySink out, CodecContext ctx)
       throws IOException, SQLException {
-    byte[] buf = new byte[8];
     if (leaf instanceof long[]) {
       long[] arr = (long[]) leaf;
       for (long v : arr) {
         out.writeInt32(8);
-        ByteConverter.int8(buf, 0, v);
-        out.write(buf);
+        out.writeInt64(v);
       }
       return false;
     }
@@ -72,8 +69,7 @@ final class Int8ArrayLeafCodec implements ArrayLeafCodec {
           hasNulls = true;
         } else {
           out.writeInt32(8);
-          ByteConverter.int8(buf, 0, Int8Codec.toLong(element));
-          out.write(buf);
+          out.writeInt64(Int8Codec.toLong(element));
         }
       }
       return hasNulls;

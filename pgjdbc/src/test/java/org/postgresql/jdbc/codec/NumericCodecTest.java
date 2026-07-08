@@ -10,7 +10,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveDecoders;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
@@ -142,7 +144,7 @@ class NumericCodecTest {
     };
     for (Class<?> target : targets) {
       assertEquals(
-          codec.decodeBinaryAs(binary, numericType, target, null),
+          codec.decodeBinaryAs(binary, 0, binary.length, numericType, target, null),
           codec.decodeTextAs(text, numericType, target, null),
           "text/binary mismatch for " + target.getSimpleName());
     }
@@ -184,7 +186,7 @@ class NumericCodecTest {
     // sign=0xC000 (NUMERIC_NAN), dscale=0 — the exact bytes numeric_send produces.
     byte[] encoded = codec.encodeBinary(Double.NaN, numericType, null);
     assertArrayEquals(new byte[]{0, 0, 0, 0, (byte) 0xC0, 0, 0, 0}, encoded);
-    assertEquals(Double.valueOf(Double.NaN), codec.decodeBinary(encoded, numericType, null));
+    assertEquals(Double.valueOf(Double.NaN), codec.decodeBinary(encoded, 0, encoded.length, numericType, null));
   }
 
   @Test
@@ -193,7 +195,7 @@ class NumericCodecTest {
     // sign=0xD000 (NUMERIC_PINF); dscale is discarded by the server on recv, so 0 is fine.
     assertArrayEquals(new byte[]{0, 0, 0, 0, (byte) 0xD0, 0, 0, 0}, encoded);
     assertEquals(Double.valueOf(Double.POSITIVE_INFINITY),
-        codec.decodeBinary(encoded, numericType, null));
+              codec.decodeBinary(encoded, 0, encoded.length, numericType, null));
   }
 
   @Test
@@ -202,19 +204,20 @@ class NumericCodecTest {
     // sign=0xF000 (NUMERIC_NINF)
     assertArrayEquals(new byte[]{0, 0, 0, 0, (byte) 0xF0, 0, 0, 0}, encoded);
     assertEquals(Double.valueOf(Double.NEGATIVE_INFINITY),
-        codec.decodeBinary(encoded, numericType, null));
+              codec.decodeBinary(encoded, 0, encoded.length, numericType, null));
   }
 
   @Test
   void encodeBinary_floatSpecials_widenToDoubleSentinels() throws SQLException {
+    byte[] data2 = codec.encodeBinary(Float.NaN, numericType, null);
     assertEquals(Double.valueOf(Double.NaN),
-        codec.decodeBinary(codec.encodeBinary(Float.NaN, numericType, null), numericType, null));
+              codec.decodeBinary(data2, 0, data2.length, numericType, null));
+    byte[] data1 = codec.encodeBinary(Float.POSITIVE_INFINITY, numericType, null);
     assertEquals(Double.valueOf(Double.POSITIVE_INFINITY),
-        codec.decodeBinary(codec.encodeBinary(Float.POSITIVE_INFINITY, numericType, null),
-            numericType, null));
+              codec.decodeBinary(data1, 0, data1.length, numericType, null));
+    byte[] data = codec.encodeBinary(Float.NEGATIVE_INFINITY, numericType, null);
     assertEquals(Double.valueOf(Double.NEGATIVE_INFINITY),
-        codec.decodeBinary(codec.encodeBinary(Float.NEGATIVE_INFINITY, numericType, null),
-            numericType, null));
+              codec.decodeBinary(data, 0, data.length, numericType, null));
   }
 
   @Test
@@ -237,8 +240,8 @@ class NumericCodecTest {
     // BigDecimal.doubleValue() overflows to Infinity for very large finite values, so
     // specialValue must inspect only Float/Double, never BigDecimal.
     BigDecimal huge = new BigDecimal("1E400");
-    Object decoded = codec.decodeBinary(codec.encodeBinary(huge, numericType, null),
-        numericType, null);
+    byte[] data = codec.encodeBinary(huge, numericType, null);
+    Object decoded = codec.decodeBinary(data, 0, data.length, numericType, null);
     BigDecimal result = assertInstanceOf(BigDecimal.class, decoded);
     assertEquals(0, huge.compareTo(result));
   }
@@ -314,11 +317,11 @@ class NumericCodecTest {
   void decodeBinary_valid_stillDecodes() throws SQLException {
     // A well-formed binary numeric is unaffected by the guard.
     byte[] data = ByteConverter.numeric(new BigDecimal("12.5"));
-    assertEquals(new BigDecimal("12.5"), codec.decodeBinary(data, numericType, null));
-    assertEquals(new BigDecimal("12.5"), codec.decodeAsBigDecimal(data, numericType, null));
+    assertEquals(new BigDecimal("12.5"), codec.decodeBinary(data, 0, data.length, numericType, null));
+    assertEquals(new BigDecimal("12.5"), codec.decodeAsBigDecimal(data, 0, data.length, numericType, null));
     assertEquals(12.5, PrimitiveDecoders.asDouble(codec, data, numericType, null), 0.0);
     assertEquals(new BigDecimal("12.5"),
-        codec.decodeBinaryAs(data, numericType, BigDecimal.class, null));
+        codec.decodeBinaryAs(data, 0, data.length, numericType, BigDecimal.class, null));
   }
 
   /**
@@ -326,13 +329,13 @@ class NumericCodecTest {
    * {@link PSQLException} and never leaks an unchecked exception.
    */
   private void assertBinaryRefused(byte[] data) {
-    assertBinaryPathRefused("decodeBinary", () -> codec.decodeBinary(data, numericType, null));
+    assertBinaryPathRefused("decodeBinary", () -> codec.decodeBinary(data, 0, data.length, (TypeDescriptor) numericType, (CodecContext) null));
     assertBinaryPathRefused("decodeAsBigDecimal",
-        () -> codec.decodeAsBigDecimal(data, numericType, null));
+        () -> codec.decodeAsBigDecimal(data, 0, data.length, (TypeDescriptor) numericType, (CodecContext) null));
     assertBinaryPathRefused("decodeAsDouble", () -> PrimitiveDecoders.asDouble(codec, data, numericType, null));
     // decodeBinaryAs(BigDecimal) is the exact path the Jazzer numericBinary target exercises.
     assertBinaryPathRefused("decodeBinaryAs",
-        () -> codec.decodeBinaryAs(data, numericType, BigDecimal.class, null));
+        () -> codec.decodeBinaryAs(data, 0, data.length, (TypeDescriptor) numericType, BigDecimal.class, (CodecContext) null));
   }
 
   private static void assertBinaryPathRefused(String path,

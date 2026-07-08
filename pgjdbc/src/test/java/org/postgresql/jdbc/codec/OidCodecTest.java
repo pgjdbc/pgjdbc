@@ -9,7 +9,9 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveDecoders;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
@@ -82,7 +84,7 @@ class OidCodecTest {
   void decodeBinary_positiveValue() throws SQLException {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, 42);
-    assertEquals(42L, codec.decodeBinary(data, oidType, null));
+    assertEquals(42L, codec.decodeBinary(data, 0, data.length, oidType, null));
   }
 
   @Test
@@ -159,7 +161,7 @@ class OidCodecTest {
   void decodeAsBigDecimal_binary() throws SQLException {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, 42);
-    assertEquals(BigDecimal.valueOf(42), codec.decodeAsBigDecimal(data, oidType, null));
+    assertEquals(BigDecimal.valueOf(42), codec.decodeAsBigDecimal(data, 0, data.length, oidType, null));
   }
 
   // ==================== decodeBinaryAs ====================
@@ -168,21 +170,21 @@ class OidCodecTest {
   void decodeBinaryAs_Long() throws SQLException {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, 42);
-    assertEquals(Long.valueOf(42), codec.decodeBinaryAs(data, oidType, Long.class, null));
+    assertEquals(Long.valueOf(42), codec.decodeBinaryAs(data, 0, data.length, oidType, Long.class, null));
   }
 
   @Test
   void decodeBinaryAs_Integer() throws SQLException {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, 42);
-    assertEquals(Integer.valueOf(42), codec.decodeBinaryAs(data, oidType, Integer.class, null));
+    assertEquals(Integer.valueOf(42), codec.decodeBinaryAs(data, 0, data.length, oidType, Integer.class, null));
   }
 
   @Test
   void decodeBinaryAs_String() throws SQLException {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, 42);
-    assertEquals("42", codec.decodeBinaryAs(data, oidType, String.class, null));
+    assertEquals("42", codec.decodeBinaryAs(data, 0, data.length, oidType, String.class, null));
   }
 
   @Test
@@ -190,7 +192,7 @@ class OidCodecTest {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, 42);
     assertThrows(PSQLException.class,
-        () -> codec.decodeBinaryAs(data, oidType, Boolean.class, null));
+        () -> codec.decodeBinaryAs(data, 0, data.length, (TypeDescriptor) oidType, Boolean.class, (CodecContext) null));
   }
 
   // ==================== Roundtrip ====================

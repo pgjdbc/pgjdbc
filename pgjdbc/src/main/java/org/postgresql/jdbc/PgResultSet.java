@@ -11,8 +11,10 @@ import org.postgresql.Driver;
 import org.postgresql.PGRefCursorResultSet;
 import org.postgresql.PGResultSetMetaData;
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Encoding;
@@ -614,7 +616,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (isBinary(i)) {
       BinaryCodec codec = field.getBinaryCodec();
       if (codec != null) {
-        return codec.decodeBinaryAs(value, field.getPgType(), targetClass, ctx);
+        TypeDescriptor type = field.getPgType();
+        return codec.decodeBinaryAs(value, 0, value.length, type, targetClass, ctx);
       }
       return null;
     }
@@ -759,7 +762,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       Class<? extends SQLData> sqlDataClass = (Class<? extends SQLData>) targetClass;
       PgCodecContext ctx = getCodecContext().withTypeMap(map);
       if (isBinary(i)) {
-        return CompositeCodec.INSTANCE.decodeBinaryAs(value, pgType, sqlDataClass, ctx);
+        return CompositeCodec.INSTANCE.decodeBinaryAs(value, 0, value.length, pgType, sqlDataClass, ctx);
       } else {
         String textValue = getString(i);
         if (textValue == null) {
@@ -2399,7 +2402,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (codec != null) {
         PgType pgType = field.getPgType();
         PgCodecContext ctx = getCodecContext();
-        return codec.decodeAsString(value, pgType, ctx);
+        return codec.decodeAsString(value, 0, value.length, pgType, ctx);
       }
       // Fallback for types without a binary codec
       castNonNull(thisRow, "thisRow");
@@ -2465,7 +2468,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (codec == null) {
         throw cannotConvert(field, "boolean");
       }
-      return PrimitiveDecoders.asBoolean(codec,value, pgType, ctx);
+      return PrimitiveDecoders.asBoolean(codec, value, pgType, ctx);
     }
 
     // Text format
@@ -2494,7 +2497,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (codec == null) {
         throw cannotConvert(field, "byte");
       }
-      int intValue = PrimitiveDecoders.asInt(codec,value, pgType, ctx);
+      int intValue = PrimitiveDecoders.asInt(codec, value, pgType, ctx);
       if (intValue < Byte.MIN_VALUE || intValue > Byte.MAX_VALUE) {
         throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "byte", intValue),
             PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
@@ -2508,7 +2511,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (codec == null) {
       throw cannotConvert(field, "byte");
     }
-    int intValue = PrimitiveDecoders.asIntFromTextBytes(codec,value, pgType, ctx);
+    int intValue = PrimitiveDecoders.asIntFromTextBytes(codec, value, pgType, ctx);
     if (intValue < Byte.MIN_VALUE || intValue > Byte.MAX_VALUE) {
       throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "byte", intValue),
           PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
@@ -2533,7 +2536,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (codec == null) {
         throw cannotConvert(field, "short");
       }
-      int intValue = PrimitiveDecoders.asInt(codec,value, pgType, ctx);
+      int intValue = PrimitiveDecoders.asInt(codec, value, pgType, ctx);
       if (intValue < Short.MIN_VALUE || intValue > Short.MAX_VALUE) {
         throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "short", intValue),
             PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
@@ -2547,7 +2550,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (codec == null) {
       throw cannotConvert(field, "short");
     }
-    int intValue = PrimitiveDecoders.asIntFromTextBytes(codec,value, pgType, ctx);
+    int intValue = PrimitiveDecoders.asIntFromTextBytes(codec, value, pgType, ctx);
     if (intValue < Short.MIN_VALUE || intValue > Short.MAX_VALUE) {
       throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "short", intValue),
           PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
@@ -2573,7 +2576,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (codec == null) {
         throw cannotConvert(field, "int");
       }
-      return PrimitiveDecoders.asInt(codec,value, pgType, ctx);
+      return PrimitiveDecoders.asInt(codec, value, pgType, ctx);
     }
 
     // Text format - delegate to codec. BOOL→numeric is handled by BoolCodec
@@ -2582,7 +2585,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (codec == null) {
       throw cannotConvert(field, "int");
     }
-    return PrimitiveDecoders.asIntFromTextBytes(codec,value, pgType, ctx);
+    return PrimitiveDecoders.asIntFromTextBytes(codec, value, pgType, ctx);
   }
 
   @Pure
@@ -2603,7 +2606,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (codec == null) {
         throw cannotConvert(field, "long");
       }
-      return PrimitiveDecoders.asLong(codec,value, pgType, ctx);
+      return PrimitiveDecoders.asLong(codec, value, pgType, ctx);
     }
 
     // Text format - delegate to codec. BOOL→numeric is handled by BoolCodec
@@ -2612,7 +2615,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (codec == null) {
       throw cannotConvert(field, "long");
     }
-    return PrimitiveDecoders.asLongFromTextBytes(codec,value, pgType, ctx);
+    return PrimitiveDecoders.asLongFromTextBytes(codec, value, pgType, ctx);
   }
 
   /**
@@ -2712,7 +2715,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (codec == null) {
         throw cannotConvert(field, "float");
       }
-      return PrimitiveDecoders.asFloat(codec,value, pgType, ctx);
+      return PrimitiveDecoders.asFloat(codec, value, pgType, ctx);
     }
 
     // Text format - delegate to codec. BOOL→numeric is handled by BoolCodec
@@ -2742,7 +2745,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (codec == null) {
         throw cannotConvert(field, "double");
       }
-      return PrimitiveDecoders.asDouble(codec,value, pgType, ctx);
+      return PrimitiveDecoders.asDouble(codec, value, pgType, ctx);
     }
 
     // Text format - delegate to codec. BOOL→numeric is handled by BoolCodec
@@ -2777,7 +2780,9 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         if (allowSpecial) {
           // For getNumeric with allowSpecial (called from internalGetObject with NUMERIC type),
           // use decodeBinary to get the Number directly (may return Double for NaN/Infinity)
-          Object decoded = codec.decodeBinary(value, field.getPgType(), getCodecContext());
+          TypeDescriptor type = field.getPgType();
+          CodecContext ctx = getCodecContext();
+          Object decoded = codec.decodeBinary(value, 0, value.length, type, ctx);
           if (decoded instanceof Number) {
             Number num = (Number) decoded;
             if (num instanceof BigDecimal) {
@@ -2787,7 +2792,9 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
           }
           return null;
         }
-        BigDecimal bd = codec.decodeAsBigDecimal(value, field.getPgType(), getCodecContext());
+        TypeDescriptor type = field.getPgType();
+        CodecContext ctx = getCodecContext();
+        BigDecimal bd = codec.decodeAsBigDecimal(value, 0, value.length, type, ctx);
         if (bd != null) {
           bd = scaleBigDecimal(bd, scale);
         }
@@ -3151,9 +3158,9 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       BinaryCodec codec = field.getBinaryCodec();
       if (codec != null) {
         if (mapped != null) {
-          return codec.decodeBinaryAs(value, pgType, mapped, ctx);
+          return codec.decodeBinaryAs(value, 0, value.length, pgType, mapped, ctx);
         }
-        return codec.decodeBinary(value, pgType, ctx);
+        return codec.decodeBinary(value, 0, value.length, pgType, ctx);
       }
       // No binary codec — fall back to legacy Connection.addDataType() lookup.
       // Decoding binary bytes via a TextCodec is wrong (different wire formats),
@@ -3344,7 +3351,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (isBinary(columnIndex)) {
       BinaryCodec codec = field.getBinaryCodec();
       if (codec != null) {
-        return codec.decodeBinary(value, pgType, ctx);
+        return codec.decodeBinary(value, 0, value.length, pgType, ctx);
       }
     } else {
       TextCodec codec = field.getTextCodec();
@@ -3871,7 +3878,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (isBinary(columnIndex)) {
       BinaryCodec codec = field.getBinaryCodec();
       if (codec != null) {
-        return codec.decodeBinaryAs(value, pgType, type, ctx);
+        return codec.decodeBinaryAs(value, 0, value.length, pgType, type, ctx);
       }
     } else {
       TextCodec codec = field.getTextCodec();

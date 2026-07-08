@@ -61,11 +61,6 @@ public final class OidCodec implements StreamingBinaryCodec, PrimitiveBinaryDeco
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsLong(data, 0, data.length, type, ctx);
-  }
-
-  @Override
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (length != 4) {
@@ -187,14 +182,15 @@ public final class OidCodec implements StreamingBinaryCodec, PrimitiveBinaryDeco
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return BigDecimal.valueOf(decodeAsLong(data, 0, data.length, type, ctx));
+  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return BigDecimal.valueOf(decodeAsLong(data, offset, length, type, ctx));
   }
 
   @Override
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
-    long value = decodeAsLong(data, 0, data.length, type, ctx);
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
+    long value = decodeAsLong(data, offset, length, type, ctx);
     return decodeOidAs(value, targetClass);
   }
 

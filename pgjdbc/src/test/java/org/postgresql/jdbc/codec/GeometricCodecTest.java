@@ -61,7 +61,7 @@ class GeometricCodecTest {
     PgType pointType = makeType("point", Oid.POINT);
     PGpoint original = new PGpoint(3.14, 2.72);
     byte[] encoded = GeometricCodec.POINT.encodeBinary(original, pointType, null);
-    PGpoint decoded = (PGpoint) GeometricCodec.POINT.decodeBinary(encoded, pointType, null);
+    PGpoint decoded = (PGpoint) GeometricCodec.POINT.decodeBinary(encoded, 0, encoded.length, pointType, null);
     assertNotNull(decoded);
     assertEquals(original.x, decoded.x, 0.001);
     assertEquals(original.y, decoded.y, 0.001);
@@ -101,7 +101,7 @@ class GeometricCodecTest {
     PgType boxType = makeType("box", Oid.BOX);
     PGbox original = new PGbox(1, 2, 3, 4);
     byte[] encoded = GeometricCodec.BOX.encodeBinary(original, boxType, null);
-    PGbox decoded = (PGbox) GeometricCodec.BOX.decodeBinary(encoded, boxType, null);
+    PGbox decoded = (PGbox) GeometricCodec.BOX.decodeBinary(encoded, 0, encoded.length, boxType, null);
     assertNotNull(decoded);
   }
 

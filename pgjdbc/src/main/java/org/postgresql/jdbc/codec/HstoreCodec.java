@@ -19,6 +19,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -58,10 +59,13 @@ public final class HstoreCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    if (data == null || data.length == 0) {
+  public @Nullable Object decodeBinary(byte[] buf, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    if (length == 0) {
       return null;
     }
+    // HStoreConverter.fromBytes reads a whole array; copy only for a genuine sub-slice.
+    byte[] data = offset == 0 && length == buf.length ? buf : Arrays.copyOfRange(buf, offset, offset + length);
     return HStoreConverter.fromBytes(data, impl(ctx).getEncoding());
   }
 
@@ -93,10 +97,10 @@ public final class HstoreCodec implements BinaryCodec, TextCodec {
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
     if (targetClass == Map.class || targetClass == Object.class) {
-      return (T) decodeBinary(data, type, ctx);
+      return (T) decodeBinary(data, offset, length, type, ctx);
     }
     throw new PSQLException(
         GT.tr("Cannot decode hstore to {0}", targetClass.getName()),
@@ -116,7 +120,8 @@ public final class HstoreCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
     throw new PSQLException(GT.tr("Cannot convert hstore to BigDecimal"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
@@ -126,8 +131,9 @@ public final class HstoreCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Object map = decodeBinary(data, type, ctx);
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    Object map = decodeBinary(data, offset, length, type, ctx);
     return map != null ? HStoreConverter.toString((Map<?, ?>) map) : null;
   }
 

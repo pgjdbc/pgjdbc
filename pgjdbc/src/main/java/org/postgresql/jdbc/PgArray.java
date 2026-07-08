@@ -7,6 +7,7 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
@@ -231,7 +232,8 @@ public class PgArray implements Array {
       Object full = null;
       if (ArrayCodec.canDecodeArrayViaWalker(getPgType(), codecContext)) {
         if (fieldBytes != null && !useTextRepresentation) {
-          full = ArrayCodec.decodeBinaryArray(fieldBytes, getPgType(), codecContext);
+          TypeDescriptor arrayType = getPgType();
+          full = ArrayCodec.decodeBinaryArray(fieldBytes, 0, fieldBytes.length, arrayType, codecContext);
         } else if (fieldString != null) {
           full = ArrayCodec.decodeTextArray(fieldString, getPgType(), codecContext);
         }
@@ -566,7 +568,8 @@ public class PgArray implements Array {
     }
     if (fieldString == null && fieldBytes != null) {
       try {
-        Object array = ArrayCodec.decodeBinaryArray(fieldBytes, getPgType(), codecContext);
+        TypeDescriptor arrayType = getPgType();
+        Object array = ArrayCodec.decodeBinaryArray(fieldBytes, 0, fieldBytes.length, arrayType, codecContext);
         fieldString = ArrayCodec.INSTANCE.encodeText(array, getPgType(), codecContext);
       } catch (SQLException e) {
         fieldString = "NULL"; // punt

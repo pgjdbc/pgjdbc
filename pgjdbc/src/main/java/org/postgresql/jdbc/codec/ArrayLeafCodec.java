@@ -63,7 +63,7 @@ interface ArrayLeafCodec extends MultiDimArrayBinary.LeafBinaryWriter,
   }
 
   @Override
-  boolean writeLeaf(Object leaf, BackpatchingBinarySink out, byte[] scratch, CodecContext ctx)
+  boolean writeLeaf(Object leaf, BackpatchingBinarySink out, CodecContext ctx)
       throws IOException, SQLException;
 
   @Override

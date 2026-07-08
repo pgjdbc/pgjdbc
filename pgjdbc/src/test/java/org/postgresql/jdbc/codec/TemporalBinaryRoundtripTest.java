@@ -44,7 +44,8 @@ class TemporalBinaryRoundtripTest {
 
   private static Object roundtrip(BinaryCodec codec, PgType type, Object value, CodecContext ctx)
       throws SQLException {
-    return codec.decodeBinary(codec.encodeBinary(value, type, ctx), type, ctx);
+    byte[] data = codec.encodeBinary(value, type, ctx);
+    return codec.decodeBinary(data, 0, data.length, type, ctx);
   }
 
   @Test
@@ -176,7 +177,7 @@ class TemporalBinaryRoundtripTest {
         new GenericArrayLeafCodec(t, TimeCodec.INSTANCE);
     Time[] in = {Time.valueOf("12:34:56"), Time.valueOf("03:30:25")};
     byte[] wire = MultiDimArrayBinary.encode(in, ctx, leaf);
-    assertArrayEquals(in, (Time[]) MultiDimArrayBinary.decode(wire, Time.class, ctx, leaf));
+    assertArrayEquals(in, (Time[]) MultiDimArrayBinary.decode(wire, 0, wire.length, Time.class, ctx, leaf));
   }
 
   @Test
@@ -190,7 +191,7 @@ class TemporalBinaryRoundtripTest {
         Timestamp.valueOf("2012-01-01 13:02:03"),
     };
     byte[] wire = MultiDimArrayBinary.encode(in, ctx, leaf);
-    assertArrayEquals(in, (Timestamp[]) MultiDimArrayBinary.decode(wire, Timestamp.class, ctx, leaf));
+    assertArrayEquals(in, (Timestamp[]) MultiDimArrayBinary.decode(wire, 0, wire.length, Timestamp.class, ctx, leaf));
   }
 
   @Test
@@ -201,6 +202,6 @@ class TemporalBinaryRoundtripTest {
         new GenericArrayLeafCodec(t, TimeCodec.INSTANCE);
     Time[] in = {Time.valueOf("12:34:56"), null};
     byte[] wire = MultiDimArrayBinary.encode(in, ctx, leaf);
-    assertArrayEquals(in, (Time[]) MultiDimArrayBinary.decode(wire, Time.class, ctx, leaf));
+    assertArrayEquals(in, (Time[]) MultiDimArrayBinary.decode(wire, 0, wire.length, Time.class, ctx, leaf));
   }
 }

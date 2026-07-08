@@ -14,6 +14,7 @@ import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.jdbc.PgSQLInputBinary;
 import org.postgresql.jdbc.PgSQLInputText;
 import org.postgresql.jdbc.PgType;
+import org.postgresql.util.ByteConverter;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
@@ -76,6 +77,19 @@ public final class CoercionFuzzSupport {
     RawValue field = Codecs.encode(c.value, scalar(oid), ctx, format);
     return format == Format.TEXT
         ? new PgSQLInputText(new String[]{field.asString(StandardCharsets.UTF_8)}, comp, ctx)
-        : new PgSQLInputBinary(new byte[][]{field.toByteArray()}, comp, ctx);
+        : new PgSQLInputBinary(singleFieldComposite(oid, field.toByteArray()), comp, ctx);
+  }
+
+  /**
+   * Wraps one pre-encoded field body in the binary composite wire the reader expects: {@code int4}
+   * field count, then the field's {@code int4} OID, {@code int4} length, and body.
+   */
+  private static byte[] singleFieldComposite(int oid, byte[] body) {
+    byte[] wire = new byte[12 + body.length];
+    ByteConverter.int4(wire, 0, 1);
+    ByteConverter.int4(wire, 4, oid);
+    ByteConverter.int4(wire, 8, body.length);
+    System.arraycopy(body, 0, wire, 12, body.length);
+    return wire;
   }
 }

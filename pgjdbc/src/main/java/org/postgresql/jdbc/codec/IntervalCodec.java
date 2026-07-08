@@ -47,14 +47,6 @@ public final class IntervalCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable Object decodeBinary(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    if (data.length == 0) {
-      return null;
-    }
-    return decodeBinary(data, 0, data.length, type, ctx);
-  }
-
-  @Override
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (length != 16) {
@@ -146,8 +138,9 @@ public final class IntervalCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable String decodeAsString(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Object interval = decodeBinary(data, type, ctx);
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    Object interval = decodeBinary(data, offset, length, type, ctx);
     return interval != null ? interval.toString() : null;
   }
 
@@ -158,12 +151,12 @@ public final class IntervalCodec implements StreamingBinaryCodec, TextCodec {
 
   @Override
   @SuppressWarnings("unchecked")
-  public <T> @Nullable T decodeBinaryAs(byte[] data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
-      throws SQLException {
-    if (data == null || data.length == 0) {
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
+    if (length == 0) {
       return null;
     }
-    PGInterval interval = (PGInterval) decodeBinary(data, type, ctx);
+    PGInterval interval = (PGInterval) decodeBinary(data, offset, length, type, ctx);
     if (targetClass == PGInterval.class || targetClass == Object.class) {
       return (T) interval;
     }

@@ -6,6 +6,7 @@
 package org.postgresql.jdbc;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.GT;
@@ -37,14 +38,20 @@ import java.util.List;
 
 /**
  * Base class for SQLInput implementations.
- * Uses generic BufferType to avoid code duplication between binary and text formats.
  *
- * @param <BufferType> the type of buffer for attribute values (byte[] for binary, String for text)
+ * <p>Each JDBC {@code readXxx} call advances to the next composite field and pulls that field
+ * straight out of the subclass-owned source — the primitive readers ({@code readInt},
+ * {@code readLong}, ...) return the value unboxed through the abstract {@code decodeXxx} hooks, while
+ * the object readers funnel through {@code decodeObject}. The subclass owns the wire (a binary buffer
+ * walked by a cursor, or the parsed text attributes) and reports each field's SQL NULL state through
+ * {@link #advanceIsNull()}; a {@code decodeXxx} hook is called only for a non-null field. This mirrors
+ * {@link PgSQLOutput}, whose {@code writeXxx} calls stream into a subclass-owned sink.</p>
  */
+// SQLInput's annotated JDK marks readString()/readObject(...) return and parameter types @NonNull, but
+// JDBC lets them return null (paired with wasNull()); suppress the resulting override mismatches.
 @SuppressWarnings({"override.return", "override.param"})
-public abstract class PgSQLInput<BufferType> implements SQLInput {
+public abstract class PgSQLInput implements SQLInput {
 
-  protected final @Nullable BufferType[] attributeValues;
   protected final PgType compositeType;
   protected final PgCodecContext ctx;
   protected final List<PgField> fields;
@@ -52,15 +59,19 @@ public abstract class PgSQLInput<BufferType> implements SQLInput {
   protected boolean lastWasNull = false;
 
   /**
+   * The resolved type of the current field (the one just entered by {@link #advanceIsNull()}).
+   * Valid only right after a non-null {@link #advanceToNextIsNull()}; a null field leaves it holding
+   * the previous field's type, since {@code decodeXxx} is never called for a null field.
+   */
+  private @Nullable TypeDescriptor currentType;
+
+  /**
    * Creates a new PgSQLInput.
    *
-   * @param attributeValues the parsed attribute values (null for SQL NULL)
    * @param type the composite type
    * @param ctx the codec context
    */
-  protected PgSQLInput(@Nullable BufferType[] attributeValues, PgType type, PgCodecContext ctx)
-      throws SQLException {
-    this.attributeValues = attributeValues;
+  protected PgSQLInput(PgType type, PgCodecContext ctx) throws SQLException {
     this.compositeType = type;
     this.ctx = ctx;
     List<PgField> typeFields = type.getFields();
@@ -85,212 +96,141 @@ public abstract class PgSQLInput<BufferType> implements SQLInput {
   }
 
   /**
-   * Gets the current field and advances the index.
+   * Advances to the next composite field: checks the arity, moves {@link #fieldIndex} on, and asks the
+   * subclass whether the value is SQL NULL, recording it for {@link #wasNull()}. Called at the start of
+   * every {@code readXxx}; a {@code decodeXxx} hook runs only when this returns {@code false}.
    *
-   * @return the current field
-   * @throws SQLException if no more fields
+   * @return true if the current field is SQL NULL
    */
-  protected PgField nextField() throws SQLException {
+  private boolean advanceToNextIsNull() throws SQLException {
     if (fieldIndex >= fields.size()) {
       throw new PSQLException(
           GT.tr("Attempt to read past end of composite type fields"),
           PSQLState.DATA_ERROR);
     }
-    return fields.get(fieldIndex);
+    fieldIndex++;
+    boolean isNull = advanceIsNull();
+    lastWasNull = isNull;
+    if (!isNull) {
+      // Resolved only for a non-null field: a null field is never decoded, so there is nothing to
+      // resolve it for, and resolveType() can be non-trivial (it loads composite/range/multirange
+      // structure on first use).
+      currentType = ctx.resolveType(fields.get(fieldIndex - 1).getTypeOid());
+    }
+    return isNull;
   }
 
   /**
-   * Gets the current attribute value and advances the index.
-   *
-   * @return the current attribute value, or null for SQL NULL
+   * Returns the resolved type of the current field. Called only from a {@code decodeXxx} hook, i.e.
+   * only after a non-null {@link #advanceToNextIsNull()}.
    */
-  protected @Nullable BufferType nextValue() {
-    if (fieldIndex >= attributeValues.length) {
-      lastWasNull = true;
-      fieldIndex++;
-      return null;
-    }
-    BufferType val = attributeValues[fieldIndex++];
-    lastWasNull = (val == null);
-    return val;
+  protected TypeDescriptor getCurrentType() {
+    return castNonNull(currentType);
   }
 
-  /**
-   * Gets the PgType for a field.
-   */
-  protected PgType getFieldType(PgField field) throws SQLException {
-    if (ctx.isConnectionBound()) {
-      return ctx.getTypeInfo().getPgTypeByOid(field.getTypeOid());
-    }
-    // Offline: the result is discarded by every concrete decoder (they read the cached per-field
-    // type), so resolve through the context without a type cache. Offline descriptors are PgType.
-    TypeDescriptor resolved = ctx.resolveType(field.getTypeOid());
-    return resolved instanceof PgType ? (PgType) resolved : compositeType;
-  }
+  // Abstract per-field hooks implemented by subclasses. advanceIsNull() moves the subclass source to
+  // the field just entered (index fieldIndex - 1) and reports its NULL state; the decodeXxx hooks then
+  // read that same field, so they are only ever called after advanceIsNull() returned false.
 
-  // Abstract decode methods to be implemented by subclasses.
-  // Note: data is guaranteed non-null by the caller (readXxx methods check for null first).
-  protected abstract int decodeInt(BufferType data, PgType fieldType) throws SQLException;
+  /** Advances the subclass source to the current field and returns whether it is SQL NULL. */
+  protected abstract boolean advanceIsNull() throws SQLException;
 
-  protected abstract long decodeLong(BufferType data, PgType fieldType) throws SQLException;
+  protected abstract int decodeInt() throws SQLException;
 
-  protected abstract double decodeDouble(BufferType data, PgType fieldType) throws SQLException;
+  protected abstract long decodeLong() throws SQLException;
 
-  protected abstract float decodeFloat(BufferType data, PgType fieldType) throws SQLException;
+  protected abstract double decodeDouble() throws SQLException;
 
-  protected abstract boolean decodeBoolean(BufferType data, PgType fieldType) throws SQLException;
+  protected abstract float decodeFloat() throws SQLException;
 
-  protected abstract @Nullable String decodeString(BufferType data, PgType fieldType) throws SQLException;
+  protected abstract boolean decodeBoolean() throws SQLException;
 
-  protected abstract @Nullable BigDecimal decodeBigDecimal(BufferType data, PgType fieldType)
-      throws SQLException;
+  protected abstract @Nullable String decodeString() throws SQLException;
 
-  protected abstract byte @Nullable [] decodeBytes(BufferType data, PgType fieldType) throws SQLException;
+  protected abstract @Nullable BigDecimal decodeBigDecimal() throws SQLException;
 
-  protected abstract @Nullable Date decodeDate(BufferType data, PgType fieldType) throws SQLException;
+  protected abstract byte @Nullable [] decodeBytes() throws SQLException;
 
-  protected abstract @Nullable Time decodeTime(BufferType data, PgType fieldType) throws SQLException;
+  protected abstract @Nullable Date decodeDate() throws SQLException;
 
-  protected abstract @Nullable Timestamp decodeTimestamp(BufferType data, PgType fieldType)
-      throws SQLException;
+  protected abstract @Nullable Time decodeTime() throws SQLException;
 
-  protected abstract @Nullable Object decodeObject(BufferType data, PgType fieldType) throws SQLException;
+  protected abstract @Nullable Timestamp decodeTimestamp() throws SQLException;
 
-  protected abstract Array decodeArray(BufferType data, PgType fieldType) throws SQLException;
+  protected abstract @Nullable Object decodeObject() throws SQLException;
 
-  protected abstract <T> @Nullable T decodeObjectAs(BufferType data, PgType fieldType, Class<T> type)
-      throws SQLException;
+  protected abstract Array decodeArray() throws SQLException;
+
+  protected abstract <T> @Nullable T decodeObjectAs(Class<T> type) throws SQLException;
 
   // SQLInput implementation methods
 
   @Override
   public @Nullable String readString() throws SQLException {
-    PgField field = nextField();
-    BufferType data = nextValue();
-    if (data == null) {
-      return null;
-    }
-    return decodeString(data, getFieldType(field));
+    return advanceToNextIsNull() ? null : decodeString();
   }
 
   @Override
   public boolean readBoolean() throws SQLException {
-    PgField field = nextField();
-    BufferType data = nextValue();
-    if (data == null) {
+    if (advanceToNextIsNull()) {
       return false;
     }
-    return decodeBoolean(data, getFieldType(field));
+    return decodeBoolean();
   }
 
   @Override
   public byte readByte() throws SQLException {
-    PgField field = nextField();
-    BufferType data = nextValue();
-    if (data == null) {
-      return 0;
-    }
-    return (byte) decodeInt(data, getFieldType(field));
+    return advanceToNextIsNull() ? 0 : (byte) decodeInt();
   }
 
   @Override
   public short readShort() throws SQLException {
-    PgField field = nextField();
-    BufferType data = nextValue();
-    if (data == null) {
-      return 0;
-    }
-    return (short) decodeInt(data, getFieldType(field));
+    return advanceToNextIsNull() ? 0 : (short) decodeInt();
   }
 
   @Override
   public int readInt() throws SQLException {
-    PgField field = nextField();
-    BufferType data = nextValue();
-    if (data == null) {
-      return 0;
-    }
-    return decodeInt(data, getFieldType(field));
+    return advanceToNextIsNull() ? 0 : decodeInt();
   }
 
   @Override
   public long readLong() throws SQLException {
-    PgField field = nextField();
-    BufferType data = nextValue();
-    if (data == null) {
-      return 0;
-    }
-    return decodeLong(data, getFieldType(field));
+    return advanceToNextIsNull() ? 0 : decodeLong();
   }
 
   @Override
   public float readFloat() throws SQLException {
-    PgField field = nextField();
-    BufferType data = nextValue();
-    if (data == null) {
-      return 0;
-    }
-    return decodeFloat(data, getFieldType(field));
+    return advanceToNextIsNull() ? 0 : decodeFloat();
   }
 
   @Override
   public double readDouble() throws SQLException {
-    PgField field = nextField();
-    BufferType data = nextValue();
-    if (data == null) {
-      return 0;
-    }
-    return decodeDouble(data, getFieldType(field));
+    return advanceToNextIsNull() ? 0 : decodeDouble();
   }
 
   @Override
   public @Nullable BigDecimal readBigDecimal() throws SQLException {
-    PgField field = nextField();
-    BufferType data = nextValue();
-    if (data == null) {
-      return null;
-    }
-    return decodeBigDecimal(data, getFieldType(field));
+    return advanceToNextIsNull() ? null : decodeBigDecimal();
   }
 
   @Override
   public byte @Nullable [] readBytes() throws SQLException {
-    PgField field = nextField();
-    BufferType data = nextValue();
-    if (data == null) {
-      return null;
-    }
-    return decodeBytes(data, getFieldType(field));
+    return advanceToNextIsNull() ? null : decodeBytes();
   }
 
   @Override
   public @Nullable Date readDate() throws SQLException {
-    PgField field = nextField();
-    BufferType data = nextValue();
-    if (data == null) {
-      return null;
-    }
-    return decodeDate(data, getFieldType(field));
+    return advanceToNextIsNull() ? null : decodeDate();
   }
 
   @Override
   public @Nullable Time readTime() throws SQLException {
-    PgField field = nextField();
-    BufferType data = nextValue();
-    if (data == null) {
-      return null;
-    }
-    return decodeTime(data, getFieldType(field));
+    return advanceToNextIsNull() ? null : decodeTime();
   }
 
   @Override
   public @Nullable Timestamp readTimestamp() throws SQLException {
-    PgField field = nextField();
-    BufferType data = nextValue();
-    if (data == null) {
-      return null;
-    }
-    return decodeTimestamp(data, getFieldType(field));
+    return advanceToNextIsNull() ? null : decodeTimestamp();
   }
 
   @Override
@@ -313,12 +253,7 @@ public abstract class PgSQLInput<BufferType> implements SQLInput {
 
   @Override
   public @Nullable Object readObject() throws SQLException {
-    PgField field = nextField();
-    BufferType data = nextValue();
-    if (data == null) {
-      return null;
-    }
-    return decodeObject(data, getFieldType(field));
+    return advanceToNextIsNull() ? null : decodeObject();
   }
 
   @Override
@@ -338,12 +273,7 @@ public abstract class PgSQLInput<BufferType> implements SQLInput {
 
   @Override
   public @Nullable Array readArray() throws SQLException {
-    PgField field = nextField();
-    BufferType data = nextValue();
-    if (data == null) {
-      return null;
-    }
-    return decodeArray(data, getFieldType(field));
+    return advanceToNextIsNull() ? null : decodeArray();
   }
 
   @Override
@@ -384,11 +314,6 @@ public abstract class PgSQLInput<BufferType> implements SQLInput {
 
   @Override
   public <T> @Nullable T readObject(Class<T> type) throws SQLException {
-    PgField field = nextField();
-    BufferType data = nextValue();
-    if (data == null) {
-      return null;
-    }
-    return decodeObjectAs(data, getFieldType(field), type);
+    return advanceToNextIsNull() ? null : decodeObjectAs(type);
   }
 }

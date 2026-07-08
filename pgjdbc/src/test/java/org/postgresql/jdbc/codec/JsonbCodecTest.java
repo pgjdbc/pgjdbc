@@ -8,7 +8,9 @@ package org.postgresql.jdbc.codec;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveDecoders;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
@@ -70,7 +72,7 @@ class JsonbCodecTest {
     data[0] = 1; // version byte
     System.arraycopy(jsonBytes, 0, data, 1, jsonBytes.length);
 
-    PGobject decoded = (PGobject) codec.decodeBinary(data, jsonbType, null);
+    PGobject decoded = (PGobject) codec.decodeBinary(data, 0, data.length, jsonbType, null);
     assertEquals("jsonb", decoded.getType());
     assertEquals(json, decoded.getValue());
   }
@@ -96,7 +98,7 @@ class JsonbCodecTest {
     data[0] = 1;
     System.arraycopy(jsonBytes, 0, data, 1, jsonBytes.length);
 
-    assertEquals(json, codec.decodeAsString(data, jsonbType, null));
+    assertEquals(json, codec.decodeAsString(data, 0, data.length, jsonbType, null));
   }
 
   @Test
@@ -127,14 +129,14 @@ class JsonbCodecTest {
     data[0] = 1;
     System.arraycopy(jsonBytes, 0, data, 1, jsonBytes.length);
 
-    assertEquals(json, codec.decodeBinaryAs(data, jsonbType, String.class, null));
+    assertEquals(json, codec.decodeBinaryAs(data, 0, data.length, jsonbType, String.class, null));
   }
 
   @Test
   void decodeBinaryAs_unsupported() {
     byte[] data = {1, '4', '2'};
     assertThrows(PSQLException.class,
-        () -> codec.decodeBinaryAs(data, jsonbType, Integer.class, null));
+        () -> codec.decodeBinaryAs(data, 0, data.length, (TypeDescriptor) jsonbType, Integer.class, (CodecContext) null));
   }
 
   @Test
@@ -146,7 +148,7 @@ class JsonbCodecTest {
   void binaryRoundtrip() throws SQLException {
     String json = "{\"nested\":{\"array\":[1,2,3]}}";
     byte[] encoded = codec.encodeBinary(json, jsonbType, null);
-    PGobject decoded = (PGobject) codec.decodeBinary(encoded, jsonbType, null);
+    PGobject decoded = (PGobject) codec.decodeBinary(encoded, 0, encoded.length, jsonbType, null);
     assertEquals(json, decoded.getValue());
   }
 }

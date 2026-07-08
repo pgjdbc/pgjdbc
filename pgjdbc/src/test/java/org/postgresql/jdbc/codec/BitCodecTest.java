@@ -8,6 +8,8 @@ package org.postgresql.jdbc.codec;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
@@ -41,7 +43,7 @@ class BitCodecTest {
   void decodeBinary_valid_roundTrips() throws SQLException {
     // A well-formed value (bit count + packed bits) decodes to its bit string.
     byte[] encoded = codec.encodeBinary("0101", bitType, null);
-    PGobject decoded = (PGobject) codec.decodeBinary(encoded, bitType, null);
+    PGobject decoded = (PGobject) codec.decodeBinary(encoded, 0, encoded.length, bitType, null);
     assertEquals("0101", decoded.getValue());
   }
 
@@ -49,7 +51,7 @@ class BitCodecTest {
   void decodeBinary_emptyBitString_roundTrips() throws SQLException {
     // Zero bits: header only, no packed byte.
     byte[] encoded = codec.encodeBinary("", bitType, null);
-    PGobject decoded = (PGobject) codec.decodeBinary(encoded, bitType, null);
+    PGobject decoded = (PGobject) codec.decodeBinary(encoded, 0, encoded.length, bitType, null);
     assertEquals("", decoded.getValue());
   }
 
@@ -103,8 +105,8 @@ class BitCodecTest {
    * {@link PSQLException} and never leak an unchecked exception.
    */
   private void assertRefused(byte[] data) {
-    assertPathRefused("decodeBinary", () -> codec.decodeBinary(data, bitType, null));
-    assertPathRefused("decodeAsString", () -> codec.decodeAsString(data, bitType, null));
+    assertPathRefused("decodeBinary", () -> codec.decodeBinary(data, 0, data.length, (TypeDescriptor) bitType, (CodecContext) null));
+    assertPathRefused("decodeAsString", () -> codec.decodeAsString(data, 0, data.length, (TypeDescriptor) bitType, (CodecContext) null));
   }
 
   private static void assertPathRefused(String path,

@@ -59,7 +59,7 @@ class EnumCodecTest {
   @Test
   void decodeBinary_returnsString() throws Exception {
     byte[] data = "active".getBytes(StandardCharsets.UTF_8);
-    Object result = EnumCodec.INSTANCE.decodeBinary(data, enumType, ctx);
+    Object result = EnumCodec.INSTANCE.decodeBinary(data, 0, data.length, enumType, ctx);
     assertEquals("active", result);
   }
 
@@ -91,7 +91,7 @@ class EnumCodecTest {
   @Test
   void decodeBinaryAs_toString() throws Exception {
     byte[] data = "value".getBytes(StandardCharsets.UTF_8);
-    String result = EnumCodec.INSTANCE.decodeBinaryAs(data, enumType, String.class, ctx);
+    String result = EnumCodec.INSTANCE.decodeBinaryAs(data, 0, data.length, enumType, String.class, ctx);
     assertEquals("value", result);
   }
 

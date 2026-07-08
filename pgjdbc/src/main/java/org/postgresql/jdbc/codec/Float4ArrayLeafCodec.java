@@ -51,16 +51,13 @@ final class Float4ArrayLeafCodec implements ArrayLeafCodec {
   }
 
   @Override
-  public boolean writeLeaf(Object leaf, BackpatchingBinarySink out, byte[] scratch,
-      CodecContext ctx)
+  public boolean writeLeaf(Object leaf, BackpatchingBinarySink out, CodecContext ctx)
       throws IOException, SQLException {
-    byte[] buf = new byte[4];
     if (leaf instanceof float[]) {
       float[] arr = (float[]) leaf;
       for (float v : arr) {
         out.writeInt32(4);
-        ByteConverter.float4(buf, 0, v);
-        out.write(buf);
+        out.writeFloat(v);
       }
       return false;
     }
@@ -73,8 +70,7 @@ final class Float4ArrayLeafCodec implements ArrayLeafCodec {
           hasNulls = true;
         } else {
           out.writeInt32(4);
-          ByteConverter.float4(buf, 0, Float4Codec.toFloat(element));
-          out.write(buf);
+          out.writeFloat(Float4Codec.toFloat(element));
         }
       }
       return hasNulls;

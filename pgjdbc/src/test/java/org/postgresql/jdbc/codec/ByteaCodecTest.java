@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveDecoders;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.jdbc.TestCodecContext;
@@ -62,7 +63,7 @@ class ByteaCodecTest {
   @Test
   void decodeBinary_returnsCopy() throws Exception {
     byte[] original = {0x01, 0x02, 0x03};
-    byte[] result = (byte[]) ByteaCodec.INSTANCE.decodeBinary(original, byteaType, ctx);
+    byte[] result = (byte[]) ByteaCodec.INSTANCE.decodeBinary(original, 0, original.length, byteaType, ctx);
 
     assertArrayEquals(original, result);
     assertNotSame(original, result, "Should return a copy, not the original");
@@ -71,7 +72,7 @@ class ByteaCodecTest {
   @Test
   void decodeAsBytes_returnsCopy() throws Exception {
     byte[] original = {0x04, 0x05, 0x06};
-    byte[] result = ByteaCodec.INSTANCE.decodeAsBytes(original, byteaType, ctx);
+    byte[] result = ByteaCodec.INSTANCE.decodeAsBytes(original, 0, original.length, byteaType, ctx);
 
     assertArrayEquals(original, result);
     assertNotSame(original, result, "Should return a copy, not the original");
@@ -87,14 +88,14 @@ class ByteaCodecTest {
   @Test
   void decodeBinaryAs_toByteArray() throws Exception {
     byte[] data = {0x0A, 0x0B, 0x0C};
-    byte[] result = ByteaCodec.INSTANCE.decodeBinaryAs(data, byteaType, byte[].class, ctx);
+    byte[] result = ByteaCodec.INSTANCE.decodeBinaryAs(data, 0, data.length, byteaType, byte[].class, ctx);
     assertArrayEquals(data, result);
   }
 
   @Test
   void decodeBinaryAs_toInputStream() throws Exception {
     byte[] data = {0x0D, 0x0E, 0x0F};
-    InputStream result = ByteaCodec.INSTANCE.decodeBinaryAs(data, byteaType, InputStream.class, ctx);
+    InputStream result = ByteaCodec.INSTANCE.decodeBinaryAs(data, 0, data.length, byteaType, InputStream.class, ctx);
 
     assertNotNull(result);
     byte[] read = new byte[data.length];
@@ -127,7 +128,7 @@ class ByteaCodecTest {
   @Test
   void decodeBinaryAs_toString() throws Exception {
     byte[] data = {0x01, 0x02, 0x03};
-    String result = ByteaCodec.INSTANCE.decodeBinaryAs(data, byteaType, String.class, ctx);
+    String result = ByteaCodec.INSTANCE.decodeBinaryAs(data, 0, data.length, byteaType, String.class, ctx);
     assertNotNull(result);
     // Should return hex-encoded string
   }
@@ -157,6 +158,6 @@ class ByteaCodecTest {
   void decodeBinaryAs_unsupportedType_throwsException() {
     byte[] data = {0x01, 0x02};
     assertThrows(PSQLException.class, () ->
-        ByteaCodec.INSTANCE.decodeBinaryAs(data, byteaType, Integer.class, ctx));
+        ByteaCodec.INSTANCE.decodeBinaryAs(data, 0, data.length, (TypeDescriptor) byteaType, Integer.class, ctx));
   }
 }
