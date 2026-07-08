@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.charset.Charset;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Map;
 import java.util.TimeZone;
@@ -118,7 +119,7 @@ class MultirangeCodecTest {
     PGmultirange<Integer> expected = multirange(
         new PGRange<>(1, 5, true, false), new PGRange<>(10, 20, true, false));
     byte[] wire = MultirangeCodec.INSTANCE.encodeBinary(expected, INT4MULTIRANGE, CTX);
-    assertEquals(expected, MultirangeCodec.INSTANCE.decodeBinary(wire, INT4MULTIRANGE, CTX));
+    assertEquals(expected, MultirangeCodec.INSTANCE.decodeBinary(wire, 0, wire.length, INT4MULTIRANGE, CTX));
   }
 
   @Test
@@ -127,7 +128,7 @@ class MultirangeCodecTest {
     byte[] wire = MultirangeCodec.INSTANCE.encodeBinary(empty, INT4MULTIRANGE, CTX);
     // int32 zero count, nothing else.
     assertEquals(4, wire.length);
-    assertEquals(empty, MultirangeCodec.INSTANCE.decodeBinary(wire, INT4MULTIRANGE, CTX));
+    assertEquals(empty, MultirangeCodec.INSTANCE.decodeBinary(wire, 0, wire.length, INT4MULTIRANGE, CTX));
   }
 
   @Test
@@ -135,8 +136,22 @@ class MultirangeCodecTest {
     byte[] wire = MultirangeCodec.INSTANCE.encodeBinary(
         multirange(new PGRange<>(1, 5, true, false)), INT4MULTIRANGE, CTX);
     PGmultirange<?> mr = assertInstanceOf(PGmultirange.class,
-        MultirangeCodec.INSTANCE.decodeBinary(wire, INT4MULTIRANGE, CTX));
+        MultirangeCodec.INSTANCE.decodeBinary(wire, 0, wire.length, INT4MULTIRANGE, CTX));
     assertEquals("int4multirange", mr.getType());
+  }
+
+  @Test
+  void binaryDecode_sliceMatchesWhole() throws SQLException {
+    // decodeBinary must read straight off (src, srcOffset, srcLength) without copying the slice
+    // into a fresh array first, so embed the wire at a non-zero offset inside noise padding.
+    PGmultirange<Integer> expected = multirange(
+        new PGRange<>(1, 5, true, false), new PGRange<>(10, 20, true, false));
+    byte[] wire = MultirangeCodec.INSTANCE.encodeBinary(expected, INT4MULTIRANGE, CTX);
+    byte[] embedded = new byte[5 + wire.length + 3];
+    Arrays.fill(embedded, (byte) 0xEE);
+    System.arraycopy(wire, 0, embedded, 5, wire.length);
+    assertEquals(expected,
+        MultirangeCodec.INSTANCE.decodeBinary(embedded, 5, wire.length, INT4MULTIRANGE, CTX));
   }
 
   @Test
@@ -145,7 +160,7 @@ class MultirangeCodecTest {
     // type cannot be resolved.
     byte[] wire = {0, 0, 0, 0};
     PSQLException ex = assertThrows(PSQLException.class,
-        () -> MultirangeCodec.INSTANCE.decodeBinary(wire, UNRESOLVED_MULTIRANGE, CTX));
+        () -> MultirangeCodec.INSTANCE.decodeBinary(wire, 0, wire.length, (TypeDescriptor) UNRESOLVED_MULTIRANGE, CTX));
     assertTrue(ex.getMessage().contains("broken_multirange"), ex.getMessage());
   }
 
