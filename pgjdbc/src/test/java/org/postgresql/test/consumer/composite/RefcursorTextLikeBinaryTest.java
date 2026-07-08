@@ -8,10 +8,13 @@ package org.postgresql.test.consumer.composite;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
+import org.postgresql.jdbc.PgConnection;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
 
@@ -55,16 +58,20 @@ public class RefcursorTextLikeBinaryTest {
    */
   @Test
   void refcursorFieldInBinaryRecordDecodesToPGobject() throws SQLException {
-    try (Connection con = TestUtil.openDB(binaryProps(Oid.RECORD, Oid.REFCURSOR));
-         PreparedStatement ps = con.prepareStatement("select row('mycur'::refcursor)");
-         ResultSet rs = ps.executeQuery()) {
-      assertTrue(rs.next(), "one row expected");
-      Struct struct = assertInstanceOf(Struct.class, rs.getObject(1));
-      Object[] attributes = struct.getAttributes();
-      assertEquals(1, attributes.length, "a binary record exposes its single field");
-      PGobject field = assertInstanceOf(PGobject.class, attributes[0],
-          "the text-send field decodes to a PGobject, not PGUnknownBinary");
-      assertEquals("mycur", field.getValue());
+    try (Connection con = TestUtil.openDB(binaryProps(Oid.RECORD, Oid.REFCURSOR))) {
+      // The simple query protocol cannot negotiate binary format codes, so the record would come
+      // back as text and, per the note above, expose no fields at all.
+      assumeTrue(con.unwrap(PgConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE);
+      try (PreparedStatement ps = con.prepareStatement("select row('mycur'::refcursor)");
+          ResultSet rs = ps.executeQuery()) {
+        assertTrue(rs.next(), "one row expected");
+        Struct struct = assertInstanceOf(Struct.class, rs.getObject(1));
+        Object[] attributes = struct.getAttributes();
+        assertEquals(1, attributes.length, "a binary record exposes its single field");
+        PGobject field = assertInstanceOf(PGobject.class, attributes[0],
+            "the text-send field decodes to a PGobject, not PGUnknownBinary");
+        assertEquals("mycur", field.getValue());
+      }
     }
   }
 

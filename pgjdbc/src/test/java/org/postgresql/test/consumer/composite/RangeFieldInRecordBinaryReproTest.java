@@ -8,9 +8,13 @@ package org.postgresql.test.consumer.composite;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.Oid;
+import org.postgresql.core.ServerVersion;
+import org.postgresql.jdbc.PgConnection;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
 import org.junit.jupiter.api.AfterAll;
@@ -45,6 +49,9 @@ public class RangeFieldInRecordBinaryReproTest {
 
   @BeforeAll
   static void setUp() throws SQLException {
+    // int4range was introduced in PostgreSQL 9.2; older servers reject the composite definition
+    // below with "type int4range does not exist".
+    TestUtil.assumeHaveMinimumServerVersion(ServerVersion.v9_2);
     try (Connection con = TestUtil.openDB()) {
       TestUtil.createCompositeType(con, TYPE, "i int4range");
     }
@@ -76,12 +83,14 @@ public class RangeFieldInRecordBinaryReproTest {
     PGProperty.BINARY_TRANSFER_ENABLE.set(props,
         Oid.RECORD + "," + INT4RANGE_OID + "," + typeOid);
 
-    try (Connection con = TestUtil.openDB(props);
-         PreparedStatement ps = con.prepareStatement(
-             "select row('[1,2]'::int4range)::" + TYPE)) {
+    try (Connection con = TestUtil.openDB(props)) {
+      // The simple query protocol cannot negotiate binary format codes.
+      assumeTrue(con.unwrap(PgConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE);
       Map<String, Class<?>> map = new HashMap<>();
       map.put(TYPE, RangeHolder.class);
-      try (ResultSet rs = ps.executeQuery()) {
+      try (PreparedStatement ps = con.prepareStatement(
+              "select row('[1,2]'::int4range)::" + TYPE);
+          ResultSet rs = ps.executeQuery()) {
         assertTrue(rs.next(), "one row expected");
         Object value = rs.getObject(1, map);
         RangeHolder holder = assertInstanceOf(RangeHolder.class, value,

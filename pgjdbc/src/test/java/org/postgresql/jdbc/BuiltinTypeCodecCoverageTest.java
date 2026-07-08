@@ -119,6 +119,21 @@ class BuiltinTypeCodecCoverageTest {
       "refcursor"
   ));
 
+  /**
+   * Types that only enter scope against a PostgreSQL server older than 12. {@code abstime},
+   * {@code reltime} and {@code tinterval} were dropped in PostgreSQL 12; {@code unknown} was a base
+   * type ({@code typtype 'b'}) before PostgreSQL 12 and became a pseudo-type ({@code typtype 'p'})
+   * from 12 onward, which is why the query's {@code typtype = 'b'} filter -- meant to exclude
+   * pseudo-types such as {@code record} and {@code cstring} -- lets it through on an old server. No
+   * codec is planned since none of these types exist on any currently supported PostgreSQL version.
+   */
+  private static final Set<String> LEGACY_PRE_12 = new HashSet<>(Arrays.asList(
+      "abstime",
+      "reltime",
+      "tinterval",
+      "unknown"
+  ));
+
   @Test
   void builtinScalarTypesResolveToACodecOrAreListed() throws Exception {
     Connection con = TestUtil.openDB();
@@ -153,7 +168,8 @@ class BuiltinTypeCodecCoverageTest {
           boolean listed = INTERNAL_TEXT.contains(typname)
               || IDENTIFIER_TEXT.contains(typname)
               || CODEC_BACKLOG.contains(typname)
-              || TEXTLIKE.contains(typname);
+              || TEXTLIKE.contains(typname)
+              || LEGACY_PRE_12.contains(typname);
           if (!dedicatedCodec && !listed) {
             missingCodec.add(typname + " (oid " + oid + ")");
           } else if (dedicatedCodec && listed) {
@@ -165,11 +181,11 @@ class BuiltinTypeCodecCoverageTest {
       assertEquals(emptyList(), new ArrayList<>(missingCodec),
           "Built-in scalar types resting on a generic handler (FallbackCodec or TextLikeCodec, both a "
               + "text PGobject) that nothing acknowledges. Add a dedicated codec, or list the type in "
-              + "INTERNAL_TEXT, IDENTIFIER_TEXT, CODEC_BACKLOG or TEXTLIKE. A new entry here usually "
-              + "means a newer PostgreSQL added a type the driver does not decode yet.");
+              + "INTERNAL_TEXT, IDENTIFIER_TEXT, CODEC_BACKLOG, TEXTLIKE or LEGACY_PRE_12. A new entry "
+              + "here usually means a newer PostgreSQL added a type the driver does not decode yet.");
       assertEquals(emptyList(), new ArrayList<>(staleListing),
-          "Types listed in INTERNAL_TEXT, IDENTIFIER_TEXT, CODEC_BACKLOG or TEXTLIKE that now resolve "
-              + "to a dedicated codec. Remove them from the list.");
+          "Types listed in INTERNAL_TEXT, IDENTIFIER_TEXT, CODEC_BACKLOG, TEXTLIKE or LEGACY_PRE_12 "
+              + "that now resolve to a dedicated codec. Remove them from the list.");
     } finally {
       TestUtil.closeDB(con);
     }
