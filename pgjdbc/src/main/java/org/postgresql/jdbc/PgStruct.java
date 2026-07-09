@@ -7,9 +7,6 @@ package org.postgresql.jdbc;
 
 import org.postgresql.core.BaseConnection;
 import org.postgresql.jdbc.codec.CompositeCodec;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -240,9 +237,7 @@ public class PgStruct extends org.postgresql.util.PGobject implements Struct {
 
       if (nestedClass != null && SQLData.class.isAssignableFrom(nestedClass)) {
         if (ctx == null || !ctx.isConnectionBound()) {
-          throw new PSQLException(
-              GT.tr("Cannot convert nested struct to SQLData without connection context"),
-              PSQLState.OBJECT_NOT_IN_STATE);
+          throw Exceptions.cannotConvertNestedStructWithoutConnection();
         }
         // Convert nested struct to SQLData using CompositeCodec.
         PgType pgType = ctx.getTypeInfo().getPgTypeByPgName(nestedTypeName);

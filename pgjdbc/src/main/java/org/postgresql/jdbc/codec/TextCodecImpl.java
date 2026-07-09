@@ -6,7 +6,6 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BackpatchingBinarySink;
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveBinaryDecoder;
 import org.postgresql.api.codec.PrimitiveTextDecoder;
@@ -15,9 +14,6 @@ import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.BooleanTypeUtil;
 import org.postgresql.jdbc.TemporalCodecs;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -189,18 +185,14 @@ public final class TextCodecImpl
     if (targetClass == Short.class) {
       int i = parseAsInt(value);
       if (i < Short.MIN_VALUE || i > Short.MAX_VALUE) {
-        throw new PSQLException(
-            GT.tr("Value {0} is out of range for short", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+        throw Exceptions.outOfRange(value, "short");
       }
       return (T) Short.valueOf((short) i);
     }
     if (targetClass == Byte.class) {
       int i = parseAsInt(value);
       if (i < Byte.MIN_VALUE || i > Byte.MAX_VALUE) {
-        throw new PSQLException(
-            GT.tr("Value {0} is out of range for byte", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+        throw Exceptions.outOfRange(value, "byte");
       }
       return (T) Byte.valueOf((byte) i);
     }
@@ -213,7 +205,7 @@ public final class TextCodecImpl
     if (targetClass == Timestamp.class) {
       return (T) TemporalCodecs.decodeTimestampText(value, ctx);
     }
-    throw Codec.cannotDecode("text", targetClass.getName());
+    throw Exceptions.cannotDecode("text", targetClass.getName());
   }
 
   @Override
@@ -235,7 +227,7 @@ public final class TextCodecImpl
     if (value instanceof Character) {
       return value.toString();
     }
-    throw Codec.cannotEncode(value, "text");
+    throw Exceptions.cannotEncode(value, "text");
   }
 
   private static int parseAsInt(String s) throws SQLException {
@@ -245,9 +237,7 @@ public final class TextCodecImpl
     try {
       return Integer.parseInt(s.trim());
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to int: {0}", s),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.cannotConvertValue("int", s, e);
     }
   }
 
@@ -258,9 +248,7 @@ public final class TextCodecImpl
     try {
       return Long.parseLong(s.trim());
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to long: {0}", s),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.cannotConvertValue("long", s, e);
     }
   }
 
@@ -271,9 +259,7 @@ public final class TextCodecImpl
     try {
       return Double.parseDouble(s.trim());
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to double: {0}", s),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.cannotConvertValue("double", s, e);
     }
   }
 
@@ -284,9 +270,7 @@ public final class TextCodecImpl
     try {
       return new BigDecimal(s.trim());
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to numeric: {0}", s),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.cannotConvertValue("numeric", s, e);
     }
   }
 

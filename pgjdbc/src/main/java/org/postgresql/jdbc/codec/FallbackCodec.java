@@ -5,17 +5,13 @@
 
 package org.postgresql.jdbc.codec;
 
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveBinaryDecoder;
 import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.TemporalCodecs;
-import org.postgresql.util.GT;
 import org.postgresql.util.PGUnknownBinary;
 import org.postgresql.util.PGobject;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -83,7 +79,7 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
     if (value instanceof String) {
       return ((String) value).getBytes(ctx.getCharset());
     }
-    throw Codec.cannotEncode(value, type.getTypeName().getName());
+    throw Exceptions.cannotEncode(value, type.getTypeName().getName());
   }
 
   @Override
@@ -132,7 +128,7 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
     if (targetClass == byte[].class) {
       return (T) Arrays.copyOfRange(data, offset, offset + length);
     }
-    throw Codec.cannotDecode(type.getTypeName().getName(), targetClass.getName());
+    throw Exceptions.cannotDecode(type.getTypeName().getName(), targetClass.getName());
   }
 
   @Override
@@ -157,7 +153,7 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
     if (targetClass == Timestamp.class) {
       return (T) TemporalCodecs.decodeTimestampText(data, ctx);
     }
-    throw Codec.cannotDecode(type.getTypeName().getName(), targetClass.getName());
+    throw Exceptions.cannotDecode(type.getTypeName().getName(), targetClass.getName());
   }
 
   @Override
@@ -167,9 +163,7 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
     try {
       return Integer.parseInt(s.trim());
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to int: {0}", s),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.cannotConvertValue("int", s, e);
     }
   }
 
@@ -178,9 +172,7 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
     try {
       return Integer.parseInt(data.trim());
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to int: {0}", data),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.cannotConvertValue("int", data, e);
     }
   }
 
@@ -191,9 +183,7 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
     try {
       return Long.parseLong(s.trim());
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to long: {0}", s),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.cannotConvertValue("long", s, e);
     }
   }
 
@@ -202,9 +192,7 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
     try {
       return Long.parseLong(data.trim());
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to long: {0}", data),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.cannotConvertValue("long", data, e);
     }
   }
 
@@ -215,9 +203,7 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
     try {
       return Double.parseDouble(s.trim());
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to double: {0}", s),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.cannotConvertValue("double", s, e);
     }
   }
 
@@ -226,9 +212,7 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
     try {
       return Double.parseDouble(data.trim());
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to double: {0}", data),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.cannotConvertValue("double", data, e);
     }
   }
 

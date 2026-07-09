@@ -6,16 +6,12 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BackpatchingBinarySink;
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveBinaryDecoder;
 import org.postgresql.api.codec.PrimitiveBinaryEncoder;
 import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.BooleanTypeUtil;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -63,9 +59,7 @@ public final class BoolCodec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (length != 1) {
-      throw new PSQLException(
-          GT.tr("Invalid bool binary data length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBinaryLength("bool", length);
     }
     return data[offset] == 1;
   }
@@ -97,9 +91,7 @@ public final class BoolCodec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   public boolean decodeAsBoolean(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     if (length != 1) {
-      throw new PSQLException(
-          GT.tr("Invalid bool binary data length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBinaryLength("bool", length);
     }
     return data[offset] == 1;
   }
@@ -181,12 +173,9 @@ public final class BoolCodec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
    * conversion (matches the historical PgResultSet behavior).</p>
    */
   private static void requireBooleanToNumeric(CodecContext ctx, String targetType)
-      throws PSQLException {
+      throws SQLException {
     if (!ctx.getConvertBooleanToNumeric()) {
-      throw new PSQLException(
-          GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-              "bool", targetType),
-          PSQLState.DATA_TYPE_MISMATCH);
+      throw Exceptions.cannotConvertColumn("bool", targetType);
     }
   }
 
@@ -233,7 +222,7 @@ public final class BoolCodec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
     if (targetClass == String.class) {
       return (T) String.valueOf(value);
     }
-    throw Codec.cannotDecode("bool", targetClass.getName());
+    throw Exceptions.cannotDecode("bool", targetClass.getName());
   }
 
   static boolean toBoolean(Object value) throws SQLException {

@@ -13,9 +13,6 @@ import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -232,16 +229,12 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
     out.append('"');
   }
 
-  private PSQLException noBinaryCodec() {
-    return new PSQLException(
-        GT.tr("No binary codec registered for array element type {0}", elementType.getFullName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+  private SQLException noBinaryCodec() {
+    return Exceptions.noBinaryCodecForArrayElement(elementType.getFullName());
   }
 
-  private PSQLException noTextCodec() {
-    return new PSQLException(
-        GT.tr("No text codec registered for array element type {0}", elementType.getFullName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+  private SQLException noTextCodec() {
+    return Exceptions.noTextCodecForArrayElement(elementType.getFullName());
   }
 
   private Class<?> getDefaultJavaType() {

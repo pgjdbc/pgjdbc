@@ -11,9 +11,6 @@ import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -95,17 +92,13 @@ public final class PgSQLInputBinary extends PgSQLInput {
       throws SQLException {
     super(type, ctx);
     if (length < 4) {
-      throw new PSQLException(
-          GT.tr("Invalid binary composite data: too short"),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidCompositeTooShort();
     }
     this.source = source;
     this.end = offset + length;
     int count = ByteConverter.int4(source, offset);
     if (count < 0) {
-      throw new PSQLException(
-          GT.tr("Invalid binary composite data: negative field count {0}", count),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidCompositeNegativeFieldCount(count);
     }
     this.wireFieldCount = count;
     this.pos = offset + 4;
@@ -122,9 +115,7 @@ public final class PgSQLInputBinary extends PgSQLInput {
     // Field header: int4 oid, int4 length. Bound every read against `end` so a truncated or sub-sliced
     // buffer fails cleanly instead of reading past the composite into neighbouring bytes.
     if (end - pos < 8) {
-      throw new PSQLException(
-          GT.tr("Invalid binary composite data: unexpected end at field {0}", fieldIndex - 1),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidCompositeUnexpectedEnd(fieldIndex - 1);
     }
     // The declared field type drives decoding, so the wire OID is skipped.
     pos += 4;
@@ -135,14 +126,10 @@ public final class PgSQLInputBinary extends PgSQLInput {
       return true;
     }
     if (length < 0) {
-      throw new PSQLException(
-          GT.tr("Invalid binary composite data: invalid length {0} at field {1}", length, fieldIndex - 1),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidCompositeFieldLength(length, fieldIndex - 1);
     }
     if (end - pos < length) {
-      throw new PSQLException(
-          GT.tr("Invalid binary composite data: not enough data for field {0}", fieldIndex - 1),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidCompositeNotEnoughData(fieldIndex - 1);
     }
     curOffset = pos;
     curLength = length;

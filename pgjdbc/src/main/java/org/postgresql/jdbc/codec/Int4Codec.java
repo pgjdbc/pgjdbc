@@ -6,7 +6,6 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BackpatchingBinarySink;
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveBinaryDecoder;
 import org.postgresql.api.codec.PrimitiveBinaryEncoder;
@@ -16,10 +15,7 @@ import org.postgresql.api.codec.TextSink;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Encoding;
 import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
 import org.postgresql.util.NumberParser;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -64,9 +60,7 @@ public final class Int4Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (length != 4) {
-      throw new PSQLException(
-          GT.tr("Invalid int4 binary data length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBinaryLength("int4", length);
     }
     return ByteConverter.int4(data, offset);
   }
@@ -101,9 +95,7 @@ public final class Int4Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   public void encodeLong(long value, TypeDescriptor type, CodecContext ctx, BackpatchingBinarySink out)
       throws SQLException, IOException {
     if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
-      throw new PSQLException(
-          GT.tr("Value {0} is out of int4 range", value),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      throw Exceptions.outOfRange(value, "int4");
     }
     out.writeInt32((int) value);
   }
@@ -118,9 +110,7 @@ public final class Int4Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   public void encodeLong(long value, TypeDescriptor type, CodecContext ctx, Appendable out)
       throws SQLException, IOException {
     if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
-      throw new PSQLException(
-          GT.tr("Value {0} is out of int4 range", value),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      throw Exceptions.outOfRange(value, "int4");
     }
     TextSink.appendInt(out, (int) value);
   }
@@ -152,9 +142,7 @@ public final class Int4Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     if (length != 4) {
-      throw new PSQLException(
-          GT.tr("Invalid int4 binary data length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBinaryLength("int4", length);
     }
     return ByteConverter.int4(data, offset);
   }
@@ -164,9 +152,7 @@ public final class Int4Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
     try {
       return Integer.parseInt(data.trim());
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to int: {0}", data),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.cannotConvertValue("int", data, e);
     }
   }
 
@@ -259,9 +245,7 @@ public final class Int4Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
     if (value instanceof Number) {
       long asLong = ((Number) value).longValue();
       if (asLong < Integer.MIN_VALUE || asLong > Integer.MAX_VALUE) {
-        throw new PSQLException(
-            GT.tr("Value {0} is out of int4 range", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+        throw Exceptions.outOfRange(value, "int4");
       }
       return (int) asLong;
     }
@@ -269,14 +253,12 @@ public final class Int4Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
       try {
         return Integer.parseInt(((String) value).trim());
       } catch (NumberFormatException e) {
-        throw new PSQLException(
-            GT.tr("Cannot convert value to int: {0}", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+        throw Exceptions.cannotConvertValue("int", value, e);
       }
     }
     if (value instanceof Boolean) {
       return (Boolean) value ? 1 : 0;
     }
-    throw Codec.cannotEncode(value, "int4");
+    throw Exceptions.cannotEncode(value, "int4");
   }
 }

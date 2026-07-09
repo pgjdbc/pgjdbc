@@ -6,7 +6,6 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
@@ -92,7 +91,7 @@ public final class XmlCodec implements BinaryCodec, TextCodec {
     if (targetClass == String.class || targetClass == Object.class) {
       return (T) value;
     }
-    throw Codec.cannotDecode("xml", targetClass.getName());
+    throw Exceptions.cannotDecode("xml", targetClass.getName());
   }
 
   @Override
@@ -105,6 +104,6 @@ public final class XmlCodec implements BinaryCodec, TextCodec {
     if (targetClass == String.class || targetClass == Object.class) {
       return (T) data;
     }
-    throw Codec.cannotDecode("xml", targetClass.getName());
+    throw Exceptions.cannotDecode("xml", targetClass.getName());
   }
 }

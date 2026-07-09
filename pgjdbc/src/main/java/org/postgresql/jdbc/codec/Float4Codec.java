@@ -6,7 +6,6 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BackpatchingBinarySink;
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveBinaryDecoder;
 import org.postgresql.api.codec.PrimitiveBinaryEncoder;
@@ -15,9 +14,6 @@ import org.postgresql.api.codec.PrimitiveTextEncoder;
 import org.postgresql.api.codec.TextSink;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -62,9 +58,7 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (length != 4) {
-      throw new PSQLException(
-          GT.tr("Invalid float4 binary data length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBinaryLength("float4", length);
     }
     return ByteConverter.float4(data, offset);
   }
@@ -115,9 +109,7 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   public float decodeAsFloat(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     if (length != 4) {
-      throw new PSQLException(
-          GT.tr("Invalid float4 binary data length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBinaryLength("float4", length);
     }
     return ByteConverter.float4(data, offset);
   }
@@ -127,9 +119,7 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
     try {
       return Float.parseFloat(data.trim());
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to float: {0}", data),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.cannotConvertValue("float", data, e);
     }
   }
 
@@ -149,9 +139,7 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
       throws SQLException {
     float value = decodeAsFloat(data, offset, length, type, ctx);
     if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
-      throw new PSQLException(
-          GT.tr("Value {0} is out of range for int", value),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      throw Exceptions.outOfRange(value, "int");
     }
     return (int) value;
   }
@@ -160,9 +148,7 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     float value = decodeAsFloat(data, type, ctx);
     if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
-      throw new PSQLException(
-          GT.tr("Value {0} is out of range for int", value),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      throw Exceptions.outOfRange(value, "int");
     }
     return (int) value;
   }
@@ -174,9 +160,7 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
     // Check bounds for float to long conversion
     // Float can't exactly represent Long.MAX_VALUE, so we use a conservative bound
     if (value < Long.MIN_VALUE || value >= 9.223372036854776E18) {
-      throw new PSQLException(
-          GT.tr("Value {0} is out of range for long", value),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      throw Exceptions.outOfRange(value, "long");
     }
     return (long) value;
   }
@@ -192,9 +176,7 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
       CodecContext ctx) throws SQLException {
     float value = decodeAsFloat(data, offset, length, type, ctx);
     if (Float.isNaN(value) || Float.isInfinite(value)) {
-      throw new PSQLException(
-          GT.tr("Cannot convert {0} to BigDecimal", value),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      throw Exceptions.cannotConvertToBigDecimal(value);
     }
     return BigDecimal.valueOf(value);
   }
@@ -227,9 +209,7 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
     }
     if (targetClass == Long.class) {
       if (value < Long.MIN_VALUE || value >= 9.223372036854776E18) {
-        throw new PSQLException(
-            GT.tr("Value {0} is out of range for long", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+        throw Exceptions.outOfRange(value, "long");
       }
       return (T) Long.valueOf((long) value);
     }
@@ -244,14 +224,12 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
       try {
         return Float.parseFloat(((String) value).trim());
       } catch (NumberFormatException e) {
-        throw new PSQLException(
-            GT.tr("Cannot convert value to float: {0}", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+        throw Exceptions.cannotConvertValue("float", value, e);
       }
     }
     if (value instanceof Boolean) {
       return (Boolean) value ? 1.0f : 0.0f;
     }
-    throw Codec.cannotEncode(value, "float4");
+    throw Exceptions.cannotEncode(value, "float4");
   }
 }

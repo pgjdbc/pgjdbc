@@ -6,16 +6,12 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BackpatchingBinarySink;
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveBinaryDecoder;
 import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -71,9 +67,7 @@ public final class Oid8Codec implements StreamingBinaryCodec, PrimitiveBinaryDec
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (length != 8) {
-      throw new PSQLException(
-          GT.tr("Invalid oid8 binary data length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBinaryLength("oid8", length);
     }
     return ByteConverter.int8(data, offset);
   }
@@ -123,9 +117,7 @@ public final class Oid8Codec implements StreamingBinaryCodec, PrimitiveBinaryDec
   public long decodeAsLong(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     if (length != 8) {
-      throw new PSQLException(
-          GT.tr("Invalid oid8 binary data length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBinaryLength("oid8", length);
     }
     return ByteConverter.int8(data, offset);
   }
@@ -135,9 +127,7 @@ public final class Oid8Codec implements StreamingBinaryCodec, PrimitiveBinaryDec
     try {
       return Long.parseUnsignedLong(data.trim());
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to oid8: {0}", data),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.cannotConvertValue("oid8", data, e);
     }
   }
 
@@ -201,7 +191,7 @@ public final class Oid8Codec implements StreamingBinaryCodec, PrimitiveBinaryDec
     if (targetClass == BigDecimal.class) {
       return (T) new BigDecimal(UnsignedLongDecoders.toBigInteger(value));
     }
-    throw Codec.cannotDecode("oid8", targetClass.getName());
+    throw Exceptions.cannotDecode("oid8", targetClass.getName());
   }
 
   static long toLong(Object value) throws SQLException {
@@ -214,11 +204,9 @@ public final class Oid8Codec implements StreamingBinaryCodec, PrimitiveBinaryDec
       try {
         return Long.parseUnsignedLong(((String) value).trim());
       } catch (NumberFormatException e) {
-        throw new PSQLException(
-            GT.tr("Cannot convert value to oid8: {0}", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+        throw Exceptions.cannotConvertValue("oid8", value, e);
       }
     }
-    throw Codec.cannotEncode(value, "oid8");
+    throw Exceptions.cannotEncode(value, "oid8");
   }
 }

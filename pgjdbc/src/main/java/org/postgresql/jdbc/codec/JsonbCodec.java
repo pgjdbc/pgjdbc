@@ -6,7 +6,6 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
@@ -125,7 +124,7 @@ public final class JsonbCodec implements BinaryCodec, TextCodec, ArrayElementCod
     if (targetClass == PGobject.class || targetClass == Object.class) {
       return (T) wrap(value);
     }
-    throw Codec.cannotDecode("jsonb", targetClass.getName());
+    throw Exceptions.cannotDecode("jsonb", targetClass.getName());
   }
 
   @Override
@@ -141,6 +140,6 @@ public final class JsonbCodec implements BinaryCodec, TextCodec, ArrayElementCod
     if (targetClass == PGobject.class || targetClass == Object.class) {
       return (T) wrap(data);
     }
-    throw Codec.cannotDecode("jsonb", targetClass.getName());
+    throw Exceptions.cannotDecode("jsonb", targetClass.getName());
   }
 }

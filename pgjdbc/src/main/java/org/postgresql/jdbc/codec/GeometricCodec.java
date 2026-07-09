@@ -16,11 +16,8 @@ import org.postgresql.geometric.PGlseg;
 import org.postgresql.geometric.PGpath;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.geometric.PGpolygon;
-import org.postgresql.util.GT;
 import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGobject;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -85,8 +82,7 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
       String val = ((PGobject) value).getValue();
       return val != null ? val : "";
     }
-    throw new PSQLException(GT.tr("Cannot encode {0} as {1}", value.getClass().getName(), typeName),
-        PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotEncodeAs(value, typeName);
   }
 
   @Override
@@ -96,14 +92,12 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
     if (targetClass == javaType || targetClass == Object.class || targetClass == PGobject.class) {
       return (R) decodeText(data, type, ctx);
     }
-    throw new PSQLException(
-        GT.tr("Cannot decode {0} to {1}", typeName, targetClass.getName()),
-        PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotDecode(typeName, targetClass.getName());
   }
 
   @Override
   public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert {0} to BigDecimal", typeName), PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotDecode(typeName, "BigDecimal");
   }
 
   @Override
@@ -157,8 +151,7 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
         obj.toBytes(bytes, 0);
         return bytes;
       }
-      throw new PSQLException(GT.tr("Cannot encode {0} as {1}", value.getClass().getName(), typeName),
-          PSQLState.DATA_TYPE_MISMATCH);
+      throw Exceptions.cannotEncodeAs(value, typeName);
     }
 
     @Override
@@ -177,8 +170,7 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
         String val = ((PGobject) value).getValue();
         return val != null ? val : "";
       }
-      throw new PSQLException(GT.tr("Cannot encode {0} as {1}", value.getClass().getName(), typeName),
-          PSQLState.DATA_TYPE_MISMATCH);
+      throw Exceptions.cannotEncodeAs(value, typeName);
     }
 
     @Override
@@ -199,9 +191,7 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
         return (R) instantiateCustomPGobject(
             (Class<? extends PGobject>) targetClass, valueBytes, /* text */ null, ctx);
       }
-      throw new PSQLException(
-          GT.tr("Cannot decode {0} to {1}", typeName, targetClass.getName()),
-          PSQLState.DATA_TYPE_MISMATCH);
+      throw Exceptions.cannotDecode(typeName, targetClass.getName());
     }
 
     @Override
@@ -218,9 +208,7 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
         return (R) instantiateCustomPGobject(
             (Class<? extends PGobject>) targetClass, /* binary */ null, data, ctx);
       }
-      throw new PSQLException(
-          GT.tr("Cannot decode {0} to {1}", typeName, targetClass.getName()),
-          PSQLState.DATA_TYPE_MISMATCH);
+      throw Exceptions.cannotDecode(typeName, targetClass.getName());
     }
 
     /**
@@ -246,21 +234,19 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
         }
         return obj;
       } catch (ReflectiveOperationException e) {
-        throw new PSQLException(
-            GT.tr("Failed to instantiate {0}", targetClass.getName()),
-            PSQLState.DATA_TYPE_MISMATCH, e);
+        throw Exceptions.failedToInstantiate(targetClass.getName(), e);
       }
     }
 
     @Override
     public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
         CodecContext ctx) throws SQLException {
-      throw new PSQLException(GT.tr("Cannot convert {0} to BigDecimal", typeName), PSQLState.DATA_TYPE_MISMATCH);
+      throw Exceptions.cannotDecode(typeName, "BigDecimal");
     }
 
     @Override
     public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-      throw new PSQLException(GT.tr("Cannot convert {0} to BigDecimal", typeName), PSQLState.DATA_TYPE_MISMATCH);
+      throw Exceptions.cannotDecode(typeName, "BigDecimal");
     }
 
     @Override

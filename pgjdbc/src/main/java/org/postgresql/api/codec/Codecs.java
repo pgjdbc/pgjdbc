@@ -52,12 +52,12 @@ public final class Codecs {
     Codec codec = ctx.resolveCodec(type.getOid());
     if (format == Format.BINARY) {
       if (!(codec instanceof BinaryCodec)) {
-        throw noCodecForFormat(type, "binary");
+        throw Exceptions.noCodecForFormat(type, "binary");
       }
       return RawValue.binary(((BinaryCodec) codec).encodeBinary(value, type, ctx));
     }
     if (!(codec instanceof TextCodec)) {
-      throw noCodecForFormat(type, "text");
+      throw Exceptions.noCodecForFormat(type, "text");
     }
     String text = ((TextCodec) codec).encodeText(value, type, ctx);
     return RawValue.text(text.getBytes(ctx.getCharset()));
@@ -83,21 +83,133 @@ public final class Codecs {
     Codec codec = ctx.resolveCodec(type.getOid());
     if (value.getFormat() == Format.BINARY) {
       if (!(codec instanceof BinaryCodec)) {
-        throw noCodecForFormat(type, "binary");
+        throw Exceptions.noCodecForFormat(type, "binary");
       }
       return ((BinaryCodec) codec).decodeBinaryAs(
           value.backingArray(), value.getOffset(), value.getLength(), type, targetClass, ctx);
     }
     if (!(codec instanceof TextCodec)) {
-      throw noCodecForFormat(type, "text");
+      throw Exceptions.noCodecForFormat(type, "text");
     }
     return ((TextCodec) codec)
         .decodeTextAs(value.asString(ctx.getCharset()), type, targetClass, ctx);
   }
 
-  private static SQLException noCodecForFormat(TypeDescriptor type, String format) {
+  /**
+   * Creates a standard error for a value read from the database that cannot be
+   * represented as {@code targetType}.
+   *
+   * <p>This is the read/decode direction (for example {@code getDate} on an int4
+   * column), so the error carries {@link org.postgresql.util.PSQLState#DATA_TYPE_MISMATCH}.</p>
+   *
+   * <p>Public (unlike {@link Exceptions}) because codecs outside this package — and outside
+   * {@code org.postgresql.jdbc.codec} — need to report the same conversion errors.</p>
+   *
+   * @param value decoded value, or null when the decoded value is SQL NULL
+   * @param targetType target Java type name
+   * @return conversion error
+   */
+  public static SQLException cannotDecode(@Nullable Object value, String targetType) {
+    return cannotDecode(value == null ? "null" : value.getClass().getName(), targetType);
+  }
+
+  /**
+   * Creates a standard decode error from a source type name to a target Java type name.
+   *
+   * @param sourceType source type name
+   * @param targetType target Java type name
+   * @return conversion error, carrying {@link org.postgresql.util.PSQLState#DATA_TYPE_MISMATCH}
+   */
+  public static SQLException cannotDecode(String sourceType, String targetType) {
     return new PSQLException(
-        GT.tr("No {0} codec is registered for type {1}.", format, type.getFullName()),
+        GT.tr("Cannot convert {0} to {1}", sourceType, targetType),
+        PSQLState.DATA_TYPE_MISMATCH);
+  }
+
+  /**
+   * Creates a standard error for a Java value that cannot be encoded as the codec's PostgreSQL
+   * type.
+   *
+   * @param value the value being encoded, or null
+   * @param targetType target PostgreSQL type name
+   * @return conversion error, carrying {@link org.postgresql.util.PSQLState#INVALID_PARAMETER_TYPE}
+   */
+  public static SQLException cannotEncode(@Nullable Object value, String targetType) {
+    return cannotEncode(value == null ? "null" : value.getClass().getName(), targetType);
+  }
+
+  /**
+   * Creates a standard encode error from a source type name to a target PostgreSQL type name.
+   *
+   * @param sourceType source type name
+   * @param targetType target PostgreSQL type name
+   * @return conversion error, carrying {@link org.postgresql.util.PSQLState#INVALID_PARAMETER_TYPE}
+   */
+  public static SQLException cannotEncode(String sourceType, String targetType) {
+    return new PSQLException(
+        GT.tr("Cannot convert {0} to {1}", sourceType, targetType),
         PSQLState.INVALID_PARAMETER_TYPE);
+  }
+
+  // Composite binary wire format: shared by org.postgresql.jdbc.codec.CompositeCodec (via its own
+  // package-private Exceptions) and org.postgresql.jdbc.PgSQLInputBinary (via its own), which parse
+  // the same wire format from two different entry points.
+
+  /**
+   * The binary composite value was too short to hold a field count.
+   *
+   * @return decode error, carrying {@link org.postgresql.util.PSQLState#DATA_ERROR}
+   */
+  public static SQLException invalidCompositeTooShort() {
+    return new PSQLException(GT.tr("Invalid binary composite data: too short"), PSQLState.DATA_ERROR);
+  }
+
+  /**
+   * The binary composite value declared a negative field count.
+   *
+   * @param fieldCount the (negative) declared field count
+   * @return decode error, carrying {@link org.postgresql.util.PSQLState#DATA_ERROR}
+   */
+  public static SQLException invalidCompositeNegativeFieldCount(int fieldCount) {
+    return new PSQLException(
+        GT.tr("Invalid binary composite data: negative field count {0}", fieldCount),
+        PSQLState.DATA_ERROR);
+  }
+
+  /**
+   * The binary composite value ended before its declared field count was satisfied.
+   *
+   * @param fieldIndex the 0-based field index where the data ran out
+   * @return decode error, carrying {@link org.postgresql.util.PSQLState#DATA_ERROR}
+   */
+  public static SQLException invalidCompositeUnexpectedEnd(int fieldIndex) {
+    return new PSQLException(
+        GT.tr("Invalid binary composite data: unexpected end at field {0}", fieldIndex),
+        PSQLState.DATA_ERROR);
+  }
+
+  /**
+   * A composite field declared a negative length.
+   *
+   * @param length the (negative) declared field length
+   * @param fieldIndex the 0-based field index
+   * @return decode error, carrying {@link org.postgresql.util.PSQLState#DATA_ERROR}
+   */
+  public static SQLException invalidCompositeFieldLength(int length, int fieldIndex) {
+    return new PSQLException(
+        GT.tr("Invalid binary composite data: invalid length {0} at field {1}", length, fieldIndex),
+        PSQLState.DATA_ERROR);
+  }
+
+  /**
+   * A composite field's declared length exceeds the remaining data.
+   *
+   * @param fieldIndex the 0-based field index
+   * @return decode error, carrying {@link org.postgresql.util.PSQLState#DATA_ERROR}
+   */
+  public static SQLException invalidCompositeNotEnoughData(int fieldIndex) {
+    return new PSQLException(
+        GT.tr("Invalid binary composite data: not enough data for field {0}", fieldIndex),
+        PSQLState.DATA_ERROR);
   }
 }

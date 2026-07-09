@@ -5,11 +5,6 @@
 
 package org.postgresql.jdbc.codec;
 
-import org.postgresql.api.codec.Codec;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
-
 import java.math.BigDecimal;
 import java.sql.SQLException;
 
@@ -75,7 +70,7 @@ final class NumberDecoders {
     if (targetClass == Boolean.class) {
       return (T) Boolean.valueOf(value != 0);
     }
-    throw Codec.cannotDecode(typeName, targetClass.getName());
+    throw Exceptions.cannotDecode(typeName, targetClass.getName());
   }
 
   /**
@@ -111,33 +106,25 @@ final class NumberDecoders {
     }
     if (targetClass == BigDecimal.class) {
       if (Double.isNaN(value) || Double.isInfinite(value)) {
-        throw new PSQLException(
-            GT.tr("Cannot convert {0} to BigDecimal", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+        throw Exceptions.cannotConvertToBigDecimal(value);
       }
       return (T) BigDecimal.valueOf(value);
     }
     if (targetClass == Boolean.class) {
       return (T) Boolean.valueOf(value != 0);
     }
-    throw Codec.cannotDecode(typeName, targetClass.getName());
+    throw Exceptions.cannotDecode(typeName, targetClass.getName());
   }
 
-  private static PSQLException outOfRangeForInt(Object value) {
-    return new PSQLException(
-        GT.tr("Value {0} is out of range for int", value),
-        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+  private static SQLException outOfRangeForInt(Object value) {
+    return Exceptions.outOfRange(value, "int");
   }
 
-  private static PSQLException outOfRangeForShort(Object value) {
-    return new PSQLException(
-        GT.tr("Value {0} is out of range for short", value),
-        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+  private static SQLException outOfRangeForShort(Object value) {
+    return Exceptions.outOfRange(value, "short");
   }
 
-  private static PSQLException outOfRangeForByte(Object value) {
-    return new PSQLException(
-        GT.tr("Value {0} is out of range for byte", value),
-        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+  private static SQLException outOfRangeForByte(Object value) {
+    return Exceptions.outOfRange(value, "byte");
   }
 }

@@ -14,10 +14,7 @@ import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.PgArray;
 import org.postgresql.jdbc.PgCodecContext;
-import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -80,9 +77,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
       throws SQLException {
     int dimensions = MultiDimArraySupport.computeDimensions(javaArray, leafElementClass);
     if (dimensions == 0) {
-      throw new PSQLException(
-          GT.tr("Cannot convert {0} to array", javaArray.getClass().getName()),
-          PSQLState.INVALID_PARAMETER_TYPE);
+      throw Exceptions.cannotConvertToArray(javaArray);
     }
     MultiDimArraySupport.computeDimensionLengths(javaArray, dimensions);
   }
@@ -312,9 +307,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
       encodeBinaryJavaArray(value, type, ctx, out);
       return;
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert {0} to array", value.getClass().getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Exceptions.cannotConvertToArray(value);
   }
 
   /**
@@ -357,9 +350,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     } else if (value.getClass().isArray()) {
       javaArray = value;
     } else {
-      throw new PSQLException(
-          GT.tr("Cannot convert {0} to array", value.getClass().getName()),
-          PSQLState.INVALID_PARAMETER_TYPE);
+      throw Exceptions.cannotConvertToArray(value);
     }
     ArrayLeafCodec fastLeaf = fastLeafFor(type, ctx);
     if (fastLeaf != null) {
@@ -616,9 +607,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
       // Object[] for composite/range), so getObject(col, T[].class) is unchanged.
       return (T) decodeBinaryArray(buf, offset, length, type, ctx);
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert array to {0}", targetClass.getName()),
-        PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotConvertArrayTo(targetClass.getName());
   }
 
   @Override
@@ -652,9 +641,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     if (targetClass == String.class) {
       return (T) data;
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert array to {0}", targetClass.getName()),
-        PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotConvertArrayTo(targetClass.getName());
   }
 
   @Override

@@ -9,10 +9,7 @@ import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.core.Oid;
 import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
 import org.postgresql.util.NumberParser;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -93,9 +90,7 @@ final class Int2ArrayLeafCodec implements ArrayLeafCodec {
         int len = ByteConverter.int4(data, pos);
         pos += 4;
         if (len == -1) {
-          throw new PSQLException(
-              GT.tr("Cannot decode NULL into primitive short[] leaf"),
-              PSQLState.DATA_ERROR);
+          throw Exceptions.cannotDecodeNullIntoPrimitiveLeaf("short[]");
         }
         validateElementLength(len);
         arr[i] = ByteConverter.int2(data, pos);
@@ -161,9 +156,7 @@ final class Int2ArrayLeafCodec implements ArrayLeafCodec {
         }
         cur.readValue(delimiter, '}');
         if (!cur.tokenWasQuoted() && cur.tokenEquals("NULL")) {
-          throw new PSQLException(
-              GT.tr("Cannot decode NULL into primitive short[] leaf"),
-              PSQLState.DATA_ERROR);
+          throw Exceptions.cannotDecodeNullIntoPrimitiveLeaf("short[]");
         }
         arr[i] = parseShort(cur);
       }
@@ -197,18 +190,14 @@ final class Int2ArrayLeafCodec implements ArrayLeafCodec {
       try {
         return Short.parseShort(new String(chars, off, len));
       } catch (NumberFormatException e) {
-        throw new PSQLException(
-            GT.tr("Invalid int2 array element: {0}", new String(chars, off, len)),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+        throw Exceptions.invalidArrayElement("int2", new String(chars, off, len), e);
       }
     }
   }
 
   private static void validateElementLength(int length) throws SQLException {
     if (length != 2) {
-      throw new PSQLException(
-          GT.tr("Invalid int2 array element length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidArrayElementLength("int2", length);
     }
   }
 }

@@ -6,7 +6,6 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BackpatchingBinarySink;
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.core.Oid;
 import org.postgresql.util.ByteConverter;
@@ -151,6 +150,6 @@ final class MoneyArrayLeafCodec implements ArrayLeafCodec {
     if (value instanceof String) {
       return new PGmoney((String) value).val;
     }
-    throw Codec.cannotEncode(value, "money");
+    throw Exceptions.cannotEncode(value, "money");
   }
 }

@@ -6,14 +6,11 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BackpatchingBinarySink;
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -47,9 +44,7 @@ public final class UuidCodec implements StreamingBinaryCodec, TextCodec {
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (length != 16) {
-      throw new PSQLException(
-          GT.tr("Invalid uuid binary data length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBinaryLength("uuid", length);
     }
     long msb = ByteConverter.int8(data, offset);
     long lsb = ByteConverter.int8(data, offset + 8);
@@ -78,9 +73,7 @@ public final class UuidCodec implements StreamingBinaryCodec, TextCodec {
     try {
       return UUID.fromString(data.trim());
     } catch (IllegalArgumentException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to UUID: {0}", data),
-          PSQLState.DATA_ERROR, e);
+      throw Exceptions.cannotConvertValue("UUID", data, PSQLState.DATA_ERROR, e);
     }
   }
 
@@ -107,7 +100,7 @@ public final class UuidCodec implements StreamingBinaryCodec, TextCodec {
     if (targetClass == String.class) {
       return (T) decodeAsString(data, offset, length, type, ctx);
     }
-    throw Codec.cannotDecode("uuid", targetClass.getName());
+    throw Exceptions.cannotDecode("uuid", targetClass.getName());
   }
 
   @Override
@@ -119,7 +112,7 @@ public final class UuidCodec implements StreamingBinaryCodec, TextCodec {
     if (targetClass == String.class) {
       return (T) data;
     }
-    throw Codec.cannotDecode("uuid", targetClass.getName());
+    throw Exceptions.cannotDecode("uuid", targetClass.getName());
   }
 
   private static UUID toUuid(Object value) throws SQLException {
@@ -130,11 +123,9 @@ public final class UuidCodec implements StreamingBinaryCodec, TextCodec {
       try {
         return UUID.fromString(((String) value).trim());
       } catch (IllegalArgumentException e) {
-        throw new PSQLException(
-            GT.tr("Cannot convert value to UUID: {0}", value),
-            PSQLState.DATA_ERROR, e);
+        throw Exceptions.cannotConvertValue("UUID", value, PSQLState.DATA_ERROR, e);
       }
     }
-    throw Codec.cannotEncode(value, "uuid");
+    throw Exceptions.cannotEncode(value, "uuid");
   }
 }

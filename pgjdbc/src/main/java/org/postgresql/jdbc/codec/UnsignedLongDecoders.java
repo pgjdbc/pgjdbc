@@ -5,10 +5,6 @@
 
 package org.postgresql.jdbc.codec;
 
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
-
 import java.math.BigInteger;
 import java.sql.SQLException;
 
@@ -50,10 +46,8 @@ final class UnsignedLongDecoders {
     return (short) value;
   }
 
-  private static PSQLException outOfRangeForUnsigned(long value, String targetType) {
-    return new PSQLException(
-        GT.tr("Value {0} is out of range for {1}", Long.toUnsignedString(value), targetType),
-        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+  private static SQLException outOfRangeForUnsigned(long value, String targetType) {
+    return Exceptions.outOfRange(Long.toUnsignedString(value), targetType);
   }
 
   /**

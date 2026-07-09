@@ -202,27 +202,27 @@ public final class PrimitiveDecoders {
     if (value instanceof Number) {
       return ((Number) value).intValue();
     }
-    throw Codec.cannotDecode(value, "int");
+    throw Codecs.cannotDecode(value, "int");
   }
 
   static long boxToLong(@Nullable Object value) throws SQLException {
     if (value instanceof Number) {
       return ((Number) value).longValue();
     }
-    throw Codec.cannotDecode(value, "long");
+    throw Codecs.cannotDecode(value, "long");
   }
 
   static float boxToFloat(@Nullable Object value) throws SQLException {
     if (value instanceof Number) {
       return ((Number) value).floatValue();
     }
-    throw Codec.cannotDecode(value, "float");
+    throw Codecs.cannotDecode(value, "float");
   }
 
   static double boxToDouble(@Nullable Object value) throws SQLException {
     if (value instanceof Number) {
       return ((Number) value).doubleValue();
     }
-    throw Codec.cannotDecode(value, "double");
+    throw Codecs.cannotDecode(value, "double");
   }
 }

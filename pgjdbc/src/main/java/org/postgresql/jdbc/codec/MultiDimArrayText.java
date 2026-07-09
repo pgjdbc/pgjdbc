@@ -6,9 +6,6 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.CodecContext;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -79,10 +76,7 @@ public final class MultiDimArrayText {
   public static void encode(Object javaArray, char delim, Appendable out, CodecContext ctx, LeafTextWriter leaf) throws SQLException, IOException {
     int dimensions = MultiDimArraySupport.computeDimensions(javaArray, leafElementClassOf(leaf));
     if (dimensions == 0) {
-      throw new PSQLException(
-          GT.tr("MultiDimArrayText.encode requires a Java array, got {0}",
-              javaArray.getClass().getName()),
-          PSQLState.INVALID_PARAMETER_TYPE);
+      throw Exceptions.requiresJavaArray("MultiDimArrayText.encode", javaArray);
     }
     int[] dimLengths = MultiDimArraySupport.computeDimensionLengths(javaArray, dimensions);
     if (MultiDimArraySupport.isEmpty(dimLengths)) {
@@ -139,10 +133,7 @@ public final class MultiDimArrayText {
   public static Object decode(String data, Class<?> leafComponentType, char delim,
       CodecContext ctx, ArrayLeafCodec leaf) throws SQLException {
     if (!leaf.supportsTargetComponent(leafComponentType)) {
-      throw new PSQLException(
-          GT.tr("Array leaf codec for oid {0} does not support {1}",
-              leaf.getElementOid(), leafComponentType.getName()),
-          PSQLState.DATA_TYPE_MISMATCH);
+      throw Exceptions.arrayLeafCodecUnsupported(leaf.getElementOid(), leafComponentType.getName());
     }
     char[] chars = data.toCharArray();
 
@@ -150,9 +141,7 @@ public final class MultiDimArrayText {
     measure.skipDimensionPrefix();
     int dimensions = measure.countLeadingBraces();
     if (dimensions == 0) {
-      throw new PSQLException(
-          GT.tr("MultiDimArrayText.decode requires an array literal, got {0}", data),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.requiresArrayLiteral("MultiDimArrayText.decode", data);
     }
     int[] dimLengths = new int[dimensions];
     measureDim(measure, dimLengths, 0, dimensions, delim);

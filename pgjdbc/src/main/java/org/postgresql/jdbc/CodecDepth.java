@@ -5,10 +5,6 @@
 
 package org.postgresql.jdbc;
 
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
-
 import java.sql.SQLException;
 
 /**
@@ -59,9 +55,7 @@ public final class CodecDepth {
   public static void enter() throws SQLException {
     int depth = DEPTH.get() + 1;
     if (depth > MAX_DEPTH) {
-      throw new PSQLException(
-          GT.tr("Maximum type nesting depth exceeded: {0}", MAX_DEPTH),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.maxNestingDepthExceeded(MAX_DEPTH);
     }
     DEPTH.set(depth);
   }

@@ -8,9 +8,6 @@ package org.postgresql.jdbc;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
 import org.postgresql.api.codec.TypeDescriptor;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -74,10 +71,7 @@ public abstract class PgSQLOutput implements SQLOutput, AutoCloseable {
     } else {
       // Offline contexts have no type cache to load attributes from, so the caller must register
       // the composite type with its fields.
-      throw new PSQLException(
-          GT.tr("Offline composite access for {0} needs its attributes; register the type with its "
-              + "fields in the offline codec context.", type.getFullName()),
-          PSQLState.INVALID_PARAMETER_TYPE);
+      throw Exceptions.offlineCompositeAccessNeedsAttributes(type.getFullName());
     }
   }
 
@@ -89,9 +83,7 @@ public abstract class PgSQLOutput implements SQLOutput, AutoCloseable {
    */
   protected PgField nextField() throws SQLException {
     if (fieldIndex >= fields.size()) {
-      throw new PSQLException(
-          GT.tr("Attempt to write past end of composite type fields"),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.attemptWritePastEndOfFields();
     }
     return fields.get(fieldIndex++);
   }
@@ -148,10 +140,8 @@ public abstract class PgSQLOutput implements SQLOutput, AutoCloseable {
     }
     closed = true;
     if (fieldIndex != fields.size()) {
-      throw new PSQLException(
-          GT.tr("Composite type {0} expects {1} attribute(s), but {2} were written",
-              compositeType.getFullName(), fields.size(), fieldIndex),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.compositeAttributeCountWrittenMismatch(
+          compositeType.getFullName(), fields.size(), fieldIndex);
     }
     finish();
   }
@@ -310,8 +300,7 @@ public abstract class PgSQLOutput implements SQLOutput, AutoCloseable {
         sb.append(buffer, 0, read);
       }
     } catch (IOException e) {
-      throw new PSQLException(GT.tr("An I/O error occurred while reading the stream."),
-          PSQLState.IO_ERROR, e);
+      throw Exceptions.ioErrorReadingStream(e);
     }
     return sb.toString();
   }
@@ -329,8 +318,7 @@ public abstract class PgSQLOutput implements SQLOutput, AutoCloseable {
         baos.write(buffer, 0, read);
       }
     } catch (IOException e) {
-      throw new PSQLException(GT.tr("An I/O error occurred while reading the stream."),
-          PSQLState.IO_ERROR, e);
+      throw Exceptions.ioErrorReadingStream(e);
     }
     return baos.toByteArray();
   }
@@ -347,17 +335,17 @@ public abstract class PgSQLOutput implements SQLOutput, AutoCloseable {
 
   @Override
   public void writeRef(@Nullable Ref x) throws SQLException {
-    throw new PSQLException(GT.tr("writeRef() not implemented"), PSQLState.NOT_IMPLEMENTED);
+    throw Exceptions.notImplemented("writeRef()");
   }
 
   @Override
   public void writeBlob(@Nullable Blob x) throws SQLException {
-    throw new PSQLException(GT.tr("writeBlob() not implemented"), PSQLState.NOT_IMPLEMENTED);
+    throw Exceptions.notImplemented("writeBlob()");
   }
 
   @Override
   public void writeClob(@Nullable Clob x) throws SQLException {
-    throw new PSQLException(GT.tr("writeClob() not implemented"), PSQLState.NOT_IMPLEMENTED);
+    throw Exceptions.notImplemented("writeClob()");
   }
 
   @Override
@@ -398,12 +386,12 @@ public abstract class PgSQLOutput implements SQLOutput, AutoCloseable {
 
   @Override
   public void writeNClob(@Nullable NClob x) throws SQLException {
-    throw new PSQLException(GT.tr("writeNClob() not implemented"), PSQLState.NOT_IMPLEMENTED);
+    throw Exceptions.notImplemented("writeNClob()");
   }
 
   @Override
   public void writeRowId(@Nullable RowId x) throws SQLException {
-    throw new PSQLException(GT.tr("writeRowId() not implemented"), PSQLState.NOT_IMPLEMENTED);
+    throw Exceptions.notImplemented("writeRowId()");
   }
 
   @Override

@@ -6,16 +6,12 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BackpatchingBinarySink;
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
 import org.postgresql.util.PGInterval;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -50,9 +46,7 @@ public final class IntervalCodec implements StreamingBinaryCodec, TextCodec {
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (length != 16) {
-      throw new PSQLException(
-          GT.tr("Invalid interval binary data length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBinaryLength("interval", length);
     }
 
     // Binary format: 8 bytes microseconds, 4 bytes days, 4 bytes months
@@ -115,9 +109,7 @@ public final class IntervalCodec implements StreamingBinaryCodec, TextCodec {
     if (value instanceof String) {
       return new PGInterval((String) value);
     }
-    throw new PSQLException(
-        GT.tr("Cannot encode {0} as interval", value.getClass().getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Exceptions.cannotEncode(value, "interval");
   }
 
   @Override
@@ -163,7 +155,7 @@ public final class IntervalCodec implements StreamingBinaryCodec, TextCodec {
     if (targetClass == String.class) {
       return (T) (interval != null ? interval.getValue() : null);
     }
-    throw Codec.cannotDecode("interval", targetClass.getName());
+    throw Exceptions.cannotDecode("interval", targetClass.getName());
   }
 
   @Override
@@ -180,6 +172,6 @@ public final class IntervalCodec implements StreamingBinaryCodec, TextCodec {
     if (targetClass == PGInterval.class || targetClass == Object.class) {
       return (T) interval;
     }
-    throw Codec.cannotDecode("interval", targetClass.getName());
+    throw Exceptions.cannotDecode("interval", targetClass.getName());
   }
 }

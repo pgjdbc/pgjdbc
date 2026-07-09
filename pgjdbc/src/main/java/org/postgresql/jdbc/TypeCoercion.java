@@ -5,12 +5,6 @@
 
 package org.postgresql.jdbc;
 
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -59,9 +53,9 @@ final class TypeCoercion {
         return Integer.parseInt(in.toString());
       }
     } catch (final Exception e) {
-      throw cannotCast(in, "int", e);
+      throw Exceptions.cannotCast(in, "int", e);
     }
-    throw cannotCast(in, "int");
+    throw Exceptions.cannotCast(in, "int");
   }
 
   /**
@@ -94,9 +88,9 @@ final class TypeCoercion {
         return Short.parseShort(in.toString());
       }
     } catch (final Exception e) {
-      throw cannotCast(in, "short", e);
+      throw Exceptions.cannotCast(in, "short", e);
     }
-    throw cannotCast(in, "short");
+    throw Exceptions.cannotCast(in, "short");
   }
 
   /**
@@ -129,9 +123,9 @@ final class TypeCoercion {
         return Long.parseLong(in.toString());
       }
     } catch (final Exception e) {
-      throw cannotCast(in, "long", e);
+      throw Exceptions.cannotCast(in, "long", e);
     }
-    throw cannotCast(in, "long");
+    throw Exceptions.cannotCast(in, "long");
   }
 
   /**
@@ -164,9 +158,9 @@ final class TypeCoercion {
         return Float.parseFloat(in.toString());
       }
     } catch (final Exception e) {
-      throw cannotCast(in, "float", e);
+      throw Exceptions.cannotCast(in, "float", e);
     }
-    throw cannotCast(in, "float");
+    throw Exceptions.cannotCast(in, "float");
   }
 
   /**
@@ -199,9 +193,9 @@ final class TypeCoercion {
         return Double.parseDouble(in.toString());
       }
     } catch (final Exception e) {
-      throw cannotCast(in, "double", e);
+      throw Exceptions.cannotCast(in, "double", e);
     }
-    throw cannotCast(in, "double");
+    throw Exceptions.cannotCast(in, "double");
   }
 
   /**
@@ -244,9 +238,9 @@ final class TypeCoercion {
         return rc;
       }
     } catch (final Exception e) {
-      throw cannotCast(in, "BigDecimal", e);
+      throw Exceptions.cannotCast(in, "BigDecimal", e);
     }
-    throw cannotCast(in, "BigDecimal");
+    throw Exceptions.cannotCast(in, "BigDecimal");
   }
 
   /**
@@ -266,7 +260,7 @@ final class TypeCoercion {
       }
       return in.toString();
     } catch (final Exception e) {
-      throw cannotCast(in, "String", e);
+      throw Exceptions.cannotCast(in, "String", e);
     }
   }
 
@@ -285,17 +279,5 @@ final class TypeCoercion {
 
   private static String asString(final Clob in) throws SQLException {
     return in.getSubString(1, (int) in.length());
-  }
-
-  private static PSQLException cannotCast(final Object in, final String toType) {
-    return cannotCast(in, toType, null);
-  }
-
-  private static PSQLException cannotCast(final Object in, final String toType,
-      final @Nullable Exception cause) {
-    return new PSQLException(
-        GT.tr("Cannot convert an instance of {0} to type {1}",
-            in.getClass().getName(), toType),
-        PSQLState.INVALID_PARAMETER_TYPE, cause);
   }
 }

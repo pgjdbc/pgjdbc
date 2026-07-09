@@ -8,9 +8,6 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -123,10 +120,7 @@ public final class MultiDimArrayBinary {
       throws SQLException, IOException {
     int dimensions = MultiDimArraySupport.computeDimensions(javaArray, leafElementClassOf(leaf));
     if (dimensions == 0) {
-      throw new PSQLException(
-          GT.tr("MultiDimArrayBinary.encode requires a Java array, got {0}",
-              javaArray.getClass().getName()),
-          PSQLState.INVALID_PARAMETER_TYPE);
+      throw Exceptions.requiresJavaArray("MultiDimArrayBinary.encode", javaArray);
     }
     int[] dimLengths = MultiDimArraySupport.computeDimensionLengths(javaArray, dimensions);
     if (MultiDimArraySupport.isEmpty(dimLengths)) {
@@ -219,24 +213,17 @@ public final class MultiDimArrayBinary {
     // NegativeArraySizeException on the array allocations below, and an oversized one would drive an
     // OutOfMemoryError. The server never nests deeper than MAXDIM, so bound it before allocating.
     if (dimensions < 0 || dimensions > MAX_DIMENSIONS) {
-      throw new PSQLException(
-          GT.tr("Invalid binary array data: dimension count {0} out of range", dimensions),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidArrayDimensionCount(dimensions);
     }
     if (hasNulls && leafComponentType.isPrimitive()) {
-      throw new PSQLException(
-          GT.tr("Cannot decode array containing NULL into a primitive {0}[] leaf",
-              leafComponentType.getName()),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.cannotDecodeArrayNullIntoPrimitiveLeaf(leafComponentType.getName());
     }
     int[] dimLengths = new int[dimensions];
     for (int d = 0; d < dimensions; d++) {
       int dimLength = readInt4(data, cursor, dataEnd);
       readInt4(data, cursor, dataEnd); // lower bound
       if (dimLength < 0) {
-        throw new PSQLException(
-            GT.tr("Invalid binary array data: negative dimension length {0}", dimLength),
-            PSQLState.DATA_ERROR);
+        throw Exceptions.invalidArrayDimensionLength(dimLength);
       }
       dimLengths[d] = dimLength;
     }
@@ -255,9 +242,7 @@ public final class MultiDimArrayBinary {
     for (int d = 0; d < dimensions; d++) {
       partialProduct *= dimLengths[d];
       if (partialProduct > maxElements) {
-        throw new PSQLException(
-            GT.tr("Invalid binary array data: element count {0} exceeds remaining data", partialProduct),
-            PSQLState.DATA_ERROR);
+        throw Exceptions.invalidArrayElementCountExceedsData(partialProduct);
       }
     }
     Object result = Array.newInstance(leafComponentType, dimLengths);
@@ -268,18 +253,14 @@ public final class MultiDimArrayBinary {
       // bytes than the body carries (a truncated element length or body). The per-element reads live in
       // the leaf codecs and index straight into data; a short body would AIOOBE out of them. Convert
       // that leak into a clean refusal at the container boundary — corrupt wire, never sent by a server.
-      throw new PSQLException(
-          GT.tr("Invalid binary array data: truncated element body"),
-          PSQLState.DATA_ERROR, e);
+      throw Exceptions.invalidArrayTruncatedElementBody(e);
     }
     if (cursor[0] > dataEnd) {
       // data is a slice of a possibly larger shared buffer, so a leaf reader that over-consumes past
       // this value's declared length would silently read bytes belonging to whatever follows instead
       // of tripping an AIOOBE — reject it explicitly instead of returning a container decoded from
       // borrowed bytes.
-      throw new PSQLException(
-          GT.tr("Invalid binary array data: element body extends past the declared length"),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidArrayElementBodyOverrun();
     }
     return result;
   }
@@ -287,10 +268,7 @@ public final class MultiDimArrayBinary {
   public static Object decode(byte[] data, int offset, int length, Class<?> leafComponentType,
       CodecContext ctx, ArrayLeafCodec leaf) throws SQLException {
     if (!leaf.supportsTargetComponent(leafComponentType)) {
-      throw new PSQLException(
-          GT.tr("Array leaf codec for oid {0} does not support {1}",
-              leaf.getElementOid(), leafComponentType.getName()),
-          PSQLState.DATA_TYPE_MISMATCH);
+      throw Exceptions.arrayLeafCodecUnsupported(leaf.getElementOid(), leafComponentType.getName());
     }
     return decode(data, offset, length, leafComponentType, leaf, ctx);
   }
@@ -326,9 +304,7 @@ public final class MultiDimArrayBinary {
       // A truncated header (fewer than 4 bytes left for this int4 within the value's slice) would
       // either AIOOBE out of ByteConverter.int4 or, if the backing buffer extends past dataEnd, read
       // past this value's declared bytes; refuse the corrupt wire with a checked failure instead.
-      throw new PSQLException(
-          GT.tr("Invalid binary array data: truncated header"),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidArrayTruncatedHeader();
     }
     int v = ByteConverter.int4(data, pos);
     cursor[0] = pos + 4;

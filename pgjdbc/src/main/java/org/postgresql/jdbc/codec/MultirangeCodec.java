@@ -13,11 +13,8 @@ import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.CodecDepth;
 import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
 import org.postgresql.util.PGRange;
 import org.postgresql.util.PGmultirange;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -92,43 +89,35 @@ public final class MultirangeCodec implements StreamingBinaryCodec, TextCodec {
     try {
       int rangeOid = resolveRangeOid(type, ctx);
       if (rangeOid == 0) {
-        throw new PSQLException(GT.tr(
-            "Cannot decode multirange {0} in binary: its range type (pg_range.rngtypid) "
-                + "could not be resolved.", type.getFullName()), PSQLState.DATA_ERROR);
+        throw Exceptions.multirangeRangeTypeUnresolvedForDecode(type.getFullName());
       }
       TypeDescriptor rangeType = ctx.resolveType(rangeOid);
       BinaryCodec rangeCodec = ctx.resolveBinaryCodec(rangeOid);
       if (rangeCodec == null) {
-        throw new PSQLException(GT.tr(
-            "Cannot decode multirange {0} in binary: no binary codec for range OID {1}.",
-            type.getFullName(), rangeOid), PSQLState.DATA_ERROR);
+        throw Exceptions.multirangeRangeCodecMissingForDecode(type.getFullName(), rangeOid);
       }
 
       // Bounds are tracked against the caller's slice (srcOffset..srcOffset + srcLength); every
       // read stays inside src without ever copying it into a fresh array.
       int end = srcOffset + srcLength;
       if (srcLength < 4) {
-        throw new PSQLException(GT.tr("Invalid multirange binary data: missing range count"),
-            PSQLState.DATA_ERROR);
+        throw Exceptions.invalidMultirangeMissingRangeCount();
       }
       int count = ByteConverter.int4(src, srcOffset);
       if (count < 0) {
-        throw new PSQLException(GT.tr("Invalid multirange binary data: negative range count {0}",
-            count), PSQLState.DATA_ERROR);
+        throw Exceptions.invalidMultirangeNegativeRangeCount(count);
       }
 
       int offset = srcOffset + 4;
       List<PGRange<Object>> ranges = new ArrayList<>(Math.min(count, 1024));
       for (int i = 0; i < count; i++) {
         if (offset + 4 > end) {
-          throw new PSQLException(GT.tr("Invalid multirange binary data: missing range length"),
-              PSQLState.DATA_ERROR);
+          throw Exceptions.invalidMultirangeMissingRangeLength();
         }
         int len = ByteConverter.int4(src, offset);
         offset += 4;
         if (len < 0 || offset + len > end) {
-          throw new PSQLException(GT.tr("Invalid multirange binary data: range truncated"),
-              PSQLState.DATA_ERROR);
+          throw Exceptions.invalidMultirangeRangeTruncated();
         }
         // Slice-decode each range in place: range_send is exactly what RangeCodec reads.
         PGRange<Object> range = asRange(rangeCodec.decodeBinary(src, offset, len, rangeType, ctx));
@@ -159,8 +148,7 @@ public final class MultirangeCodec implements StreamingBinaryCodec, TextCodec {
   public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx,
       BackpatchingBinarySink out) throws SQLException, IOException {
     if (!(value instanceof PGmultirange)) {
-      throw new PSQLException(GT.tr("Cannot encode {0} as multirange type", value.getClass().getName()),
-          PSQLState.DATA_TYPE_MISMATCH);
+      throw Exceptions.cannotEncodeMultirange(value);
     }
 
     CodecDepth.enter();
@@ -169,16 +157,12 @@ public final class MultirangeCodec implements StreamingBinaryCodec, TextCodec {
 
       int rangeOid = resolveRangeOid(type, ctx);
       if (rangeOid == 0) {
-        throw new PSQLException(GT.tr(
-            "Cannot encode multirange {0} in binary: its range type (pg_range.rngtypid) "
-                + "could not be resolved.", type.getFullName()), PSQLState.DATA_ERROR);
+        throw Exceptions.multirangeRangeTypeUnresolvedForEncode(type.getFullName());
       }
       TypeDescriptor rangeType = ctx.resolveType(rangeOid);
       BinaryCodec rangeCodec = ctx.resolveBinaryCodec(rangeOid);
       if (rangeCodec == null) {
-        throw new PSQLException(GT.tr(
-            "Cannot encode multirange {0} in binary: no binary codec for range OID {1}.",
-            type.getFullName(), rangeOid), PSQLState.DATA_ERROR);
+        throw Exceptions.multirangeRangeCodecMissingForEncode(type.getFullName(), rangeOid);
       }
 
       List<? extends PGRange<?>> ranges = multirange.getRanges();
@@ -194,7 +178,7 @@ public final class MultirangeCodec implements StreamingBinaryCodec, TextCodec {
   @Override
   public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert multirange to BigDecimal"), PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotConvertMultirangeToBigDecimal();
   }
 
   @Override
@@ -207,9 +191,7 @@ public final class MultirangeCodec implements StreamingBinaryCodec, TextCodec {
     if (targetClass == String.class) {
       return (T) decodeAsString(data, offset, length, type, ctx);
     }
-    throw new PSQLException(
-        GT.tr("Cannot decode multirange to {0}", targetClass.getName()),
-        PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotDecodeMultirangeTo(targetClass.getName());
   }
 
   // ==================== Text Codec Methods ====================
@@ -242,9 +224,7 @@ public final class MultirangeCodec implements StreamingBinaryCodec, TextCodec {
       CodecContext ctx) throws SQLException {
     int rangeOid = resolveRangeOid(type, ctx);
     if (rangeOid == 0) {
-      throw new PSQLException(GT.tr(
-          "Cannot decode multirange {0}: its range type (pg_range.rngtypid) could not be resolved.",
-          type.getFullName()), PSQLState.DATA_ERROR);
+      throw Exceptions.multirangeRangeTypeUnresolvedForDecodeText(type.getFullName());
     }
     TypeDescriptor rangeType = ctx.resolveType(rangeOid);
 
@@ -275,8 +255,7 @@ public final class MultirangeCodec implements StreamingBinaryCodec, TextCodec {
     if (value instanceof PGmultirange) {
       return value.toString();
     }
-    throw new PSQLException(GT.tr("Cannot encode {0} as multirange type", value.getClass().getName()),
-        PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotEncodeMultirange(value);
   }
 
   @Override
@@ -289,14 +268,12 @@ public final class MultirangeCodec implements StreamingBinaryCodec, TextCodec {
     if (targetClass == String.class) {
       return (T) data;
     }
-    throw new PSQLException(
-        GT.tr("Cannot decode multirange to {0}", targetClass.getName()),
-        PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotDecodeMultirangeTo(targetClass.getName());
   }
 
   @Override
   public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert multirange to BigDecimal"), PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotConvertMultirangeToBigDecimal();
   }
 
   @Override
@@ -319,9 +296,6 @@ public final class MultirangeCodec implements StreamingBinaryCodec, TextCodec {
     if (decoded instanceof PGRange) {
       return (PGRange<Object>) decoded;
     }
-    throw new PSQLException(
-        GT.tr("Multirange element did not decode to a range: {0}",
-            decoded == null ? "null" : decoded.getClass().getName()),
-        PSQLState.DATA_ERROR);
+    throw Exceptions.multirangeElementNotARange(decoded == null ? "null" : decoded.getClass().getName());
   }
 }

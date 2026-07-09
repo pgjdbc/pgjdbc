@@ -6,7 +6,6 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
@@ -96,7 +95,7 @@ public final class ByteaCodec implements BinaryCodec, TextCodec, ArrayElementCod
       // Return InputStream wrapping the raw bytes of this value's slice.
       return (T) new ByteArrayInputStream(data, offset, length);
     }
-    throw Codec.cannotDecode("bytea", targetClass.getName());
+    throw Exceptions.cannotDecode("bytea", targetClass.getName());
   }
 
   @Override
@@ -114,7 +113,7 @@ public final class ByteaCodec implements BinaryCodec, TextCodec, ArrayElementCod
       byte[] bytes = PGbytea.toBytes(data.getBytes(ctx.getCharset()));
       return (T) new ByteArrayInputStream(bytes);
     }
-    throw Codec.cannotDecode("bytea", targetClass.getName());
+    throw Exceptions.cannotDecode("bytea", targetClass.getName());
   }
 
   static byte[] toBytes(Object value) throws SQLException {
@@ -126,6 +125,6 @@ public final class ByteaCodec implements BinaryCodec, TextCodec, ArrayElementCod
       // PostgreSQL, so the platform default charset is irrelevant here.
       return PGbytea.toBytes(((String) value).getBytes(java.nio.charset.StandardCharsets.US_ASCII));
     }
-    throw Codec.cannotEncode(value, "bytea");
+    throw Exceptions.cannotEncode(value, "bytea");
   }
 }

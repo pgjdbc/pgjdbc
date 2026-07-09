@@ -5,17 +5,13 @@
 
 package org.postgresql.jdbc.codec;
 
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveBinaryDecoder;
 import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.BooleanTypeUtil;
 import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -120,7 +116,7 @@ public final class BitCodec implements PrimitiveBinaryDecoder, PrimitiveTextDeco
     if (targetClass == PGobject.class || targetClass == Object.class) {
       return (T) toPGobject(type, data);
     }
-    throw Codec.cannotDecode(type.getTypeName().getName(), targetClass.getName());
+    throw Exceptions.cannotDecode(type.getTypeName().getName(), targetClass.getName());
   }
 
   @Override
@@ -137,7 +133,7 @@ public final class BitCodec implements PrimitiveBinaryDecoder, PrimitiveTextDeco
     if (targetClass == PGobject.class || targetClass == Object.class) {
       return (T) toPGobject(type, bits);
     }
-    throw Codec.cannotDecode(type.getTypeName().getName(), targetClass.getName());
+    throw Exceptions.cannotDecode(type.getTypeName().getName(), targetClass.getName());
   }
 
   // ----------------------------- encode -----------------------------
@@ -163,15 +159,14 @@ public final class BitCodec implements PrimitiveBinaryDecoder, PrimitiveTextDeco
     if (value instanceof String) {
       return (String) value;
     }
-    throw Codec.cannotEncode(value, "bit");
+    throw Exceptions.cannotEncode(value, "bit");
   }
 
   // ------------------------ binary <-> bit string ------------------------
 
   private static String binaryToBitString(byte[] data, int offset, int length) throws SQLException {
     if (length < 4) {
-      throw new PSQLException(
-          GT.tr("Invalid bit binary data length: {0}", length), PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBinaryLength("bit", length);
     }
     int nbits = ByteConverter.int4(data, offset);
     // The wire form is a 4-byte bit count followed by ceil(nbits/8) packed bytes. Validate the count
@@ -182,10 +177,7 @@ public final class BitCodec implements PrimitiveBinaryDecoder, PrimitiveTextDeco
     // avoid the (nbits + 7) overflow near Integer.MAX_VALUE.
     long expectedBytes = 4L + (nbits + 7L) / 8L;
     if (nbits < 0 || expectedBytes != length) {
-      throw new PSQLException(
-          GT.tr("Invalid bit binary data: bit count {0} does not match data length {1}",
-              nbits, length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBitCount(nbits, length);
     }
     StringBuilder sb = new StringBuilder(nbits);
     for (int i = 0; i < nbits; i++) {

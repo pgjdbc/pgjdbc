@@ -15,9 +15,6 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Oid;
 import org.postgresql.core.TypeInfo;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -286,7 +283,7 @@ public final class PgCodecContext implements CodecContext {
     CodecRegistry registries = codecs;
     JavaTypeRegistry javaTypeReg = javaTypes;
     if (conn == null || registries == null || javaTypeReg == null) {
-      throw new SQLException("withTypeMap is not supported on a connectionless PgCodecContext");
+      throw Exceptions.withTypeMapNotSupportedConnectionless();
     }
     PgCodecContext copy = new PgCodecContext(conn, registries, javaTypeReg, typeMap,
         prefersJavaTimeForDate, prefersJavaTimeForTime, prefersJavaTimeForTimetz,
@@ -448,11 +445,7 @@ public final class PgCodecContext implements CodecContext {
   public BaseConnection requireConnection(TypeDescriptor type) throws SQLException {
     BaseConnection conn = connection;
     if (conn == null) {
-      throw new PSQLException(
-          GT.tr("Cannot decode {0} without a database connection. Offline (connectionless) encoding "
-              + "and decoding currently supports scalar and temporal types; container types such as "
-              + "arrays and composites still require an active connection.", type.getFullName()),
-          PSQLState.NOT_IMPLEMENTED);
+      throw Exceptions.cannotDecodeOffline(type.getFullName());
     }
     return conn;
   }
@@ -534,11 +527,7 @@ public final class PgCodecContext implements CodecContext {
     if (builtin != null) {
       return builtin;
     }
-    throw new PSQLException(
-        GT.tr("This offline codec context has no type descriptor for OID {0}. Register it through "
-            + "the offline builder, or resolve the type on a live connection.",
-            String.valueOf(oid)),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Exceptions.noOfflineTypeDescriptor(oid);
   }
 
   /**
@@ -554,10 +543,7 @@ public final class PgCodecContext implements CodecContext {
     }
     CodecRegistry registry = codecs;
     if (registry == null) {
-      throw new PSQLException(
-          GT.tr("This codec context has no codec registry, so it cannot resolve a codec for OID "
-              + "{0}.", String.valueOf(oid)),
-          PSQLState.INVALID_PARAMETER_TYPE);
+      throw Exceptions.noCodecRegistry(oid);
     }
     // Offline: pass the caller-supplied descriptor, falling back to the built-in catalog, so the
     // registry can dispatch a container codec by typtype/typcategory for a built-in array/composite.

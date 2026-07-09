@@ -6,7 +6,6 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BackpatchingBinarySink;
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveBinaryDecoder;
 import org.postgresql.api.codec.PrimitiveBinaryEncoder;
@@ -16,10 +15,7 @@ import org.postgresql.api.codec.TextSink;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Encoding;
 import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
 import org.postgresql.util.NumberParser;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -64,9 +60,7 @@ public final class Int8Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (length != 8) {
-      throw new PSQLException(
-          GT.tr("Invalid int8 binary data length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBinaryLength("int8", length);
     }
     return ByteConverter.int8(data, offset);
   }
@@ -140,33 +134,19 @@ public final class Int8Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   @Override
   public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    long value = decodeAsLong(data, offset, length, type, ctx);
-    if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
-      throw new PSQLException(
-          GT.tr("Value {0} is out of range for int", value),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-    }
-    return (int) value;
+    return Exceptions.checkIntRange(decodeAsLong(data, offset, length, type, ctx), "int");
   }
 
   @Override
   public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    long value = decodeAsLong(data, type, ctx);
-    if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
-      throw new PSQLException(
-          GT.tr("Value {0} is out of range for int", value),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-    }
-    return (int) value;
+    return Exceptions.checkIntRange(decodeAsLong(data, type, ctx), "int");
   }
 
   @Override
   public long decodeAsLong(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     if (length != 8) {
-      throw new PSQLException(
-          GT.tr("Invalid int8 binary data length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBinaryLength("int8", length);
     }
     return ByteConverter.int8(data, offset);
   }
@@ -176,9 +156,7 @@ public final class Int8Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
     try {
       return Long.parseLong(data.trim());
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to long: {0}", data),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.cannotConvertValue("long", data, e);
     }
   }
 
@@ -208,13 +186,7 @@ public final class Int8Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
 
   @Override
   public int decodeTextBytesAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    long value = decodeTextBytesAsLong(data, type, ctx);
-    if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
-      throw new PSQLException(
-          GT.tr("Value {0} is out of range for int", value),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-    }
-    return (int) value;
+    return Exceptions.checkIntRange(decodeTextBytesAsLong(data, type, ctx), "int");
   }
 
   @Override
@@ -269,14 +241,12 @@ public final class Int8Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
       try {
         return Long.parseLong(((String) value).trim());
       } catch (NumberFormatException e) {
-        throw new PSQLException(
-            GT.tr("Cannot convert value to long: {0}", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+        throw Exceptions.cannotConvertValue("long", value, e);
       }
     }
     if (value instanceof Boolean) {
       return (Boolean) value ? 1L : 0L;
     }
-    throw Codec.cannotEncode(value, "int8");
+    throw Exceptions.cannotEncode(value, "int8");
   }
 }

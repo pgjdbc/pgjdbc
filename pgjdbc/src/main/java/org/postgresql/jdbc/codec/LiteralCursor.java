@@ -5,10 +5,6 @@
 
 package org.postgresql.jdbc.codec;
 
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
-
 import java.sql.SQLException;
 
 /**
@@ -401,10 +397,7 @@ final class LiteralCursor {
     return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == 0x0B;
   }
 
-  private PSQLException malformed(char expected) {
-    return new PSQLException(
-        GT.tr("Malformed array/composite literal: expected ''{0}'' at offset {1}",
-            expected, pos),
-        PSQLState.DATA_ERROR);
+  private SQLException malformed(char expected) {
+    return Exceptions.malformedLiteral(expected, pos);
   }
 }

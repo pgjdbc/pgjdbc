@@ -10,10 +10,7 @@ import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.PgCodecContext;
-import org.postgresql.util.GT;
 import org.postgresql.util.HStoreConverter;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -74,8 +71,7 @@ public final class HstoreCodec implements BinaryCodec, TextCodec {
     if (value instanceof Map) {
       return HStoreConverter.toBytes((Map<?, ?>) value, impl(ctx).getEncoding());
     }
-    throw new PSQLException(GT.tr("Cannot encode {0} as hstore", value.getClass().getName()),
-        PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotEncodeAs(value, "hstore");
   }
 
   @Override
@@ -91,8 +87,7 @@ public final class HstoreCodec implements BinaryCodec, TextCodec {
     if (value instanceof Map) {
       return HStoreConverter.toString((Map<?, ?>) value);
     }
-    throw new PSQLException(GT.tr("Cannot encode {0} as hstore", value.getClass().getName()),
-        PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotEncodeAs(value, "hstore");
   }
 
   @Override
@@ -102,9 +97,7 @@ public final class HstoreCodec implements BinaryCodec, TextCodec {
     if (targetClass == Map.class || targetClass == Object.class) {
       return (T) decodeBinary(data, offset, length, type, ctx);
     }
-    throw new PSQLException(
-        GT.tr("Cannot decode hstore to {0}", targetClass.getName()),
-        PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotDecode("hstore", targetClass.getName());
   }
 
   @Override
@@ -114,20 +107,18 @@ public final class HstoreCodec implements BinaryCodec, TextCodec {
     if (targetClass == Map.class || targetClass == Object.class) {
       return (T) decodeText(data, type, ctx);
     }
-    throw new PSQLException(
-        GT.tr("Cannot decode hstore to {0}", targetClass.getName()),
-        PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotDecode("hstore", targetClass.getName());
   }
 
   @Override
   public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert hstore to BigDecimal"), PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotDecode("hstore", "BigDecimal");
   }
 
   @Override
   public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert hstore to BigDecimal"), PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotDecode("hstore", "BigDecimal");
   }
 
   @Override

@@ -157,7 +157,7 @@ public interface TextCodec extends Codec {
       }
       return BigDecimal.valueOf(doubleValue);
     }
-    throw Codec.cannotDecode(value, "BigDecimal");
+    throw Codecs.cannotDecode(value, "BigDecimal");
   }
 
   /**
@@ -184,6 +184,6 @@ public interface TextCodec extends Codec {
     if (targetClass.isInstance(value)) {
       return targetClass.cast(value);
     }
-    throw Codec.cannotDecode(getTypeName(), targetClass.getName());
+    throw Codecs.cannotDecode(getTypeName(), targetClass.getName());
   }
 }

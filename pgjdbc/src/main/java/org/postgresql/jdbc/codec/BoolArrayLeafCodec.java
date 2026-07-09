@@ -10,9 +10,6 @@ import org.postgresql.api.codec.CodecContext;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.BooleanTypeUtil;
 import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -89,9 +86,7 @@ final class BoolArrayLeafCodec implements ArrayLeafCodec {
         int len = ByteConverter.int4(data, pos);
         pos += 4;
         if (len == -1) {
-          throw new PSQLException(
-              GT.tr("Cannot decode NULL into primitive boolean[] leaf"),
-              PSQLState.DATA_ERROR);
+          throw Exceptions.cannotDecodeNullIntoPrimitiveLeaf("boolean[]");
         }
         validateElementLength(len);
         arr[i] = data[pos] == 1;
@@ -158,9 +153,7 @@ final class BoolArrayLeafCodec implements ArrayLeafCodec {
         }
         cur.readValue(delimiter, '}');
         if (!cur.tokenWasQuoted() && cur.tokenEquals("NULL")) {
-          throw new PSQLException(
-              GT.tr("Cannot decode NULL into primitive boolean[] leaf"),
-              PSQLState.DATA_ERROR);
+          throw Exceptions.cannotDecodeNullIntoPrimitiveLeaf("boolean[]");
         }
         arr[i] = parseBoolean(cur);
       }
@@ -191,9 +184,7 @@ final class BoolArrayLeafCodec implements ArrayLeafCodec {
 
   private static void validateElementLength(int length) throws SQLException {
     if (length != 1) {
-      throw new PSQLException(
-          GT.tr("Invalid bool array element length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidArrayElementLength("bool", length);
     }
   }
 }

@@ -7,7 +7,7 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
-import org.postgresql.api.codec.Codec;
+import org.postgresql.api.codec.Codecs;
 import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
@@ -150,7 +150,7 @@ public final class PgSQLInputText extends PgSQLInput {
     }
     // Only byte[]-valued types (bytea) yield bytes. Refuse the rest rather than coercing to the
     // value's string bytes, matching the binary adapter and PostgreSQL, which has no cast to bytea.
-    throw Codec.cannotDecode(value, "byte[]");
+    throw Codecs.cannotDecode(value, "byte[]");
   }
 
   @Override

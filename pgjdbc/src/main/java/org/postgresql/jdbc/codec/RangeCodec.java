@@ -16,10 +16,7 @@ import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.CodecDepth;
 import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
 import org.postgresql.util.PGRange;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -103,16 +100,12 @@ public final class RangeCodec implements StreamingBinaryCodec, TextCodec {
       // lives in pg_range.rngsubtype (loaded lazily via TypeInfo).
       int subtypeOid = resolveSubtypeOid(type, ctx);
       if (subtypeOid == 0) {
-        throw new PSQLException(GT.tr(
-            "Cannot decode range {0} in binary: its subtype (pg_range.rngsubtype) "
-                + "could not be resolved.", type.getFullName()), PSQLState.DATA_ERROR);
+        throw Exceptions.rangeSubtypeUnresolvedForDecode(type.getFullName());
       }
       TypeDescriptor subtypeType = ctx.resolveType(subtypeOid);
       BinaryCodec subtypeCodec = ctx.resolveBinaryCodec(subtypeOid);
       if (subtypeCodec == null) {
-        throw new PSQLException(GT.tr(
-            "Cannot decode range {0} in binary: no binary codec for subtype OID {1}.",
-            type.getFullName(), subtypeOid), PSQLState.DATA_ERROR);
+        throw Exceptions.rangeSubtypeCodecMissingForDecode(type.getFullName(), subtypeOid);
       }
 
       int offset = 1;
@@ -122,15 +115,13 @@ public final class RangeCodec implements StreamingBinaryCodec, TextCodec {
       // Read lower bound if not infinite
       if (!lowerInfinite) {
         if (offset + 4 > data.length) {
-          throw new PSQLException(GT.tr("Invalid range binary data: missing lower bound length"),
-              PSQLState.DATA_ERROR);
+          throw Exceptions.invalidRangeMissingLowerBoundLength();
         }
         int lowerLen = ByteConverter.int4(data, offset);
         offset += 4;
         if (lowerLen >= 0) {
           if (offset + lowerLen > data.length) {
-            throw new PSQLException(GT.tr("Invalid range binary data: lower bound truncated"),
-                PSQLState.DATA_ERROR);
+            throw Exceptions.invalidRangeLowerBoundTruncated();
           }
           lower = subtypeCodec.decodeBinary(data, offset, lowerLen, subtypeType, ctx);
           offset += lowerLen;
@@ -140,15 +131,13 @@ public final class RangeCodec implements StreamingBinaryCodec, TextCodec {
       // Read upper bound if not infinite
       if (!upperInfinite) {
         if (offset + 4 > data.length) {
-          throw new PSQLException(GT.tr("Invalid range binary data: missing upper bound length"),
-              PSQLState.DATA_ERROR);
+          throw Exceptions.invalidRangeMissingUpperBoundLength();
         }
         int upperLen = ByteConverter.int4(data, offset);
         offset += 4;
         if (upperLen >= 0) {
           if (offset + upperLen > data.length) {
-            throw new PSQLException(GT.tr("Invalid range binary data: upper bound truncated"),
-                PSQLState.DATA_ERROR);
+            throw Exceptions.invalidRangeUpperBoundTruncated();
           }
           upper = subtypeCodec.decodeBinary(data, offset, upperLen, subtypeType, ctx);
         }
@@ -169,7 +158,7 @@ public final class RangeCodec implements StreamingBinaryCodec, TextCodec {
       encodeBinary(value, type, ctx, out);
     } catch (IOException e) {
       // BackpatchByteArrayOutputStream never throws; keep the historical error mapping regardless.
-      throw new PSQLException(GT.tr("Error encoding range"), PSQLState.DATA_ERROR, e);
+      throw Exceptions.errorEncodingRange(e);
     }
     return out.toByteArray();
   }
@@ -178,8 +167,7 @@ public final class RangeCodec implements StreamingBinaryCodec, TextCodec {
   public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx,
       BackpatchingBinarySink out) throws SQLException, IOException {
     if (!(value instanceof PGRange)) {
-      throw new PSQLException(GT.tr("Cannot encode {0} as range type", value.getClass().getName()),
-          PSQLState.DATA_TYPE_MISMATCH);
+      throw Exceptions.cannotEncodeRange(value);
     }
 
     CodecDepth.enter();
@@ -196,16 +184,12 @@ public final class RangeCodec implements StreamingBinaryCodec, TextCodec {
       // lives in pg_range.rngsubtype (loaded lazily via TypeInfo).
       int subtypeOid = resolveSubtypeOid(type, ctx);
       if (subtypeOid == 0) {
-        throw new PSQLException(GT.tr(
-            "Cannot encode range {0} in binary: its subtype (pg_range.rngsubtype) "
-                + "could not be resolved.", type.getFullName()), PSQLState.DATA_ERROR);
+        throw Exceptions.rangeSubtypeUnresolvedForEncode(type.getFullName());
       }
       TypeDescriptor subtypeType = ctx.resolveType(subtypeOid);
       BinaryCodec subtypeCodec = ctx.resolveBinaryCodec(subtypeOid);
       if (subtypeCodec == null) {
-        throw new PSQLException(GT.tr(
-            "Cannot encode range {0} in binary: no binary codec for subtype OID {1}.",
-            type.getFullName(), subtypeOid), PSQLState.DATA_ERROR);
+        throw Exceptions.rangeSubtypeCodecMissingForEncode(type.getFullName(), subtypeOid);
       }
 
       // Calculate flags
@@ -259,7 +243,7 @@ public final class RangeCodec implements StreamingBinaryCodec, TextCodec {
   @Override
   public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert range to BigDecimal"), PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotConvertRangeToBigDecimal();
   }
 
   @Override
@@ -272,9 +256,7 @@ public final class RangeCodec implements StreamingBinaryCodec, TextCodec {
     if (targetClass == String.class) {
       return (T) decodeAsString(data, offset, length, type, ctx);
     }
-    throw new PSQLException(
-        GT.tr("Cannot decode range to {0}", targetClass.getName()),
-        PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotDecodeRangeTo(targetClass.getName());
   }
 
   // ==================== Text Codec Methods ====================
@@ -337,9 +319,7 @@ public final class RangeCodec implements StreamingBinaryCodec, TextCodec {
       } else if (open == '(') {
         lowerInclusive = false;
       } else {
-        throw new PSQLException(
-            GT.tr("Invalid range format, expected '[' or '(': {0}", cur.literal()),
-            PSQLState.DATA_TYPE_MISMATCH);
+        throw Exceptions.invalidRangeBoundaryFormat("'[' or '('", cur.literal());
       }
       cur.expect(open);
 
@@ -359,9 +339,7 @@ public final class RangeCodec implements StreamingBinaryCodec, TextCodec {
       } else if (close == ')') {
         upperInclusive = false;
       } else {
-        throw new PSQLException(
-            GT.tr("Invalid range format, expected ']' or ')': {0}", cur.literal()),
-            PSQLState.DATA_TYPE_MISMATCH);
+        throw Exceptions.invalidRangeBoundaryFormat("']' or ')'", cur.literal());
       }
       cur.expect(close);
 
@@ -398,8 +376,7 @@ public final class RangeCodec implements StreamingBinaryCodec, TextCodec {
     if (value instanceof PGRange) {
       return value.toString();
     }
-    throw new PSQLException(GT.tr("Cannot encode {0} as range type", value.getClass().getName()),
-        PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotEncodeRange(value);
   }
 
   @Override
@@ -412,14 +389,12 @@ public final class RangeCodec implements StreamingBinaryCodec, TextCodec {
     if (targetClass == String.class) {
       return (T) data;
     }
-    throw new PSQLException(
-        GT.tr("Cannot decode range to {0}", targetClass.getName()),
-        PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotDecodeRangeTo(targetClass.getName());
   }
 
   @Override
   public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert range to BigDecimal"), PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotConvertRangeToBigDecimal();
   }
 
   @Override

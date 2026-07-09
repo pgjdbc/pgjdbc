@@ -6,7 +6,6 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BackpatchingBinarySink;
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.TextCodec;
@@ -83,7 +82,7 @@ public final class DateCodec implements StreamingBinaryCodec, TextCodec {
       // longer leaks an ArrayIndexOutOfBoundsException), so the binary path needs no extra wrapping.
       return TemporalCodecs.decodeDateText((String) value, ctx);
     }
-    throw Codec.cannotEncode(value, "date");
+    throw Exceptions.cannotEncode(value, "date");
   }
 
   @Override
@@ -114,7 +113,7 @@ public final class DateCodec implements StreamingBinaryCodec, TextCodec {
       // SQLException (BAD_DATETIME_FORMAT), so no extra wrapping is needed here.
       return TemporalCodecs.formatDate(TemporalCodecs.decodeDateText((String) value, ctx), ctx);
     }
-    throw Codec.cannotEncode(value, "date");
+    throw Exceptions.cannotEncode(value, "date");
   }
 
   @Override
@@ -142,7 +141,7 @@ public final class DateCodec implements StreamingBinaryCodec, TextCodec {
       LocalDate ld = TemporalCodecs.decodeLocalDateBin(data, offset, length, ctx);
       return ld == null ? null : targetClass.cast(TemporalCodecs.formatLocalDate(ld, ctx));
     }
-    throw Codec.cannotDecode("date", targetClass.getName());
+    throw Exceptions.cannotDecode("date", targetClass.getName());
   }
 
   @Override
@@ -168,7 +167,7 @@ public final class DateCodec implements StreamingBinaryCodec, TextCodec {
     if (targetClass == String.class) {
       return targetClass.cast(data);
     }
-    throw Codec.cannotDecode("date", targetClass.getName());
+    throw Exceptions.cannotDecode("date", targetClass.getName());
   }
 
   @Override

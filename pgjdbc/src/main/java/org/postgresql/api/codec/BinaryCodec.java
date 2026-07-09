@@ -183,7 +183,7 @@ public interface BinaryCodec extends Codec {
       }
       return BigDecimal.valueOf(((Number) value).doubleValue());
     }
-    throw Codec.cannotDecode(value, "BigDecimal");
+    throw Codecs.cannotDecode(value, "BigDecimal");
   }
 
   /**
@@ -209,7 +209,7 @@ public interface BinaryCodec extends Codec {
     if (value instanceof byte[]) {
       return (byte[]) value;
     }
-    throw Codec.cannotDecode(value, "byte[]");
+    throw Codecs.cannotDecode(value, "byte[]");
   }
 
   /**
@@ -243,7 +243,7 @@ public interface BinaryCodec extends Codec {
     if (targetClass.isInstance(value)) {
       return targetClass.cast(value);
     }
-    throw Codec.cannotDecode(getTypeName(), targetClass.getName());
+    throw Codecs.cannotDecode(getTypeName(), targetClass.getName());
   }
 
   static void writeElement(BackpatchingBinarySink out, Object element, BinaryCodec codec, TypeDescriptor type,

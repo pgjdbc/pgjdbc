@@ -6,7 +6,6 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BackpatchingBinarySink;
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveBinaryDecoder;
 import org.postgresql.api.codec.PrimitiveBinaryEncoder;
@@ -15,10 +14,7 @@ import org.postgresql.api.codec.PrimitiveTextEncoder;
 import org.postgresql.api.codec.TextSink;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
 import org.postgresql.util.NumberParser;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -67,9 +63,7 @@ public final class Int2Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (length != 2) {
-      throw new PSQLException(
-          GT.tr("Invalid int2 binary data length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBinaryLength("int2", length);
     }
     return (int) ByteConverter.int2(data, offset);
   }
@@ -147,9 +141,7 @@ public final class Int2Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     if (length != 2) {
-      throw new PSQLException(
-          GT.tr("Invalid int2 binary data length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBinaryLength("int2", length);
     }
     return ByteConverter.int2(data, offset);
   }
@@ -159,9 +151,7 @@ public final class Int2Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
     try {
       return Short.parseShort(data.trim());
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to short: {0}", data),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.cannotConvertValue("short", data, e);
     }
   }
 
@@ -232,18 +222,14 @@ public final class Int2Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
 
   static short toShort(int value) throws SQLException {
     if (value < Short.MIN_VALUE || value > Short.MAX_VALUE) {
-      throw new PSQLException(
-          GT.tr("Value {0} is out of range for int2", value),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      throw Exceptions.outOfRange(value, "int2");
     }
     return (short) value;
   }
 
   static short toShort(long value) throws SQLException {
     if (value < Short.MIN_VALUE || value > Short.MAX_VALUE) {
-      throw new PSQLException(
-          GT.tr("Value {0} is out of range for int2", value),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      throw Exceptions.outOfRange(value, "int2");
     }
     return (short) value;
   }
@@ -256,14 +242,12 @@ public final class Int2Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
       try {
         return Short.parseShort(((String) value).trim());
       } catch (NumberFormatException e) {
-        throw new PSQLException(
-            GT.tr("Cannot convert value to short: {0}", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+        throw Exceptions.cannotConvertValue("short", value, e);
       }
     }
     if (value instanceof Boolean) {
       return (short) ((Boolean) value ? 1 : 0);
     }
-    throw Codec.cannotEncode(value, "int2");
+    throw Exceptions.cannotEncode(value, "int2");
   }
 }

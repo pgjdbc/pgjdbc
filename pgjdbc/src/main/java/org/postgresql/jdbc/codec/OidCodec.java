@@ -6,17 +6,13 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BackpatchingBinarySink;
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveBinaryDecoder;
 import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
 import org.postgresql.util.NumberParser;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -64,9 +60,7 @@ public final class OidCodec implements StreamingBinaryCodec, PrimitiveBinaryDeco
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (length != 4) {
-      throw new PSQLException(
-          GT.tr("Invalid oid binary data length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBinaryLength("oid", length);
     }
     // Treat as unsigned 32-bit
     return ByteConverter.int4(data, offset) & 0xFFFFFFFFL;
@@ -114,9 +108,7 @@ public final class OidCodec implements StreamingBinaryCodec, PrimitiveBinaryDeco
   public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     if (length != 4) {
-      throw new PSQLException(
-          GT.tr("Invalid oid binary data length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBinaryLength("oid", length);
     }
     return ByteConverter.int4(data, offset);
   }
@@ -127,9 +119,7 @@ public final class OidCodec implements StreamingBinaryCodec, PrimitiveBinaryDeco
       long v = Long.parseLong(data.trim());
       return (int) v;
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to oid: {0}", data),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.cannotConvertValue("oid", data, e);
     }
   }
 
@@ -137,9 +127,7 @@ public final class OidCodec implements StreamingBinaryCodec, PrimitiveBinaryDeco
   public long decodeAsLong(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     if (length != 4) {
-      throw new PSQLException(
-          GT.tr("Invalid oid binary data length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBinaryLength("oid", length);
     }
     // Treat as unsigned 32-bit
     return ByteConverter.int4(data, offset) & 0xFFFFFFFFL;
@@ -150,9 +138,7 @@ public final class OidCodec implements StreamingBinaryCodec, PrimitiveBinaryDeco
     try {
       return Long.parseLong(data.trim());
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to oid: {0}", data),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.cannotConvertValue("oid", data, e);
     }
   }
 
@@ -218,7 +204,7 @@ public final class OidCodec implements StreamingBinaryCodec, PrimitiveBinaryDeco
     if (targetClass == BigDecimal.class) {
       return (T) BigDecimal.valueOf(value);
     }
-    throw Codec.cannotDecode("oid", targetClass.getName());
+    throw Exceptions.cannotDecode("oid", targetClass.getName());
   }
 
   static long toLong(Object value) throws SQLException {
@@ -229,11 +215,9 @@ public final class OidCodec implements StreamingBinaryCodec, PrimitiveBinaryDeco
       try {
         return Long.parseLong(((String) value).trim());
       } catch (NumberFormatException e) {
-        throw new PSQLException(
-            GT.tr("Cannot convert value to oid: {0}", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+        throw Exceptions.cannotConvertValue("oid", value, e);
       }
     }
-    throw Codec.cannotEncode(value, "oid");
+    throw Exceptions.cannotEncode(value, "oid");
   }
 }

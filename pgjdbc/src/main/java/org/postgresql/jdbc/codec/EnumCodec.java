@@ -6,7 +6,6 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
@@ -86,7 +85,7 @@ public final class EnumCodec implements BinaryCodec, TextCodec {
     if (targetClass == String.class || targetClass == Object.class) {
       return (T) decodeAsString(data, offset, length, type, ctx);
     }
-    throw Codec.cannotDecode("enum", targetClass.getName());
+    throw Exceptions.cannotDecode("enum", targetClass.getName());
   }
 
   @Override
@@ -96,7 +95,7 @@ public final class EnumCodec implements BinaryCodec, TextCodec {
     if (targetClass == String.class || targetClass == Object.class) {
       return (T) data;
     }
-    throw Codec.cannotDecode("enum", targetClass.getName());
+    throw Exceptions.cannotDecode("enum", targetClass.getName());
   }
 
   /**

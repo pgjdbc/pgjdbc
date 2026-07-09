@@ -6,7 +6,6 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BackpatchingBinarySink;
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveBinaryDecoder;
 import org.postgresql.api.codec.PrimitiveBinaryEncoder;
@@ -15,9 +14,6 @@ import org.postgresql.api.codec.PrimitiveTextEncoder;
 import org.postgresql.api.codec.TextSink;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -66,9 +62,7 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     if (length != 8) {
-      throw new PSQLException(
-          GT.tr("Invalid float8 binary data length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBinaryLength("float8", length);
     }
     return ByteConverter.float8(data, offset);
   }
@@ -119,9 +113,7 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   public double decodeAsDouble(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     if (length != 8) {
-      throw new PSQLException(
-          GT.tr("Invalid float8 binary data length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidBinaryLength("float8", length);
     }
     return ByteConverter.float8(data, offset);
   }
@@ -131,9 +123,7 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
     try {
       return Double.parseDouble(data.trim());
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to double: {0}", data),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.cannotConvertValue("double", data, e);
     }
   }
 
@@ -153,9 +143,7 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
       throws SQLException {
     double value = decodeAsDouble(data, offset, length, type, ctx);
     if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
-      throw new PSQLException(
-          GT.tr("Value {0} is out of range for int", value),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      throw Exceptions.outOfRange(value, "int");
     }
     return (int) value;
   }
@@ -164,9 +152,7 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     double value = decodeAsDouble(data, type, ctx);
     if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
-      throw new PSQLException(
-          GT.tr("Value {0} is out of range for int", value),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      throw Exceptions.outOfRange(value, "int");
     }
     return (int) value;
   }
@@ -176,9 +162,7 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
       throws SQLException {
     double value = decodeAsDouble(data, offset, length, type, ctx);
     if (value < LONG_MIN_DOUBLE || value > LONG_MAX_DOUBLE) {
-      throw new PSQLException(
-          GT.tr("Value {0} is out of range for long", value),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      throw Exceptions.outOfRange(value, "long");
     }
     return (long) value;
   }
@@ -187,9 +171,7 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     double value = decodeAsDouble(data, type, ctx);
     if (value < LONG_MIN_DOUBLE || value > LONG_MAX_DOUBLE) {
-      throw new PSQLException(
-          GT.tr("Value {0} is out of range for long", value),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      throw Exceptions.outOfRange(value, "long");
     }
     return (long) value;
   }
@@ -199,9 +181,7 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
       CodecContext ctx) throws SQLException {
     double value = decodeAsDouble(data, offset, length, type, ctx);
     if (Double.isNaN(value) || Double.isInfinite(value)) {
-      throw new PSQLException(
-          GT.tr("Cannot convert {0} to BigDecimal", value),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      throw Exceptions.cannotConvertToBigDecimal(value);
     }
     return BigDecimal.valueOf(value);
   }
@@ -233,9 +213,7 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
     }
     if (targetClass == Long.class) {
       if (value < LONG_MIN_DOUBLE || value > LONG_MAX_DOUBLE) {
-        throw new PSQLException(
-            GT.tr("Value {0} is out of range for long", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+        throw Exceptions.outOfRange(value, "long");
       }
       return (T) Long.valueOf((long) value);
     }
@@ -250,14 +228,12 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
       try {
         return Double.parseDouble(((String) value).trim());
       } catch (NumberFormatException e) {
-        throw new PSQLException(
-            GT.tr("Cannot convert value to double: {0}", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+        throw Exceptions.cannotConvertValue("double", value, e);
       }
     }
     if (value instanceof Boolean) {
       return (Boolean) value ? 1.0 : 0.0;
     }
-    throw Codec.cannotEncode(value, "float8");
+    throw Exceptions.cannotEncode(value, "float8");
   }
 }

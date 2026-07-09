@@ -9,9 +9,6 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.api.codec.TypeDescriptor;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -83,10 +80,7 @@ public abstract class PgSQLInput implements SQLInput {
     } else {
       // Offline contexts have no type cache to load attributes from, so the caller must register
       // the composite type with its fields.
-      throw new PSQLException(
-          GT.tr("Offline composite access for {0} needs its attributes; register the type with its "
-              + "fields in the offline codec context.", type.getFullName()),
-          PSQLState.INVALID_PARAMETER_TYPE);
+      throw Exceptions.offlineCompositeAccessNeedsAttributes(type.getFullName());
     }
   }
 
@@ -104,9 +98,7 @@ public abstract class PgSQLInput implements SQLInput {
    */
   private boolean advanceToNextIsNull() throws SQLException {
     if (fieldIndex >= fields.size()) {
-      throw new PSQLException(
-          GT.tr("Attempt to read past end of composite type fields"),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.attemptReadPastEndOfFields();
     }
     fieldIndex++;
     boolean isNull = advanceIsNull();
@@ -258,17 +250,17 @@ public abstract class PgSQLInput implements SQLInput {
 
   @Override
   public Ref readRef() throws SQLException {
-    throw new PSQLException(GT.tr("readRef() not implemented"), PSQLState.NOT_IMPLEMENTED);
+    throw Exceptions.notImplemented("readRef()");
   }
 
   @Override
   public Blob readBlob() throws SQLException {
-    throw new PSQLException(GT.tr("readBlob() not implemented"), PSQLState.NOT_IMPLEMENTED);
+    throw Exceptions.notImplemented("readBlob()");
   }
 
   @Override
   public Clob readClob() throws SQLException {
-    throw new PSQLException(GT.tr("readClob() not implemented"), PSQLState.NOT_IMPLEMENTED);
+    throw Exceptions.notImplemented("readClob()");
   }
 
   @Override
@@ -285,13 +277,13 @@ public abstract class PgSQLInput implements SQLInput {
     try {
       return new URL(s);
     } catch (MalformedURLException e) {
-      throw new PSQLException(GT.tr("Invalid URL: {0}", s), PSQLState.DATA_ERROR, e);
+      throw Exceptions.invalidUrl(s, e);
     }
   }
 
   @Override
   public NClob readNClob() throws SQLException {
-    throw new PSQLException(GT.tr("readNClob() not implemented"), PSQLState.NOT_IMPLEMENTED);
+    throw Exceptions.notImplemented("readNClob()");
   }
 
   @Override
@@ -309,7 +301,7 @@ public abstract class PgSQLInput implements SQLInput {
 
   @Override
   public RowId readRowId() throws SQLException {
-    throw new PSQLException(GT.tr("readRowId() not implemented"), PSQLState.NOT_IMPLEMENTED);
+    throw Exceptions.notImplemented("readRowId()");
   }
 
   @Override

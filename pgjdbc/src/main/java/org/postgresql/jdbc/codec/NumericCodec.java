@@ -5,15 +5,11 @@
 
 package org.postgresql.jdbc.codec;
 
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveBinaryDecoder;
 import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -151,9 +147,7 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
         } else {
           token = "-Infinity";
         }
-        throw new PSQLException(
-            GT.tr("Bad value for type {0} : {1}", "BigDecimal", token),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+        throw Exceptions.badValueForType("BigDecimal", token);
       }
     }
     // Fallback - shouldn't happen
@@ -164,22 +158,16 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
   public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     String trimmed = data.trim();
     if ("NaN".equalsIgnoreCase(trimmed)) {
-      throw new PSQLException(
-          GT.tr("Bad value for type {0} : {1}", "BigDecimal", "NaN"),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      throw Exceptions.badValueForType("BigDecimal", "NaN");
     }
     if ("Infinity".equalsIgnoreCase(trimmed) || "+Infinity".equalsIgnoreCase(trimmed)
         || "-Infinity".equalsIgnoreCase(trimmed)) {
-      throw new PSQLException(
-          GT.tr("Bad value for type {0} : {1}", "BigDecimal", trimmed),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      throw Exceptions.badValueForType("BigDecimal", trimmed);
     }
     try {
       return new BigDecimal(trimmed);
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to numeric: {0}", data),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.cannotConvertValue("numeric", data, e);
     }
   }
 
@@ -205,9 +193,7 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
     try {
       return Double.parseDouble(trimmed);
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Cannot convert value to double: {0}", data),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.cannotConvertValue("double", data, e);
     }
   }
 
@@ -251,9 +237,7 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
   private static int bigDecimalToInt(BigDecimal bd) throws SQLException {
     double d = bd.doubleValue();
     if (d < Integer.MIN_VALUE || d > Integer.MAX_VALUE) {
-      throw new PSQLException(
-          GT.tr("Value {0} is out of range for int", bd),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      throw Exceptions.outOfRange(bd, "int");
     }
     return bd.intValue();
   }
@@ -264,9 +248,7 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
     // exactly via BigDecimal compareTo.
     BigDecimal whole = bd.setScale(0, RoundingMode.DOWN);
     if (whole.compareTo(LONG_MAX_BD) > 0 || whole.compareTo(LONG_MIN_BD) < 0) {
-      throw new PSQLException(
-          GT.tr("Bad value for type {0} : {1}", "long", bd.toPlainString()),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      throw Exceptions.badValueForType("long", bd.toPlainString());
     }
     return whole.longValue();
   }
@@ -331,18 +313,14 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
     if (targetClass == Short.class) {
       double d = bd.doubleValue();
       if (d < Short.MIN_VALUE || d > Short.MAX_VALUE) {
-        throw new PSQLException(
-            GT.tr("Value {0} is out of range for short", bd),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+        throw Exceptions.outOfRange(bd, "short");
       }
       return (T) Short.valueOf(bd.shortValue());
     }
     if (targetClass == Byte.class) {
       double d = bd.doubleValue();
       if (d < Byte.MIN_VALUE || d > Byte.MAX_VALUE) {
-        throw new PSQLException(
-            GT.tr("Value {0} is out of range for byte", bd),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+        throw Exceptions.outOfRange(bd, "byte");
       }
       return (T) Byte.valueOf(bd.byteValue());
     }
@@ -352,7 +330,7 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
     if (targetClass == Boolean.class) {
       return (T) Boolean.valueOf(bd.compareTo(BigDecimal.ZERO) != 0);
     }
-    throw Codec.cannotDecode("numeric", targetClass.getName());
+    throw Exceptions.cannotDecode("numeric", targetClass.getName());
   }
 
   /**
@@ -368,8 +346,7 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
     try {
       return ByteConverter.numeric(data, offset, length);
     } catch (IllegalArgumentException | ArithmeticException e) {
-      throw new PSQLException(
-          GT.tr("Invalid binary numeric value"), PSQLState.DATA_ERROR, e);
+      throw Exceptions.invalidBinaryNumericValue(e);
     }
   }
 
@@ -406,14 +383,12 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
       try {
         return new BigDecimal(((String) value).trim());
       } catch (NumberFormatException e) {
-        throw new PSQLException(
-            GT.tr("Cannot convert value to numeric: {0}", value),
-            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+        throw Exceptions.cannotConvertValue("numeric", value, e);
       }
     }
     if (value instanceof Boolean) {
       return (Boolean) value ? BigDecimal.ONE : BigDecimal.ZERO;
     }
-    throw Codec.cannotEncode(value, "numeric");
+    throw Exceptions.cannotEncode(value, "numeric");
   }
 }

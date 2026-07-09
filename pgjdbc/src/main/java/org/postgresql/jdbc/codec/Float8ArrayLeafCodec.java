@@ -9,9 +9,6 @@ import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.core.Oid;
 import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -88,9 +85,7 @@ final class Float8ArrayLeafCodec implements ArrayLeafCodec {
         int len = ByteConverter.int4(data, pos);
         pos += 4;
         if (len == -1) {
-          throw new PSQLException(
-              GT.tr("Cannot decode NULL into primitive double[] leaf"),
-              PSQLState.DATA_ERROR);
+          throw Exceptions.cannotDecodeNullIntoPrimitiveLeaf("double[]");
         }
         validateElementLength(len);
         arr[i] = ByteConverter.float8(data, pos);
@@ -156,9 +151,7 @@ final class Float8ArrayLeafCodec implements ArrayLeafCodec {
         }
         cur.readValue(delimiter, '}');
         if (!cur.tokenWasQuoted() && cur.tokenEquals("NULL")) {
-          throw new PSQLException(
-              GT.tr("Cannot decode NULL into primitive double[] leaf"),
-              PSQLState.DATA_ERROR);
+          throw Exceptions.cannotDecodeNullIntoPrimitiveLeaf("double[]");
         }
         arr[i] = parseDouble(cur);
       }
@@ -187,17 +180,13 @@ final class Float8ArrayLeafCodec implements ArrayLeafCodec {
     try {
       return Double.parseDouble(s);
     } catch (NumberFormatException e) {
-      throw new PSQLException(
-          GT.tr("Invalid float8 array element: {0}", s),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
+      throw Exceptions.invalidArrayElement("float8", s, e);
     }
   }
 
   private static void validateElementLength(int length) throws SQLException {
     if (length != 8) {
-      throw new PSQLException(
-          GT.tr("Invalid float8 array element length: {0}", length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidArrayElementLength("float8", length);
     }
   }
 }

@@ -6,7 +6,6 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BackpatchingBinarySink;
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.TextCodec;
@@ -91,7 +90,7 @@ public final class TimeCodec implements StreamingBinaryCodec, TextCodec {
     if (value instanceof String) {
       return TemporalCodecs.formatTime(TemporalCodecs.decodeTimeText((String) value, ctx), ctx);
     }
-    throw Codec.cannotEncode(value, "time");
+    throw Exceptions.cannotEncode(value, "time");
   }
 
   @Override
@@ -124,7 +123,7 @@ public final class TimeCodec implements StreamingBinaryCodec, TextCodec {
       LocalTime lt = TemporalCodecs.decodeLocalTimeBin(data, offset, length, ctx);
       return lt == null ? null : targetClass.cast(TemporalCodecs.formatLocalTime(lt, ctx));
     }
-    throw Codec.cannotDecode("time", targetClass.getName());
+    throw Exceptions.cannotDecode("time", targetClass.getName());
   }
 
   @Override
@@ -155,7 +154,7 @@ public final class TimeCodec implements StreamingBinaryCodec, TextCodec {
     if (targetClass == String.class) {
       return targetClass.cast(data);
     }
-    throw Codec.cannotDecode("time", targetClass.getName());
+    throw Exceptions.cannotDecode("time", targetClass.getName());
   }
 
   @Override

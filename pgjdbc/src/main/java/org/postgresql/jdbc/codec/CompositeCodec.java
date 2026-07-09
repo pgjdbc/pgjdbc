@@ -25,10 +25,7 @@ import org.postgresql.jdbc.PgSQLOutputText;
 import org.postgresql.jdbc.PgStruct;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -172,9 +169,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
   public static List<DecodedField> decodeBinaryFields(byte[] data, int start, int len)
       throws SQLException {
     if (len < 4) {
-      throw new PSQLException(
-          GT.tr("Invalid binary composite data: too short"),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidCompositeTooShort();
     }
 
     int end = start + len;
@@ -183,27 +178,21 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
     int fieldCount = ByteConverter.int4(data, pos);
     pos += 4;
     if (fieldCount < 0) {
-      throw new PSQLException(
-          GT.tr("Invalid binary composite data: negative field count {0}", fieldCount),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidCompositeNegativeFieldCount(fieldCount);
     }
     // Bound the field count against the bytes that remain before sizing the list: every field carries
     // at least an 8-byte header (type OID + length) on the wire, so a count larger than
     // (remaining bytes / 8) is corrupt. Without this, a hostile count near Integer.MAX_VALUE would
     // drive an OutOfMemoryError in the ArrayList allocation before the per-field bounds check runs.
     if (fieldCount > (end - pos) / 8) {
-      throw new PSQLException(
-          GT.tr("Invalid binary composite data: field count {0} exceeds remaining data", fieldCount),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.invalidCompositeFieldCountExceedsData(fieldCount);
     }
 
     List<DecodedField> fields = new ArrayList<>(fieldCount);
 
     for (int i = 0; i < fieldCount; i++) {
       if (end - pos < 8) {
-        throw new PSQLException(
-            GT.tr("Invalid binary composite data: unexpected end at field {0}", i),
-            PSQLState.DATA_ERROR);
+        throw Exceptions.invalidCompositeUnexpectedEnd(i);
       }
 
       int typeOid = ByteConverter.int4(data, pos);
@@ -214,14 +203,10 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       if (length == -1) {
         fields.add(new DecodedField(typeOid, data, pos, -1));
       } else if (length < 0) {
-        throw new PSQLException(
-            GT.tr("Invalid binary composite data: invalid length {0} at field {1}", length, i),
-            PSQLState.DATA_ERROR);
+        throw Exceptions.invalidCompositeFieldLength(length, i);
       } else {
         if (end - pos < length) {
-          throw new PSQLException(
-              GT.tr("Invalid binary composite data: not enough data for field {0}", i),
-              PSQLState.DATA_ERROR);
+          throw Exceptions.invalidCompositeNotEnoughData(i);
         }
         fields.add(new DecodedField(typeOid, data, pos, length));
         pos += length;
@@ -364,10 +349,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
     try {
       return targetClass.getConstructor().newInstance();
     } catch (Exception ex) {
-      throw new PSQLException(
-          GT.tr("Cannot create instance of {0}. An accessible no-arg constructor is required.",
-              targetClass.getName()),
-          PSQLState.SYSTEM_ERROR, ex);
+      throw Exceptions.cannotInstantiate(targetClass.getName(), ex);
     }
   }
 
@@ -462,9 +444,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       encodeAttributes(struct.getAttributes(), type, ctx, out);
       return out.toByteArray();
     }
-    throw new PSQLException(
-        GT.tr("Cannot encode {0} as composite binary. Use SQLData implementation.", value.getClass().getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Exceptions.cannotEncodeCompositeBinary(value);
   }
 
   private static void encodeSQLData(SQLData value, PgSQLOutput out) throws SQLException {
@@ -557,10 +537,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
           if (expected == 0) {
             return;
           }
-          throw new PSQLException(
-              GT.tr("Composite type {0} has {1} attribute(s), but its text literal has more",
-                  type.getTypeName(), expected),
-              PSQLState.DATA_ERROR);
+          throw Exceptions.compositeTextHasMoreAttributes(type.getTypeName().getName(), expected);
         }
         seen[0] = index + 1;
         if (isNull) {
@@ -580,10 +557,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       if (expected > 0 && seen[0] != expected) {
         // Fewer literal fields than the type declares is the same catalog/literal skew as the
         // surplus case above; reject it rather than NULL-filling the missing trailing fields.
-        throw new PSQLException(
-            GT.tr("Composite type {0} has {1} attribute(s), but its text literal has {2}",
-                type.getTypeName(), expected, seen[0]),
-            PSQLState.DATA_ERROR);
+        throw Exceptions.compositeTextAttributeCountMismatch(type.getTypeName().getName(), expected, seen[0]);
       }
       // Text transfer carries no per-field OIDs, so an anonymous record keeps the
       // fieldless pseudo-type; getValue() still works because the raw server
@@ -621,9 +595,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       // verbatim, matching PGobject.getValue() and the legacy array encoder.
       return (String) value;
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert {0} to composite", value.getClass().getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Exceptions.cannotConvertToComposite(value);
   }
 
   /**
@@ -669,10 +641,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       Appendable out) throws SQLException {
     List<? extends PGField> fields = resolveFields(compositeType, ctx);
     if (fields.size() != attributes.length) {
-      throw new PSQLException(
-          GT.tr("Composite type {0} expects {1} attribute(s), but {2} were provided",
-              compositeType.getTypeName(), fields.size(), attributes.length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.compositeAttributeCountMismatch(compositeType.getTypeName().getName(), fields.size(), attributes.length);
     }
     try {
       out.append('(');
@@ -692,18 +661,13 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
         TypeDescriptor fieldType = fieldTypeFor(fieldOid, attr, ctx);
         TextCodec codec = ctx.resolveTextCodec(fieldOid);
         if (codec == null) {
-          throw new PSQLException(
-              GT.tr("No text codec registered for type OID {0} (field {1} of {2})",
-                  fieldOid, field.getName(), compositeType.getTypeName()),
-              PSQLState.SYSTEM_ERROR);
+          throw Exceptions.noTextCodecForCompositeField(fieldOid, field.getName(), compositeType.getTypeName().getName());
         }
         writeTextFieldValue(out, attr, fieldType, codec, ctx);
       }
       out.append(')');
     } catch (IOException e) {
-      throw new PSQLException(
-          GT.tr("Error writing composite value"),
-          PSQLState.SYSTEM_ERROR, e);
+      throw Exceptions.errorWritingComposite(e);
     }
   }
 
@@ -733,10 +697,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       BackpatchingBinarySink out) throws SQLException {
     List<? extends PGField> fields = resolveFields(compositeType, ctx);
     if (fields.size() != attributes.length) {
-      throw new PSQLException(
-          GT.tr("Composite type {0} expects {1} attribute(s), but {2} were provided",
-              compositeType.getTypeName(), fields.size(), attributes.length),
-          PSQLState.DATA_ERROR);
+      throw Exceptions.compositeAttributeCountMismatch(compositeType.getTypeName().getName(), fields.size(), attributes.length);
     }
     CodecDepth.enter();
     try {
@@ -754,17 +715,12 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
         TypeDescriptor fieldType = fieldTypeFor(fieldOid, attr, ctx);
         BinaryCodec codec = ctx.resolveBinaryCodec(fieldOid);
         if (codec == null) {
-          throw new PSQLException(
-              GT.tr("No binary codec registered for type OID {0} (field {1} of {2})",
-                  fieldOid, field.getName(), compositeType.getTypeName()),
-              PSQLState.SYSTEM_ERROR);
+          throw Exceptions.noBinaryCodecForCompositeField(fieldOid, field.getName(), compositeType.getTypeName().getName());
         }
         BinaryCodec.writeElement(out, attr, codec, fieldType, ctx);
       }
     } catch (IOException e) {
-      throw new PSQLException(
-          GT.tr("Error writing composite value"),
-          PSQLState.SYSTEM_ERROR, e);
+      throw Exceptions.errorWritingComposite(e);
     } finally {
       CodecDepth.exit();
     }
@@ -825,9 +781,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       return (T) decodeBinary(data, offset, length, type, ctx);
     }
 
-    throw new PSQLException(
-        GT.tr("Cannot convert composite to {0}. Use an SQLData implementation.", targetClass.getName()),
-        PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotConvertCompositeTo(targetClass.getName());
   }
 
   @Override
@@ -867,9 +821,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       return (T) data;
     }
 
-    throw new PSQLException(
-        GT.tr("Cannot convert composite to {0}. Use an SQLData implementation.", targetClass.getName()),
-        PSQLState.DATA_TYPE_MISMATCH);
+    throw Exceptions.cannotConvertCompositeTo(targetClass.getName());
   }
 
 }

@@ -6,7 +6,6 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
-import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
@@ -94,7 +93,7 @@ public final class TextLikeCodec implements BinaryCodec, TextCodec {
     if (targetClass == byte[].class) {
       return (T) Arrays.copyOfRange(data, offset, offset + length);
     }
-    throw Codec.cannotDecode(getTypeName(), targetClass.getName());
+    throw Exceptions.cannotDecode(getTypeName(), targetClass.getName());
   }
 
   @Override
@@ -111,7 +110,7 @@ public final class TextLikeCodec implements BinaryCodec, TextCodec {
       // The text form already is the value; its charset bytes mirror decodeBinaryAs(byte[]).
       return (T) data.getBytes(ctx.getCharset());
     }
-    throw Codec.cannotDecode(getTypeName(), targetClass.getName());
+    throw Exceptions.cannotDecode(getTypeName(), targetClass.getName());
   }
 
   @Override
@@ -138,7 +137,7 @@ public final class TextLikeCodec implements BinaryCodec, TextCodec {
     if (text != null) {
       return text;
     }
-    throw Codec.cannotEncode(value, type.getTypeName().getName());
+    throw Exceptions.cannotEncode(value, type.getTypeName().getName());
   }
 
   // The text of a matching-type PGobject (a null value as ""), or null when value is not such a PGobject.

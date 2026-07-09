@@ -9,9 +9,6 @@ import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -40,11 +37,8 @@ interface ArrayLeafCodec extends MultiDimArrayBinary.LeafBinaryWriter,
         || componentType == getBoxedComponentType();
   }
 
-  default PSQLException unsupportedLeaf(Object leaf, CodecContext ctx) {
-    return new PSQLException(
-        GT.tr("Unsupported leaf array class for {0}: {1}", getArrayTypeDescription(ctx),
-            leaf.getClass().getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+  default SQLException unsupportedLeaf(Object leaf, CodecContext ctx) {
+    return Exceptions.unsupportedArrayLeafClass(getArrayTypeDescription(ctx), leaf.getClass().getName());
   }
 
   default String getArrayTypeDescription(CodecContext ctx) {
@@ -57,7 +51,7 @@ interface ArrayLeafCodec extends MultiDimArrayBinary.LeafBinaryWriter,
     }
     String elementName = Oid.toString(getElementOid());
     if (elementName.startsWith("<unknown:")) {
-      return GT.tr("array with element oid {0}", getElementOid());
+      return Exceptions.describeArrayElementOid(getElementOid());
     }
     return "_" + elementName.toLowerCase(Locale.ROOT);
   }

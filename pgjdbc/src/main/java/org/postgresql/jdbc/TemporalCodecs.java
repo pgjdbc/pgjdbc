@@ -8,9 +8,7 @@ package org.postgresql.jdbc;
 import org.postgresql.PGStatement;
 import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.CodecContext;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
+import org.postgresql.api.codec.Codecs;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -327,7 +325,7 @@ public final class TemporalCodecs {
       return TimestampUtils.localTimeOf(((java.util.Date) value).getTime(),
           ctx.getDefaultTimeZone(), null);
     }
-    throw cannotEncode(value, "time");
+    throw Codecs.cannotEncode(value, "time");
   }
 
   @SuppressWarnings("JavaUtilDate")
@@ -349,7 +347,7 @@ public final class TemporalCodecs {
     if (value instanceof String) {
       return offsetTimeOf(decodeTimeText((String) value, ctx), ctx);
     }
-    throw cannotEncode(value, "timetz");
+    throw Codecs.cannotEncode(value, "timetz");
   }
 
   @SuppressWarnings("JavaUtilDate")
@@ -376,7 +374,7 @@ public final class TemporalCodecs {
       return LocalDateTime.ofInstant(Instant.ofEpochMilli(((java.util.Date) value).getTime()),
           ctx.getDefaultTimeZone().toZoneId());
     }
-    throw cannotEncode(value, "timestamp");
+    throw Codecs.cannotEncode(value, "timestamp");
   }
 
   @SuppressWarnings("JavaUtilDate")
@@ -403,16 +401,10 @@ public final class TemporalCodecs {
     if (value instanceof java.util.Date) {
       return Instant.ofEpochMilli(((java.util.Date) value).getTime());
     }
-    throw cannotEncode(value, "timestamptz");
+    throw Codecs.cannotEncode(value, "timestamptz");
   }
 
   private static ZoneOffset rawOffset(TimeZone tz) {
     return ZoneOffset.ofTotalSeconds(tz.getRawOffset() / 1000);
-  }
-
-  private static PSQLException cannotEncode(Object value, String typeName) {
-    return new PSQLException(
-        GT.tr("Cannot convert {0} to {1}", value.getClass().getName(), typeName),
-        PSQLState.INVALID_PARAMETER_TYPE);
   }
 }

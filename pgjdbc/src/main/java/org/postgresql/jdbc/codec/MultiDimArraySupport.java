@@ -6,9 +6,6 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.jdbc.PgArray;
-import org.postgresql.util.GT;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -131,9 +128,7 @@ final class MultiDimArraySupport {
     if (value.getClass().isArray()) {
       return value;
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert {0} to array", value.getClass().getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Exceptions.cannotConvertToArray(value);
   }
 
   static Class<?> leafComponentType(Class<?> arrayClass) {
@@ -183,15 +178,11 @@ final class MultiDimArraySupport {
 
   static void validateRectangular(Object array, int[] lengths, int depth) throws SQLException {
     if (array == null) {
-      throw new PSQLException(
-          GT.tr("Multidimensional arrays must not contain null sub-arrays"),
-          PSQLState.INVALID_PARAMETER_TYPE);
+      throw Exceptions.arrayNullSubArray();
     }
     int length = java.lang.reflect.Array.getLength(array);
     if (length != lengths[depth]) {
-      throw new PSQLException(
-          GT.tr("Multidimensional arrays must be rectangular"),
-          PSQLState.INVALID_PARAMETER_TYPE);
+      throw Exceptions.arrayNotRectangular();
     }
     if (depth + 1 == lengths.length) {
       return;
