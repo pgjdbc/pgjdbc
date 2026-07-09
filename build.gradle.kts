@@ -50,7 +50,7 @@ jacoco {
         ?.let { toolVersion = it.get() }
 }
 
-val jacocoReport by tasks.registering(JacocoReport::class) {
+val jacocoReport = tasks.register<JacocoReport>("jacocoReport") {
     group = "Coverage reports"
     description = "Generates an aggregate report from all subprojects"
     reports {
@@ -66,7 +66,7 @@ allprojects {
     version = buildVersion
 }
 
-val parameters by tasks.registering {
+val parameters = tasks.register("parameters") {
     group = HelpTasksPlugin.HELP_GROUP
     description = "Displays build parameters (i.e. -P flags) that can be used to customize the build"
     dependsOn(gradle.includedBuild("build-logic").task(":build-parameters:parameters"))

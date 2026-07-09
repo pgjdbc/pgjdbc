@@ -14,6 +14,7 @@ import com.github.vlsi.gradle.license.GatherLicenseTask
 import com.github.vlsi.gradle.properties.dsl.props
 import com.github.vlsi.gradle.release.dsl.dependencyLicenses
 import com.github.vlsi.gradle.release.dsl.licensesCopySpec
+import org.gradle.api.component.AdhocComponentWithVariants
 
 plugins {
     id("build-logic.java-shaded-published-library")
@@ -35,18 +36,8 @@ buildscript {
     }
 }
 
-java {
-    val sourceSets: SourceSetContainer by project
-    registerFeature("sspi") {
-        usingSourceSet(sourceSets["main"])
-    }
-    registerFeature("osgi") {
-        usingSourceSet(sourceSets["main"])
-    }
-}
-
 // Create a separate source set for Java 11+ specific code (e.g., java.lang.ref.Cleaner)
-val java11 by sourceSets.creating {
+val java11 = sourceSets.create("java11") {
     java {
         srcDir("src/main/java11")
     }
@@ -80,19 +71,60 @@ tasks.jar {
     addMultiReleaseContents()
 }
 
-val shaded by configurations.creating
+val shaded = configurations.create("shaded")
 
-val karafFeatures by configurations.creating {
+val karafFeatures = configurations.create("karafFeatures") {
     isTransitive = false
 }
 
-val testKitSourcesWithoutAnnotations by configurations.dependencyScope("testKitSourcesWithoutAnnotations") {
+val sspiImplementation = configurations.dependencyScope("sspiImplementation")
+val osgiCompileOnly = configurations.dependencyScope("osgiCompileOnly")
+
+fun optionalFeatureVariant(
+    featureName: String,
+    usage: String,
+    dependencies: NamedDomainObjectProvider<out Configuration>? = null
+) = configurations.consumable("${featureName}${usage}Elements") {
+    description = "$usage elements for the '$featureName' feature."
+    dependencies?.let { extendsFrom(it.get()) }
+    attributes {
+        attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.LIBRARY))
+        attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.EXTERNAL))
+        attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 8)
+        attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements.JAR))
+        attribute(
+            Usage.USAGE_ATTRIBUTE,
+            objects.named(if (usage == "Api") Usage.JAVA_API else Usage.JAVA_RUNTIME)
+        )
+    }
+    outgoing {
+        artifact(tasks.jar)
+        capability("${project.group}:${project.name}-$featureName:${project.version}")
+    }
+}
+
+val sspiApiElements = optionalFeatureVariant("sspi", "Api")
+val sspiRuntimeElements = optionalFeatureVariant("sspi", "Runtime", sspiImplementation)
+val osgiApiElements = optionalFeatureVariant("osgi", "Api")
+val osgiRuntimeElements = optionalFeatureVariant("osgi", "Runtime")
+
+components.named<AdhocComponentWithVariants>("java") {
+    addVariantsFromConfiguration(sspiApiElements.get()) {}
+    addVariantsFromConfiguration(sspiRuntimeElements.get()) {
+        mapToMavenScope("runtime")
+        mapToOptional()
+    }
+    addVariantsFromConfiguration(osgiApiElements.get()) {}
+    addVariantsFromConfiguration(osgiRuntimeElements.get()) {}
+}
+
+val testKitSourcesWithoutAnnotations = configurations.dependencyScope("testKitSourcesWithoutAnnotations") {
     description = "Declares dependencies on sources-without-annotations"
 }
 
-val testKitSourcesWithoutAnnotationsResolved by configurations.resolvable("testKitSourcesWithoutAnnotationsResolved") {
+val testKitSourcesWithoutAnnotationsResolved = configurations.resolvable("testKitSourcesWithoutAnnotationsResolved") {
     description = "Resolves sources-without-annotations dependencies"
-    extendsFrom(testKitSourcesWithoutAnnotations)
+    extendsFrom(testKitSourcesWithoutAnnotations.get())
     isCanBeResolved = true
     isCanBeConsumed = false
     attributes {
@@ -104,11 +136,14 @@ val testKitSourcesWithoutAnnotationsResolved by configurations.resolvable("testK
 configurations {
     compileOnly {
         extendsFrom(shaded)
+        extendsFrom(sspiImplementation.get())
+        extendsFrom(osgiCompileOnly.get())
     }
     // Add shaded dependencies to test as well
     // This enables to execute unit tests with original (non-shaded dependencies)
     testImplementation {
         extendsFrom(shaded)
+        extendsFrom(sspiImplementation.get())
     }
 }
 
@@ -161,7 +196,7 @@ tasks.configureEach<Test> {
     }
 }
 
-val preprocessVersion by tasks.registering(buildlogic.JavaCommentPreprocessorTask::class) {
+val preprocessVersion = tasks.register<buildlogic.JavaCommentPreprocessorTask>("preprocessVersion") {
     baseDir.set(projectDir)
     sourceFolders.add("src/main/version")
 }
@@ -189,30 +224,30 @@ tasks.configureEach<Checkstyle> {
     exclude("**/messages_*")
 }
 
-val update_pot_with_new_messages by tasks.registering(GettextTask::class) {
+val update_pot_with_new_messages = tasks.register<GettextTask>("update_pot_with_new_messages") {
     sourceFiles.from(sourceSets.main.get().allJava)
     // Empty entry disables xgettext default keywords (getString, gettext, …)
     keywords.add("")
     keywords.add("GT.tr")
 }
 
-val remove_obsolete_translations by tasks.registering(MsgAttribTask::class) {
+val remove_obsolete_translations = tasks.register<MsgAttribTask>("remove_obsolete_translations") {
     args.add("--no-obsolete") // remove obsolete messages
     // TODO: move *.po to resources?
     poFiles.from(fileTree("src/main/java/org/postgresql/translation") { include("*.po") })
 }
 
-val add_new_messages_to_po by tasks.registering(MsgMergeTask::class) {
+val add_new_messages_to_po = tasks.register<MsgMergeTask>("add_new_messages_to_po") {
     poFiles.from(remove_obsolete_translations)
     potFile.set(update_pot_with_new_messages.map { it.outputPot.get() })
 }
 
-val generate_java_resources by tasks.registering(MsgFmtTask::class) {
+val generate_java_resources = tasks.register<MsgFmtTask>("generate_java_resources") {
     poFiles.from(add_new_messages_to_po)
     targetBundle.set("org.postgresql.translation.messages")
 }
 
-val generateGettextSources by tasks.registering {
+val generateGettextSources = tasks.register("generateGettextSources") {
     group = LifecycleBasePlugin.BUILD_GROUP
     description = "Updates .po, .pot, and .java files in src/main/java/org/postgresql/translation"
     dependsOn(add_new_messages_to_po)
@@ -239,11 +274,21 @@ tasks.compileJava {
 // </editor-fold>
 
 // <editor-fold defaultstate="collapsed" desc="Third-party license gathering">
-val getShadedDependencyLicenses by tasks.registering(GatherLicenseTask::class) {
+val getShadedDependencyLicenses = tasks.register<GatherLicenseTask>("getShadedDependencyLicenses") {
     configuration(shaded)
+    listOf(
+        "com.ongres.scram:scram-client:3.2",
+        "com.ongres.scram:scram-common:3.2",
+        "com.ongres.stringprep:saslprep:2.2",
+        "com.ongres.stringprep:stringprep:2.2"
+    ).forEach {
+        overrideLicense(it) {
+            effectiveLicense = "BSD-2-Clause"
+        }
+    }
 }
 
-val renderShadedLicense by tasks.registering(com.github.vlsi.gradle.release.Apache2LicenseRenderer::class) {
+val renderShadedLicense = tasks.register<com.github.vlsi.gradle.release.Apache2LicenseRenderer>("renderShadedLicense") {
     group = LifecycleBasePlugin.BUILD_GROUP
     description = "Generate LICENSE file for shaded jar"
     mainLicenseFile.set(File(rootDir, "LICENSE"))
@@ -285,7 +330,7 @@ tasks.shadowJar {
     }
 }
 
-val osgiJar by tasks.registering(Bundle::class) {
+val osgiJar = tasks.register<Bundle>("osgiJar") {
     archiveClassifier.set("osgi")
     from(tasks.shadowJar.map { zipTree(it.archiveFile) })
     into("META-INF") {
@@ -333,7 +378,7 @@ karaf {
 }
 
 // <editor-fold defaultstate="collapsed" desc="Source distribution for building pgjdbc with minimal features">
-val sourceDistribution by tasks.registering(Tar::class) {
+val sourceDistribution = tasks.register<Tar>("sourceDistribution") {
     dependsOn(tasks.removeTypeAnnotations)
     dependsOn(testKitSourcesWithoutAnnotationsResolved)
     val withoutAnnotations = tasks.removeTypeAnnotations.get().destinationDir
@@ -401,7 +446,7 @@ val sourceDistribution by tasks.registering(Tar::class) {
             exclude("*/org/postgresql/test/sspi/*.java")
             exclude("*/org/postgresql/replication/**")
         }
-        from(testKitSourcesWithoutAnnotationsResolved.elements.map { set ->
+        from(testKitSourcesWithoutAnnotationsResolved.flatMap { it.elements }.map { set ->
             set.map {
                 fileTree("$it/src/main")
             }
@@ -424,7 +469,7 @@ val sourceDistribution by tasks.registering(Tar::class) {
 
 val extractedSourceDistributionDir = layout.buildDirectory.dir("extracted-source-distribution")
 
-val extractSourceDistribution by tasks.registering(Sync::class) {
+val extractSourceDistribution = tasks.register<Sync>("extractSourceDistribution") {
     group = LifecycleBasePlugin.VERIFICATION_GROUP
     description = "Extracts source distribution into build/extracted-source-distribution for manual analysis"
     from(tarTree(sourceDistribution.map { it.archiveFile.get() }))
@@ -435,7 +480,7 @@ val extractSourceDistribution by tasks.registering(Sync::class) {
     }
 }
 
-val sourceDistributionTest by tasks.registering(Exec::class) {
+val sourceDistributionTest = tasks.register<Exec>("sourceDistributionTest") {
     group = LifecycleBasePlugin.VERIFICATION_GROUP
     description = "Executes Maven build against source distribution"
     dependsOn(extractSourceDistribution)
@@ -451,7 +496,7 @@ tasks.test {
     mustRunAfter(tasks.generateKar)
 }
 
-val extraMavenPublications by configurations.getting
+val extraMavenPublications = configurations.getByName("extraMavenPublications")
 
 (artifacts) {
     extraMavenPublications(sourceDistribution)
@@ -469,7 +514,7 @@ val extraMavenPublications by configurations.getting
 // checker-qual (its @Nullable annotations stay in the bytecode) and waffle-jna (the optional SSPI
 // dependency). Versions are intentionally ignored, so dependency bumps do not require touching the
 // expectation; update the list below only when the set of unshaded runtime dependencies changes.
-val verifyPublishedPomDependencies by tasks.registering {
+val verifyPublishedPomDependencies = tasks.register("verifyPublishedPomDependencies") {
     description = "Verifies the published pom declares exactly the expected runtime dependencies"
     group = LifecycleBasePlugin.VERIFICATION_GROUP
 
