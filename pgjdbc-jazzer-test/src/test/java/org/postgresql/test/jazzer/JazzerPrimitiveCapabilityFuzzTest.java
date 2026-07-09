@@ -57,6 +57,23 @@ class JazzerPrimitiveCapabilityFuzzTest {
   }
 
   @FuzzTest
+  void oid8Parity(long value) throws SQLException {
+    // oid8 (PostgreSQL 18+) is an unsigned 64-bit value: every long bit pattern is a valid wire
+    // value, and the text form is Long.toUnsignedString, not Long.toString -- see
+    // unsignedLongPrimitiveParity's Javadoc for why it cannot share longPrimitiveParity's oracle.
+    CodecFuzzSupport.unsignedLongPrimitiveParity(value, CodecFuzzSupport.scalar(Oid.OID8, "oid8", 'N'),
+        CodecFuzzSupport.builtins());
+  }
+
+  @FuzzTest
+  void xid8Parity(long value) throws SQLException {
+    // xid8 (PostgreSQL 13+) shares oid8's unsigned 64-bit wire shape and the same reason
+    // unsignedLongPrimitiveParity, not longPrimitiveParity, is the right oracle.
+    CodecFuzzSupport.unsignedLongPrimitiveParity(value, CodecFuzzSupport.scalar(Oid.XID8, "xid8", 'U'),
+        CodecFuzzSupport.builtins());
+  }
+
+  @FuzzTest
   void float4Parity(float value) throws SQLException {
     CodecFuzzSupport.floatPrimitiveParity(value, Oid.FLOAT4, CodecFuzzSupport.builtins());
   }

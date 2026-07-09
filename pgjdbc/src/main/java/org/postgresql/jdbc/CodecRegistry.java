@@ -35,6 +35,7 @@ import org.postgresql.jdbc.codec.MoneyCodec;
 import org.postgresql.jdbc.codec.MultirangeCodec;
 import org.postgresql.jdbc.codec.NameCodec;
 import org.postgresql.jdbc.codec.NumericCodec;
+import org.postgresql.jdbc.codec.Oid8Codec;
 import org.postgresql.jdbc.codec.OidCodec;
 import org.postgresql.jdbc.codec.RangeCodec;
 import org.postgresql.jdbc.codec.TextCodecImpl;
@@ -45,6 +46,7 @@ import org.postgresql.jdbc.codec.TimestamptzCodec;
 import org.postgresql.jdbc.codec.TimetzCodec;
 import org.postgresql.jdbc.codec.UuidCodec;
 import org.postgresql.jdbc.codec.VarcharCodec;
+import org.postgresql.jdbc.codec.Xid8Codec;
 import org.postgresql.jdbc.codec.XmlCodec;
 
 import com.github.benmanes.caffeine.cache.Cache;
@@ -236,6 +238,8 @@ public class CodecRegistry {
     registerBuiltin(NumericCodec.INSTANCE);
     registerBuiltin(MoneyCodec.INSTANCE);
     registerBuiltin(OidCodec.INSTANCE);
+    registerBuiltin(Oid8Codec.INSTANCE);
+    registerBuiltin(Xid8Codec.INSTANCE);
 
     // String types
     registerBuiltin(TextCodecImpl.INSTANCE);
@@ -374,6 +378,8 @@ public class CodecRegistry {
     pinBuiltinOid(Oid.NUMERIC, NumericCodec.INSTANCE);
     pinBuiltinOid(Oid.MONEY, MoneyCodec.INSTANCE);
     pinBuiltinOid(Oid.OID, OidCodec.INSTANCE);
+    pinBuiltinOid(Oid.OID8, Oid8Codec.INSTANCE);
+    pinBuiltinOid(Oid.XID8, Xid8Codec.INSTANCE);
 
     // String types
     pinBuiltinOid(Oid.TEXT, TextCodecImpl.INSTANCE);

@@ -83,7 +83,8 @@ class BuiltinTypeCodecCoverageTest {
       "regdictionary",
       "regnamespace",
       "regrole",
-      "regcollation"
+      "regcollation",
+      "regdatabase"
   ));
 
   /**
@@ -102,7 +103,6 @@ class BuiltinTypeCodecCoverageTest {
       "pg_lsn",
       "jsonpath",
       "xid",
-      "xid8",
       "cid",
       "tid"
   ));

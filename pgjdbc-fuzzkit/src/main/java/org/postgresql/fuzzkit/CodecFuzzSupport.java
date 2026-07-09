@@ -400,6 +400,64 @@ public final class CodecFuzzSupport {
   }
 
   /**
+   * Same as {@link #longPrimitiveParity(long, PgType, CodecContext)}, for a scalar codec whose text
+   * form is the <em>unsigned</em> decimal of {@code value}'s bit pattern (currently {@code oid8}, an
+   * unsigned 64-bit object identifier) rather than {@code Long.toString}. A value at or above
+   * 2<sup>63</sup> is exactly the case {@code longPrimitiveParity} cannot check: its decode-side text
+   * probe would build a leading-minus string the codec's own {@code decodeText} rejects, so the two
+   * oracles cannot share one method.
+   */
+  public static void unsignedLongPrimitiveParity(long value, PgType type, CodecContext ctx) throws SQLException {
+    Codec codec = ctx.resolveCodec(type.getOid());
+    Long boxed = value;
+    String name = type.getTypeName().toString();
+    if (codec instanceof PrimitiveBinaryEncoder) {
+      PrimitiveBinaryEncoder enc = (PrimitiveBinaryEncoder) codec;
+      assertSameOutcome(name + " encodeLong(binary) vs encodeBinary",
+          Outcome.capture(() -> ((BinaryCodec) codec).encodeBinary(boxed, type, ctx)),
+          Outcome.capture(() -> encodeToBytes(sink -> enc.encodeLong(value, type, ctx, sink), type)));
+    }
+    if (codec instanceof PrimitiveTextEncoder) {
+      PrimitiveTextEncoder enc = (PrimitiveTextEncoder) codec;
+      assertSameOutcome(name + " encodeLong(text) vs encodeText",
+          Outcome.capture(() -> ((TextCodec) codec).encodeText(boxed, type, ctx)),
+          Outcome.capture(() -> encodeToText(out -> enc.encodeLong(value, type, ctx, out), type)));
+    }
+    if (codec instanceof PrimitiveBinaryDecoder) {
+      PrimitiveBinaryDecoder dec = (PrimitiveBinaryDecoder) codec;
+      byte[] wire = tryEncodeBinary((BinaryCodec) codec, boxed, type, ctx);
+      if (wire != null) {
+        assertSameOutcome(name + " decodeAsLong(byte[]) vs decodeBinary",
+            Outcome.capture(() -> longOf(((BinaryCodec) codec).decodeBinary(wire, 0, wire.length, type, ctx))),
+            Outcome.capture(() -> dec.decodeAsLong(wire, 0, wire.length, type, ctx)));
+        assertEquals(dec.decodeAsLong(wire, 0, wire.length, type, ctx),
+            dec.decodeAsLong(pad(wire), 3, wire.length, type, ctx),
+            name + " decodeAsLong(byte[]) honours offset");
+        if (wire.length > 1) {
+          byte[] shortWire = Arrays.copyOf(wire, wire.length - 1);
+          assertSameOutcome(name + " decodeAsLong(byte[]) rejects a short wire",
+              Outcome.capture(() -> longOf(((BinaryCodec) codec).decodeBinary(shortWire, 0, shortWire.length, type, ctx))),
+              Outcome.capture(() -> dec.decodeAsLong(shortWire, 0, shortWire.length, type, ctx)));
+        }
+      }
+    }
+    if (codec instanceof PrimitiveTextDecoder) {
+      PrimitiveTextDecoder dec = (PrimitiveTextDecoder) codec;
+      String text = Long.toUnsignedString(value);
+      char[] chars = text.toCharArray();
+      Outcome viaText = Outcome.capture(() -> longOf(((TextCodec) codec).decodeText(text, type, ctx)));
+      assertSameOutcome(name + " decodeAsLong(String) vs decodeText", viaText,
+          Outcome.capture(() -> dec.decodeAsLong(text, type, ctx)));
+      assertSameOutcome(name + " decodeAsLong(char[]) vs decodeText", viaText,
+          Outcome.capture(() -> dec.decodeAsLong(chars, 0, chars.length, type, ctx)));
+      assertSameOutcome(name + " decodeAsLong(char[]) at offset vs decodeText", viaText,
+          Outcome.capture(() -> dec.decodeAsLong(pad(chars), 3, chars.length, type, ctx)));
+      assertSameOutcome(name + " decodeTextBytesAsLong vs decodeText", viaText,
+          Outcome.capture(() -> dec.decodeTextBytesAsLong(text.getBytes(ctx.getCharset()), type, ctx)));
+    }
+  }
+
+  /**
    * Parity oracle for the primitive capabilities on a {@code float}-valued scalar codec (float4).
    *
    * @param value the value to check

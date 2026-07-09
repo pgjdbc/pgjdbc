@@ -54,6 +54,29 @@ class ScalarCodecFuzzTest {
         CodecFuzzSupport.builtins());
   }
 
+  // oid8 (PostgreSQL 18+, blind spot Z6): an unsigned 64-bit object identifier, represented by its raw
+  // bit pattern (see Oid8Codec). encode/decode are exact inverses over the whole long domain, so the
+  // generic byte-for-byte roundTrip oracle applies unmodified -- unlike oid8Parity in
+  // PrimitiveCapabilityFuzzTest, which independently probes the unsigned text form and so needs
+  // unsignedLongPrimitiveParity instead of longPrimitiveParity. Not a registered descriptor (pinned
+  // built-in codec, no coercion row), so the PgType is built inline like the PGobject/geometric scalars
+  // below.
+
+  @FuzzTest
+  void oid8RoundTrip(long value) throws SQLException {
+    CodecFuzzSupport.roundTrip(value, CodecFuzzSupport.scalar(Oid.OID8, "oid8", 'N'), Long.class,
+        CodecFuzzSupport.builtins());
+  }
+
+  // xid8 (PostgreSQL 13+, blind spot Z6): an unsigned 64-bit transaction ID, sharing oid8's wire
+  // shape and codec design (see Xid8Codec) -- same rationale as oid8RoundTrip above.
+
+  @FuzzTest
+  void xid8RoundTrip(long value) throws SQLException {
+    CodecFuzzSupport.roundTrip(value, CodecFuzzSupport.scalar(Oid.XID8, "xid8", 'U'), Long.class,
+        CodecFuzzSupport.builtins());
+  }
+
   @FuzzTest
   void float4RoundTrip(float value) throws SQLException {
     CodecFuzzSupport.roundTrip(value, PgTypeDescriptors.scalar(Oid.FLOAT4).pgType(), Float.class,

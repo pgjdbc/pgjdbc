@@ -59,11 +59,22 @@ public enum PGSQLType implements SQLType {
   TSVECTOR(Oid.TSVECTOR, "tsvector"),
   TSQUERY(Oid.TSQUERY, "tsquery"),
   OID(Oid.OID, "oid"),
+  OID8(Oid.OID8, "oid8"),
+  XID8(Oid.XID8, "xid8"),
   REFCURSOR(Oid.REFCURSOR, "refcursor"),
   VOID(Oid.VOID, "void"),
   ;
 
-  private static final String VENDOR = "org.postgresql";
+  /**
+   * The vendor id every constant in this enum reports via {@link #getVendor()}.
+   *
+   * <p>Public so a caller can implement {@link SQLType} directly for a PostgreSQL type this enum
+   * does not declare a constant for (a domain, an extension type, ...): {@code PgPreparedStatement}
+   * recognizes any {@link SQLType} that reports this vendor and routes it through the codec
+   * registry using {@link #getVendorTypeNumber()} as the OID, exactly like the built-in constants
+   * below.</p>
+   */
+  public static final String VENDOR = "org.postgresql";
 
   private final int oid;
   private final String name;

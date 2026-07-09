@@ -51,8 +51,8 @@ class RawScalarDecodeFuzzTest {
    * their round-trip preserves the value exactly (no scale or sub-second normalisation).
    */
   private static final int[] IDEMPOTENT_OIDS = {
-      Oid.INT2, Oid.INT4, Oid.INT8, Oid.OID, Oid.BOOL, Oid.BYTEA, Oid.TEXT, Oid.VARCHAR, Oid.BPCHAR,
-      Oid.NAME, Oid.UUID,
+      Oid.INT2, Oid.INT4, Oid.INT8, Oid.OID, Oid.OID8, Oid.XID8, Oid.BOOL, Oid.BYTEA, Oid.TEXT,
+      Oid.VARCHAR, Oid.BPCHAR, Oid.NAME, Oid.UUID,
   };
 
   /**

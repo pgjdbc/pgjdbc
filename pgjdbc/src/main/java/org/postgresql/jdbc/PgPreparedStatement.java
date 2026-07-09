@@ -1410,13 +1410,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       int scaleOrLength) throws SQLException {
     checkClosed();
 
-    int sqlTypeCode = JavaTypeRegistry.getSqlTypeCode(targetSqlType);
-
-    if (x == null) {
-      setNull(parameterIndex, sqlTypeCode);
-      return;
-    }
-
     // Handle SQLData - encode using CompositeCodec
     if (x instanceof java.sql.SQLData) {
       setSQLData(parameterIndex, (java.sql.SQLData) x);
@@ -1426,6 +1419,35 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // Handle Struct - encode as composite type
     if (x instanceof java.sql.Struct) {
       setStruct(parameterIndex, (java.sql.Struct) x);
+      return;
+    }
+
+    if (PGSQLType.VENDOR.equals(targetSqlType.getVendor())) {
+      // Any SQLType reporting this vendor id -- not just the PGSQLType constants -- carries a
+      // concrete PostgreSQL OID via getVendorTypeNumber(), so bind straight through the codec
+      // registry instead of narrowing it to the coarser java.sql.Types set below: e.g.
+      // PGSQLType.XID8 now binds as xid8 without requiring an explicit ::xid8 cast in the SQL
+      // text, and a caller can implement SQLType for a type PGSQLType has no constant for.
+      Integer vendorTypeNumber = targetSqlType.getVendorTypeNumber();
+      if (vendorTypeNumber == null) {
+        throw new PSQLException(
+            GT.tr("SQLType {0} of vendor {1} has no vendor type number (OID)",
+                targetSqlType.getName(), PGSQLType.VENDOR),
+            PSQLState.INVALID_PARAMETER_TYPE);
+      }
+      int oid = vendorTypeNumber;
+      if (x == null) {
+        preparedParameters.setNull(parameterIndex, oid);
+      } else {
+        bindViaCodec(parameterIndex, x, connection.getTypeInfo().getPgTypeByOid(oid));
+      }
+      return;
+    }
+
+    int sqlTypeCode = JavaTypeRegistry.getSqlTypeCode(targetSqlType);
+
+    if (x == null) {
+      setNull(parameterIndex, sqlTypeCode);
       return;
     }
 

@@ -102,7 +102,12 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   // needed for updateable result set support
   private boolean updateable;
   private boolean doingUpdates;
-  private @Nullable HashMap<String, Object> updateValues;
+  private @Nullable HashMap<String, @Nullable Object> updateValues;
+  // target SQLType for a subset of updateValues, keyed the same way; populated only by the
+  // updateObject(..., SQLType, ...) overloads, and consulted at bind time in insertRow/updateRow
+  // so a caller-supplied PostgreSQL type (e.g. PGSQLType.XID8) routes through the codec registry
+  // exactly like PgPreparedStatement#setObject(int, Object, SQLType, int) does.
+  private @Nullable HashMap<String, SQLType> updateSqlTypes;
   private boolean usingOID; // are we using the OID for the primary key?
   private @Nullable List<PrimaryKey> primaryKeys; // list of primary keys
   private boolean singleTable;
@@ -1091,7 +1096,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (!onInsertRow) {
         throw new PSQLException(GT.tr("Not on the insert row."), PSQLState.INVALID_CURSOR_STATE);
       }
-      HashMap<String, Object> updateValues = this.updateValues;
+      HashMap<String, @Nullable Object> updateValues = this.updateValues;
       if (updateValues == null || updateValues.isEmpty()) {
         throw new PSQLException(GT.tr("You must specify at least one column value to insert a row."),
             PSQLState.INVALID_PARAMETER_VALUE);
@@ -1127,10 +1132,11 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       try {
         insertStatement = connection.prepareStatement(insertSQL.toString(), Statement.RETURN_GENERATED_KEYS);
 
-        Iterator<Object> values = updateValues.values().iterator();
+        Iterator<Map.Entry<String, @Nullable Object>> values = updateValues.entrySet().iterator();
 
         for (int i = 1; values.hasNext(); i++) {
-          insertStatement.setObject(i, values.next());
+          Map.Entry<String, @Nullable Object> entry = values.next();
+          bindUpdateValue(insertStatement, i, entry.getKey(), entry.getValue());
         }
 
         insertStatement.executeUpdate();
@@ -1203,9 +1209,13 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       }
 
       // clear the updateValues hash map for the next set of updates
-      HashMap<String, Object> updateValues = this.updateValues;
+      HashMap<String, @Nullable Object> updateValues = this.updateValues;
       if (updateValues != null) {
         updateValues.clear();
+      }
+      HashMap<String, SQLType> updateSqlTypes = this.updateSqlTypes;
+      if (updateSqlTypes != null) {
+        updateSqlTypes.clear();
       }
     }
   }
@@ -1522,7 +1532,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
       StringBuilder updateSQL = new StringBuilder("UPDATE " + onlyTable + tableName + " SET  ");
 
-      HashMap<String, Object> updateValues = castNonNull(this.updateValues);
+      HashMap<String, @Nullable Object> updateValues = castNonNull(this.updateValues);
       int numColumns = updateValues.size();
       Iterator<String> columns = updateValues.keySet().iterator();
 
@@ -1560,10 +1570,10 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         updateStatement = connection.prepareStatement(sqlText);
 
         int i = 0;
-        Iterator<Object> iterator = updateValues.values().iterator();
+        Iterator<Map.Entry<String, @Nullable Object>> iterator = updateValues.entrySet().iterator();
         for (; iterator.hasNext(); i++) {
-          Object o = iterator.next();
-          updateStatement.setObject(i + 1, o);
+          Map.Entry<String, @Nullable Object> entry = iterator.next();
+          bindUpdateValue(updateStatement, i + 1, entry.getKey(), entry.getValue());
         }
 
         for (int j = 0; j < numKeys; j++, i++) {
@@ -1584,6 +1594,9 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
       connection.getLogger().log(Level.FINE, "done updates");
       updateValues.clear();
+      if (updateSqlTypes != null) {
+        updateSqlTypes.clear();
+      }
       doingUpdates = false;
     }
   }
@@ -2161,11 +2174,28 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     rowBuffer.set(columnIndex, connection.encodeString(String.valueOf(valueObject)));
   }
 
+  /**
+   * Binds one column of a pending {@code insertRow()}/{@code updateRow()} onto {@code statement}.
+   * Routes through {@link PreparedStatement#setObject(int, Object, SQLType)} when the column was
+   * last set via one of the {@code updateObject(..., SQLType, ...)} overloads, otherwise falls
+   * back to the type-inferring {@link PreparedStatement#setObject(int, Object)}.
+   */
+  private void bindUpdateValue(PreparedStatement statement, int parameterIndex, String columnName,
+      @Nullable Object value) throws SQLException {
+    HashMap<String, SQLType> updateSqlTypes = this.updateSqlTypes;
+    SQLType targetSqlType = updateSqlTypes == null ? null : updateSqlTypes.get(columnName);
+    if (targetSqlType != null) {
+      statement.setObject(parameterIndex, value, targetSqlType);
+    } else {
+      statement.setObject(parameterIndex, value);
+    }
+  }
+
   private void updateRowBuffer(@Nullable PreparedStatement insertStatement,
-      Tuple rowBuffer, Map<String, Object> updateValues) throws SQLException {
-    for (Map.Entry<String, Object> entry : updateValues.entrySet()) {
+      Tuple rowBuffer, Map<String, @Nullable Object> updateValues) throws SQLException {
+    for (Map.Entry<String, @Nullable Object> entry : updateValues.entrySet()) {
       int columnIndex = findColumn(entry.getKey()) - 1;
-      Object valueObject = entry.getValue();
+      @Nullable Object valueObject = entry.getValue();
       setRowBufferColumn(rowBuffer, columnIndex, valueObject);
     }
 
@@ -3698,6 +3728,41 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  /**
+   * Like {@link #updateValue(int, Object)}, but also records {@code targetSqlType} so
+   * {@link #insertRow()} and {@link #updateRow()} bind the value through
+   * {@link PreparedStatement#setObject(int, Object, SQLType)} instead of the type-inferring
+   * {@link PreparedStatement#setObject(int, Object)}. Unlike {@link #updateValue(int, Object)},
+   * a {@code null} value is stored as-is rather than routed through {@link #updateNull(int)}:
+   * the caller-supplied type already pins the OID a {@code null} should be bound with, so the
+   * generic {@code NullObject} cast is unnecessary here.
+   */
+  protected void updateValue(@Positive int columnIndex, @Nullable Object value, SQLType targetSqlType)
+      throws SQLException {
+    checkUpdateable();
+
+    if (!onInsertRow && (isBeforeFirst() || isAfterLast() || castNonNull(rows, "rows").isEmpty())) {
+      throw new PSQLException(
+          GT.tr(
+              "Cannot update the ResultSet because it is either before the start or after the end of the results."),
+          PSQLState.INVALID_CURSOR_STATE);
+    }
+
+    checkColumnIndex(columnIndex);
+
+    doingUpdates = !onInsertRow;
+    PGResultSetMetaData md = (PGResultSetMetaData) getMetaData();
+    String columnName = md.getBaseColumnName(columnIndex);
+    castNonNull(updateValues, "updateValues").put(columnName, value);
+
+    HashMap<String, SQLType> sqlTypes = updateSqlTypes;
+    if (sqlTypes == null) {
+      sqlTypes = new HashMap<>();
+      updateSqlTypes = sqlTypes;
+    }
+    sqlTypes.put(columnName, targetSqlType);
+  }
+
   @Pure
   protected Object getUUID(String data) throws SQLException {
     UUID uuid;
@@ -3917,25 +3982,30 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   @Override
   public void updateObject(@Positive int columnIndex, @Nullable Object x, SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "updateObject");
+    try (ResourceLock ignore = lock.obtain()) {
+      // scaleOrLength is unused, same as updateObject(int, Object, int): the eventual bind goes
+      // through PreparedStatement#setObject(int, Object, SQLType), and this class has no lower-level
+      // hook to plumb a scale into.
+      updateValue(columnIndex, x, targetSqlType);
+    }
   }
 
   @Override
   public void updateObject(String columnLabel, @Nullable Object x, SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "updateObject");
+    updateObject(findColumn(columnLabel), x, targetSqlType, scaleOrLength);
   }
 
   @Override
   public void updateObject(@Positive int columnIndex, @Nullable Object x, SQLType targetSqlType)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "updateObject");
+    updateObject(columnIndex, x, targetSqlType, -1);
   }
 
   @Override
   public void updateObject(String columnLabel, @Nullable Object x, SQLType targetSqlType)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "updateObject");
+    updateObject(findColumn(columnLabel), x, targetSqlType);
   }
 
   @Override

@@ -806,19 +806,44 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   @Override
   public void registerOutParameter(@Positive int parameterIndex, SQLType sqlType)
       throws SQLException {
-    registerOutParameter(parameterIndex, JavaTypeRegistry.getSqlTypeCode(sqlType));
+    registerOutParameter(parameterIndex, resolveSqlTypeCode(sqlType));
   }
 
   @Override
   public void registerOutParameter(@Positive int parameterIndex, SQLType sqlType, int scale)
       throws SQLException {
-    registerOutParameter(parameterIndex, JavaTypeRegistry.getSqlTypeCode(sqlType), scale);
+    registerOutParameter(parameterIndex, resolveSqlTypeCode(sqlType), scale);
   }
 
   @Override
   public void registerOutParameter(@Positive int parameterIndex, SQLType sqlType, String typeName)
       throws SQLException {
-    registerOutParameter(parameterIndex, JavaTypeRegistry.getSqlTypeCode(sqlType), typeName);
+    registerOutParameter(parameterIndex, resolveSqlTypeCode(sqlType), typeName);
+  }
+
+  /**
+   * Resolves the {@link Types} code to register {@code sqlType} under.
+   *
+   * <p>A {@link SQLType} reporting {@link PGSQLType#VENDOR} -- not just the {@link PGSQLType}
+   * constants, but any implementation with that vendor id -- carries a concrete PostgreSQL OID via
+   * {@link SQLType#getVendorTypeNumber()}. Looking that OID up through the type registry, instead
+   * of {@link JavaTypeRegistry#getSqlTypeCode(SQLType)}'s name-based guess, returns the exact code
+   * {@link java.sql.ResultSetMetaData#getColumnType(int)} reports for the actual out-parameter
+   * column, so the post-execute type check in {@link #executeWithFlags(int)} does not spuriously
+   * mismatch for a type {@code JavaTypeRegistry} has no name mapping for, e.g. {@link PGSQLType#XID8}.</p>
+   */
+  private int resolveSqlTypeCode(SQLType sqlType) throws SQLException {
+    if (!PGSQLType.VENDOR.equals(sqlType.getVendor())) {
+      return JavaTypeRegistry.getSqlTypeCode(sqlType);
+    }
+    Integer vendorTypeNumber = sqlType.getVendorTypeNumber();
+    if (vendorTypeNumber == null) {
+      throw new PSQLException(
+          GT.tr("SQLType {0} of vendor {1} has no vendor type number (OID)",
+              sqlType.getName(), PGSQLType.VENDOR),
+          PSQLState.INVALID_PARAMETER_TYPE);
+    }
+    return connection.getTypeInfo().getPgTypeByOid(vendorTypeNumber).getSqlType();
   }
 
   @Override
