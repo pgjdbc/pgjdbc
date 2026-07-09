@@ -1004,10 +1004,8 @@ public final class CodecFuzzSupport {
 
   /**
    * Round-trips {@code value} through the text format alone and asserts the result equals the input.
-   * The two-format {@link #roundTrip} would fail for a codec that carries only a text path, so the
-   * text-only geometric types ({@code line}, {@code lseg}, {@code path}, {@code polygon},
-   * {@code circle}) use this variant. The point and box codecs are binary-capable and go through
-   * {@link #roundTrip} instead.
+   * The two-format {@link #roundTrip} would fail for a codec that carries only a text path; use this
+   * variant for such a codec instead.
    *
    * @param value the value to encode then decode as text
    * @param type the offline scalar type

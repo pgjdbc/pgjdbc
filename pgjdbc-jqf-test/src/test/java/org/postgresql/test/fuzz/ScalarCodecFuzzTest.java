@@ -156,9 +156,7 @@ class ScalarCodecFuzzTest {
   // The geometric types (blind spot Z6, U7b): point, line, lseg, box, path, polygon, circle. Like the
   // PGobject scalars above they carry a codec but no coercion row, so the PgType is built inline from
   // the pinned built-in OID and the value comes from PgValueArgumentsFactory (the stock provider builds
-  // no PG geometric type). point and box are binary-capable, so they round-trip in both formats; the
-  // other five have a text-only codec, so they use roundTripText -- roundTrip's binary leg would fail
-  // for a type with no binary codec, not because the value is lossy.
+  // no PG geometric type). All seven are binary-capable, so they round-trip in both formats.
 
   @FuzzTest(arguments = PgValueArgumentsFactory.class)
   void pointRoundTrip(PGpoint value) throws SQLException {
@@ -174,31 +172,31 @@ class ScalarCodecFuzzTest {
 
   @FuzzTest(arguments = PgValueArgumentsFactory.class)
   void lineRoundTrip(PGline value) throws SQLException {
-    CodecFuzzSupport.roundTripText(value, CodecFuzzSupport.scalar(Oid.LINE, "line", 'G'),
+    CodecFuzzSupport.roundTrip(value, CodecFuzzSupport.scalar(Oid.LINE, "line", 'G'),
         PGline.class, CodecFuzzSupport.builtins());
   }
 
   @FuzzTest(arguments = PgValueArgumentsFactory.class)
   void lsegRoundTrip(PGlseg value) throws SQLException {
-    CodecFuzzSupport.roundTripText(value, CodecFuzzSupport.scalar(Oid.LSEG, "lseg", 'G'),
+    CodecFuzzSupport.roundTrip(value, CodecFuzzSupport.scalar(Oid.LSEG, "lseg", 'G'),
         PGlseg.class, CodecFuzzSupport.builtins());
   }
 
   @FuzzTest(arguments = PgValueArgumentsFactory.class)
   void pathRoundTrip(PGpath value) throws SQLException {
-    CodecFuzzSupport.roundTripText(value, CodecFuzzSupport.scalar(Oid.PATH, "path", 'G'),
+    CodecFuzzSupport.roundTrip(value, CodecFuzzSupport.scalar(Oid.PATH, "path", 'G'),
         PGpath.class, CodecFuzzSupport.builtins());
   }
 
   @FuzzTest(arguments = PgValueArgumentsFactory.class)
   void polygonRoundTrip(PGpolygon value) throws SQLException {
-    CodecFuzzSupport.roundTripText(value, CodecFuzzSupport.scalar(Oid.POLYGON, "polygon", 'G'),
+    CodecFuzzSupport.roundTrip(value, CodecFuzzSupport.scalar(Oid.POLYGON, "polygon", 'G'),
         PGpolygon.class, CodecFuzzSupport.builtins());
   }
 
   @FuzzTest(arguments = PgValueArgumentsFactory.class)
   void circleRoundTrip(PGcircle value) throws SQLException {
-    CodecFuzzSupport.roundTripText(value, CodecFuzzSupport.scalar(Oid.CIRCLE, "circle", 'G'),
+    CodecFuzzSupport.roundTrip(value, CodecFuzzSupport.scalar(Oid.CIRCLE, "circle", 'G'),
         PGcircle.class, CodecFuzzSupport.builtins());
   }
 }

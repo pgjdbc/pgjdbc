@@ -14,6 +14,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.PGResultSetMetaData;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
@@ -130,18 +131,19 @@ public class BinaryTransferWildcardTest {
 
   @Test
   void enableWildcardForcesBinaryForTextOnlyType() throws SQLException {
-    // lseg has lseg_send on the server but only a text codec in the driver, so it is normally received
-    // as text. enable=* forces binary receive anyway (bypassing the capability check) — the intended
-    // diagnostic: it surfaces types whose binary path the driver does not support.
+    // txid_snapshot has txid_snapshot_send on the server but no binary codec in the driver, so it is
+    // normally received as text. enable=* forces binary receive anyway (bypassing the capability
+    // check) — the intended diagnostic: it surfaces types whose binary path the driver does not
+    // support.
     Properties props = new Properties();
     PGProperty.BINARY_TRANSFER_ENABLE.set(props, "*");
     PGProperty.PREPARE_THRESHOLD.set(props, -1);
     try (Connection con = openExtended(props);
-         PreparedStatement ps = con.prepareStatement("select '[(1,2),(3,4)]'::lseg");
+         PreparedStatement ps = con.prepareStatement("select '10:20:14,15'::txid_snapshot");
          ResultSet rs = ps.executeQuery()) {
       assertTrue(rs.next());
       assertEquals(Field.BINARY_FORMAT, format(rs, 1),
-          "enable=* must force binary even for a type the driver normally decodes only as text");
+          "enable=* must force binary even for a type the driver has no binary codec for");
     }
   }
 
@@ -223,39 +225,39 @@ public class BinaryTransferWildcardTest {
     // prepareThreshold=-1 server-prepares from the first execution and (pre-fix) freezes the text
     // format chosen while the user types were still cold.
     PGProperty.PREPARE_THRESHOLD.set(props, -1);
-    String sql = "select row(1,2)::" + COMPOSITE + " c1, '[1,2]'::int4range c2, "
-        + "'[(1,2),(3,4)]'::lseg c3";
-    try (Connection con = openExtended(props);
-         PreparedStatement ps = con.prepareStatement(sql)) {
-      // Exec #1: the composite and int4range are cold at the first Bind, so all three are text.
-      // Read every column to warm their capability memos.
-      try (ResultSet rs = ps.executeQuery()) {
-        assertTrue(rs.next());
-        assertEquals(Field.TEXT_FORMAT, format(rs, 1), "exec#1 composite text");
-        assertEquals(Field.TEXT_FORMAT, format(rs, 2), "exec#1 int4range text");
-        assertEquals(Field.TEXT_FORMAT, format(rs, 3), "exec#1 lseg text");
-        // getObject materialises each column through Field.initializePgType, warming its capability.
-        assertNotNull(rs.getObject(1));
-        assertNotNull(rs.getObject(2));
-        assertNotNull(rs.getObject(3));
-      }
-      // Exec #2: the warmed composite and int4range upgrade to binary; lseg has no binary codec and
-      // stays text. Values still decode correctly against the promoted formats.
-      try (ResultSet rs = ps.executeQuery()) {
-        assertTrue(rs.next());
-        assertEquals(Field.BINARY_FORMAT, format(rs, 1), "exec#2 composite must upgrade to binary");
-        assertEquals(Field.BINARY_FORMAT, format(rs, 2), "exec#2 int4range must upgrade to binary");
-        assertEquals(Field.TEXT_FORMAT, format(rs, 3), "lseg has no binary codec -> stays text");
-        assertNotNull(rs.getObject(1));
-        assertEquals("[1,3)", rs.getString(2));
-        assertNotNull(rs.getObject(3));
-      }
-      // Exec #3: stable, no oscillation.
-      try (ResultSet rs = ps.executeQuery()) {
-        assertTrue(rs.next());
-        assertEquals(Field.BINARY_FORMAT, format(rs, 1), "exec#3 composite stays binary");
-        assertEquals(Field.BINARY_FORMAT, format(rs, 2), "exec#3 int4range stays binary");
-        assertEquals(Field.TEXT_FORMAT, format(rs, 3), "exec#3 lseg stays text");
+    try (Connection con = openExtended(props)) {
+      assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2),
+          "int4range was introduced in PostgreSQL 9.2");
+      // Both types have a dynamic, installation-dependent OID, so their binary capability is unknown
+      // at the first Bind and the driver must fall back to text; reading the row warms the memo and a
+      // later execution upgrades them to binary.
+      String sql = "select row(1,2)::" + COMPOSITE + " c1, '[1,2]'::int4range c2";
+      try (PreparedStatement ps = con.prepareStatement(sql)) {
+        // Exec #1: both are cold at the first Bind, so both are text. Read every column to warm their
+        // capability memos.
+        try (ResultSet rs = ps.executeQuery()) {
+          assertTrue(rs.next());
+          assertEquals(Field.TEXT_FORMAT, format(rs, 1), "exec#1 composite text");
+          assertEquals(Field.TEXT_FORMAT, format(rs, 2), "exec#1 int4range text");
+          // getObject materialises each column through Field.initializePgType, warming its capability.
+          assertNotNull(rs.getObject(1));
+          assertNotNull(rs.getObject(2));
+        }
+        // Exec #2: the warmed composite and int4range upgrade to binary. Values still decode correctly
+        // against the promoted formats.
+        try (ResultSet rs = ps.executeQuery()) {
+          assertTrue(rs.next());
+          assertEquals(Field.BINARY_FORMAT, format(rs, 1), "exec#2 composite must upgrade to binary");
+          assertEquals(Field.BINARY_FORMAT, format(rs, 2), "exec#2 int4range must upgrade to binary");
+          assertNotNull(rs.getObject(1));
+          assertEquals("[1,3)", rs.getString(2));
+        }
+        // Exec #3: stable, no oscillation.
+        try (ResultSet rs = ps.executeQuery()) {
+          assertTrue(rs.next());
+          assertEquals(Field.BINARY_FORMAT, format(rs, 1), "exec#3 composite stays binary");
+          assertEquals(Field.BINARY_FORMAT, format(rs, 2), "exec#3 int4range stays binary");
+        }
       }
     }
   }

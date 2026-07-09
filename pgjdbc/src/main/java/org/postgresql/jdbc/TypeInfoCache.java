@@ -112,7 +112,7 @@ public class TypeInfoCache implements TypeInfo {
 
   // Memoized result of driverCanReceiveBinary(), keyed by type OID. Mirrors
   // binarySendCapable: the server may be able to send a type in binary while the
-  // driver has no binary decoder for it (e.g. circle/line/lseg/path).
+  // driver has no binary decoder for it (an unmapped type, resolved to FallbackCodec).
   private final Map<Integer, Boolean> binaryReceiveCodecCapable = new ConcurrentHashMap<>();
 
   // OIDs the connection creator opted out of binary receive (binaryTransferDisable).
@@ -1145,10 +1145,9 @@ public class TypeInfoCache implements TypeInfo {
    * testing {@code instanceof} alone. An unmapped type resolves to {@code FallbackCodec},
    * which only wraps the raw bytes rather than reading the real binary wire, so it reports
    * no binary-read and the type is requested in text (received as {@code PGobject}); a
-   * text-only codec (such as the {@code circle}/{@code line} geometric codec) is treated the
-   * same way. A value the server nonetheless sends in binary -- e.g. an unmapped type nested
-   * in a binary {@code record} -- still decodes through {@code FallbackCodec.decodeBinary} as
-   * {@code PGUnknownBinary}.
+   * text-only codec is treated the same way. A value the server nonetheless sends in binary
+   * -- e.g. an unmapped type nested in a binary {@code record} -- still decodes through
+   * {@code FallbackCodec.decodeBinary} as {@code PGUnknownBinary}.
    */
   private boolean hasOwnBinaryCodec(PgType type) {
     return getCodecRegistry().canDecodeBinary(type.getOid(), type);

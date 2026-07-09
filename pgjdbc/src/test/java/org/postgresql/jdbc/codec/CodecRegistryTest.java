@@ -125,8 +125,7 @@ class CodecRegistryTest {
   @Test
   void getByOid_resolvesBuiltinByCanonicalOid() {
     CodecRegistry registry = new CodecRegistry();
-    // The geometric point codec is the binary-capable BinaryGeometricCodec singleton.
-    assertSame(GeometricCodec.POINT, registry.getByOid(Oid.POINT, builtinType("point", Oid.POINT)));
+    assertSame(PointCodec.INSTANCE, registry.getByOid(Oid.POINT, builtinType("point", Oid.POINT)));
     assertSame(Int4Codec.INSTANCE, registry.getByOid(Oid.INT4, builtinType("int4", Oid.INT4)));
   }
 
@@ -157,7 +156,7 @@ class CodecRegistryTest {
     CodecRegistry registry = new CodecRegistry();
     // pg_catalog types are reachable by their bare name.
     assertSame(Int4Codec.INSTANCE, registry.getByName("int4"));
-    assertSame(GeometricCodec.POINT, registry.getByName("point"));
+    assertSame(PointCodec.INSTANCE, registry.getByName("point"));
     // hstore is a bare-name extension codec.
     assertSame(HstoreCodec.INSTANCE, registry.getByName("hstore"));
     // No codec is registered for the array type name.
@@ -167,9 +166,9 @@ class CodecRegistryTest {
   @Test
   void canDecodeBinary_followsCodecCapability() {
     CodecRegistry registry = new CodecRegistry();
-    // point has a binary codec; the text-only circle codec does not.
+    // Every geometric codec, point and circle alike, decodes binary.
     assertTrue(registry.canDecodeBinary(Oid.POINT, builtinType("point", Oid.POINT)));
-    assertFalse(registry.canDecodeBinary(Oid.CIRCLE, builtinType("circle", Oid.CIRCLE)));
+    assertTrue(registry.canDecodeBinary(Oid.CIRCLE, builtinType("circle", Oid.CIRCLE)));
 
     // A binary codec that opts out of binary reads is gated by the capability, not instanceof.
     Codec optOut = new BinaryReadOptOutCodec();
@@ -182,7 +181,7 @@ class CodecRegistryTest {
   @Test
   void canDecodeText_followsCodecCapability() {
     CodecRegistry registry = new CodecRegistry();
-    // Both the binary point codec and the text-only circle codec can read text.
+    // Every geometric codec, point and circle alike, can also read text.
     assertTrue(registry.canDecodeText(Oid.POINT, builtinType("point", Oid.POINT)));
     assertTrue(registry.canDecodeText(Oid.CIRCLE, builtinType("circle", Oid.CIRCLE)));
 

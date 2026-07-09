@@ -1043,8 +1043,9 @@ public final class ReadCoercions {
   }
 
   // ---------------------------------------------------------------------------------------------
-  // Geometric family: point, box, circle, line, lseg, path, polygon (GeometricCodec). Each surfaces
-  // as its PG* object or a String; readObject(Class) accepts only that object, Object and PGobject.
+  // Geometric family: point, box, circle, line, lseg, path, polygon (PointCodec, BoxCodec, etc.).
+  // Each surfaces as its PG* object or a String; readObject(Class) accepts only that object,
+  // Object and PGobject.
   // Numeric readers default-deny to DATA_TYPE_MISMATCH, readBoolean to CANNOT_COERCE.
   // ---------------------------------------------------------------------------------------------
 

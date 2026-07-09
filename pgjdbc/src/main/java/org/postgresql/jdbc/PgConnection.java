@@ -534,6 +534,11 @@ public class PgConnection implements BaseConnection {
         Oid.TIMESTAMPTZ_ARRAY,
         Oid.POINT,
         Oid.BOX,
+        Oid.CIRCLE,
+        Oid.LINE,
+        Oid.LSEG,
+        Oid.PATH,
+        Oid.POLYGON,
         // bit/varbit carry a binary encoder/decoder via BitCodec; the scalar bit(1) -> Boolean
         // contract reads the bit count from the binary int4 prefix in PgResultSet, and bit[]/varbit[]
         // decode through the array codec walker (PGobject[]).

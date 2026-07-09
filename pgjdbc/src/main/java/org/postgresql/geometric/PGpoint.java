@@ -5,13 +5,9 @@
 
 package org.postgresql.geometric;
 
-import org.postgresql.util.ByteConverter;
-import org.postgresql.util.GT;
 import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGobject;
-import org.postgresql.util.PGtokenizer;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
+import org.postgresql.util.PGpointFormat;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -80,14 +76,9 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
     if (s == null) {
       return;
     }
-    PGtokenizer t = new PGtokenizer(PGtokenizer.removePara(s), ',');
-    try {
-      x = Double.parseDouble(t.getToken(0));
-      y = Double.parseDouble(t.getToken(1));
-    } catch (NumberFormatException e) {
-      throw new PSQLException(GT.tr("Conversion to type {0} failed: {1}.", type, s),
-          PSQLState.DATA_TYPE_MISMATCH, e);
-    }
+    double[] xy = PGpointFormat.parseText(s);
+    x = xy[0];
+    y = xy[1];
   }
 
   /**
@@ -96,8 +87,9 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
   @Override
   public void setByteValue(byte[] b, int offset) {
     this.isNull = false;
-    x = ByteConverter.float8(b, offset);
-    y = ByteConverter.float8(b, offset + 8);
+    double[] xy = PGpointFormat.parseBinary(b, offset);
+    x = xy[0];
+    y = xy[1];
   }
 
   /**
@@ -133,7 +125,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
    */
   @Override
   public @Nullable String getValue() {
-    return isNull ? null : "(" + x + "," + y + ")";
+    return isNull ? null : PGpointFormat.appendText(new StringBuilder(), x, y).toString();
   }
 
   @Override
@@ -149,8 +141,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
     if (isNull) {
       return;
     }
-    ByteConverter.float8(b, offset, x);
-    ByteConverter.float8(b, offset + 8, y);
+    PGpointFormat.appendBinary(b, offset, x, y);
   }
 
   /**

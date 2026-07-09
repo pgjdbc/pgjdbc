@@ -14,8 +14,10 @@ import org.postgresql.core.Oid;
 import org.postgresql.jdbc.codec.ArrayCodec;
 import org.postgresql.jdbc.codec.BitCodec;
 import org.postgresql.jdbc.codec.BoolCodec;
+import org.postgresql.jdbc.codec.BoxCodec;
 import org.postgresql.jdbc.codec.BpcharCodec;
 import org.postgresql.jdbc.codec.ByteaCodec;
+import org.postgresql.jdbc.codec.CircleCodec;
 import org.postgresql.jdbc.codec.CompositeCodec;
 import org.postgresql.jdbc.codec.DateCodec;
 import org.postgresql.jdbc.codec.DomainCodec;
@@ -23,7 +25,6 @@ import org.postgresql.jdbc.codec.EnumCodec;
 import org.postgresql.jdbc.codec.FallbackCodec;
 import org.postgresql.jdbc.codec.Float4Codec;
 import org.postgresql.jdbc.codec.Float8Codec;
-import org.postgresql.jdbc.codec.GeometricCodec;
 import org.postgresql.jdbc.codec.HstoreCodec;
 import org.postgresql.jdbc.codec.Int2Codec;
 import org.postgresql.jdbc.codec.Int4Codec;
@@ -31,12 +32,17 @@ import org.postgresql.jdbc.codec.Int8Codec;
 import org.postgresql.jdbc.codec.IntervalCodec;
 import org.postgresql.jdbc.codec.JsonCodec;
 import org.postgresql.jdbc.codec.JsonbCodec;
+import org.postgresql.jdbc.codec.LineCodec;
+import org.postgresql.jdbc.codec.LsegCodec;
 import org.postgresql.jdbc.codec.MoneyCodec;
 import org.postgresql.jdbc.codec.MultirangeCodec;
 import org.postgresql.jdbc.codec.NameCodec;
 import org.postgresql.jdbc.codec.NumericCodec;
 import org.postgresql.jdbc.codec.Oid8Codec;
 import org.postgresql.jdbc.codec.OidCodec;
+import org.postgresql.jdbc.codec.PathCodec;
+import org.postgresql.jdbc.codec.PointCodec;
+import org.postgresql.jdbc.codec.PolygonCodec;
 import org.postgresql.jdbc.codec.RangeCodec;
 import org.postgresql.jdbc.codec.TextCodecImpl;
 import org.postgresql.jdbc.codec.TextLikeCodec;
@@ -287,13 +293,13 @@ public class CodecRegistry {
     registerBuiltinExtension(HstoreCodec.INSTANCE);
 
     // Geometric types
-    registerBuiltin(GeometricCodec.POINT);
-    registerBuiltin(GeometricCodec.BOX);
-    registerBuiltin(GeometricCodec.CIRCLE);
-    registerBuiltin(GeometricCodec.LINE);
-    registerBuiltin(GeometricCodec.LSEG);
-    registerBuiltin(GeometricCodec.PATH);
-    registerBuiltin(GeometricCodec.POLYGON);
+    registerBuiltin(PointCodec.INSTANCE);
+    registerBuiltin(BoxCodec.INSTANCE);
+    registerBuiltin(CircleCodec.INSTANCE);
+    registerBuiltin(LineCodec.INSTANCE);
+    registerBuiltin(LsegCodec.INSTANCE);
+    registerBuiltin(PathCodec.INSTANCE);
+    registerBuiltin(PolygonCodec.INSTANCE);
 
     // Type aliases
     registerBuiltinAlias("int2", Int2Codec.INSTANCE);
@@ -410,13 +416,13 @@ public class CodecRegistry {
     pinBuiltinOid(Oid.XML, XmlCodec.INSTANCE);
 
     // Geometric types
-    pinBuiltinOid(Oid.POINT, GeometricCodec.POINT);
-    pinBuiltinOid(Oid.BOX, GeometricCodec.BOX);
-    pinBuiltinOid(Oid.CIRCLE, GeometricCodec.CIRCLE);
-    pinBuiltinOid(Oid.LINE, GeometricCodec.LINE);
-    pinBuiltinOid(Oid.LSEG, GeometricCodec.LSEG);
-    pinBuiltinOid(Oid.PATH, GeometricCodec.PATH);
-    pinBuiltinOid(Oid.POLYGON, GeometricCodec.POLYGON);
+    pinBuiltinOid(Oid.POINT, PointCodec.INSTANCE);
+    pinBuiltinOid(Oid.BOX, BoxCodec.INSTANCE);
+    pinBuiltinOid(Oid.CIRCLE, CircleCodec.INSTANCE);
+    pinBuiltinOid(Oid.LINE, LineCodec.INSTANCE);
+    pinBuiltinOid(Oid.LSEG, LsegCodec.INSTANCE);
+    pinBuiltinOid(Oid.PATH, PathCodec.INSTANCE);
+    pinBuiltinOid(Oid.POLYGON, PolygonCodec.INSTANCE);
   }
 
   /**

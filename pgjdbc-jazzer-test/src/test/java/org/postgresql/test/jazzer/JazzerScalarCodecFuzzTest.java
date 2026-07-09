@@ -169,9 +169,7 @@ class JazzerScalarCodecFuzzTest {
   // The geometric types (blind spot Z6, U7b): point, line, lseg, box, path, polygon, circle. Like the
   // PGobject scalars above they carry a codec but no coercion row, so the PgType is built inline from
   // the pinned built-in OID and the value comes from JazzerValues (the stock mutators build no PG
-  // geometric type). point and box are binary-capable, so they round-trip in both formats; the other
-  // five have a text-only codec, so they use roundTripText -- roundTrip's binary leg would fail for a
-  // type with no binary codec, not because the value is lossy.
+  // geometric type). All seven are binary-capable, so they round-trip in both formats.
 
   @FuzzTest
   void pointRoundTrip(@NotNull FuzzedDataProvider data) throws SQLException {
@@ -187,32 +185,32 @@ class JazzerScalarCodecFuzzTest {
 
   @FuzzTest
   void lineRoundTrip(@NotNull FuzzedDataProvider data) throws SQLException {
-    CodecFuzzSupport.roundTripText(JazzerValues.lineValue(data),
+    CodecFuzzSupport.roundTrip(JazzerValues.lineValue(data),
         CodecFuzzSupport.scalar(Oid.LINE, "line", 'G'), PGline.class, CodecFuzzSupport.builtins());
   }
 
   @FuzzTest
   void lsegRoundTrip(@NotNull FuzzedDataProvider data) throws SQLException {
-    CodecFuzzSupport.roundTripText(JazzerValues.lsegValue(data),
+    CodecFuzzSupport.roundTrip(JazzerValues.lsegValue(data),
         CodecFuzzSupport.scalar(Oid.LSEG, "lseg", 'G'), PGlseg.class, CodecFuzzSupport.builtins());
   }
 
   @FuzzTest
   void pathRoundTrip(@NotNull FuzzedDataProvider data) throws SQLException {
-    CodecFuzzSupport.roundTripText(JazzerValues.pathValue(data),
+    CodecFuzzSupport.roundTrip(JazzerValues.pathValue(data),
         CodecFuzzSupport.scalar(Oid.PATH, "path", 'G'), PGpath.class, CodecFuzzSupport.builtins());
   }
 
   @FuzzTest
   void polygonRoundTrip(@NotNull FuzzedDataProvider data) throws SQLException {
-    CodecFuzzSupport.roundTripText(JazzerValues.polygonValue(data),
+    CodecFuzzSupport.roundTrip(JazzerValues.polygonValue(data),
         CodecFuzzSupport.scalar(Oid.POLYGON, "polygon", 'G'), PGpolygon.class,
         CodecFuzzSupport.builtins());
   }
 
   @FuzzTest
   void circleRoundTrip(@NotNull FuzzedDataProvider data) throws SQLException {
-    CodecFuzzSupport.roundTripText(JazzerValues.circleValue(data),
+    CodecFuzzSupport.roundTrip(JazzerValues.circleValue(data),
         CodecFuzzSupport.scalar(Oid.CIRCLE, "circle", 'G'), PGcircle.class, CodecFuzzSupport.builtins());
   }
 
