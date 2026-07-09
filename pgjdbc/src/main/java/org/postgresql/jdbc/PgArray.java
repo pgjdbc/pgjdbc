@@ -231,6 +231,7 @@ public class PgArray implements Array {
       // which getArray() returns null.
       Object full = null;
       if (ArrayCodec.canDecodeArrayViaWalker(getPgType(), codecContext)) {
+        byte[] fieldBytes = this.fieldBytes;
         if (fieldBytes != null && !useTextRepresentation) {
           TypeDescriptor arrayType = getPgType();
           full = ArrayCodec.decodeBinaryArray(fieldBytes, 0, fieldBytes.length, arrayType, codecContext);
