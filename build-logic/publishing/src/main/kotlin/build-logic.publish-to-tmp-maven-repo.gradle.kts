@@ -3,7 +3,7 @@ plugins {
     id("maven-publish")
 }
 
-val localRepoElements by configurations.creating {
+val localRepoElements = configurations.create("localRepoElements") {
     isCanBeConsumed = true
     isCanBeResolved = false
     description =
@@ -29,7 +29,7 @@ localRepoElements.outgoing.artifact(localRepoDir) {
     builtBy(tasks.named("publishAllPublicationsToTmp-mavenRepository"))
 }
 
-val cleanLocalRepository by tasks.registering(Delete::class) {
+val cleanLocalRepository = tasks.register<Delete>("cleanLocalRepository") {
     description = "Clears local-maven-repo so timestamp-based snapshot artifacts do not consume space"
     delete(localRepoDir)
 }

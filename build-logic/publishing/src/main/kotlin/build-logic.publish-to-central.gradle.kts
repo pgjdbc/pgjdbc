@@ -62,7 +62,7 @@ if (!buildParameters.release) {
 publishing {
     publications {
         // <editor-fold defaultstate="collapsed" desc="Override published artifacts (e.g. shaded instead of regular)">
-        val extraMavenPublications by configurations.creating {
+        val extraMavenPublications = configurations.create("extraMavenPublications") {
             isVisible = false
             isCanBeResolved = false
             isCanBeConsumed = false
@@ -169,7 +169,7 @@ publishing {
     }
 }
 
-val createReleaseBundle by tasks.registering(Sync::class) {
+val createReleaseBundle = tasks.register<Sync>("createReleaseBundle") {
     description = "This task should be used by github actions to create release artifacts along with a slsa attestation"
     val releaseDir = layout.buildDirectory.dir("release")
     outputs.dir(releaseDir)
@@ -190,4 +190,3 @@ publishing {
         }
     }
 }
-
