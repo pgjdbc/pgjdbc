@@ -89,11 +89,12 @@ public final class ReadOracle {
    * The outcome the registry predicts for a reader over a type: {@code readObject(Class)} uses the
    * class axis ({@code readObjectAs}), every other reader its {@code Accessor}.
    */
-  static CoercionOutcome expected(int oid, SqlInputReader reader, Class<?> target,
+  static @Nullable CoercionOutcome expected(int oid, SqlInputReader reader, Class<?> target,
       Map<String, String> config) {
-    return reader.accessor() == null
+    ReadCoercions.Accessor accessor = reader.accessor();
+    return accessor == null
         ? ReadCoercions.readObjectAs(ReadCoercions.Surface.SQL_INPUT, oid, target, config)
-        : ReadCoercions.read(ReadCoercions.Surface.SQL_INPUT, oid, reader.accessor(), config);
+        : ReadCoercions.read(ReadCoercions.Surface.SQL_INPUT, oid, accessor, config);
   }
 
   /**
@@ -113,9 +114,9 @@ public final class ReadOracle {
    * Throws an {@link AssertionError} on any unchecked leak the registry does not model.
    */
   static ReadResult verify(SQLInput in, SqlInputReader reader, Class<?> target,
-      CoercionOutcome expected, Format format, Object caseLabel) {
+      @Nullable CoercionOutcome expected, Format format, Object caseLabel) {
     try {
-      Object value = reader.read(in, target);
+      @Nullable Object value = reader.read(in, target);
       requireReturnAllowed(reader, target, expected, format, caseLabel);
       return ReadResult.returned(value);
     } catch (SQLException refused) {
@@ -133,7 +134,7 @@ public final class ReadOracle {
   }
 
   private static void requireReturnAllowed(SqlInputReader reader, Class<?> target,
-      CoercionOutcome expected, Format format, Object caseLabel) {
+      @Nullable CoercionOutcome expected, Format format, Object caseLabel) {
     if (OutcomeContract.allowsReturn(expected)) {
       return;
     }
@@ -142,7 +143,7 @@ public final class ReadOracle {
   }
 
   private static void requireRefusalMatches(SqlInputReader reader, Class<?> target,
-      CoercionOutcome expected, SQLException refused, Format format, Object caseLabel) {
+      @Nullable CoercionOutcome expected, SQLException refused, Format format, Object caseLabel) {
     String state = refused.getSQLState();
     if (!OutcomeContract.matchesRefusal(expected, state, Direction.READ)) {
       throw new AssertionError(describe(reader, target) + " refused with SQLState " + state
@@ -155,14 +156,14 @@ public final class ReadOracle {
     static final ReadResult NOT_RETURNED = new ReadResult(false, null);
 
     private final boolean returned;
-    private final Object value;
+    private final @Nullable Object value;
 
-    private ReadResult(boolean returned, Object value) {
+    private ReadResult(boolean returned, @Nullable Object value) {
       this.returned = returned;
       this.value = value;
     }
 
-    static ReadResult returned(Object value) {
+    static ReadResult returned(@Nullable Object value) {
       return new ReadResult(true, value);
     }
 
@@ -170,7 +171,7 @@ public final class ReadOracle {
       return returned;
     }
 
-    Object value() {
+    @Nullable Object value() {
       return value;
     }
   }

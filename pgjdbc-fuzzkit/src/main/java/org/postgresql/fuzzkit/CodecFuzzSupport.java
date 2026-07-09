@@ -39,6 +39,7 @@ import org.postgresql.jdbc.PgType;
 import org.postgresql.jdbc.codec.BackpatchByteArrayOutputStream;
 import org.postgresql.util.PGRange;
 import org.postgresql.util.PGmultirange;
+import org.postgresql.util.internal.Nullness;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -54,7 +55,6 @@ import java.util.Calendar;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 
@@ -729,27 +729,30 @@ public final class CodecFuzzSupport {
   private static byte @Nullable [] tryEncodeBinary(BinaryCodec codec, Object boxed, TypeDescriptor type,
       CodecContext ctx) {
     Outcome enc = Outcome.capture(() -> codec.encodeBinary(boxed, type, ctx));
-    return enc.threw ? null : (byte[]) Objects.requireNonNull(enc.value);
+    // enc.threw == false guarantees encodeBinary returned a value, a correlation the checker cannot
+    // see through the Outcome fields.
+    return enc.threw ? null
+        : (byte[]) Nullness.castNonNull(enc.value, "encodeBinary returned null without throwing");
   }
 
   private static int intOf(@Nullable Object value) {
-    return ((Number) Objects.requireNonNull(value)).intValue();
+    return ((Number) Nullness.castNonNull(value)).intValue();
   }
 
   private static long longOf(@Nullable Object value) {
-    return ((Number) Objects.requireNonNull(value)).longValue();
+    return ((Number) Nullness.castNonNull(value)).longValue();
   }
 
   private static float floatOf(@Nullable Object value) {
-    return ((Number) Objects.requireNonNull(value)).floatValue();
+    return ((Number) Nullness.castNonNull(value)).floatValue();
   }
 
   private static double doubleOf(@Nullable Object value) {
-    return ((Number) Objects.requireNonNull(value)).doubleValue();
+    return ((Number) Nullness.castNonNull(value)).doubleValue();
   }
 
   private static boolean boolOf(@Nullable Object value) {
-    return (Boolean) Objects.requireNonNull(value);
+    return (Boolean) Nullness.castNonNull(value);
   }
 
   /** A primitive binary encode driven into a fresh sink, as the raw value bytes. */
@@ -994,7 +997,7 @@ public final class CodecFuzzSupport {
     encodeParity(value, type, ctx);
     for (Format format : Format.values()) {
       RawValue raw = Codecs.encode(value, type, ctx, format);
-      T back = Codecs.decode(raw, type, ctx, target);
+      @Nullable T back = Codecs.decode(raw, type, ctx, target);
       assertEquals(value, back, () -> type.getTypeName() + " " + format + " round-trip");
     }
   }
@@ -1016,7 +1019,7 @@ public final class CodecFuzzSupport {
       throws SQLException {
     encodeParity(value, type, ctx);
     RawValue raw = Codecs.encode(value, type, ctx, Format.TEXT);
-    T back = Codecs.decode(raw, type, ctx, target);
+    @Nullable T back = Codecs.decode(raw, type, ctx, target);
     assertEquals(value, back, () -> type.getTypeName() + " text round-trip");
   }
 
@@ -1025,7 +1028,8 @@ public final class CodecFuzzSupport {
     PgType numeric = PgTypeDescriptors.scalar(Oid.NUMERIC).pgType();
     for (Format format : Format.values()) {
       RawValue raw = Codecs.encode(value, numeric, ctx, format);
-      BigDecimal back = Codecs.decode(raw, numeric, ctx, BigDecimal.class);
+      BigDecimal back = Nullness.castNonNull(Codecs.decode(raw, numeric, ctx, BigDecimal.class),
+          "numeric round-trip decoded null for a non-null written value");
       assertEquals(0, value.compareTo(back),
           () -> "numeric " + format + ": " + value + " != " + back);
     }
@@ -1036,7 +1040,7 @@ public final class CodecFuzzSupport {
     PgType bytea = PgTypeDescriptors.scalar(Oid.BYTEA).pgType();
     for (Format format : Format.values()) {
       RawValue raw = Codecs.encode(value, bytea, ctx, format);
-      byte[] back = Codecs.decode(raw, bytea, ctx, byte[].class);
+      byte @Nullable [] back = Codecs.decode(raw, bytea, ctx, byte[].class);
       assertArrayEquals(value, back, "bytea " + format + " round-trip");
     }
   }
@@ -1061,7 +1065,7 @@ public final class CodecFuzzSupport {
     Class<?> target = descriptor.targetClass(leafRepr, ndim);
     for (Format format : Format.values()) {
       RawValue raw = Codecs.encode(value, arrayType, ctx, format);
-      Object back = Codecs.decode(raw, arrayType, ctx, target);
+      @Nullable Object back = Codecs.decode(raw, arrayType, ctx, target);
       if (!descriptor.fidelity().equal(value, back)) {
         throw new AssertionError(arrayType.getTypeName() + " " + format + " round-trip: " + leafRepr
             + " " + ndim + "D mismatch");
@@ -1074,7 +1078,8 @@ public final class CodecFuzzSupport {
       throws SQLException {
     for (Format format : Format.values()) {
       RawValue raw = Codecs.encode(new PgStruct(type, attributes, null), type, ctx, format);
-      Struct back = Codecs.decode(raw, type, ctx, Struct.class);
+      Struct back = Nullness.castNonNull(Codecs.decode(raw, type, ctx, Struct.class),
+          "struct round-trip decoded null for a non-null written struct");
       assertArrayEquals(attributes, back.getAttributes(),
           type.getTypeName() + " " + format + " struct round-trip");
     }
@@ -1098,7 +1103,8 @@ public final class CodecFuzzSupport {
 
     RawValue raw = Codecs.encode(new PgStruct(recordType, values, null), recordType, ctx,
         Format.BINARY);
-    Struct back = Codecs.decode(raw, recordType, ctx, Struct.class);
+    Struct back = Nullness.castNonNull(Codecs.decode(raw, recordType, ctx, Struct.class),
+        "record round-trip decoded null for a non-null written record");
     assertArrayEquals(values, back.getAttributes(), "anonymous record binary round-trip");
   }
 
@@ -1112,26 +1118,29 @@ public final class CodecFuzzSupport {
   public static <T> void crossFormat(Object value, PgType type, Class<T> target, CodecContext ctx)
       throws SQLException {
     encodeParity(value, type, ctx);
-    T viaText = Codecs.decode(Codecs.encode(value, type, ctx, Format.TEXT), type, ctx, target);
-    T viaBinary = Codecs.decode(Codecs.encode(value, type, ctx, Format.BINARY), type, ctx, target);
+    @Nullable T viaText = Codecs.decode(Codecs.encode(value, type, ctx, Format.TEXT), type, ctx, target);
+    @Nullable T viaBinary =
+        Codecs.decode(Codecs.encode(value, type, ctx, Format.BINARY), type, ctx, target);
     assertEquals(viaText, viaBinary, () -> type.getTypeName() + " text vs binary");
   }
 
   public static void numericCrossFormat(BigDecimal value, CodecContext ctx) throws SQLException {
     PgType numeric = PgTypeDescriptors.scalar(Oid.NUMERIC).pgType();
-    BigDecimal viaText = Codecs.decode(
-        Codecs.encode(value, numeric, ctx, Format.TEXT), numeric, ctx, BigDecimal.class);
-    BigDecimal viaBinary = Codecs.decode(
-        Codecs.encode(value, numeric, ctx, Format.BINARY), numeric, ctx, BigDecimal.class);
+    BigDecimal viaText = Nullness.castNonNull(Codecs.decode(
+        Codecs.encode(value, numeric, ctx, Format.TEXT), numeric, ctx, BigDecimal.class),
+        "numeric cross-format decoded null for a non-null written value");
+    BigDecimal viaBinary = Nullness.castNonNull(Codecs.decode(
+        Codecs.encode(value, numeric, ctx, Format.BINARY), numeric, ctx, BigDecimal.class),
+        "numeric cross-format decoded null for a non-null written value");
     assertEquals(0, viaText.compareTo(viaBinary),
         () -> "numeric text " + viaText + " vs binary " + viaBinary);
   }
 
   public static void byteaCrossFormat(byte[] value, CodecContext ctx) throws SQLException {
     PgType bytea = PgTypeDescriptors.scalar(Oid.BYTEA).pgType();
-    byte[] viaText = Codecs.decode(
+    byte @Nullable [] viaText = Codecs.decode(
         Codecs.encode(value, bytea, ctx, Format.TEXT), bytea, ctx, byte[].class);
-    byte[] viaBinary = Codecs.decode(
+    byte @Nullable [] viaBinary = Codecs.decode(
         Codecs.encode(value, bytea, ctx, Format.BINARY), bytea, ctx, byte[].class);
     assertArrayEquals(viaText, viaBinary, "bytea text vs binary");
   }
@@ -1151,9 +1160,9 @@ public final class CodecFuzzSupport {
       CodecContext ctx) throws SQLException {
     PgType arrayType = descriptor.pgType();
     Class<?> target = descriptor.targetClass(leafRepr, ndim);
-    Object viaText = Codecs.decode(
+    @Nullable Object viaText = Codecs.decode(
         Codecs.encode(value, arrayType, ctx, Format.TEXT), arrayType, ctx, target);
-    Object viaBinary = Codecs.decode(
+    @Nullable Object viaBinary = Codecs.decode(
         Codecs.encode(value, arrayType, ctx, Format.BINARY), arrayType, ctx, target);
     if (!descriptor.fidelity().equal(viaText, viaBinary)) {
       throw new AssertionError(arrayType.getTypeName() + " text vs binary: " + leafRepr + " " + ndim
@@ -1163,12 +1172,12 @@ public final class CodecFuzzSupport {
 
   public static void structCrossFormat(PgType type, Object[] attributes, CodecContext ctx)
       throws SQLException {
-    Struct viaText = Codecs.decode(
+    Struct viaText = Nullness.castNonNull(Codecs.decode(
         Codecs.encode(new PgStruct(type, attributes, null), type, ctx, Format.TEXT),
-        type, ctx, Struct.class);
-    Struct viaBinary = Codecs.decode(
+        type, ctx, Struct.class), "struct cross-format decoded null for a non-null written struct");
+    Struct viaBinary = Nullness.castNonNull(Codecs.decode(
         Codecs.encode(new PgStruct(type, attributes, null), type, ctx, Format.BINARY),
-        type, ctx, Struct.class);
+        type, ctx, Struct.class), "struct cross-format decoded null for a non-null written struct");
     assertArrayEquals(viaText.getAttributes(), viaBinary.getAttributes(),
         type.getTypeName() + " text vs binary");
   }
@@ -1188,7 +1197,7 @@ public final class CodecFuzzSupport {
 
   private static Built build(FuzzNode node, int[] counter, List<PgType> registry) {
     List<PgField> pgFields = new ArrayList<>(node.fields.size());
-    Object[] attributes = new Object[node.fields.size()];
+    @Nullable Object[] attributes = new Object[node.fields.size()];
     for (int i = 0; i < node.fields.size(); i++) {
       FuzzNode.Field field = node.fields.get(i);
       int fieldOid;
@@ -1196,7 +1205,9 @@ public final class CodecFuzzSupport {
         fieldOid = field.scalarOid;
         attributes[i] = field.scalarValue;
       } else {
-        Built child = build(field.nested, counter, registry);
+        // field.isScalar() == false guarantees field.nested is set (see FuzzNode.Field), a
+        // correlation the checker cannot see through the two nullable fields.
+        Built child = build(Nullness.castNonNull(field.nested), counter, registry);
         fieldOid = child.type.getOid();
         attributes[i] = child.struct;
       }
@@ -1237,7 +1248,8 @@ public final class CodecFuzzSupport {
     Format[] formats = root.anonymous ? new Format[]{Format.BINARY} : Format.values();
     for (Format format : formats) {
       RawValue raw = Codecs.encode(built.struct, built.type, ctx, format);
-      Struct decoded = Codecs.decode(raw, built.type, ctx, Struct.class);
+      Struct decoded = Nullness.castNonNull(Codecs.decode(raw, built.type, ctx, Struct.class),
+          "nested composite round-trip decoded null for a non-null written struct");
       assertNodeEquals(root, decoded);
     }
   }
@@ -1250,7 +1262,8 @@ public final class CodecFuzzSupport {
       if (field.isScalar()) {
         assertEquals(field.scalarValue, attributes[i], "nested record scalar field");
       } else {
-        assertNodeEquals(field.nested, (Struct) attributes[i]);
+        // field.isScalar() == false guarantees field.nested is set (see FuzzNode.Field).
+        assertNodeEquals(Nullness.castNonNull(field.nested), (Struct) attributes[i]);
       }
     }
   }
@@ -1268,12 +1281,13 @@ public final class CodecFuzzSupport {
         90_010, 'b', 'A', -1, PgTypeDescriptors.POINT_OID, 0, 0);
     CodecContext ctx = OfflineCodecContexts.offlineBuilder().type(element).type(arrayType).build();
 
-    PgStruct[] structs = new PgStruct[rows.length];
+    @Nullable PgStruct[] structs = new PgStruct[rows.length];
     for (int i = 0; i < rows.length; i++) {
       structs[i] = rows[i] == null ? null : new PgStruct(element, rows[i], null);
     }
     RawValue raw = Codecs.encode(structs, arrayType, ctx, Format.BINARY);
-    Object[] decoded = (Object[]) Codecs.decode(raw, arrayType, ctx, Object.class);
+    Object[] decoded = (Object[]) Nullness.castNonNull(Codecs.decode(raw, arrayType, ctx, Object.class),
+        "record[] round-trip decoded null for a non-null written array");
 
     assertEquals(rows.length, decoded.length, "record[] length");
     for (int i = 0; i < rows.length; i++) {
@@ -1374,7 +1388,7 @@ public final class CodecFuzzSupport {
 
     for (Format format : Format.values()) {
       RawValue raw = Codecs.encode(value, type, ctx, format);
-      FuzzSqlData back = Codecs.decode(raw, type, ctx, FuzzSqlData.class);
+      @Nullable FuzzSqlData back = Codecs.decode(raw, type, ctx, FuzzSqlData.class);
       assertEquals(value, back, () -> "SQLData " + format + " round-trip");
     }
   }

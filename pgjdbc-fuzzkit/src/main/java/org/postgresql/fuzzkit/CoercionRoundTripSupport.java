@@ -145,8 +145,9 @@ public final class CoercionRoundTripSupport {
             || target == pair.naturalClass
             || (target == Object.class && defaultObject == pair.naturalClass));
 
-    CoercionOutcome writeExpected = WriteOracle.expected(oid, c.writer, c.writeValue);
-    CoercionOutcome readExpected = ReadOracle.expected(oid, c.reader, target, Collections.emptyMap());
+    @Nullable CoercionOutcome writeExpected = WriteOracle.expected(oid, c.writer, c.writeValue);
+    @Nullable CoercionOutcome readExpected =
+        ReadOracle.expected(oid, c.reader, target, Collections.emptyMap());
     // A poison value (a non-finite numeric has no BigDecimal form) preempts the registry's type-based
     // outcome, so its read leg keeps only the weak invariant. descriptor.poison generalises the former
     // hard-coded nonFiniteNumeric rule; poison cases are always off-diagonal, so no fidelity is lost.
@@ -167,7 +168,11 @@ public final class CoercionRoundTripSupport {
         continue;
       }
       ReadOracle.ReadResult result = ReadOracle.verify(in, c.reader, target, readExpected, format, c);
-      if (checkFidelity && result.returned() && !pair.fidelity.equal(c.writeValue, result.value())) {
+      // checkFidelity is true only when pair != null (see its computation above); the explicit null
+      // check here is for the nullness checker's dataflow, which does not track that correlation
+      // through a separate boolean.
+      if (checkFidelity && pair != null && result.returned()
+          && !pair.fidelity.equal(c.writeValue, result.value())) {
         throw new AssertionError("round-trip changed the value on " + format + ": wrote "
             + c.writeValue + ", read " + result.value() + " " + c);
       }

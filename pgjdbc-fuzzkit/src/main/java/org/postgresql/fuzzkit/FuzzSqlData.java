@@ -5,6 +5,8 @@
 
 package org.postgresql.fuzzkit;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.SQLData;
@@ -32,12 +34,12 @@ public final class FuzzSqlData implements SQLData {
   public boolean boolValue;
   public float floatValue;
   public double doubleValue;
-  public String text;
-  public BigDecimal numeric;
-  public byte[] bytes;
-  public Date date;
-  public Time time;
-  public Timestamp timestamp;
+  public @Nullable String text;
+  public @Nullable BigDecimal numeric;
+  public byte @Nullable [] bytes;
+  public @Nullable Date date;
+  public @Nullable Time time;
+  public @Nullable Timestamp timestamp;
 
   public FuzzSqlData() {
   }
@@ -80,7 +82,7 @@ public final class FuzzSqlData implements SQLData {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(@Nullable Object o) {
     if (this == o) {
       return true;
     }
@@ -104,7 +106,7 @@ public final class FuzzSqlData implements SQLData {
 
   // numeric compares by value: PostgreSQL preserves scale, but comparing by scale would flag a
   // harmless 1.0 vs 1.00 as a mismatch.
-  private static boolean numericEquals(BigDecimal a, BigDecimal b) {
+  private static boolean numericEquals(@Nullable BigDecimal a, @Nullable BigDecimal b) {
     if (a == null || b == null) {
       // In this branch at least one side is null, so both-null is the only match.
       return a == null && b == null;

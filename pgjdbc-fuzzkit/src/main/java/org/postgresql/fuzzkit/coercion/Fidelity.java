@@ -5,6 +5,8 @@
 
 package org.postgresql.fuzzkit.coercion;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -40,35 +42,44 @@ public enum Fidelity {
   /** The value read back must equal the value written. */
   EQUALS {
     @Override
-    public boolean equal(Object written, Object read) {
+    public boolean equal(@Nullable Object written, @Nullable Object read) {
       return Objects.equals(written, read);
     }
   },
   /** The two {@link BigDecimal} values must be numerically equal, ignoring scale. */
   NUMERIC_EQUAL {
     @Override
-    public boolean equal(Object written, Object read) {
+    public boolean equal(@Nullable Object written, @Nullable Object read) {
+      if (written == null || read == null) {
+        return written == read;
+      }
       return ((BigDecimal) written).compareTo((BigDecimal) read) == 0;
     }
   },
   /** The two {@link OffsetDateTime} values must denote the same instant, whatever their offsets. */
   SAME_INSTANT {
     @Override
-    public boolean equal(Object written, Object read) {
+    public boolean equal(@Nullable Object written, @Nullable Object read) {
+      if (written == null || read == null) {
+        return written == read;
+      }
       return ((OffsetDateTime) written).isEqual((OffsetDateTime) read);
     }
   },
   /** The two {@code byte[]} values must be element-wise equal. */
   BYTES_EQUAL {
     @Override
-    public boolean equal(Object written, Object read) {
+    public boolean equal(@Nullable Object written, @Nullable Object read) {
+      if (written == null || read == null) {
+        return written == read;
+      }
       return Arrays.equals((byte[]) written, (byte[]) read);
     }
   },
   /** The two arrays must be recursively equal, unwrapping every dimension and primitive leaf. */
   DEEP_EQUALS {
     @Override
-    public boolean equal(Object written, Object read) {
+    public boolean equal(@Nullable Object written, @Nullable Object read) {
       if (written == null || read == null) {
         return written == read;
       }
@@ -113,5 +124,5 @@ public enum Fidelity {
   };
 
   /** Whether the value read back matches the value written under this fidelity. */
-  public abstract boolean equal(Object written, Object read);
+  public abstract boolean equal(@Nullable Object written, @Nullable Object read);
 }

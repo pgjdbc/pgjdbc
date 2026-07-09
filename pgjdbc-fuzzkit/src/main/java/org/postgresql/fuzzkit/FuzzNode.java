@@ -5,6 +5,8 @@
 
 package org.postgresql.fuzzkit;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.List;
 
 /**
@@ -30,10 +32,12 @@ public final class FuzzNode {
   public static final class Field {
 
     final int scalarOid;
-    final Object scalarValue;
-    final FuzzNode nested;
+    /** Set for a scalar leaf ({@link #isScalar()}); {@code null} for a nested record. */
+    final @Nullable Object scalarValue;
+    /** Set for a nested record; {@code null} for a scalar leaf ({@link #isScalar()}). */
+    final @Nullable FuzzNode nested;
 
-    private Field(int scalarOid, Object scalarValue, FuzzNode nested) {
+    private Field(int scalarOid, @Nullable Object scalarValue, @Nullable FuzzNode nested) {
       this.scalarOid = scalarOid;
       this.scalarValue = scalarValue;
       this.nested = nested;

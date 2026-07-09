@@ -7,6 +7,8 @@ package org.postgresql.fuzzkit;
 
 import org.postgresql.fuzzkit.coercion.ReadCoercions.Accessor;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.SQLException;
 import java.sql.SQLInput;
 import java.util.EnumMap;
@@ -63,10 +65,15 @@ public enum SqlInputReader {
   READ_ROWID(Accessor.READ_ROWID, "readRowId", (in, target) -> in.readRowId()),
   READ_OBJECT_AS(null, "readObject(Class)", (in, target) -> in.readObject(target));
 
-  /** Invokes one {@code SQLInput} reader. {@code target} is used only by {@code readObject(Class)}. */
+  /**
+   * Invokes one {@code SQLInput} reader. {@code target} is used only by {@code readObject(Class)}.
+   * Nullable: a SQL {@code NULL} column legitimately reads back as {@code null} -- most concretely
+   * through {@code readObject(Class)}, whose unbounded generic return type the Checker Framework's
+   * JDK stubs model as nullable.
+   */
   @FunctionalInterface
   interface Invoker {
-    Object read(SQLInput in, Class<?> target) throws SQLException;
+    @Nullable Object read(SQLInput in, Class<?> target) throws SQLException;
   }
 
   /** Every bound {@link Accessor} to its reader; {@code readObject(Class)} has no accessor and is absent. */
@@ -108,14 +115,14 @@ public enum SqlInputReader {
     return reader;
   }
 
-  private final Accessor accessor;
+  private final @Nullable Accessor accessor;
   private final String label;
   // The invoker is a stateless method-reference-style lambda, so the enum is effectively immutable;
   // errorprone cannot prove it because the functional interface is not annotated @Immutable.
   @SuppressWarnings("ImmutableEnumChecker")
   private final Invoker invoker;
 
-  SqlInputReader(Accessor accessor, String label, Invoker invoker) {
+  SqlInputReader(@Nullable Accessor accessor, String label, Invoker invoker) {
     this.accessor = accessor;
     this.label = label;
     this.invoker = invoker;
@@ -125,7 +132,7 @@ public enum SqlInputReader {
    * The registry outcome cell this reader checks against, or {@code null} for {@code readObject(Class)}
    * (its outcome comes from {@code ReadCoercions.readObjectAs}).
    */
-  Accessor accessor() {
+  @Nullable Accessor accessor() {
     return accessor;
   }
 
@@ -134,7 +141,7 @@ public enum SqlInputReader {
     return label;
   }
 
-  Object read(SQLInput in, Class<?> target) throws SQLException {
+  @Nullable Object read(SQLInput in, Class<?> target) throws SQLException {
     return invoker.read(in, target);
   }
 }

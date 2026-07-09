@@ -16,6 +16,8 @@ import org.postgresql.jdbc.PgSQLInputText;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.util.ByteConverter;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.SQLInput;
@@ -63,7 +65,7 @@ public final class CoercionFuzzSupport {
     // targetClass maps to a harmless placeholder.
     Class<?> target = c.targetClass == null ? Object.class : c.targetClass;
     // The registry outcome is format-independent, so it is looked up once for the whole matrix cell.
-    CoercionOutcome expected = ReadOracle.expected(oid, c.reader, target, config);
+    @Nullable CoercionOutcome expected = ReadOracle.expected(oid, c.reader, target, config);
 
     for (Format format : Format.values()) {
       SQLInput in = openReader(c, oid, comp, ctx, format);

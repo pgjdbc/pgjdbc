@@ -40,7 +40,7 @@ public final class WriteOracle {
   }
 
   /** The outcome the registry predicts for a writer encoding its value into a type. */
-  static CoercionOutcome expected(int oid, SqlOutputWriterBinding writer, Object value) {
+  static @Nullable CoercionOutcome expected(int oid, SqlOutputWriterBinding writer, Object value) {
     WriteCoercions.Method method = writer.method();
     return method.notImplemented()
         ? CoercionOutcome.NOT_IMPLEMENTED
@@ -53,7 +53,8 @@ public final class WriteOracle {
    * {@link AssertionError} on any unchecked leak the registry does not model.
    */
   static @Nullable RawValue verify(PgType comp, PgCodecContext ctx, Format format,
-      SqlOutputWriterBinding writer, Object value, CoercionOutcome expected, Object caseLabel) {
+      SqlOutputWriterBinding writer, Object value, @Nullable CoercionOutcome expected,
+      Object caseLabel) {
     try {
       RawValue wire = Codecs.encode(new WriteProbe(writer, value), comp, ctx, format);
       requireEncodeAllowed(writer, expected, format, caseLabel);
@@ -67,8 +68,8 @@ public final class WriteOracle {
     }
   }
 
-  private static void requireEncodeAllowed(SqlOutputWriterBinding writer, CoercionOutcome expected,
-      Format format, Object caseLabel) {
+  private static void requireEncodeAllowed(SqlOutputWriterBinding writer,
+      @Nullable CoercionOutcome expected, Format format, Object caseLabel) {
     if (OutcomeContract.allowsReturn(expected)) {
       return;
     }
@@ -76,8 +77,8 @@ public final class WriteOracle {
         + expected + " on " + format + " " + caseLabel);
   }
 
-  private static void requireRefusalMatches(SqlOutputWriterBinding writer, CoercionOutcome expected,
-      SQLException refused, Format format, Object caseLabel) {
+  private static void requireRefusalMatches(SqlOutputWriterBinding writer,
+      @Nullable CoercionOutcome expected, SQLException refused, Format format, Object caseLabel) {
     String state = refused.getSQLState();
     if (!OutcomeContract.matchesRefusal(expected, state, Direction.WRITE)) {
       throw new AssertionError("writer " + writer.label() + " refused with SQLState " + state

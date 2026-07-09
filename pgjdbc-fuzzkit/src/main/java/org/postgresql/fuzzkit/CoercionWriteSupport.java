@@ -10,6 +10,8 @@ import org.postgresql.fuzzkit.coercion.CoercionOutcome;
 import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.jdbc.PgType;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.sql.SQLException;
 import java.util.TimeZone;
 
@@ -31,7 +33,7 @@ public final class CoercionWriteSupport {
         .timeZone(TimeZone.getDefault())
         .build();
 
-    CoercionOutcome expected = WriteOracle.expected(oid, c.writer, c.value);
+    @Nullable CoercionOutcome expected = WriteOracle.expected(oid, c.writer, c.value);
     for (Format format : Format.values()) {
       WriteOracle.verify(comp, ctx, format, c.writer, c.value, expected, c);
     }
