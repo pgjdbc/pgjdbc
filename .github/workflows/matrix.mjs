@@ -58,6 +58,11 @@ matrix.addAxis({
 // renovate: datasource=docker depName=postgres versioning=regex:^(?<major>\d+)$
 const MAX_PG = '18';
 
+// On pull requests HEAD is opt-out via the RUN_PG_HEAD_TESTS_IN_PR repository variable; branch
+// builds always test it.
+const isPullRequest = !!process.env.GITHUB_PR_NUMBER;
+const runPgHeadTests = !isPullRequest || process.env.RUN_PG_HEAD_TESTS_IN_PR !== 'false';
+
 matrix.addAxis({
   name: 'pg_version',
   title: x => 'PG ' + x,
@@ -77,8 +82,8 @@ matrix.addAxis({
   ]
 });
 
-// Test with PostgreSQL HEAD for branch-based builds only.
-if ((process.env.GITHUB_REF || '').startsWith('refs/heads/')) {
+// Keep HEAD out of the axis when disabled, otherwise the random fill could still pick it.
+if (runPgHeadTests) {
   matrix.axisByName.pg_version.values.push('HEAD');
 }
 
@@ -340,7 +345,9 @@ const include = matrix.generateRows(Number(process.env.MATRIX_JOBS || 6), {
     {java_version: eaJava},
     // Ensure we have a job with the minimal and maximal PostgreSQL versions
     {pg_version: matrix.axisByName.pg_version.values[0]},
-    {pg_version: matrix.axisByName.pg_version.values.slice(-1)[0]},
+    // Ensure we test with latest released PG
+    {pg_version: MAX_PG},
+    ...(runPgHeadTests ? [{pg_version: 'HEAD'}] : []),
     // Ensure at least one job with "simple" query_mode exists
     {query_mode: {value: 'simple'}},
     // Ensure there will be at least one job with minimal supported Java
