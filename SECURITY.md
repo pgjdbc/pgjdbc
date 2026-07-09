@@ -1,17 +1,29 @@
 # Security Policy
 
-1) We value backward compatibility, so we expect that upgrading pgjdbc versions should not involve code changes nor it should it require configuration changes.
-2) In the event that you are unable to upgrade, you might expect or ask for security fixes for the past versions as well. However, please raise the reason you unable to upgrade in the mailing list or in the issues
+We value backward compatibility. Upgrading pgJDBC, including across
+minor versions, should not require code or configuration changes. If
+you cannot upgrade and need a fix backported, open an issue or write
+to the mailing list with the reason you're stuck.
 
-| Version  | Supported          |
-| -------- | ------------------ |
-| latest 42.x | security fixes, features, bug fixes |
-| 42.2.x   | (the latest branch that supports Java 6, and 7): security fixes, critical bug fixes only. |
-| all the other versions | security fixes (upon request) |
+## Supported versions
 
-The intention is to separate «we are eager fixing bugs» from «we can roll security releases».
-It would not be impossible for us to roll security fixes even for 9.4 versions if necessary.
+| Version | We ship |
+| ------- | ------- |
+| Latest 42.x line | security releases, features, bug fixes |
+| Every older 42.x line within the proactive-security window | security releases on the line's own minor |
+| 42.2.x (last line supporting Java 6 / 7) | security releases, critical bug fixes |
+| Every other version (past the window) | security backports on request |
 
-## Reporting a Vulnerability
+The **proactive-security window** is five years past the `.0` of the
+next minor. While a line is in the window, every CVE gets a dedicated
+patch release on that same line; applying the fix never requires
+moving to a newer minor. The latest line has no successor yet and
+stays in full support indefinitely.
 
-Please send reports of security issues to pgsql-jdbc-security@lists.postgresql.org
+Lines past the window remain eligible for a backport on request.
+Open an issue with the reason you're stuck. We have rolled patches
+as far back as 9.4 when the need was real.
+
+## Reporting a vulnerability
+
+Please send reports of security issues to pgsql-jdbc-security@lists.postgresql.org.
