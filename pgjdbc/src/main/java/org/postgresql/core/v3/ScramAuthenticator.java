@@ -84,11 +84,18 @@ final class ScramAuthenticator {
   private static List<String> advertisedMechanisms(PGStream stream, ChannelBinding channelBinding)
       throws PSQLException, IOException {
     List<String> mechanisms = new ArrayList<>();
-    do {
+    // Pre-check the terminator: a malformed body containing only the list terminator
+    // (zero mechanisms) must not cause the loop to consume the terminator as an empty
+    // mechanism and then peek into the next backend message.
+    while (stream.peekChar() != 0) {
       mechanisms.add(stream.receiveString());
-    } while (stream.peekChar() != 0);
+    }
     int c = stream.receiveChar();
     assert c == 0;
+    // The mechanism list is the entire AuthenticationSASL body. Verify the envelope was
+    // fully consumed so a desynced packet of the form `SCRAM-SHA-256\0\0<extra>` cannot
+    // leak <extra> into the next message header.
+    stream.endMessage();
     if (mechanisms.isEmpty()) {
       throw new PSQLException(
           GT.tr("Received AuthenticationSASL message with 0 mechanisms!"),
