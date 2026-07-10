@@ -192,8 +192,7 @@ public final class TemporalCodecs {
 
   /** Formats the binary {@code timetz} payload as text without an intermediate object. */
   public static String formatOffsetTimeBin(byte[] data, CodecContext ctx) throws SQLException {
-    return TimestampUtils.toStringOffsetTimeBin(ctx.usesDoubleDateTime(), ctx.getClientTimeZone(),
-        data, null);
+    return TimestampUtils.toStringOffsetTimeBin(ctx.usesDoubleDateTime(), data, null);
   }
 
   /** Formats the binary {@code timestamptz} payload as text without an intermediate object. */

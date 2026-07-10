@@ -2,6 +2,11 @@
 Notable changes since version 42.0.0, read the complete [History of Changes](https://jdbc.postgresql.org/documentation/changelog.html).
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
+## [Unreleased]
+
+### Fixed
+* fix: `getString()` on a `timetz` value received over the binary protocol now keeps the value's own UTC offset (for example `16:21:50+03:30`) instead of shifting the value into the session time zone and reporting `+00`. The binary and text protocols now render `timetz` the same way, matching the server's `::text` output; `getObject(OffsetTime.class)` was already correct. Code that relied on the previous session-zone-normalised string must adjust.
+
 ## [42.7.13] (2026-07-06)
 
 ### Added

@@ -1311,43 +1311,24 @@ public class TimestampUtils {
   }
 
   /**
-   * Converts {@code timetz} to string taking client time zone ({@link #timeZoneProvider})
-   * into account.
+   * Converts the binary {@code timetz} representation to string, preserving the offset the value
+   * carries.
    * @param value binary representation of {@code timetz}
    * @return string representation of {@code timetz}
    */
   public String toStringOffsetTimeBin(byte[] value) throws PSQLException {
     try (ResourceLock ignore = lock.obtain()) {
-      return toStringOffsetTimeBin(usesDouble, timeZoneProvider.get(), value, sbuf);
+      return toStringOffsetTimeBin(usesDouble, value, sbuf);
     }
   }
 
-  static String toStringOffsetTimeBin(boolean usesDouble, TimeZone clientTz, byte[] value,
+  static String toStringOffsetTimeBin(boolean usesDouble, byte[] value,
       @Nullable StringBuilder out) throws PSQLException {
+    // The binary timetz payload carries its own UTC offset, so render it as-is: getString then
+    // matches the text format and the server's timetz output. Unlike timestamptz (an instant shown
+    // in the session zone), timetz has a fixed offset that must not be shifted away.
     OffsetTime offsetTimeBin = toOffsetTimeBin(usesDouble, value, 0, value.length);
-    return toStringOffsetTime(withClientOffsetSameInstant(offsetTimeBin, clientTz), out);
-  }
-
-  /**
-   * PostgreSQL does not store the time zone in the binary representation of timetz.
-   * However, we want to preserve the output of {@code getString()} in both binary and text formats
-   * So we try a client time zone when serializing {@link OffsetTime} to string.
-   * @param input input offset time
-   * @return adjusted offset time (it represents the same instant as the input one)
-   */
-  public OffsetTime withClientOffsetSameInstant(OffsetTime input) {
-    return withClientOffsetSameInstant(input, timeZoneProvider.get());
-  }
-
-  static OffsetTime withClientOffsetSameInstant(OffsetTime input, TimeZone timeZone) {
-    if (input.equals(OffsetTime.MAX) || input.equals(OffsetTime.MIN)) {
-      return input;
-    }
-    int offsetMillis = timeZone.getRawOffset();
-    return input.withOffsetSameInstant(
-        offsetMillis == 0
-            ? ZoneOffset.UTC
-            : ZoneOffset.ofTotalSeconds(offsetMillis / 1000));
+    return toStringOffsetTime(offsetTimeBin, out);
   }
 
   public String toString(OffsetDateTime offsetDateTime) {
