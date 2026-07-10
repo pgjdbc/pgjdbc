@@ -1168,7 +1168,7 @@ public class DatabaseMetaDataTest {
     // Test that the table types returned are the same as those expected
     ResultSet rs = dbmd.getTableTypes();
     while (rs.next()) {
-      String tableType = new String(rs.getBytes(1));
+      String tableType = rs.getString(1);
       foundTableTypes.add(tableType);
     }
     rs.close();
