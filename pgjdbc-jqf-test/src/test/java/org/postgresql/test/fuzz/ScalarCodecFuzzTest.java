@@ -23,6 +23,7 @@ import edu.berkeley.cs.jqf.junit5.FuzzTest;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.time.OffsetTime;
 
 /**
  * Coverage-guided round-trip properties for scalar codecs and the regular (named composite) struct
@@ -151,6 +152,17 @@ class ScalarCodecFuzzTest {
   void intervalRoundTrip(PGInterval value) throws SQLException {
     CodecFuzzSupport.roundTrip(value, CodecFuzzSupport.scalar(Oid.INTERVAL, "interval", 'T'),
         PGInterval.class, CodecFuzzSupport.builtins());
+  }
+
+  // timetz getString parity (the class of the fixed binary-offset bug): roundTrip folds in
+  // crossFormatString, so decodeAsString over text and binary must agree. timetz carries its own
+  // offset, so unlike timestamptz (an instant rendered in the session zone, where the offline text
+  // and binary string forms legitimately differ) the offline check is unambiguous. timestamptz
+  // decode-to-string is covered against the live server by ServerTruthOracleTest instead.
+  @FuzzTest(arguments = PgValueArgumentsFactory.class)
+  void timetzRoundTrip(OffsetTime value) throws SQLException {
+    CodecFuzzSupport.roundTrip(value, PgTypeDescriptors.scalar(Oid.TIMETZ).pgType(),
+        OffsetTime.class, CodecFuzzSupport.builtins());
   }
 
   // The geometric types (blind spot Z6, U7b): point, line, lseg, box, path, polygon, circle. Like the

@@ -1469,6 +1469,7 @@ public final class CodecFuzzSupport {
       @Nullable T back = Codecs.decode(raw, type, ctx, target);
       assertEquals(value, back, () -> type.getTypeName() + " " + format + " round-trip");
     }
+    crossFormatString(value, type, ctx);
   }
 
   /**
@@ -1589,6 +1590,51 @@ public final class CodecFuzzSupport {
     @Nullable T viaBinary =
         Codecs.decode(Codecs.encode(value, type, ctx, Format.BINARY), type, ctx, target);
     assertEquals(viaText, viaBinary, () -> type.getTypeName() + " text vs binary");
+  }
+
+  /**
+   * Asserts {@code getString} parity across wire formats: {@code decodeAsString} of the text encoding
+   * and of the binary encoding of the same value must be equal. {@code getString} renders the value,
+   * not the wire, so a format-dependent string is a bug -- this is the class the {@code timetz} binary
+   * {@code getString} offset bug fell into (binary shifted to the session zone, text kept the wire
+   * offset). Folded into {@link #roundTrip}, so every round-tripped scalar gets it. Codecs that do not
+   * read one of the two formats are skipped: there is nothing to compare.
+   *
+   * @param value the value to encode each way and render as a string
+   * @param type the offline type
+   * @param ctx the offline codec context
+   */
+  public static void crossFormatString(Object value, PgType type, CodecContext ctx)
+      throws SQLException {
+    Codec codec = ctx.resolveCodec(type.getOid());
+    if (!(codec instanceof BinaryCodec) || !(codec instanceof TextCodec)) {
+      return;
+    }
+    // Some types render to a string that the binary decodeAsString now formats to match the server
+    // (Float8Text for float4/float8 and the geometric types that embed them; the IntervalStyle form
+    // for interval), while the offline text form still comes from the driver's own encodeText (Java
+    // Double.toString like 1.6e7, or PGInterval's verbose "H hours M mins S secs"). Over a live
+    // connection getString reads the server's own text on both formats, so they agree there (the live
+    // ServerTruthOracle confirms it); the offline gap is an encode-format artifact, not a getString
+    // bug. Everything else -- integers, numeric (scale-stable both ways), timetz/timestamptz, text,
+    // bool -- is compared, which is where the offline check earns its keep (it caught the timetz bug).
+    int oid = type.getOid();
+    if (type.getTypcategory() == 'G' || oid == Oid.FLOAT4 || oid == Oid.FLOAT8
+        || oid == Oid.INTERVAL) {
+      return;
+    }
+    BinaryCodec bin = (BinaryCodec) codec;
+    TextCodec txt = (TextCodec) codec;
+    if (!bin.supportsBinaryRead() || !txt.supportsTextRead()) {
+      return;
+    }
+    String textForm = Codecs.encode(value, type, ctx, Format.TEXT).asString(ctx.getCharset());
+    byte[] binForm = Codecs.encode(value, type, ctx, Format.BINARY).toByteArray();
+    @Nullable String viaText = txt.decodeAsString(textForm, type, ctx);
+    @Nullable String viaBinary = bin.decodeAsString(binForm, 0, binForm.length, type, ctx);
+    assertEquals(viaText, viaBinary,
+        () -> type.getTypeName() + " getString text vs binary: '" + viaText + "' != '" + viaBinary
+            + "'");
   }
 
   public static void numericCrossFormat(BigDecimal value, CodecContext ctx) throws SQLException {

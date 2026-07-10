@@ -562,11 +562,14 @@ public final class PgValueArgumentsFactory implements ArgumentsGeneratorFactory 
     if (type == PGcircle.class) {
       return CIRCLE;
     }
+    if (type == OffsetTime.class) {
+      return OFFSET_TIMES;
+    }
     throw new IllegalArgumentException(
         "PgValueArgumentsFactory generates FuzzArray, byte[], BigDecimal, FuzzRecord, FuzzNode, "
             + "Object[][], FuzzSqlData, CoercionCase, CoercionWriteCase, CoercionRoundTripCase, "
-            + "FuzzJson, FuzzBit, PGInterval and the geometric types (PGpoint, PGline, PGlseg, PGbox, "
-            + "PGpath, PGpolygon, PGcircle), not " + type.getName());
+            + "FuzzJson, FuzzBit, PGInterval, OffsetTime and the geometric types (PGpoint, PGline, "
+            + "PGlseg, PGbox, PGpath, PGpolygon, PGcircle), not " + type.getName());
   }
 
   /**
