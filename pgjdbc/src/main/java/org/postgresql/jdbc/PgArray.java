@@ -196,60 +196,59 @@ public class PgArray implements Array {
   public @Nullable Object getArrayImpl(long index, int count, @Nullable Map<String, Class<?>> map)
       throws SQLException {
     checkFreed();
-    CodecDepth.enter();
-    try {
-      // array index is out of range
-      if (index < 1) {
-        throw new PSQLException(GT.tr("The array index is out of range: {0}", index),
-            PSQLState.DATA_ERROR);
-      }
-      if (map != null && !map.isEmpty()) {
-        map = IdentifierNormalizingTypeMap.of(map, codecContext.getTypeInfo());
-      }
-
-      boolean useTextRepresentation = false;
-      Object javaArray = fieldArray;
-      if (javaArray != null) {
-        // Return the backing array verbatim only when its leaf component is a
-        // reference type: getArray() must hand back a boxed array (Double[][],
-        // never double[][]), so a primitive-backed array falls through to the
-        // encode/decode round-trip below, which boxes the leaves.
-        if ((map == null || map.isEmpty()) && index == 1 && count == 0
-            && !hasPrimitiveLeaf(javaArray)) {
-          return javaArray;
-        }
-        fieldString = ArrayCodec.INSTANCE.encodeText(javaArray, getPgType(), codecContext);
-        useTextRepresentation = true;
-      }
-
-      // Decode the whole array through the shared codec walker (a primitive fast leaf yields a typed
-      // array such as Integer[]/Long[]; every other element type an Object[]), then take the
-      // index/count slice and apply any per-call type map (a no-op unless an element is a PGobject
-      // mapped to an SQLData class; this also makes a non-empty map work in binary). The connection
-      // is always present (every PgArray is built from one) and canDecodeArrayViaWalker only fails
-      // for the degenerate element-oid-0 case, so a null result here means a null/empty array, for
-      // which getArray() returns null.
-      Object full = null;
-      if (ArrayCodec.canDecodeArrayViaWalker(getPgType(), codecContext)) {
-        byte[] fieldBytes = this.fieldBytes;
-        if (fieldBytes != null && !useTextRepresentation) {
-          TypeDescriptor arrayType = getPgType();
-          full = ArrayCodec.decodeBinaryArray(fieldBytes, 0, fieldBytes.length, arrayType, codecContext);
-        } else if (fieldString != null) {
-          full = ArrayCodec.decodeTextArray(fieldString, getPgType(), codecContext);
-        }
-      }
-      if (full == null) {
-        return null;
-      }
-      Object result = sliceArray(full, index, count);
-      if (map != null && !map.isEmpty() && result instanceof Object[]) {
-        applyTypeMapping((Object[]) result, map);
-      }
-      return result;
-    } finally {
-      CodecDepth.exit();
+    // No depth guard here: nesting is bounded inside the codec implementations (CompositeCodec,
+    // GenericArrayLeafCodec, DomainCodec, ...). A nested array field decodes to a lazy PgArray in a
+    // connection-bound context, so a single getArrayImpl only unwraps one array level; deeper
+    // recursion runs through those guarded codecs.
+    // array index is out of range
+    if (index < 1) {
+      throw new PSQLException(GT.tr("The array index is out of range: {0}", index),
+          PSQLState.DATA_ERROR);
     }
+    if (map != null && !map.isEmpty()) {
+      map = IdentifierNormalizingTypeMap.of(map, codecContext.getTypeInfo());
+    }
+
+    boolean useTextRepresentation = false;
+    Object javaArray = fieldArray;
+    if (javaArray != null) {
+      // Return the backing array verbatim only when its leaf component is a
+      // reference type: getArray() must hand back a boxed array (Double[][],
+      // never double[][]), so a primitive-backed array falls through to the
+      // encode/decode round-trip below, which boxes the leaves.
+      if ((map == null || map.isEmpty()) && index == 1 && count == 0
+          && !hasPrimitiveLeaf(javaArray)) {
+        return javaArray;
+      }
+      fieldString = ArrayCodec.INSTANCE.encodeText(javaArray, getPgType(), codecContext);
+      useTextRepresentation = true;
+    }
+
+    // Decode the whole array through the shared codec walker (a primitive fast leaf yields a typed
+    // array such as Integer[]/Long[]; every other element type an Object[]), then take the
+    // index/count slice and apply any per-call type map (a no-op unless an element is a PGobject
+    // mapped to an SQLData class; this also makes a non-empty map work in binary). The connection
+    // is always present (every PgArray is built from one) and canDecodeArrayViaWalker only fails
+    // for the degenerate element-oid-0 case, so a null result here means a null/empty array, for
+    // which getArray() returns null.
+    Object full = null;
+    if (ArrayCodec.canDecodeArrayViaWalker(getPgType(), codecContext)) {
+      byte[] fieldBytes = this.fieldBytes;
+      if (fieldBytes != null && !useTextRepresentation) {
+        TypeDescriptor arrayType = getPgType();
+        full = ArrayCodec.decodeBinaryArray(fieldBytes, 0, fieldBytes.length, arrayType, codecContext);
+      } else if (fieldString != null) {
+        full = ArrayCodec.decodeTextArray(fieldString, getPgType(), codecContext);
+      }
+    }
+    if (full == null) {
+      return null;
+    }
+    Object result = sliceArray(full, index, count);
+    if (map != null && !map.isEmpty() && result instanceof Object[]) {
+      applyTypeMapping((Object[]) result, map);
+    }
+    return result;
   }
 
   /**
@@ -477,69 +476,66 @@ public class PgArray implements Array {
   public ResultSet getResultSetImpl(long index, int count, @Nullable Map<String, Class<?>> map)
       throws SQLException {
     checkFreed();
-    CodecDepth.enter();
-    try {
-      if (map != null && !map.isEmpty()) {
-        map = IdentifierNormalizingTypeMap.of(map, codecContext.getTypeInfo());
-      }
-
-      // array index is out of range
-      if (index < 1) {
-        throw new PSQLException(GT.tr("The array index is out of range: {0}", index),
-            PSQLState.DATA_ERROR);
-      }
-
-      if (fieldBytes != null) {
-        return applyResultSetTypeMap(readBinaryResultSet(fieldBytes, (int) index, count), map);
-      }
-
-      Object array = fieldArray;
-      if (fieldString == null && array != null) {
-        fieldString = ArrayCodec.INSTANCE.encodeText(array, getPgType(), codecContext);
-      }
-
-      // Split the literal into its outermost-dimension elements through the codec's tokenizer
-      // (raw text per element, so a per-element re-decode by the consumer is faithful — e.g. a
-      // money currency symbol is preserved). Each element is a leaf value (1-D) or a nested literal.
-      ArrayCodec.TextArrayElements split =
-          ArrayCodec.splitTextArray(castNonNull(fieldString), getPgType().getDelimiter());
-      List<@Nullable String> elements = split.elements();
-      int size = elements.size();
-
-      if (count == 0) {
-        count = size;
-      }
-
-      // array index out of range
-      if ((--index) + count > size) {
-        throw new PSQLException(
-            GT.tr("The array index is out of range: {0}, number of elements: {1}.",
-                    index + count, (long) size),
-            PSQLState.DATA_ERROR);
-      }
-
-      List<Tuple> rows = new ArrayList<>();
-
-      Field[] fields = new Field[2];
-      fields[0] = new Field("INDEX", Oid.INT4);
-      // 1-D: the VALUE column is the element type; higher dimensions expose each row as a sub-array.
-      fields[1] = new Field("VALUE", split.dimensions() <= 1 ? getPgType().getTypelem() : oid);
-
-      for (int i = 0; i < count; i++) {
-        int offset = (int) index + i;
-        String v = elements.get(offset);
-        byte[] @Nullable [] t = new byte[2][0];
-        t[0] = getConnection().encodeString(Integer.toString(offset + 1));
-        t[1] = v == null ? null : getConnection().encodeString(v);
-        rows.add(new Tuple(t));
-      }
-
-      BaseStatement stat = (BaseStatement) getConnection()
-          .createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-      return applyResultSetTypeMap(stat.createDriverResultSet(fields, rows), map);
-    } finally {
-      CodecDepth.exit();
+    // No depth guard here: this only tokenizes the array into raw per-element text/bytes; the
+    // elements are decoded lazily by the returned ResultSet through the guarded codec path.
+    if (map != null && !map.isEmpty()) {
+      map = IdentifierNormalizingTypeMap.of(map, codecContext.getTypeInfo());
     }
+
+    // array index is out of range
+    if (index < 1) {
+      throw new PSQLException(GT.tr("The array index is out of range: {0}", index),
+          PSQLState.DATA_ERROR);
+    }
+
+    if (fieldBytes != null) {
+      return applyResultSetTypeMap(readBinaryResultSet(fieldBytes, (int) index, count), map);
+    }
+
+    Object array = fieldArray;
+    if (fieldString == null && array != null) {
+      fieldString = ArrayCodec.INSTANCE.encodeText(array, getPgType(), codecContext);
+    }
+
+    // Split the literal into its outermost-dimension elements through the codec's tokenizer
+    // (raw text per element, so a per-element re-decode by the consumer is faithful — e.g. a
+    // money currency symbol is preserved). Each element is a leaf value (1-D) or a nested literal.
+    ArrayCodec.TextArrayElements split =
+        ArrayCodec.splitTextArray(castNonNull(fieldString), getPgType().getDelimiter());
+    List<@Nullable String> elements = split.elements();
+    int size = elements.size();
+
+    if (count == 0) {
+      count = size;
+    }
+
+    // array index out of range
+    if ((--index) + count > size) {
+      throw new PSQLException(
+          GT.tr("The array index is out of range: {0}, number of elements: {1}.",
+                  index + count, (long) size),
+          PSQLState.DATA_ERROR);
+    }
+
+    List<Tuple> rows = new ArrayList<>();
+
+    Field[] fields = new Field[2];
+    fields[0] = new Field("INDEX", Oid.INT4);
+    // 1-D: the VALUE column is the element type; higher dimensions expose each row as a sub-array.
+    fields[1] = new Field("VALUE", split.dimensions() <= 1 ? getPgType().getTypelem() : oid);
+
+    for (int i = 0; i < count; i++) {
+      int offset = (int) index + i;
+      String v = elements.get(offset);
+      byte[] @Nullable [] t = new byte[2][0];
+      t[0] = getConnection().encodeString(Integer.toString(offset + 1));
+      t[1] = v == null ? null : getConnection().encodeString(v);
+      rows.add(new Tuple(t));
+    }
+
+    BaseStatement stat = (BaseStatement) getConnection()
+        .createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+    return applyResultSetTypeMap(stat.createDriverResultSet(fields, rows), map);
   }
 
   /**

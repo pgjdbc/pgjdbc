@@ -12,6 +12,7 @@ import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
+import org.postgresql.jdbc.CodecDepth;
 import org.postgresql.util.ByteConverter;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -83,29 +84,34 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
     if (codec == null) {
       throw noBinaryCodec();
     }
-    if (leaf instanceof Object[]) {
-      boolean hasNulls = false;
-      for (Object element : (Object[]) leaf) {
-        if (element == null) {
-          out.writeInt32(-1);
-          hasNulls = true;
-        } else {
+    CodecDepth.enter();
+    try {
+      if (leaf instanceof Object[]) {
+        boolean hasNulls = false;
+        for (Object element : (Object[]) leaf) {
+          if (element == null) {
+            out.writeInt32(-1);
+            hasNulls = true;
+          } else {
+            BinaryCodec.writeElement(out, element, codec, elementType, ctx);
+          }
+        }
+        return hasNulls;
+      }
+      if (leaf.getClass().isArray()) {
+        // Primitive leaf array (e.g. int[]/double[] bound to numeric[]): box each element and
+        // dispatch to the element codec. Primitive arrays never contain nulls.
+        int len = Array.getLength(leaf);
+        for (int i = 0; i < len; i++) {
+          Object element = Array.get(leaf, i);
           BinaryCodec.writeElement(out, element, codec, elementType, ctx);
         }
+        return false;
       }
-      return hasNulls;
+      throw unsupportedLeaf(leaf, ctx);
+    } finally {
+      CodecDepth.exit();
     }
-    if (leaf.getClass().isArray()) {
-      // Primitive leaf array (e.g. int[]/double[] bound to numeric[]): box each element and
-      // dispatch to the element codec. Primitive arrays never contain nulls.
-      int len = Array.getLength(leaf);
-      for (int i = 0; i < len; i++) {
-        Object element = Array.get(leaf, i);
-        BinaryCodec.writeElement(out, element, codec, elementType, ctx);
-      }
-      return false;
-    }
-    throw unsupportedLeaf(leaf, ctx);
   }
 
   @Override
@@ -121,18 +127,25 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
     @Nullable Object[] arr = (@Nullable Object[]) leaf;
     Class<?> target = decodeTargetComponent;
     int pos = cursor[0];
-    for (int i = 0; i < arr.length; i++) {
-      int length = ByteConverter.int4(data, pos);
-      pos += 4;
-      if (length == -1) {
-        arr[i] = null;
-      } else {
-        arr[i] = target != null
-            ? codec.decodeBinaryAs(data, pos, length, elementType, target,
-                ctx)
-            : codec.decodeBinary(data, pos, length, elementType, ctx);
-        pos += length;
+    // One depth level per leaf vector: an element that is itself a composite/array recurses back
+    // through the registry, so bound the nesting rather than risk a stack overflow.
+    CodecDepth.enter();
+    try {
+      for (int i = 0; i < arr.length; i++) {
+        int length = ByteConverter.int4(data, pos);
+        pos += 4;
+        if (length == -1) {
+          arr[i] = null;
+        } else {
+          arr[i] = target != null
+              ? codec.decodeBinaryAs(data, pos, length, elementType, target,
+                  ctx)
+              : codec.decodeBinary(data, pos, length, elementType, ctx);
+          pos += length;
+        }
       }
+    } finally {
+      CodecDepth.exit();
     }
     cursor[0] = pos;
   }
@@ -144,29 +157,34 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
     if (codec == null) {
       throw noTextCodec();
     }
-    if (leaf instanceof Object[]) {
-      Object[] arr = (Object[]) leaf;
-      for (int i = 0; i < arr.length; i++) {
-        if (i > 0) {
-          out.append(delimiter);
+    CodecDepth.enter();
+    try {
+      if (leaf instanceof Object[]) {
+        Object[] arr = (Object[]) leaf;
+        for (int i = 0; i < arr.length; i++) {
+          if (i > 0) {
+            out.append(delimiter);
+          }
+          appendElement(codec, arr[i], out, ctx);
         }
-        appendElement(codec, arr[i], out, ctx);
+        return;
       }
-      return;
-    }
-    if (leaf.getClass().isArray()) {
-      // Primitive leaf array (e.g. int[]/double[] bound to numeric[]): box each element. Primitive
-      // arrays never contain nulls.
-      int len = Array.getLength(leaf);
-      for (int i = 0; i < len; i++) {
-        if (i > 0) {
-          out.append(delimiter);
+      if (leaf.getClass().isArray()) {
+        // Primitive leaf array (e.g. int[]/double[] bound to numeric[]): box each element. Primitive
+        // arrays never contain nulls.
+        int len = Array.getLength(leaf);
+        for (int i = 0; i < len; i++) {
+          if (i > 0) {
+            out.append(delimiter);
+          }
+          appendElement(codec, Array.get(leaf, i), out, ctx);
         }
-        appendElement(codec, Array.get(leaf, i), out, ctx);
+        return;
       }
-      return;
+      throw unsupportedLeaf(leaf, ctx);
+    } finally {
+      CodecDepth.exit();
     }
-    throw unsupportedLeaf(leaf, ctx);
   }
 
   private void appendElement(TextCodec codec, @Nullable Object element, Appendable out,
@@ -199,21 +217,28 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
     }
     @Nullable Object[] arr = (@Nullable Object[]) leaf;
     Class<?> target = decodeTargetComponent;
-    for (int i = 0; i < arr.length; i++) {
-      if (i > 0) {
-        cur.expect(delimiter);
+    // One depth level per leaf vector: an element that is itself a composite/array recurses back
+    // through the registry, so bound the nesting rather than risk a stack overflow.
+    CodecDepth.enter();
+    try {
+      for (int i = 0; i < arr.length; i++) {
+        if (i > 0) {
+          cur.expect(delimiter);
+        }
+        cur.readValue(delimiter, '}');
+        if (!cur.tokenWasQuoted() && cur.tokenEquals("NULL")) {
+          arr[i] = null;
+        } else if (target != null) {
+          arr[i] = codec.decodeTextAs(
+              new String(cur.tokenChars(), cur.tokenOffset(), cur.tokenLength()), elementType, target,
+              ctx);
+        } else {
+          arr[i] = codec.decodeText(cur.tokenChars(), cur.tokenOffset(), cur.tokenLength(),
+              elementType, ctx);
+        }
       }
-      cur.readValue(delimiter, '}');
-      if (!cur.tokenWasQuoted() && cur.tokenEquals("NULL")) {
-        arr[i] = null;
-      } else if (target != null) {
-        arr[i] = codec.decodeTextAs(
-            new String(cur.tokenChars(), cur.tokenOffset(), cur.tokenLength()), elementType, target,
-            ctx);
-      } else {
-        arr[i] = codec.decodeText(cur.tokenChars(), cur.tokenOffset(), cur.tokenLength(),
-            elementType, ctx);
-      }
+    } finally {
+      CodecDepth.exit();
     }
   }
 

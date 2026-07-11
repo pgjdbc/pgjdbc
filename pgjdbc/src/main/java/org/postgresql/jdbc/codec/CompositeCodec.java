@@ -643,6 +643,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
     if (fields.size() != attributes.length) {
       throw Exceptions.compositeAttributeCountMismatch(compositeType.getTypeName().getName(), fields.size(), attributes.length);
     }
+    CodecDepth.enter();
     try {
       out.append('(');
       for (int i = 0; i < attributes.length; i++) {
@@ -668,6 +669,8 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       out.append(')');
     } catch (IOException e) {
       throw Exceptions.errorWritingComposite(e);
+    } finally {
+      CodecDepth.exit();
     }
   }
 
