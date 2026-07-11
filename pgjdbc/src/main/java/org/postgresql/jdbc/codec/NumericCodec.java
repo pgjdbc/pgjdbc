@@ -123,6 +123,38 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
     return bd.toPlainString();
   }
 
+  // getString must render numeric the way the server does. The default decodeAsString goes through
+  // BigDecimal.toString(), which switches to scientific notation once the adjusted exponent drops
+  // below -6 (e.g. 1E-20), but PostgreSQL's numeric ::text never does that and the text protocol's
+  // getString returns the plain server text. toPlainString() keeps binary getString consistent with
+  // the text path, the server, and decodeTextAs(String.class). NaN / +/-Infinity keep their spelling.
+
+  @Override
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return plainString(decodeBinary(data, offset, length, type, ctx));
+  }
+
+  @Override
+  public @Nullable String decodeAsString(String data, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    return plainString(decodeText(data, type, ctx));
+  }
+
+  private static @Nullable String plainString(@Nullable Object decoded) {
+    if (decoded == null) {
+      return null;
+    }
+    if (decoded instanceof BigDecimal) {
+      return ((BigDecimal) decoded).toPlainString();
+    }
+    double d = ((Number) decoded).doubleValue();
+    if (Double.isNaN(d)) {
+      return "NaN";
+    }
+    return d > 0 ? "Infinity" : "-Infinity";
+  }
+
   @Override
   public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {

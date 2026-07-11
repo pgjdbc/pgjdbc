@@ -222,6 +222,17 @@ class NumericCodecTest {
     assertEquals("123.456", result);
   }
 
+  // Regression: getString of a small value used BigDecimal.toString() and returned scientific
+  // notation ("1E-20") for a magnitude below ~1e-6, where the server's ::text and the text protocol
+  // print the plain form. Both wire formats must render the plain form.
+  @Test
+  void decodeAsString_smallValue_plainNotScientific() throws SQLException {
+    String plain = "0.00000000000000000001";
+    byte[] binary = ByteConverter.numeric(new BigDecimal(plain));
+    assertEquals(plain, codec.decodeAsString(binary, 0, binary.length, numericType, null));
+    assertEquals(plain, codec.decodeAsString(plain, numericType, null));
+  }
+
   @Test
   void textRoundtrip_decimal() throws SQLException {
     BigDecimal original = new BigDecimal("12345.67890");

@@ -381,11 +381,11 @@ class ServerTruthOracleTest {
     // the session IntervalStyle -- both timetz and interval were promoted here from known divergences.
     // (box is excluded: its getString is still the driver's own PGobject form -- see
     // decodeKnownDivergences.)
-    // "tiny" numeric and "end_of_day" timetz are excluded here and handled as pinned findings below:
-    // the driver's binary getString of a very small numeric uses scientific notation, and its binary
-    // decode of timetz 24:00:00 throws.
+    // "end_of_day" timetz is excluded here and handled as a pinned finding below: the driver's binary
+    // decode of timetz 24:00:00 throws. (The numeric "tiny" scientific-notation getString was a bug,
+    // now fixed in NumericCodec.decodeAsString, so it decodes truthfully here.)
     List<DynamicTest> t = new ArrayList<>();
-    t.addAll(decodeEdges("numeric", Oid.NUMERIC, "numeric", without(NumericEdgeCases.ALL, "tiny")));
+    t.addAll(decodeEdges("numeric", Oid.NUMERIC, "numeric", NumericEdgeCases.ALL));
     t.addAll(decodeEdges("timestamptz", Oid.TIMESTAMPTZ, "timestamptz", TimestampTzEdgeCases.ALL));
     t.addAll(decodeEdges("timetz", Oid.TIMETZ, "timetz", without(TimeTzEdgeCases.ALL, "end_of_day")));
     t.addAll(decodeEdges("interval", Oid.INTERVAL, "interval", IntervalEdgeCases.ALL));
@@ -393,25 +393,14 @@ class ServerTruthOracleTest {
   }
 
   /**
-   * Candidate bugs the testkit catalogues surfaced, pinned to their current behaviour so a change on
-   * either side is caught:
-   *
-   * <ul>
-   *   <li><b>numeric/tiny</b> — {@code getString} of a very small numeric over binary uses scientific
-   *       notation ({@code 1E-20}, from {@code BigDecimal.toString}) where the server (and the text
-   *       path) print the plain form. The same text/binary getString split the timetz fix closed, in
-   *       a different type.</li>
-   *   <li><b>timetz/end_of_day</b> — the server accepts {@code 24:00:00} (its documented upper bound)
-   *       but the driver's binary decode rejects {@code 86400000000} microseconds, because
-   *       {@code OffsetTime} cannot represent 24:00:00.</li>
-   * </ul>
+   * A boundary the testkit catalogues surfaced, pinned to its current behaviour so a change is caught:
+   * the server accepts timetz {@code 24:00:00} (its documented upper bound) but the driver's binary
+   * decode rejects {@code 86400000000} microseconds, because {@code OffsetTime} cannot represent
+   * 24:00:00. Candidate bug, pinned until fixed.
    */
   @TestFactory
   List<DynamicTest> decodeCatalogueFindings() {
     List<DynamicTest> t = new ArrayList<>();
-    t.add(DynamicTest.dynamicTest("numeric/tiny/scientific", () ->
-        ServerTruthOracle.assertDecodeDivergence(binaryCon, Oid.NUMERIC, "numeric",
-            "0.00000000000000000001", "1E-20", "0.00000000000000000001")));
     t.add(DynamicTest.dynamicTest("timetz/end_of_day/binary-decode-throws", () ->
         assertThrows(SQLException.class, () ->
             ServerTruthOracle.assertDecodeTruth(binaryCon, Oid.TIMETZ, "timetz", "24:00:00+00"))));

@@ -316,6 +316,22 @@ public final class KnownDifferences {
     // baseline's lenient date -> time 00:00:00 coercion is dropped in favour of a refusal.
     point(readLabel("text", "date", Accessor.GET_TIME),
         "getTime on a date no longer coerces to midnight; the server has no date -> time cast");
+
+    // Server-parity: getString on a binary timetz now keeps the value's own UTC offset (matching the
+    // server's ::text), where the baseline shifted the value into the session zone and reported that
+    // zone's offset. Enumerated per edge case rather than as a blanket rule so a genuine future
+    // regression in one cell is not masked.
+    for (String timetzCase : new String[]{"utc", "max_offset", "min_offset", "half_hour_offset",
+        "one_microsecond", "half_microsecond", "second_boundary"}) {
+      point(edgeLabel("timetz-edge", "binary", timetzCase, Accessor.GET_STRING),
+          "getString on a binary timetz now keeps its wire offset instead of shifting to the session "
+              + "zone");
+    }
+
+    // Server-parity: getString on a small binary numeric now uses the plain form, matching the server's
+    // ::text, where the baseline used BigDecimal's scientific notation (1E-20).
+    point(numericEdgeLabel("binary", "tiny", Accessor.GET_STRING),
+        "getString on a small binary numeric now uses the plain form instead of scientific notation");
   }
 
   private KnownDifferences() {
