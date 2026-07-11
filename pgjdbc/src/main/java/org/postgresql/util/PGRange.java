@@ -9,6 +9,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Objects;
 
 /**
@@ -295,6 +296,19 @@ public class PGRange<T> extends PGobject implements Serializable, Cloneable {
     return "\"" + s.replace("\\", "\\\\").replace("\"", "\"\"") + "\"";
   }
 
+  /**
+   * Renders a bound in PostgreSQL's text form. Most bound types already match it through
+   * {@code toString()}, but a {@link java.sql.Timestamp} with a zero fraction renders as a trailing
+   * {@code .0} that the server (and the driver's own {@code getString}) omit, so drop it there.
+   */
+  private static String formatBound(Object bound) {
+    if (bound instanceof Timestamp && ((Timestamp) bound).getNanos() == 0) {
+      String s = bound.toString();
+      return s.substring(0, s.length() - ".0".length());
+    }
+    return String.valueOf(bound);
+  }
+
   @Override
   public String toString() {
     if (isEmpty) {
@@ -304,11 +318,11 @@ public class PGRange<T> extends PGobject implements Serializable, Cloneable {
     StringBuilder sb = new StringBuilder();
     sb.append(lowerInclusive ? '[' : '(');
     if (lower != null) {
-      sb.append(quoteIfNeeded(String.valueOf(lower)));
+      sb.append(quoteIfNeeded(formatBound(lower)));
     }
     sb.append(',');
     if (upper != null) {
-      sb.append(quoteIfNeeded(String.valueOf(upper)));
+      sb.append(quoteIfNeeded(formatBound(upper)));
     }
     sb.append(upperInclusive ? ']' : ')');
     return sb.toString();

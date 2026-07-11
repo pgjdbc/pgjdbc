@@ -174,7 +174,11 @@ public class JavaTypeRegistry {
       case Oid.NUMERIC:
         return BigDecimal.class;
       case Oid.MONEY:
-        return org.postgresql.util.PGmoney.class;
+        // money maps to Types.DOUBLE, so its default Java class (getColumnClassName, plain
+        // getObject) is Double, matching the legacy driver. The money -> PGmoney entry in
+        // pgNameToPgObject serves only the explicit getObject(int, PGmoney.class)/getObject(typeName)
+        // paths (mirroring the legacy addDataType("money", PGmoney.class)).
+        return Double.class;
 
       // Boolean
       case Oid.BOOL:

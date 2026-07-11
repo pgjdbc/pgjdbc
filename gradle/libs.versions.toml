@@ -1,2 +1,5 @@
 [libraries]
 checkerframework = "org.checkerframework:checker:3.55.1"
+# Released driver used as the backward-compatibility baseline in pgjdbc-compat-test.
+# Overridable via -Dpgjdbc.compat.legacyJar.
+pgjdbc-compat-baseline = "org.postgresql:postgresql:42.7.13"

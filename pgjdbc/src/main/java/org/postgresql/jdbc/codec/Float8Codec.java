@@ -29,10 +29,6 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
 
   public static final Float8Codec INSTANCE = new Float8Codec();
 
-  // Constants for overflow checking (from PgResultSet)
-  private static final double LONG_MAX_DOUBLE = Long.MAX_VALUE;
-  private static final double LONG_MIN_DOUBLE = Long.MIN_VALUE;
-
   private Float8Codec() {
     // Singleton
   }
@@ -141,39 +137,23 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   @Override
   public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    double value = decodeAsDouble(data, offset, length, type, ctx);
-    if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
-      throw Exceptions.outOfRange(value, "int");
-    }
-    return (int) value;
+    return NumberDecoders.floatingToInt(decodeAsDouble(data, offset, length, type, ctx));
   }
 
   @Override
   public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    double value = decodeAsDouble(data, type, ctx);
-    if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
-      throw Exceptions.outOfRange(value, "int");
-    }
-    return (int) value;
+    return NumberDecoders.floatingToInt(decodeAsDouble(data, type, ctx));
   }
 
   @Override
   public long decodeAsLong(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    double value = decodeAsDouble(data, offset, length, type, ctx);
-    if (value < LONG_MIN_DOUBLE || value > LONG_MAX_DOUBLE) {
-      throw Exceptions.outOfRange(value, "long");
-    }
-    return (long) value;
+    return NumberDecoders.floatingToLong(decodeAsDouble(data, offset, length, type, ctx));
   }
 
   @Override
   public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    double value = decodeAsDouble(data, type, ctx);
-    if (value < LONG_MIN_DOUBLE || value > LONG_MAX_DOUBLE) {
-      throw Exceptions.outOfRange(value, "long");
-    }
-    return (long) value;
+    return NumberDecoders.floatingToLong(decodeAsDouble(data, type, ctx));
   }
 
   @Override
@@ -201,8 +181,8 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   }
 
   // float8's natural getObject type is Double (and the value is already a double); resolve it and
-  // Object directly. String uses Double's text form, and Long has its own bound (Long.MAX_VALUE is
-  // not exactly representable as a double). The rest share NumberDecoders.
+  // Object directly. String uses Double's text form, and Long is range-checked separately because
+  // decodeFloatingAs has no Long branch. The rest share NumberDecoders.
   @SuppressWarnings("unchecked")
   private static <T> T decodeDoubleAs(double value, Class<T> targetClass) throws SQLException {
     if (targetClass == Double.class || targetClass == Object.class) {
@@ -212,10 +192,7 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
       return (T) String.valueOf(value);
     }
     if (targetClass == Long.class) {
-      if (value < LONG_MIN_DOUBLE || value > LONG_MAX_DOUBLE) {
-        throw Exceptions.outOfRange(value, "long");
-      }
-      return (T) Long.valueOf((long) value);
+      return (T) Long.valueOf(NumberDecoders.floatingToLong(value));
     }
     return NumberDecoders.decodeFloatingAs(value, targetClass, "float8");
   }

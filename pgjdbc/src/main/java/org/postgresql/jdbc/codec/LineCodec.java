@@ -12,6 +12,7 @@ import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.geometric.PGline;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.Float8Text;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLState;
 
@@ -75,6 +76,21 @@ public final class LineCodec implements StreamingBinaryCodec, TextCodec {
     out.writeDouble(line.a);
     out.writeDouble(line.b);
     out.writeDouble(line.c);
+  }
+
+  @Override
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    if (length != 24) {
+      throw Exceptions.invalidBinaryLength("line", length);
+    }
+    // Render the coefficients in the server's float8 text form (1, not Java's 1.0) so getString reads
+    // back the same value whether the line arrived in binary or text.
+    StringBuilder sb = new StringBuilder("{");
+    Float8Text.append(sb, ByteConverter.float8(data, offset)).append(',');
+    Float8Text.append(sb, ByteConverter.float8(data, offset + 8)).append(',');
+    Float8Text.append(sb, ByteConverter.float8(data, offset + 16)).append('}');
+    return sb.toString();
   }
 
   @Override

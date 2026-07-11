@@ -97,6 +97,54 @@ class NumericCodecTest {
     assertEquals(42, result);
   }
 
+  private int decodeAsIntTextAndBinary(String literal) throws SQLException {
+    int fromText = codec.decodeAsInt(literal, numericType, null);
+    byte[] binary = ByteConverter.numeric(new BigDecimal(literal));
+    int fromBinary = codec.decodeAsInt(binary, 0, binary.length, numericType, null);
+    assertEquals(fromText, fromBinary, () -> "text/binary getInt mismatch for " + literal);
+    // getObject(Integer.class) shares bigDecimalToInt, so it must agree with the primitive path.
+    assertEquals(Integer.valueOf(fromText),
+        codec.decodeBinaryAs(binary, 0, binary.length, numericType, Integer.class, null),
+        () -> "primitive/getObject getInt mismatch for " + literal);
+    return fromText;
+  }
+
+  private void assertGetIntOverflows(String literal) {
+    assertThrows(PSQLException.class,
+        () -> codec.decodeAsInt(literal, numericType, null),
+        () -> "text getInt should overflow for " + literal);
+    byte[] binary = ByteConverter.numeric(new BigDecimal(literal));
+    assertThrows(PSQLException.class,
+        () -> codec.decodeAsInt(binary, 0, binary.length, numericType, null),
+        () -> "binary getInt should overflow for " + literal);
+  }
+
+  @Test
+  void decodeAsInt_boundaryFraction_roundsThenRangeChecks() throws SQLException {
+    // A fraction just past the boundary that rounds half-away-from-zero back to the boundary fits,
+    // matching PostgreSQL's numeric->int4 cast ('2147483647.4'::numeric::int4 = 2147483647).
+    assertEquals(Integer.MAX_VALUE, decodeAsIntTextAndBinary("2147483647.4"));
+    assertEquals(Integer.MIN_VALUE, decodeAsIntTextAndBinary("-2147483648.4"));
+    // x.5 rounds past the boundary (server rounds half-away-from-zero), so it overflows.
+    assertGetIntOverflows("2147483647.5");
+    assertGetIntOverflows("-2147483648.5");
+    // One whole step past the boundary always overflows.
+    assertGetIntOverflows("2147483648");
+    assertGetIntOverflows("-2147483649");
+  }
+
+  @Test
+  void decodeAsInt_fraction_roundsHalfAwayFromZero() throws SQLException {
+    // The returned value rounds half-away-from-zero like the server, not truncating toward zero:
+    // '2147483646.5'::int4 = 2147483647, '-2.5'::int4 = -3, '2.5'::int4 = 3.
+    assertEquals(2147483647, decodeAsIntTextAndBinary("2147483646.5"));
+    assertEquals(-3, decodeAsIntTextAndBinary("-2.5"));
+    assertEquals(3, decodeAsIntTextAndBinary("2.5"));
+    // A fraction below .5 rounds back toward zero.
+    assertEquals(2, decodeAsIntTextAndBinary("2.4"));
+    assertEquals(-2, decodeAsIntTextAndBinary("-2.4"));
+  }
+
   @Test
   void decodeAsLong_text() throws SQLException {
     long result = codec.decodeAsLong("9999999999", numericType, null);

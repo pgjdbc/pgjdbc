@@ -98,6 +98,32 @@ public final class PathCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    if (length < 5) {
+      throw Exceptions.invalidBinaryLength("path", length);
+    }
+    boolean closed = data[offset] != 0;
+    int npts = ByteConverter.int4(data, offset + 1);
+    if (npts < 0 || length != 5 + npts * 16L) {
+      throw Exceptions.invalidBinaryLength("path", length);
+    }
+    // Render the vertices in the server's float8 text form (1, not Java's 1.0) so getString reads back
+    // the same value whether the path arrived in binary or text; the open/closed brackets ride the wire.
+    StringBuilder sb = new StringBuilder(closed ? "(" : "[");
+    int pos = offset + 5;
+    for (int i = 0; i < npts; i++) {
+      if (i > 0) {
+        sb.append(',');
+      }
+      PGpointFormat.appendServerText(sb, ByteConverter.float8(data, pos),
+          ByteConverter.float8(data, pos + 8));
+      pos += 16;
+    }
+    return sb.append(closed ? ')' : ']').toString();
+  }
+
+  @Override
   public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     boolean open;
     String inner;

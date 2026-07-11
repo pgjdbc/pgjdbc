@@ -191,6 +191,23 @@ class Exceptions {
         PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
   }
 
+  /**
+   * A binary interval carries more hours than a {@link org.postgresql.util.PGInterval} can hold.
+   *
+   * <p>PGInterval stores hours in an {@code int}, but the wire microsecond field (an int64) reaches
+   * about 2562047788 hours near its limit. The value is well-formed on the wire, so this is a range
+   * failure of the driver's representation rather than corrupt data; {@code getString} still renders
+   * it, only {@code getObject} (which builds a PGInterval) refuses.</p>
+   *
+   * @param hours the hour count that overflows PGInterval's int field
+   * @return decode error, carrying {@link PSQLState#NUMERIC_CONSTANT_OUT_OF_RANGE}
+   */
+  static SQLException intervalHoursOutOfRange(long hours) {
+    return new PSQLException(
+        GT.tr("Interval hour value {0} is out of range for PGInterval", hours),
+        PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE);
+  }
+
   // Binary wire format: fixed-width values and array elements with the wrong length.
 
   /**

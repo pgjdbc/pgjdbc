@@ -10,6 +10,7 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 import org.postgresql.api.Experimental;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.IntervalStyle;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Encoding;
@@ -585,6 +586,22 @@ public final class PgCodecContext implements CodecContext {
   @Override
   public Charset getCharset() {
     return charset;
+  }
+
+  /**
+   * Returns the backend's {@code IntervalStyle} (reported as a GUC_REPORT parameter status), so the
+   * interval codec can render a binary {@code interval} the way the server would in text mode. An
+   * offline (connectionless) context reports {@link IntervalStyle#POSTGRES}, the server default.
+   *
+   * @return the current interval style, never null
+   */
+  @Override
+  public IntervalStyle getIntervalStyle() {
+    BaseConnection c = connection;
+    if (c == null) {
+      return IntervalStyle.POSTGRES;
+    }
+    return IntervalStyle.fromServerValue(c.getParameterStatus("IntervalStyle"));
   }
 
   /**

@@ -73,6 +73,22 @@ public final class LsegCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    if (length != 32) {
+      throw Exceptions.invalidBinaryLength("lseg", length);
+    }
+    // Render the endpoints in the server's float8 text form (1, not Java's 1.0) so getString reads
+    // back the same value whether the segment arrived in binary or text.
+    double[] xy1 = PGpointFormat.parseBinary(data, offset);
+    double[] xy2 = PGpointFormat.parseBinary(data, offset + 16);
+    StringBuilder sb = new StringBuilder("[");
+    PGpointFormat.appendServerText(sb, xy1[0], xy1[1]).append(',');
+    PGpointFormat.appendServerText(sb, xy2[0], xy2[1]).append(']');
+    return sb.toString();
+  }
+
+  @Override
   public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     PGtokenizer t = new PGtokenizer(PGtokenizer.removeBox(data), ',');
     try {

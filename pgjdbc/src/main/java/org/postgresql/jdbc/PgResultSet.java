@@ -2754,7 +2754,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (codec == null) {
       throw cannotConvert(field, "float");
     }
-    return PrimitiveDecoders.asFloat(codec,castNonNull(getFixedString(columnIndex)), pgType, ctx);
+    return PrimitiveDecoders.asFloat(codec, numericText(field, columnIndex), pgType, ctx);
   }
 
   @Pure
@@ -2784,7 +2784,18 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (codec == null) {
       throw cannotConvert(field, "double");
     }
-    return PrimitiveDecoders.asDouble(codec,castNonNull(getFixedString(columnIndex)), pgType, ctx);
+    return PrimitiveDecoders.asDouble(codec, numericText(field, columnIndex), pgType, ctx);
+  }
+
+  /**
+   * The text to feed a numeric getter's codec. For {@code money} this is the raw server literal, so
+   * the money codec parses the locale rendering itself (currency symbol, grouping, decimal separator);
+   * for every other type it is {@link #getFixedString}, which is a no-op there.
+   */
+  private String numericText(Field field, @Positive int columnIndex) throws SQLException {
+    return field.getOID() == Oid.MONEY
+        ? castNonNull(getString(columnIndex))
+        : castNonNull(getFixedString(columnIndex));
   }
 
   @Override
@@ -2832,6 +2843,19 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       }
       throw new PSQLException(GT.tr("No codec for binary numeric conversion"),
           PSQLState.DATA_TYPE_MISMATCH);
+    }
+
+    // money renders per lc_monetary (currency symbol, grouping, locale decimal separator); let the
+    // money codec parse the raw server literal rather than getFastBigDecimal/getFixedString, which
+    // assume a '$'-prefixed, '.'-decimal form.
+    if (fields[columnIndex - 1].getOID() == Oid.MONEY) {
+      Field moneyField = getFieldWithCodec(columnIndex);
+      TextCodec moneyCodec = moneyField.getTextCodec();
+      if (moneyCodec != null) {
+        BigDecimal bd = moneyCodec.decodeAsBigDecimal(castNonNull(getString(columnIndex)),
+            moneyField.getPgType(), getCodecContext());
+        return bd == null ? null : scaleBigDecimal(bd, scale);
+      }
     }
 
     Encoding encoding = connection.getEncoding();
@@ -3161,6 +3185,15 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return getSQLXML(columnIndex);
     }
 
+    // Special case: money's plain getObject default is Double (money maps to Types.DOUBLE),
+    // matching the legacy contract. The money -> PGmoney entry in the Java type registry exists only
+    // for the explicit getObject(int, PGmoney.class)/getObject(typeName) paths (mirroring the legacy
+    // addDataType("money", PGmoney.class)); routing plain getObject through the codec+type-map path
+    // would return PGmoney instead. internalGetObject dispatches money to getDouble.
+    if (oid == Oid.MONEY) {
+      return internalGetObject(columnIndex, field);
+    }
+
     // Special case: 'unknown' (oid 705) — the backend couldn't infer the
     // column type (e.g. `SELECT 'ok' where ...` with no cast). The legacy
     // contract is to coerce the raw bytes to a String rather than falling
@@ -3298,6 +3331,10 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    * This is used to fix get*() methods on Money fields. It should only be used by those methods!
    *
    * <p>It converts ($##.##) to -##.## and $##.## to ##.##</p>
+   *
+   * <p>This handles only the {@code en_US}-style leading {@code $}; {@code money} columns route their
+   * numeric getters through the money codec, which parses every locale rendering. This helper is kept
+   * for its published signature and any external caller.</p>
    *
    * @param col column position (1-based)
    * @return numeric-parsable representation of money string literal

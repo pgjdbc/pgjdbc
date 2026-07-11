@@ -137,38 +137,25 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   @Override
   public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    float value = decodeAsFloat(data, offset, length, type, ctx);
-    if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
-      throw Exceptions.outOfRange(value, "int");
-    }
-    return (int) value;
+    // Widen to double first: (float) Integer.MAX_VALUE rounds up to 2^31, so a float-space bound
+    // check would accept the over-range 2^31 and clamp it. The double bounds are exact.
+    return NumberDecoders.floatingToInt(decodeAsFloat(data, offset, length, type, ctx));
   }
 
   @Override
   public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    float value = decodeAsFloat(data, type, ctx);
-    if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
-      throw Exceptions.outOfRange(value, "int");
-    }
-    return (int) value;
+    return NumberDecoders.floatingToInt(decodeAsFloat(data, type, ctx));
   }
 
   @Override
   public long decodeAsLong(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    float value = decodeAsFloat(data, offset, length, type, ctx);
-    // Check bounds for float to long conversion
-    // Float can't exactly represent Long.MAX_VALUE, so we use a conservative bound
-    if (value < Long.MIN_VALUE || value >= 9.223372036854776E18) {
-      throw Exceptions.outOfRange(value, "long");
-    }
-    return (long) value;
+    return NumberDecoders.floatingToLong(decodeAsFloat(data, offset, length, type, ctx));
   }
 
   @Override
   public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    byte[] bytes = encodeBinary(decodeAsFloat(data, type, ctx), type, ctx);
-    return decodeAsLong(bytes, 0, bytes.length, type, ctx);
+    return NumberDecoders.floatingToLong(decodeAsFloat(data, type, ctx));
   }
 
   @Override
@@ -197,8 +184,8 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   }
 
   // float4's natural getObject type is Float; resolve it and Object directly so the common path does
-  // not widen. String uses Float's narrower text form, and Long has a conservative bound because a
-  // float cannot represent Long.MAX_VALUE exactly. The rest share NumberDecoders, widening to double.
+  // not widen. String uses Float's narrower text form, and Long is range-checked separately because
+  // decodeFloatingAs has no Long branch. The rest share NumberDecoders, widening to double.
   @SuppressWarnings("unchecked")
   private static <T> T decodeFloatAs(float value, Class<T> targetClass) throws SQLException {
     if (targetClass == Float.class || targetClass == Object.class) {
@@ -208,10 +195,7 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
       return (T) String.valueOf(value);
     }
     if (targetClass == Long.class) {
-      if (value < Long.MIN_VALUE || value >= 9.223372036854776E18) {
-        throw Exceptions.outOfRange(value, "long");
-      }
-      return (T) Long.valueOf((long) value);
+      return (T) Long.valueOf(NumberDecoders.floatingToLong(value));
     }
     return NumberDecoders.decodeFloatingAs(value, targetClass, "float4");
   }

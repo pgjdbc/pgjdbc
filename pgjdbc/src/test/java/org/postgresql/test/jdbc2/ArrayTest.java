@@ -17,6 +17,7 @@ import org.postgresql.PGConnection;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.PgArray;
@@ -45,6 +46,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 @ParameterizedClass
@@ -129,6 +131,57 @@ public class ArrayTest extends BaseTest4 {
     PgType intArrayType = bc.getTypeInfo().getPgTypeByOid(Oid.INT4_ARRAY);
     Array foreign = new ForeignArray("int4", Types.INTEGER, new Integer[]{1, 2, 3});
     assertEquals("{1,2,3}", ArrayCodec.INSTANCE.encodeText(foreign, intArrayType, ctx));
+  }
+
+  /**
+   * A {@code numeric} array whose element is NaN / ±Infinity must refuse with a checked
+   * {@link SQLException} ({@code SQLState 22003}) when materialized as its default
+   * {@code BigDecimal[]}, never leak an unchecked exception. The scalar numeric NaN {@code getObject}
+   * surfaces a {@link Double} sentinel, but {@code BigDecimal[]} cannot hold it, so the element decode
+   * refuses — matching {@code getBigDecimal} and the 42.7.13 baseline. Runs under both wire formats
+   * (the class is parameterized over {@link BinaryMode}); {@code Infinity} needs PostgreSQL 14+.
+   */
+  @Test
+  public void testNumericArrayNonFiniteElementRefused() throws SQLException {
+    List<String> literals = new ArrayList<>();
+    literals.add("NaN");
+    if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v14)) {
+      literals.add("Infinity");
+      literals.add("-Infinity");
+    }
+    for (String literal : literals) {
+      for (String sql : new String[]{
+          "SELECT ARRAY['" + literal + "'::numeric]",
+          "SELECT ARRAY[ARRAY['" + literal + "'::numeric]]"}) {
+        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+          assertTrue(rs.next(), sql);
+          Array arr = (Array) rs.getObject(1);
+          SQLException ex = assertThrows(SQLException.class, arr::getArray, sql);
+          assertEquals("22003", ex.getSQLState(), sql + " must report SQLState 22003");
+        }
+      }
+    }
+  }
+
+  /**
+   * {@code Double} can represent NaN / ±Infinity, so requesting a {@code Double[]} from a
+   * non-finite {@code numeric} array returns the sentinel rather than refusing — each element decodes
+   * through the numeric codec's {@code decodeAsDouble}. Both wire formats; {@code Infinity} needs
+   * PostgreSQL 14+.
+   */
+  @Test
+  public void testNumericArrayNonFiniteToDoubleArray() throws SQLException {
+    boolean pg14 = TestUtil.haveMinimumServerVersion(conn, ServerVersion.v14);
+    String select = pg14
+        ? "SELECT ARRAY['NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric, '1.5'::numeric]"
+        : "SELECT ARRAY['NaN'::numeric, '1.5'::numeric]";
+    Double[] expected = pg14
+        ? new Double[]{Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, 1.5}
+        : new Double[]{Double.NaN, 1.5};
+    try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(select)) {
+      assertTrue(rs.next());
+      assertArrayEquals(expected, rs.getObject(1, Double[].class), "numeric[] as Double[]");
+    }
   }
 
   /**

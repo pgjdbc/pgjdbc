@@ -35,9 +35,9 @@ final class MoneyArrayLeafCodec implements ArrayLeafCodec {
    * digits ({@code lc_monetary}; 2 for most locales). The binary scale therefore depends on the
    * server locale, which is <em>not</em> a {@code GUC_REPORT} parameter (and {@code frac_digits} is a
    * C-locale property, not even a GUC), so the driver cannot reliably learn it from the protocol —
-   * {@code money}/{@code money[]} are kept text-only (not in {@code SUPPORTED_BINARY_OIDS}). These
-   * binary methods assume the default scale of {@code 2} and exist only for the rare case where a
-   * caller has explicitly opted {@code money} into binary transfer.
+   * {@code money}/{@code money[]} are kept text-only on receive ({@link MoneyCodec#supportsBinaryRead()}
+   * is {@code false}). These binary methods assume the default scale of {@code 2} and exist only for
+   * the rare case where a caller has explicitly opted {@code money} into binary transfer.
    */
   private static final double SCALE = 100.0;
 

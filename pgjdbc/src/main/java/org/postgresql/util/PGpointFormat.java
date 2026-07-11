@@ -53,6 +53,24 @@ public final class PGpointFormat {
   }
 
   /**
+   * Appends a point in {@code (x,y)} form, rendering each coordinate in PostgreSQL's {@code float8}
+   * text form ({@link Float8Text}). This matches the server's own {@code point_out}, so it is the form
+   * to use when a decoded binary value must read back the same as its text transfer would.
+   *
+   * @param sb the buffer to append to
+   * @param x the point's x coordinate
+   * @param y the point's y coordinate
+   * @return {@code sb}, for chaining
+   */
+  public static StringBuilder appendServerText(StringBuilder sb, double x, double y) {
+    sb.append('(');
+    Float8Text.append(sb, x);
+    sb.append(',');
+    Float8Text.append(sb, y);
+    return sb.append(')');
+  }
+
+  /**
    * Reads a point from its binary wire form: two big-endian {@code float8} values.
    *
    * @param data the backing buffer

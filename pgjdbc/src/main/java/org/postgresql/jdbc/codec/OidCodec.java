@@ -107,20 +107,15 @@ public final class OidCodec implements StreamingBinaryCodec, PrimitiveBinaryDeco
   @Override
   public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    if (length != 4) {
-      throw Exceptions.invalidBinaryLength("oid", length);
-    }
-    return ByteConverter.int4(data, offset);
+    // oid is unsigned 32-bit. getInt returns the raw 32-bit value reinterpreted as a signed int
+    // (an oid above Integer.MAX_VALUE comes back negative), matching the legacy driver; callers that
+    // need the numeric value use getLong. The unsigned form is preserved by getString/getObject.
+    return (int) decodeAsLong(data, offset, length, type, ctx);
   }
 
   @Override
   public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    try {
-      long v = Long.parseLong(data.trim());
-      return (int) v;
-    } catch (NumberFormatException e) {
-      throw Exceptions.cannotConvertValue("oid", data, e);
-    }
+    return (int) decodeAsLong(data, type, ctx);
   }
 
   @Override
@@ -193,9 +188,12 @@ public final class OidCodec implements StreamingBinaryCodec, PrimitiveBinaryDeco
       return (T) Long.valueOf(value);
     }
     if (targetClass == Integer.class) {
+      // oid is unsigned 32-bit: return the raw 32-bit value as a signed int (wrapping above
+      // Integer.MAX_VALUE), matching getInt and the legacy driver. String keeps the unsigned form.
       return (T) Integer.valueOf((int) value);
     }
     if (targetClass == String.class) {
+      // value already holds the unsigned 32-bit oid (0..2^32-1), so this never renders a negative.
       return (T) String.valueOf(value);
     }
     if (targetClass == Double.class) {

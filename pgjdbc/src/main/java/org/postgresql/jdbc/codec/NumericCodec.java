@@ -30,6 +30,8 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
   // Use BigDecimal for exact comparison.
   private static final BigDecimal LONG_MAX_BD = BigDecimal.valueOf(Long.MAX_VALUE);
   private static final BigDecimal LONG_MIN_BD = BigDecimal.valueOf(Long.MIN_VALUE);
+  private static final BigDecimal INT_MAX_BD = BigDecimal.valueOf(Integer.MAX_VALUE);
+  private static final BigDecimal INT_MIN_BD = BigDecimal.valueOf(Integer.MIN_VALUE);
 
   private NumericCodec() {
     // Singleton
@@ -251,22 +253,28 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
   }
 
   private static int bigDecimalToInt(BigDecimal bd) throws SQLException {
-    double d = bd.doubleValue();
-    if (d < Integer.MIN_VALUE || d > Integer.MAX_VALUE) {
+    // Match PostgreSQL's numeric->int4 cast: round half-away-from-zero, then range-check the rounded
+    // value. '2147483646.5'::int4 = 2147483647, '2147483647.4'::int4 = 2147483647 (rounds back and
+    // fits), '2147483647.5'::int4 overflows (rounds to 2147483648), and '-2.5'::int4 = -3. Rounding
+    // before the bounds check also matters: a check on the raw magnitude would reject 2147483647.4
+    // before rounding could bring it back into range.
+    BigDecimal rounded = bd.setScale(0, RoundingMode.HALF_UP);
+    if (rounded.compareTo(INT_MAX_BD) > 0 || rounded.compareTo(INT_MIN_BD) < 0) {
       throw Exceptions.outOfRange(bd, "int");
     }
-    return bd.intValue();
+    return rounded.intValueExact();
   }
 
   private static long bigDecimalToLong(BigDecimal bd) throws SQLException {
-    // Truncate the fractional part (matches the legacy getLong contract:
-    // 9223372036854775807.9 → Long.MAX_VALUE). Then check integer-part bounds
-    // exactly via BigDecimal compareTo.
-    BigDecimal whole = bd.setScale(0, RoundingMode.DOWN);
-    if (whole.compareTo(LONG_MAX_BD) > 0 || whole.compareTo(LONG_MIN_BD) < 0) {
+    // Match PostgreSQL's numeric->int8 cast: round half-away-from-zero, then check the rounded value
+    // against the int8 bounds exactly via BigDecimal compareTo. '9223372036854775807.9'::int8
+    // overflows (rounds to 9223372036854775808), while '9223372036854775807.4'::int8 rounds back to
+    // Long.MAX_VALUE and fits.
+    BigDecimal rounded = bd.setScale(0, RoundingMode.HALF_UP);
+    if (rounded.compareTo(LONG_MAX_BD) > 0 || rounded.compareTo(LONG_MIN_BD) < 0) {
       throw Exceptions.badValueForType("long", bd.toPlainString());
     }
-    return whole.longValue();
+    return rounded.longValueExact();
   }
 
   @Override
@@ -327,18 +335,21 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
       return (T) Integer.valueOf(bigDecimalToInt(bd));
     }
     if (targetClass == Short.class) {
-      double d = bd.doubleValue();
-      if (d < Short.MIN_VALUE || d > Short.MAX_VALUE) {
+      // Narrow through the int path so the rounding/overflow decision matches getInt and the
+      // ResultSet.getShort route (decodeAsInt, then a short-range check), rather than rejecting a
+      // fraction on the raw magnitude before it rounds back into range.
+      int i = bigDecimalToInt(bd);
+      if (i < Short.MIN_VALUE || i > Short.MAX_VALUE) {
         throw Exceptions.outOfRange(bd, "short");
       }
-      return (T) Short.valueOf(bd.shortValue());
+      return (T) Short.valueOf((short) i);
     }
     if (targetClass == Byte.class) {
-      double d = bd.doubleValue();
-      if (d < Byte.MIN_VALUE || d > Byte.MAX_VALUE) {
+      int i = bigDecimalToInt(bd);
+      if (i < Byte.MIN_VALUE || i > Byte.MAX_VALUE) {
         throw Exceptions.outOfRange(bd, "byte");
       }
-      return (T) Byte.valueOf(bd.byteValue());
+      return (T) Byte.valueOf((byte) i);
     }
     if (targetClass == String.class) {
       return (T) bd.toPlainString();

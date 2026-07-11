@@ -139,6 +139,19 @@ class OidCodecTest {
   }
 
   @Test
+  void decodeAsInt_largeOidWrapsUnsigned() throws SQLException {
+    byte[] data = new byte[4];
+    ByteConverter.int4(data, 0, 0xFFFFFFFF); // oid 4294967295, above Integer.MAX_VALUE
+    // getInt reinterprets the raw 32-bit value as signed (unsigned 32-bit wrap), like the legacy
+    // driver; it does not throw. getLong keeps the unsigned value and getString renders it unsigned.
+    assertEquals(-1, PrimitiveDecoders.asInt(codec, data, oidType, null));
+    assertEquals(Integer.valueOf(-1),
+        codec.decodeBinaryAs(data, 0, data.length, oidType, Integer.class, null));
+    assertEquals(4294967295L, PrimitiveDecoders.asLong(codec, data, oidType, null));
+    assertEquals("4294967295", codec.decodeBinaryAs(data, 0, data.length, oidType, String.class, null));
+  }
+
+  @Test
   void decodeAsLong_binary() throws SQLException {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, 42);

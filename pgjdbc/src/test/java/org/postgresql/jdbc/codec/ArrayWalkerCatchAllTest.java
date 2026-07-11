@@ -19,7 +19,6 @@ import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGInterval;
-import org.postgresql.util.PGmoney;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -193,7 +192,8 @@ public class ArrayWalkerCatchAllTest {
   @Test
   void moneyArray_getResultSet_decodesEachElementViaCodec() throws SQLException {
     // getResultSet() tokenises the array literal and decodes the VALUE column through the element's
-    // codec (here money -> PGobject), never the legacy DOUBLE_OBJ_ARRAY decoder.
+    // codec, never the legacy DOUBLE_OBJ_ARRAY decoder. getObject on a money element returns a Double
+    // (money maps to Types.DOUBLE), matching both the scalar money contract and the legacy driver.
     try (Statement stmt = conn.createStatement()) {
       stmt.execute("SET lc_monetary TO 'C'");
       try (ResultSet rs = stmt.executeQuery("SELECT ARRAY['1.50'::money, '2.50'::money]")) {
@@ -201,12 +201,12 @@ public class ArrayWalkerCatchAllTest {
         try (ResultSet ars = rs.getArray(1).getResultSet()) {
           assertTrue(ars.next());
           assertEquals(1, ars.getInt(1));
-          // The VALUE column keeps the raw "$1.50" token, so PGmoney parses it back correctly; a
-          // decode/re-encode would have dropped the currency symbol and mis-parsed it.
-          assertEquals(1.5, assertInstanceOf(PGmoney.class, ars.getObject(2)).val, 0.0001);
+          // The VALUE column keeps the raw "$1.50" token, which the money codec parses back to its
+          // numeric value; a decode/re-encode would have dropped the currency symbol and mis-parsed it.
+          assertEquals(1.5, assertInstanceOf(Double.class, ars.getObject(2)), 0.0001);
           assertTrue(ars.next());
           assertEquals(2, ars.getInt(1));
-          assertEquals(2.5, assertInstanceOf(PGmoney.class, ars.getObject(2)).val, 0.0001);
+          assertEquals(2.5, assertInstanceOf(Double.class, ars.getObject(2)), 0.0001);
         }
       }
     }

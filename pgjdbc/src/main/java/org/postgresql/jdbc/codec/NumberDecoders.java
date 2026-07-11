@@ -24,7 +24,81 @@ import java.sql.SQLException;
  */
 final class NumberDecoders {
 
+  // A double cannot represent Long.MAX_VALUE exactly: the nearest double is 2^63, one past the
+  // range. So the fitting test is a half-open interval [-2^63, 2^63) and the upper bound is
+  // exclusive. This matches PostgreSQL's FLOAT8_FITS_IN_INT64 and the driver's historical behaviour.
+  private static final double LONG_MIN_DOUBLE = Long.MIN_VALUE;
+  private static final double LONG_MAX_DOUBLE = Long.MAX_VALUE;
+
   private NumberDecoders() {
+  }
+
+  /**
+   * Narrows a floating-point {@code value} to {@code int}, throwing if it is NaN, infinite, or
+   * outside the {@code int} range. Rounds to the nearest integer, ties to even, then range-checks the
+   * rounded value, matching PostgreSQL's {@code float8->int4} cast (which uses C {@code rint}).
+   *
+   * @param value the floating-point value to narrow
+   * @return {@code value} rounded to the nearest {@code int}
+   * @throws SQLException if {@code value} does not fit in {@code int}
+   */
+  static int floatingToInt(double value) throws SQLException {
+    double rounded = Math.rint(value);
+    if (Double.isNaN(rounded) || rounded < Integer.MIN_VALUE || rounded > Integer.MAX_VALUE) {
+      throw outOfRangeForInt(value);
+    }
+    return (int) rounded;
+  }
+
+  /**
+   * Narrows a floating-point {@code value} to {@code short}, throwing if it is NaN, infinite, or
+   * outside the {@code short} range. Rounds to the nearest integer, ties to even, matching
+   * PostgreSQL's {@code float8->int2} cast.
+   *
+   * @param value the floating-point value to narrow
+   * @return {@code value} rounded to the nearest {@code short}
+   * @throws SQLException if {@code value} does not fit in {@code short}
+   */
+  static short floatingToShort(double value) throws SQLException {
+    double rounded = Math.rint(value);
+    if (Double.isNaN(rounded) || rounded < Short.MIN_VALUE || rounded > Short.MAX_VALUE) {
+      throw outOfRangeForShort(value);
+    }
+    return (short) rounded;
+  }
+
+  /**
+   * Narrows a floating-point {@code value} to {@code byte}, throwing if it is NaN, infinite, or
+   * outside the {@code byte} range. Rounds to the nearest integer, ties to even, consistent with the
+   * other floating-point integer narrowings ({@code byte} has no dedicated server cast).
+   *
+   * @param value the floating-point value to narrow
+   * @return {@code value} rounded to the nearest {@code byte}
+   * @throws SQLException if {@code value} does not fit in {@code byte}
+   */
+  static byte floatingToByte(double value) throws SQLException {
+    double rounded = Math.rint(value);
+    if (Double.isNaN(rounded) || rounded < Byte.MIN_VALUE || rounded > Byte.MAX_VALUE) {
+      throw outOfRangeForByte(value);
+    }
+    return (byte) rounded;
+  }
+
+  /**
+   * Narrows a floating-point {@code value} to {@code long}, throwing if it is NaN, infinite, or
+   * outside the {@code long} range. Rounds to the nearest integer, ties to even, then range-checks the
+   * rounded value, matching PostgreSQL's {@code float8->int8} cast.
+   *
+   * @param value the floating-point value to narrow
+   * @return {@code value} rounded to the nearest {@code long}
+   * @throws SQLException if {@code value} does not fit in {@code long}
+   */
+  static long floatingToLong(double value) throws SQLException {
+    double rounded = Math.rint(value);
+    if (Double.isNaN(rounded) || rounded < LONG_MIN_DOUBLE || rounded >= LONG_MAX_DOUBLE) {
+      throw Exceptions.outOfRange(value, "long");
+    }
+    return (long) rounded;
   }
 
   /**
@@ -87,22 +161,13 @@ final class NumberDecoders {
       return (T) Float.valueOf((float) value);
     }
     if (targetClass == Integer.class) {
-      if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
-        throw outOfRangeForInt(value);
-      }
-      return (T) Integer.valueOf((int) value);
+      return (T) Integer.valueOf(floatingToInt(value));
     }
     if (targetClass == Short.class) {
-      if (value < Short.MIN_VALUE || value > Short.MAX_VALUE) {
-        throw outOfRangeForShort(value);
-      }
-      return (T) Short.valueOf((short) value);
+      return (T) Short.valueOf(floatingToShort(value));
     }
     if (targetClass == Byte.class) {
-      if (value < Byte.MIN_VALUE || value > Byte.MAX_VALUE) {
-        throw outOfRangeForByte(value);
-      }
-      return (T) Byte.valueOf((byte) value);
+      return (T) Byte.valueOf(floatingToByte(value));
     }
     if (targetClass == BigDecimal.class) {
       if (Double.isNaN(value) || Double.isInfinite(value)) {

@@ -5,6 +5,7 @@
 
 package org.postgresql.jdbc.codec;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.postgresql.jdbc.codec.ParityHarness.NO_PARAMS;
@@ -26,6 +27,9 @@ import org.junit.jupiter.api.TestFactory;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -152,6 +156,26 @@ class CodecParityRoundtripTest {
 
   private static DynamicTest parityOnly(String name, String sql) {
     return DynamicTest.dynamicTest(name, () -> assertParity(text, binary, sql, NO_PARAMS));
+  }
+
+  /**
+   * Asserts that both {@code getString(1)} and {@code getObject(1).toString()} render {@code expected}
+   * over the text and binary connections. The two accessors share {@code PGRange.toString()}: getString
+   * on a range column decodes to the {@code PGRange} and renders it, and getObject hands back the same
+   * value. Running it over both wire formats covers the text getObject and binary getString cells the
+   * differential oracle flagged.
+   */
+  private static void assertRangeRendering(String sql, String expected) throws SQLException {
+    for (Connection con : new Connection[]{text, binary}) {
+      try (PreparedStatement ps = con.prepareStatement(sql);
+           ResultSet rs = ps.executeQuery()) {
+        assertTrue(rs.next(), () -> "no row returned for [" + sql + "]");
+        assertEquals(expected, rs.getString(1), () -> "getString for [" + sql + "]");
+        Object obj = rs.getObject(1);
+        assertInstanceOf(PGRange.class, obj, () -> "getObject for [" + sql + "]");
+        assertEquals(expected, obj.toString(), () -> "getObject().toString() for [" + sql + "]");
+      }
+    }
   }
 
   /**
@@ -330,6 +354,22 @@ class CodecParityRoundtripTest {
     // tsrange bounds are timestamps, whose getObject mapping depends on the connection's codec
     // context (java.time vs java.sql), so this is parity-only, like the temporal scalars above.
     t.add(parityOnly("tsrange", "SELECT '[2020-01-01 00:00:00,2020-02-01 00:00:00)'::tsrange"));
+
+    // getString and getObject().toString() must render a zero-fraction timestamp bound in the server's
+    // text form — 2020-12-31 00:00:00, not java.sql.Timestamp's 2020-12-31 00:00:00.0. The typed PGRange
+    // holds a Timestamp bound; only its text rendering carried the trailing ".0". The differential
+    // backward-compat oracle (pgjdbc-compat-test) flagged it on the tsrange-edge axis.
+    t.add(DynamicTest.dynamicTest("tsrange/getString-drops-zero-fraction", () ->
+        assertRangeRendering("SELECT '[\"2020-01-01 00:00:00\",\"2020-12-31 00:00:00\"]'::tsrange",
+            "[\"2020-01-01 00:00:00\",\"2020-12-31 00:00:00\"]")));
+    t.add(DynamicTest.dynamicTest("tsrange/lower-unbounded-getString", () ->
+        assertRangeRendering("SELECT '(,\"2020-12-31 00:00:00\"]'::tsrange",
+            "(,\"2020-12-31 00:00:00\"]")));
+    // The sub-second case is unaffected: PostgreSQL and Timestamp.toString agree on microsecond fractions.
+    t.add(DynamicTest.dynamicTest("tsrange/microseconds-preserved", () ->
+        assertRangeRendering(
+            "SELECT '[\"2020-01-01 00:00:00.000001\",\"2020-01-01 00:00:00.999999\"]'::tsrange",
+            "[\"2020-01-01 00:00:00.000001\",\"2020-01-01 00:00:00.999999\"]")));
 
     // Typed getObject(int, Class): getObject(1, PGRange.class) once threw ClassCastException
     // because the PGobject branch routed every PGobject subclass through connection.getObject,

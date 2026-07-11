@@ -68,6 +68,35 @@ dependencies {
     testImplementation("edu.berkeley.cs.jqf:jqf-generator-jetcheck:$jqfVersion")
 
     jqfInstrumentAgent("edu.berkeley.cs.jqf:jqf-instrument:$jqfVersion")
+
+    // The differential value fuzzer reuses the compat oracle core (probe + comparator + isolated
+    // baseline loader) and TestUtil for the connection settings.
+    testImplementation(projects.pgjdbcCompatTest)
+    testImplementation(projects.testkit)
+}
+
+// The released baseline jar for the differential fuzzer: only its path is handed to the test JVM,
+// which loads it in an isolated class loader (never on the classpath). Overridable via
+// -Dpgjdbc.compat.legacyJar. Mirrors pgjdbc-compat-test.
+val legacyDriver = configurations.dependencyScope("legacyDriver")
+val legacyDriverClasspath = configurations.resolvable("legacyDriverClasspath") {
+    extendsFrom(legacyDriver.get())
+}
+
+dependencies {
+    legacyDriver(libs.pgjdbc.compat.baseline)
+}
+
+tasks.test {
+    val override = providers.systemProperty("pgjdbc.compat.legacyJar")
+    val resolved = legacyDriverClasspath.map {
+        it.incoming.artifactView {
+            componentFilter { it is ModuleComponentIdentifier && it.module == "postgresql" }
+        }.files.singleFile.absolutePath
+    }
+    jvmArgumentProviders.add(CommandLineArgumentProvider {
+        listOf("-Dpgjdbc.compat.legacyJar=${override.orNull ?: resolved.get()}")
+    })
 }
 
 // Fuzzing is opt-in through -Djqf.fuzz=true. Without it the @FuzzTest nodes replay the saved

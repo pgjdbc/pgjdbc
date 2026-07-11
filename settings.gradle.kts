@@ -53,6 +53,7 @@ if (jdkTestVersion == null || jdkTestVersion >= 11) {
         include("pgjdbc-jqf-test")
     }
     include("pgjdbc-jazzer-test")
+    include("pgjdbc-compat-test")
 }
 if (jdkTestVersion == null || jdkTestVersion >= 17) {
     // Spring 6.x requires Java 17+

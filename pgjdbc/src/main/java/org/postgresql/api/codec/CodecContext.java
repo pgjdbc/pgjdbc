@@ -116,6 +116,18 @@ public interface CodecContext {
   boolean getConvertBooleanToNumeric();
 
   /**
+   * Returns the backend's {@code IntervalStyle} (a GUC_REPORT parameter), which the interval codec
+   * uses to render a binary {@code interval} the way the server would in text mode, so that
+   * {@code getString} is independent of the wire format. Defaults to {@link IntervalStyle#POSTGRES}
+   * when no connection is available (offline decoding) or the server does not report the setting.
+   *
+   * @return the current interval style, never null
+   */
+  default IntervalStyle getIntervalStyle() {
+    return IntervalStyle.POSTGRES;
+  }
+
+  /**
    * Returns the current type map, which associates PostgreSQL type names with Java classes
    * (typically {@link java.sql.SQLData} implementations).
    *

@@ -5,6 +5,7 @@
 
 package org.postgresql.jdbc.codec;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -168,5 +169,42 @@ class ArrayParityMatrixTest {
       }
     });
     assertNotNull(ex.getMessage(), "rejection should carry a message");
+  }
+
+  /**
+   * {@code getObject(col, byte[].class)} asks for a {@code byte[]} that an {@code int4[]} or
+   * {@code text[]} column can never produce: {@code byte[].class.isArray()} is true, so the request
+   * lands in the array-decode branch, but no element mapping yields a {@code byte[]}. The driver must
+   * refuse rather than hand back the element mapping ({@code Integer[]} / {@code String[]}), which
+   * would raise a {@link ClassCastException} at the {@code getObject(int, Class)} call site. Holds
+   * over both wire formats.
+   */
+  @Test
+  void getObjectAsByteArrayRefusedOnArrayColumn() {
+    for (String sql : new String[]{"SELECT '{1,2,3}'::int4[]", "SELECT '{a,b}'::text[]"}) {
+      for (Connection con : new Connection[]{text, binary}) {
+        SQLException ex = assertThrows(SQLException.class,
+            () -> ParityHarness.decodeFirstAs(con, sql, byte[].class),
+            () -> "getObject(byte[].class) on " + sql + " should refuse on " + con);
+        assertNotNull(ex.getMessage(), "rejection should carry a message");
+      }
+    }
+  }
+
+  /**
+   * The refusal above must not catch the one array whose leaf genuinely is a {@code byte[]}: a
+   * {@code bytea[]} column maps to a {@code byte[][]}, so {@code getObject(col, byte[][].class)} still
+   * decodes through the shared walker and returns it.
+   */
+  @Test
+  void getObjectAsByteMatrixStillDecodesByteaArray() throws SQLException {
+    String sql = "SELECT '{\"\\\\x0102\",\"\\\\xff\"}'::bytea[]";
+    for (Connection con : new Connection[]{text, binary}) {
+      Object decoded = ParityHarness.decodeFirstAs(con, sql, byte[][].class);
+      assertNotNull(decoded, () -> "bytea[] should decode to byte[][] on " + con);
+      byte[][] matrix = (byte[][]) decoded;
+      assertArrayEquals(new byte[]{1, 2}, matrix[0], () -> "first bytea element on " + con);
+      assertArrayEquals(new byte[]{(byte) 0xff}, matrix[1], () -> "second bytea element on " + con);
+    }
   }
 }

@@ -13,6 +13,7 @@ import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.geometric.PGcircle;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.Float8Text;
 import org.postgresql.util.PGpointFormat;
 import org.postgresql.util.PGtokenizer;
 import org.postgresql.util.PSQLState;
@@ -70,6 +71,21 @@ public final class CircleCodec implements StreamingBinaryCodec, TextCodec {
     out.writeDouble(xyr[0]);
     out.writeDouble(xyr[1]);
     out.writeDouble(xyr[2]);
+  }
+
+  @Override
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    if (length != 24) {
+      throw Exceptions.invalidBinaryLength("circle", length);
+    }
+    // Render the centre and radius in the server's float8 text form (1, not Java's 1.0) so getString
+    // reads back the same value whether the circle arrived in binary or text.
+    StringBuilder sb = new StringBuilder("<");
+    PGpointFormat.appendServerText(sb, ByteConverter.float8(data, offset),
+        ByteConverter.float8(data, offset + 8)).append(',');
+    Float8Text.append(sb, ByteConverter.float8(data, offset + 16)).append('>');
+    return sb.toString();
   }
 
   @Override

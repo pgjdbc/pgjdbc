@@ -483,7 +483,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     Class<?> componentType = genericComponentType(elementType, elementCodec);
     Class<?> componentType1 = componentType != null ? componentType : Object.class;
     return MultiDimArrayBinary.decode(data, offset, length, componentType1,
-        leafContext(componentType1, ctx), getGenericArrayLeafCodec(arrayType, ctx));
+        leafContext(componentType1, ctx), genericDecodeLeaf(elementType, elementCodec, componentType1));
   }
 
   /**
@@ -507,7 +507,29 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     Class<?> componentType = genericComponentType(elementType, elementCodec);
     Class<?> componentType1 = componentType != null ? componentType : Object.class;
     return MultiDimArrayText.decode(data, componentType1, arrayType.getDelimiter(),
-        leafContext(componentType1, ctx), getGenericArrayLeafCodec(arrayType, ctx));
+        leafContext(componentType1, ctx), genericDecodeLeaf(elementType, elementCodec, componentType1));
+  }
+
+  /**
+   * Builds the generic leaf that decodes an array whose leaf component type is {@code componentType}.
+   * When the component is a concrete class (not {@code Object}), each element decodes straight to that
+   * class through the element codec's {@code decodeBinaryAs}/{@code decodeTextAs}, so the decoded value
+   * always fits the {@code componentType[]} the walker allocates.
+   *
+   * <p>This closes a leak on {@code numeric[]}: a non-finite element (NaN / ±Infinity) decodes to a
+   * {@link Double} sentinel — a value {@code numeric} carries but {@link java.math.BigDecimal} cannot —
+   * which {@code decodeBinary}/{@code decodeText} return for the scalar {@code getObject} contract.
+   * Storing that {@code Double} into the {@code BigDecimal[]} leaf leaked an unchecked
+   * {@link ArrayStoreException}; decoding the element as {@code BigDecimal} instead raises the same
+   * checked {@link SQLException} the scalar {@code getBigDecimal} path and the legacy driver do.</p>
+   *
+   * <p>A composite/range/unknown element keeps {@code Object} and decodes through the codec's natural
+   * {@code decodeBinary}/{@code decodeText}, unchanged.</p>
+   */
+  private static GenericArrayLeafCodec genericDecodeLeaf(TypeDescriptor elementType,
+      Codec elementCodec, Class<?> componentType) {
+    return new GenericArrayLeafCodec(elementType, elementCodec,
+        componentType == Object.class ? null : componentType);
   }
 
   /** The outermost-dimension split of an array text literal: see {@link #splitTextArray}. */
@@ -605,9 +627,27 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
       // Element type has no matching fast leaf: decode through the shared codec walker, which
       // yields the same component type the legacy decoder produced (typed array, String[], or
       // Object[] for composite/range), so getObject(col, T[].class) is unchanged.
-      return (T) decodeBinaryArray(buf, offset, length, type, ctx);
+      Object decoded = decodeBinaryArray(buf, offset, length, type, ctx);
+      return castArrayTo(decoded, targetClass);
     }
     throw Exceptions.cannotConvertArrayTo(targetClass.getName());
+  }
+
+  /**
+   * Returns {@code decoded} when it already fits {@code targetClass}, otherwise refuses. The shared
+   * walker yields the element type's default mapping ({@code Integer[]}, {@code String[]},
+   * {@code byte[][]} for {@code bytea[]}, ...), which does not always match the requested array type:
+   * {@code getObject(col, byte[].class)} on an {@code int4[]} column asks for a {@code byte[]} the
+   * walker never produces. Handing back the differently typed array would surface as a
+   * {@link ClassCastException} at the {@code <T> T getObject(int, Class<T>)} call site, so refuse here
+   * with a coercion error instead, matching the pre-codec driver.
+   */
+  private static <T> @Nullable T castArrayTo(@Nullable Object decoded, Class<T> targetClass)
+      throws SQLException {
+    if (decoded != null && !targetClass.isInstance(decoded)) {
+      throw Exceptions.cannotConvertArrayTo(targetClass.getName());
+    }
+    return targetClass.cast(decoded);
   }
 
   @Override
@@ -636,7 +676,8 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
             typedLeaf);
       }
       // Element type has no matching fast leaf: decode through the shared codec walker.
-      return (T) decodeTextArray(data, type, ctx);
+      Object decoded = decodeTextArray(data, type, ctx);
+      return castArrayTo(decoded, targetClass);
     }
     if (targetClass == String.class) {
       return (T) data;

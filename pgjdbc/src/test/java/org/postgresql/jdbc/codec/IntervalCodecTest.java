@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.IntervalStyle;
 import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
@@ -17,10 +18,12 @@ import org.postgresql.jdbc.PgType;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.PGInterval;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Proxy;
 import java.sql.SQLException;
 
 class IntervalCodecTest {
@@ -112,6 +115,64 @@ class IntervalCodecTest {
     assertThrows(PSQLException.class, () -> codec.decodeBinary(data, 0, data.length, (TypeDescriptor) intervalType, (CodecContext) null));
   }
 
+  // ==================== Max-range microseconds (issue: RuntimeException leak) ====================
+
+  /** The interval whose microsecond field is Long.MAX_VALUE: {@code '2562047788:00:54.775807'}. */
+  private static byte[] maxRangeInterval() {
+    byte[] data = new byte[16];
+    ByteConverter.int8(data, 0, Long.MAX_VALUE); // microseconds
+    ByteConverter.int4(data, 8, 0); // days
+    ByteConverter.int4(data, 12, 0); // months
+    return data;
+  }
+
+  /**
+   * getObject builds a PGInterval, whose hours are an int; Long.MAX_VALUE microseconds are ~2562047788
+   * hours, past int range. The decode must refuse with a checked SQLException, not leak the unchecked
+   * exception PGInterval.setSeconds throws once the overflowed hour corrupts the seconds.
+   */
+  @Test
+  void decodeBinary_maxMicroseconds_refusesOutOfRange() {
+    byte[] data = maxRangeInterval();
+    PSQLException ex = assertThrows(PSQLException.class,
+        () -> codec.decodeBinary(data, 0, data.length, intervalType, null));
+    assertEquals(PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE.getState(), ex.getSQLState());
+  }
+
+  /**
+   * getString renders straight from the wire fields, so the same max-range value that getObject
+   * refuses still produces the server's text form for every style.
+   */
+  @Test
+  void decodeAsString_binary_maxMicroseconds_rendersServerForm() throws SQLException {
+    byte[] data = maxRangeInterval();
+    assertEquals("2562047788:00:54.775807",
+        codec.decodeAsString(data, 0, data.length, intervalType, contextWithStyle(IntervalStyle.POSTGRES)));
+    assertEquals("@ 2562047788 hours 54.775807 secs",
+        codec.decodeAsString(data, 0, data.length, intervalType, contextWithStyle(IntervalStyle.POSTGRES_VERBOSE)));
+    assertEquals("2562047788:00:54.775807",
+        codec.decodeAsString(data, 0, data.length, intervalType, contextWithStyle(IntervalStyle.SQL_STANDARD)));
+    assertEquals("PT2562047788H54.775807S",
+        codec.decodeAsString(data, 0, data.length, intervalType, contextWithStyle(IntervalStyle.ISO_8601)));
+  }
+
+  /** decodeBinaryAs(String) shares the render path, so it renders the max-range value too. */
+  @Test
+  void decodeBinaryAs_String_maxMicroseconds_renders() throws SQLException {
+    byte[] data = maxRangeInterval();
+    assertEquals("2562047788:00:54.775807",
+        codec.decodeBinaryAs(data, 0, data.length, intervalType, String.class, null));
+  }
+
+  /** decodeBinaryAs(PGInterval) shares the PGInterval path, so it refuses the max-range value. */
+  @Test
+  void decodeBinaryAs_PGInterval_maxMicroseconds_refuses() {
+    byte[] data = maxRangeInterval();
+    PSQLException ex = assertThrows(PSQLException.class,
+        () -> codec.decodeBinaryAs(data, 0, data.length, intervalType, PGInterval.class, null));
+    assertEquals(PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE.getState(), ex.getSQLState());
+  }
+
   // ==================== Encoding ====================
 
   @Test
@@ -173,6 +234,107 @@ class IntervalCodecTest {
     assertEquals("1 year", codec.decodeAsString("1 year", intervalType, null));
   }
 
+  /**
+   * getString must be wire-format independent: reading a value in binary has to yield the same string
+   * as the server's default {@code IntervalStyle=postgres} text form, not PGInterval.getValue()'s
+   * verbose {@code 1 days 2 hours 3 mins 4 secs} rendering.
+   */
+  @Test
+  void decodeAsString_binary_matchesServerPostgresStyle() throws SQLException {
+    // '1 day 02:03:04'::interval
+    assertEquals("1 day 02:03:04", binaryDecodeAsString(0, 1, 2 * 3600 + 3 * 60 + 4, 0));
+    // Sign carries into the next field, exactly like the backend's EncodeInterval.
+    assertEquals("-1 days +02:03:04", binaryDecodeAsString(0, -1, 2 * 3600 + 3 * 60 + 4, 0));
+    // A pure zero interval renders as 00:00:00, not the empty string.
+    assertEquals("00:00:00", binaryDecodeAsString(0, 0, 0, 0));
+    // Sub-second: fractional digits with trailing zeros trimmed.
+    assertEquals("00:00:00.5", binaryDecodeAsString(0, 0, 0, 500_000));
+    assertEquals("-00:00:00.000001", binaryDecodeAsString(0, 0, 0, -1));
+  }
+
+  /**
+   * The three non-default {@code IntervalStyle}s, cross-checked against the live server by
+   * {@code IntervalStyleGetStringTest}. Here they pin the exact strings without a database.
+   */
+  @Test
+  void decodeAsString_binary_postgresVerbose() throws SQLException {
+    IntervalStyle s = IntervalStyle.POSTGRES_VERBOSE;
+    assertEquals("@ 1 day 2 hours 3 mins 4 secs", binaryDecodeAsString(0, 1, 2 * 3600 + 3 * 60 + 4, 0, s));
+    // First non-zero field (the negative day) fixes the sign; later fields flip and " ago" is added.
+    assertEquals("@ 1 day -2 hours -3 mins -4 secs ago",
+        binaryDecodeAsString(0, -1, 2 * 3600 + 3 * 60 + 4, 0, s));
+    assertEquals("@ 0", binaryDecodeAsString(0, 0, 0, 0, s));
+    assertEquals("@ 1 day 0.5 secs", binaryDecodeAsString(0, 1, 0, 500_000, s));
+    assertEquals("@ 0.5 secs ago", binaryDecodeAsString(0, 0, 0, -500_000, s));
+  }
+
+  @Test
+  void decodeAsString_binary_sqlStandard() throws SQLException {
+    IntervalStyle s = IntervalStyle.SQL_STANDARD;
+    assertEquals("1 2:03:04", binaryDecodeAsString(0, 1, 2 * 3600 + 3 * 60 + 4, 0, s));
+    // All-negative day-time collapses to one leading sign.
+    assertEquals("-1 2:03:04", binaryDecodeAsString(0, -1, -(2 * 3600 + 3 * 60 + 4), 0, s));
+    // Mixed day/time signs force the fully-signed form.
+    assertEquals("+0-0 -1 +2:03:04", binaryDecodeAsString(0, -1, 2 * 3600 + 3 * 60 + 4, 0, s));
+    assertEquals("1-2", binaryDecodeAsString(14, 0, 0, 0, s));
+    assertEquals("-1-9", binaryDecodeAsString(-21, 0, 0, 0, s));
+    assertEquals("0", binaryDecodeAsString(0, 0, 0, 0, s));
+    assertEquals("2:03:04", binaryDecodeAsString(0, 0, 2 * 3600 + 3 * 60 + 4, 0, s));
+  }
+
+  @Test
+  void decodeAsString_binary_iso8601() throws SQLException {
+    IntervalStyle s = IntervalStyle.ISO_8601;
+    assertEquals("P1Y2M3DT4H5M6S",
+        binaryDecodeAsString(14, 3, 4 * 3600 + 5 * 60 + 6, 0, s));
+    assertEquals("P-1D", binaryDecodeAsString(0, -1, 0, 0, s));
+    assertEquals("PT0S", binaryDecodeAsString(0, 0, 0, 0, s));
+    assertEquals("P1DT0.5S", binaryDecodeAsString(0, 1, 0, 500_000, s));
+    assertEquals("PT-0.5S", binaryDecodeAsString(0, 0, 0, -500_000, s));
+    assertEquals("P-1Y-9M", binaryDecodeAsString(-21, 0, 0, 0, s));
+  }
+
+  /** Builds a binary interval wire value and decodes it through the getString path (postgres style). */
+  private String binaryDecodeAsString(int months, int days, long wholeSeconds, int micros)
+      throws SQLException {
+    return binaryDecodeAsString(months, days, wholeSeconds, micros, IntervalStyle.POSTGRES);
+  }
+
+  /** As above, but rendered for the given {@link IntervalStyle}. */
+  private String binaryDecodeAsString(int months, int days, long wholeSeconds, int micros,
+      IntervalStyle style) throws SQLException {
+    byte[] data = new byte[16];
+    ByteConverter.int8(data, 0, wholeSeconds * 1_000_000L + micros);
+    ByteConverter.int4(data, 8, days);
+    ByteConverter.int4(data, 12, months);
+    String s = codec.decodeAsString(data, 0, data.length, intervalType, contextWithStyle(style));
+    return castNonNull(s);
+  }
+
+  /**
+   * A {@link CodecContext} whose only meaningful method is {@link CodecContext#getIntervalStyle()};
+   * the interval decode path consults nothing else, so any other call is an error, not a silent
+   * default.
+   */
+  private static CodecContext contextWithStyle(IntervalStyle style) {
+    return (CodecContext) Proxy.newProxyInstance(
+        CodecContext.class.getClassLoader(),
+        new Class<?>[]{CodecContext.class},
+        (proxy, method, args) -> {
+          if ("getIntervalStyle".equals(method.getName())) {
+            return style;
+          }
+          throw new UnsupportedOperationException(method.getName());
+        });
+  }
+
+  private static <T> T castNonNull(T value) {
+    if (value == null) {
+      throw new AssertionError("value must not be null");
+    }
+    return value;
+  }
+
   // ==================== decodeBinaryAs/decodeTextAs ====================
 
   @Test
@@ -188,14 +350,15 @@ class IntervalCodecTest {
 
   @Test
   void decodeBinaryAs_String() throws SQLException {
+    // 1 day 02:03:04 — a case where PGInterval.getValue()'s verbose form ("1 days 2 hours 3 mins
+    // 4 secs") differs from the server text form, so this pins the server-style rendering.
     byte[] data = new byte[16];
-    ByteConverter.int8(data, 0, 0);
-    ByteConverter.int4(data, 8, 5);
+    ByteConverter.int8(data, 0, (2 * 3600 + 3 * 60 + 4) * 1_000_000L);
+    ByteConverter.int4(data, 8, 1);
     ByteConverter.int4(data, 12, 0);
 
     String result = codec.decodeBinaryAs(data, 0, data.length, intervalType, String.class, null);
-    // Should contain the interval string representation
-    assertEquals(new PGInterval(0, 0, 5, 0, 0, 0).getValue(), result);
+    assertEquals("1 day 02:03:04", result);
   }
 
   @Test
