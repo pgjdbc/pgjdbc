@@ -181,7 +181,14 @@ public interface BinaryCodec extends Codec {
       if (value instanceof Long || value instanceof Integer || value instanceof Short || value instanceof Byte) {
         return BigDecimal.valueOf(((Number) value).longValue());
       }
-      return BigDecimal.valueOf(((Number) value).doubleValue());
+      double doubleValue = ((Number) value).doubleValue();
+      // BigDecimal has no non-finite form, so a NaN or infinite float refuses rather than letting
+      // BigDecimal.valueOf throw an unchecked NumberFormatException. This mirrors the text default
+      // (TextCodec.decodeAsBigDecimal) and the binary float codecs, which raise the same state.
+      if (Double.isNaN(doubleValue) || Double.isInfinite(doubleValue)) {
+        throw Exceptions.valueOutOfRange(value, "BigDecimal");
+      }
+      return BigDecimal.valueOf(doubleValue);
     }
     throw Codecs.cannotDecode(value, "BigDecimal");
   }

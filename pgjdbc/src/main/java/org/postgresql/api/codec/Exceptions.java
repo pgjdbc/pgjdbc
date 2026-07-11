@@ -35,4 +35,20 @@ class Exceptions {
         GT.tr("No {0} codec is registered for type {1}.", format, type.getFullName()),
         PSQLState.INVALID_PARAMETER_TYPE);
   }
+
+  /**
+   * Creates the error the default primitive-read paths raise when a decoded value cannot be represented
+   * in the requested numeric target -- it overflows the target's range, or it is a non-finite
+   * {@code NaN}/{@code Infinity} that {@code int}/{@code long}/{@code BigDecimal} cannot hold. Carries
+   * {@link PSQLState#NUMERIC_VALUE_OUT_OF_RANGE}, matching the built-in codecs' own range checks.
+   *
+   * @param value the value that does not fit
+   * @param targetType the target type name (for example {@code "int"})
+   * @return the out-of-range {@link SQLException}
+   */
+  static SQLException valueOutOfRange(Object value, String targetType) {
+    return new PSQLException(
+        GT.tr("Value {0} is out of range for {1}", value, targetType),
+        PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+  }
 }

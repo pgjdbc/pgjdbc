@@ -11,6 +11,8 @@ import org.postgresql.api.Experimental;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.SQLException;
 
 /**
@@ -198,18 +200,61 @@ public final class PrimitiveDecoders {
   // Boxing fallbacks, shared with the interface defaults
   // ===========================================================================
 
+  private static final BigInteger LONG_MIN = BigInteger.valueOf(Long.MIN_VALUE);
+  private static final BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
+  // (double) Long.MIN_VALUE is exactly -2^63; 2^63 is the first double at or above Long.MAX_VALUE + 1.
+  private static final double LONG_MIN_AS_DOUBLE = -0x1p63;
+  private static final double TWO_POW_63 = 0x1p63;
+
   static int boxToInt(@Nullable Object value) throws SQLException {
     if (value instanceof Number) {
-      return ((Number) value).intValue();
+      long asLong = numberToLong((Number) value, "int");
+      if (asLong < Integer.MIN_VALUE || asLong > Integer.MAX_VALUE) {
+        throw Exceptions.valueOutOfRange(value, "int");
+      }
+      return (int) asLong;
     }
     throw Codecs.cannotDecode(value, "int");
   }
 
   static long boxToLong(@Nullable Object value) throws SQLException {
     if (value instanceof Number) {
-      return ((Number) value).longValue();
+      return numberToLong((Number) value, "long");
     }
     throw Codecs.cannotDecode(value, "long");
+  }
+
+  /**
+   * Narrows a {@link Number} to a {@code long}, truncating any fractional part toward zero. Unlike a
+   * bare {@link Number#longValue()} -- which wraps a too-large integer and turns {@code NaN}/{@code
+   * Infinity} into 0 or a saturated bound -- this refuses a value outside {@code long} range or a
+   * non-finite float/double with {@link Exceptions#valueOutOfRange}. {@link #boxToInt} then range-checks
+   * the result to {@code int}, so the report names the caller's target type.
+   */
+  private static long numberToLong(Number value, String targetType) throws SQLException {
+    if (value instanceof Long || value instanceof Integer || value instanceof Short
+        || value instanceof Byte) {
+      return value.longValue();
+    }
+    if (value instanceof BigInteger) {
+      return bigIntegerToLong((BigInteger) value, value, targetType);
+    }
+    if (value instanceof BigDecimal) {
+      return bigIntegerToLong(((BigDecimal) value).toBigInteger(), value, targetType);
+    }
+    double d = value.doubleValue();
+    if (Double.isNaN(d) || d < LONG_MIN_AS_DOUBLE || d >= TWO_POW_63) {
+      throw Exceptions.valueOutOfRange(value, targetType);
+    }
+    return (long) d;
+  }
+
+  private static long bigIntegerToLong(BigInteger whole, Object original, String targetType)
+      throws SQLException {
+    if (whole.compareTo(LONG_MIN) < 0 || whole.compareTo(LONG_MAX) > 0) {
+      throw Exceptions.valueOutOfRange(original, targetType);
+    }
+    return whole.longValue();
   }
 
   static float boxToFloat(@Nullable Object value) throws SQLException {
