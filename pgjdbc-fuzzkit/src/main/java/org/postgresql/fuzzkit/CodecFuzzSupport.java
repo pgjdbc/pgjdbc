@@ -884,6 +884,18 @@ public final class CodecFuzzSupport {
    */
   private static void numericLattice(String label, NumericFamily family,
       Outcome oi, Outcome ol, Outcome of, Outcome od) {
+    // Success-monotonicity, EVERY family (before the numeric-only lattice below): float and double are
+    // equi-permissive floating reads -- float saturates and never range-overflows, so a value readable
+    // as one is readable as the other -- and long is wider than int. A codec that reads a value as one
+    // of a pair must read it as the other, or its accessor set is half-overridden. This is the check
+    // that a decodeAsDouble override paired with a defaulting decodeAsFloat (which boxes a non-Number
+    // and refuses) fails -- the getDouble/getFloat gap FallbackCodec had.
+    assertTrue(od.threw == of.threw,
+        () -> label + " getDouble/getFloat success must agree (getDouble " + describe(od)
+            + ", getFloat " + describe(of) + ")");
+    if (!oi.threw) {
+      assertFalse(ol.threw, () -> label + " getInt read " + oi.value + " but getLong refused it");
+    }
     if (family == NumericFamily.OTHER) {
       return;
     }

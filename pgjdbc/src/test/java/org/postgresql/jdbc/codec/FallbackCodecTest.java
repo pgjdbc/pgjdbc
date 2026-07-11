@@ -137,4 +137,23 @@ class FallbackCodecTest {
     assertThrows(PSQLException.class,
         () -> codec.decodeBinaryAs(data, 0, data.length, (TypeDescriptor) unknownType, Date.class, ctx));
   }
+
+  // Regression: getFloat must read a numeric-text value that getDouble reads, and refuse a non-numeric
+  // one alike. decodeAsDouble is overridden to parse the text, so decodeAsFloat must too rather than
+  // fall to the default that boxes the non-Number PGUnknownBinary and refuses.
+  @Test
+  void decodeAsFloat_parsesTextLikeDouble() throws SQLException {
+    byte[] wire = "1.5".getBytes(StandardCharsets.UTF_8);
+    assertEquals(1.5f, codec.decodeAsFloat(wire, 0, wire.length, unknownType, ctx));
+    assertEquals(1.5f, codec.decodeAsFloat("1.5", unknownType, ctx));
+    assertEquals((float) codec.decodeAsDouble(wire, 0, wire.length, unknownType, ctx),
+        codec.decodeAsFloat(wire, 0, wire.length, unknownType, ctx));
+  }
+
+  @Test
+  void decodeAsFloatAndDouble_refuseNonNumericAlike() {
+    byte[] wire = "not-a-number".getBytes(StandardCharsets.UTF_8);
+    assertThrows(SQLException.class, () -> codec.decodeAsDouble(wire, 0, wire.length, unknownType, ctx));
+    assertThrows(SQLException.class, () -> codec.decodeAsFloat(wire, 0, wire.length, unknownType, ctx));
+  }
 }

@@ -216,4 +216,18 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
     }
   }
 
+  // float mirrors decodeAsDouble: the raw text is parsed as a number and narrowed. Without these the
+  // default decodeAsFloat would box decodeBinary's PGUnknownBinary (not a Number) and refuse, so
+  // getFloat would fail on a numeric-text value that getDouble reads -- an inconsistency.
+  @Override
+  public float decodeAsFloat(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    return (float) decodeAsDouble(data, offset, length, type, ctx);
+  }
+
+  @Override
+  public float decodeAsFloat(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return (float) decodeAsDouble(data, type, ctx);
+  }
+
 }
