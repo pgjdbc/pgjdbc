@@ -115,6 +115,39 @@ class NumericCodecTest {
     assertEquals(3.14f, result, 0.001f);
   }
 
+  // Regression: the float/double text accessors go through Double.parseDouble, which keeps a signed
+  // zero; the char[] overloads must agree with the String form rather than fall through to the
+  // BigDecimal path, which has no signed zero and would read "-0.0" as +0.0.
+  @Test
+  void decodeAsDouble_negativeZero_charArrayMatchesString() throws SQLException {
+    char[] chars = "-0.0".toCharArray();
+    double viaChars = codec.decodeAsDouble(chars, 0, chars.length, numericType, null);
+    assertEquals(Double.doubleToRawLongBits(codec.decodeAsDouble("-0.0", numericType, null)),
+        Double.doubleToRawLongBits(viaChars));
+    assertEquals(Double.doubleToRawLongBits(-0.0), Double.doubleToRawLongBits(viaChars));
+  }
+
+  @Test
+  void decodeAsFloat_negativeZero_charArrayMatchesString() throws SQLException {
+    char[] chars = "-0.0".toCharArray();
+    float viaChars = codec.decodeAsFloat(chars, 0, chars.length, numericType, null);
+    assertEquals(Float.floatToRawIntBits(codec.decodeAsFloat("-0.0", numericType, null)),
+        Float.floatToRawIntBits(viaChars));
+    assertEquals(Float.floatToRawIntBits(-0.0f), Float.floatToRawIntBits(viaChars));
+  }
+
+  // Regression: a numeric can be NaN or +/-Infinity; the String form handles them, and the char[] form
+  // (which used to route through BigDecimal and reject them) must produce the same value.
+  @Test
+  void decodeAsDouble_specialValues_charArrayMatchesString() throws SQLException {
+    for (String special : new String[]{"NaN", "Infinity", "-Infinity"}) {
+      char[] chars = special.toCharArray();
+      assertEquals(Double.doubleToRawLongBits(codec.decodeAsDouble(special, numericType, null)),
+          Double.doubleToRawLongBits(codec.decodeAsDouble(chars, 0, chars.length, numericType, null)),
+          special);
+    }
+  }
+
   @Test
   void decodeAsString_text() throws SQLException {
     String result = codec.decodeAsString("123.456", numericType, null);

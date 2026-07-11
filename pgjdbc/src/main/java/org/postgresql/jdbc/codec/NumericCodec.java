@@ -208,6 +208,22 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
     return (float) decodeAsDouble(data, type, ctx);
   }
 
+  // The char[] float/double accessors route through the String fast path (Double.parseDouble), not the
+  // BigDecimal path the default overloads take: BigDecimal has no signed zero and rejects NaN/Infinity,
+  // so the default char[] path would disagree with the String path on "-0.0" and throw on the "NaN" /
+  // "Infinity" a numeric can hold. Sharing the String path keeps every text overload consistent.
+  @Override
+  public double decodeAsDouble(char[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    return decodeAsDouble(new String(data, offset, length), type, ctx);
+  }
+
+  @Override
+  public float decodeAsFloat(char[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    return (float) decodeAsDouble(data, offset, length, type, ctx);
+  }
+
   @Override
   public int decodeAsInt(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {

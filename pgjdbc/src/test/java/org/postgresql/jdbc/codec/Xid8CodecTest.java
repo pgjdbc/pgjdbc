@@ -162,6 +162,29 @@ class Xid8CodecTest {
     assertEquals(Math.pow(2, 64), result);
   }
 
+  // Regression: decodeAsFloat must mirror the unsigned decodeAsDouble, not the signed boxing default.
+  // For an xid8 at or above 2^63 the raw long is negative, so the default would read a large negative
+  // float while decodeAsDouble reads the unsigned magnitude.
+  @Test
+  void decodeAsFloat_unsignedHighBit_matchesUnsignedDouble() throws SQLException {
+    byte[] data = new byte[8];
+    ByteConverter.int8(data, 0, MAX_UNSIGNED);
+    double asDouble = PrimitiveDecoders.asDouble(codec, data, xid8Type, null);
+    float asFloat = PrimitiveDecoders.asFloat(codec, data, xid8Type, null);
+    assertEquals(Float.floatToRawIntBits((float) asDouble), Float.floatToRawIntBits(asFloat));
+    assertEquals((float) Math.pow(2, 64), asFloat);
+  }
+
+  // Regression: the char[] double accessor must match the (unsigned) String form, not the signed long
+  // the default char[] path would widen.
+  @Test
+  void decodeAsDouble_charArrayMatchesString_unsignedHighBit() throws SQLException {
+    char[] chars = MAX_UNSIGNED_BIG_INTEGER.toString().toCharArray();
+    assertEquals(
+        Double.doubleToRawLongBits(codec.decodeAsDouble(MAX_UNSIGNED_BIG_INTEGER.toString(), xid8Type, null)),
+        Double.doubleToRawLongBits(codec.decodeAsDouble(chars, 0, chars.length, xid8Type, null)));
+  }
+
   @Test
   void decodeAsBigDecimal_unsignedHighBit() throws SQLException {
     byte[] data = new byte[8];

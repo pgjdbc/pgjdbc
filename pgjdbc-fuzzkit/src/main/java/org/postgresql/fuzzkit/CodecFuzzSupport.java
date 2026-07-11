@@ -31,12 +31,14 @@ import org.postgresql.fuzzkit.coercion.Fidelity;
 import org.postgresql.fuzzkit.coercion.LeafRepr;
 import org.postgresql.fuzzkit.coercion.PgTypeDescriptors;
 import org.postgresql.fuzzkit.coercion.ScalarDescriptor;
+import org.postgresql.jdbc.CodecRegistry;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.jdbc.PgField;
 import org.postgresql.jdbc.PgStruct;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.jdbc.codec.BackpatchByteArrayOutputStream;
+import org.postgresql.jdbc.codec.FallbackCodec;
 import org.postgresql.util.PGRange;
 import org.postgresql.util.PGmultirange;
 import org.postgresql.util.internal.Nullness;
@@ -52,6 +54,7 @@ import java.sql.Struct;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -677,6 +680,308 @@ public final class CodecFuzzSupport {
       assertTrue(out.threw, () -> "int8 " + value + " overflows int; decodeAsInt must reject it, not"
           + " truncate to " + out.value);
     }
+  }
+
+  // --- Getter-consistency: the primitive accessors of ONE codec agree via the standard casts ---------
+  //
+  // The parity oracles above pin each codec's NATIVE-width accessor to its boxing default (int8 ->
+  // decodeAsLong, float8 -> decodeAsDouble, ...), but never the cross-width accessors (float8's
+  // decodeAsInt, int8's decodeAsFloat) nor numeric/money/bit at all. This oracle fills that gap: on one
+  // fuzzed wire it asserts the accessors of a single codec are mutually consistent.
+  //
+  // Two layers. Layer 1 (every primitive-decoder codec, numeric or not): the overloads of one accessor
+  // -- String vs char[] vs char[]@offset vs decodeTextBytesAs* on the text side, byte[]@0 vs byte[]@offset
+  // on the binary side -- return the same value whenever both succeed. Layer 2 (Number-valued codecs):
+  // the int/long/float/double views of the same value agree through the standard widening/narrowing.
+  //
+  // Integer accessors TRUNCATE toward zero and THROW on range overflow (never saturate); so the naive
+  // "decodeAsLong == decodeAsFloat" is false for a fractional value, and the lattice is stated only where
+  // it is exact. long -> double -> float is correctly rounded (innocuous double rounding, 53 >= 2*24+2),
+  // so (float) l == (float)((double) l) bit for bit and the two float paths agree.
+
+  /**
+   * The numeric family a codec belongs to, chosen by its type OID and {@link Codec#getDefaultJavaType()}.
+   * {@code oid}/{@code oid8}/{@code xid8} are unsigned, so their {@code int} view is the raw low bits of
+   * their {@code long} view rather than a signed narrowing -- a separate family from signed integrals.
+   */
+  private enum NumericFamily { INTEGRAL, UNSIGNED, FLOATING, DECIMAL, OTHER }
+
+  private static NumericFamily familyOf(int oid, Class<?> javaType) {
+    if (oid == Oid.OID || oid == Oid.OID8 || oid == Oid.XID8) {
+      return NumericFamily.UNSIGNED;
+    }
+    if (javaType == Integer.class || javaType == Long.class || javaType == Short.class) {
+      return NumericFamily.INTEGRAL;
+    }
+    if (javaType == Float.class || javaType == Double.class) {
+      return NumericFamily.FLOATING;
+    }
+    if (javaType == BigDecimal.class) {
+      return NumericFamily.DECIMAL;
+    }
+    // String, byte[], PGobject (bit, money, fallback), Boolean: Layer 1 only, no numeric lattice.
+    return NumericFamily.OTHER;
+  }
+
+  // A synthetic unknown scalar that resolves to the unpinned FallbackCodec: its OID is not pinned and
+  // its typtype 'b' / typcategory 'X' route to no container, while a scalar() type carries no text-like
+  // typsend, so getByOid falls all the way through to the fallback. It lets the fuzzer cover
+  // FallbackCodec's primitive text/byte accessors, which the OID-driven enumeration would otherwise
+  // skip; consistencyContext() registers it so it resolves offline.
+  private static final int FALLBACK_PROBE_OID = 999_999;
+  private static final PgType FALLBACK_PROBE_TYPE = scalar(FALLBACK_PROBE_OID, "fuzz_unknown", 'X');
+
+  private static final List<PgType> PRIMITIVE_DECODER_TYPES = buildPrimitiveDecoderTypes();
+
+  /**
+   * A representative scalar {@link PgType} for every built-in codec that opts into
+   * {@link PrimitiveBinaryDecoder} or {@link PrimitiveTextDecoder}, derived from the pinned OID map so a
+   * newly pinned primitive-decoder codec joins the getter-consistency fuzzer automatically, followed by
+   * a synthetic unknown type for the unpinned {@link FallbackCodec}. Each pinned type is a generic scalar
+   * ({@code typmod -1}) resolved by its canonical OID; the {@code typcategory} does not steer resolution
+   * of a pinned OID (see {@link #scalar}). Resolve these through {@link #consistencyContext()}, which
+   * registers the synthetic type.
+   *
+   * @return the representative types, in OID order, then the Fallback probe
+   */
+  public static List<PgType> primitiveDecoderTypes() {
+    return PRIMITIVE_DECODER_TYPES;
+  }
+
+  /**
+   * The offline context for {@link #primitiveDecoderTypes()}: the shared built-ins plus the synthetic
+   * unknown type registered, so both the pinned types and the {@link FallbackCodec} probe resolve.
+   *
+   * @return the offline codec context that drives the getter-consistency oracle
+   */
+  public static CodecContext consistencyContext() {
+    return with(FALLBACK_PROBE_TYPE);
+  }
+
+  private static List<PgType> buildPrimitiveDecoderTypes() {
+    List<PgType> types = new ArrayList<>();
+    for (Map.Entry<Integer, Codec> entry : new CodecRegistry().builtinCodecsByOid().entrySet()) {
+      Codec codec = entry.getValue();
+      if (codec instanceof PrimitiveBinaryDecoder || codec instanceof PrimitiveTextDecoder) {
+        types.add(scalar(entry.getKey(), codec.getTypeName(), 'X'));
+      }
+    }
+    // The synthetic unknown type must resolve to the unpinned FallbackCodec (not TextLikeCodec or a
+    // container), or the intended Fallback coverage would silently exercise the wrong codec.
+    try {
+      Codec probe = with(FALLBACK_PROBE_TYPE).resolveCodec(FALLBACK_PROBE_OID);
+      if (probe != FallbackCodec.INSTANCE) {
+        throw new ExceptionInInitializerError(
+            "Fallback probe resolved to " + probe.getClass().getName() + ", not FallbackCodec");
+      }
+    } catch (SQLException e) {
+      throw new ExceptionInInitializerError(e);
+    }
+    types.add(FALLBACK_PROBE_TYPE);
+    return Collections.unmodifiableList(types);
+  }
+
+  /**
+   * Asserts the binary primitive accessors of {@code type}'s codec are mutually consistent on
+   * {@code wire}. A no-op when the codec is not a {@link PrimitiveBinaryDecoder}, so it is safe for any
+   * type. See the section comment for the properties.
+   *
+   * @param type the backend type whose codec the context resolves
+   * @param wire the (fuzzed) binary wire bytes fed to every accessor
+   * @param ctx the offline codec context, which must resolve {@code type}
+   */
+  public static void binaryGetterConsistency(PgType type, byte[] wire, CodecContext ctx)
+      throws SQLException {
+    Codec codec = ctx.resolveCodec(type.getOid());
+    if (!(codec instanceof PrimitiveBinaryDecoder)) {
+      return;
+    }
+    PrimitiveBinaryDecoder dec = (PrimitiveBinaryDecoder) codec;
+    String name = codec.getTypeName();
+    int len = wire.length;
+    Outcome oi = Outcome.capture(() -> dec.decodeAsInt(wire, 0, len, type, ctx));
+    Outcome ol = Outcome.capture(() -> dec.decodeAsLong(wire, 0, len, type, ctx));
+    Outcome of = Outcome.capture(() -> dec.decodeAsFloat(wire, 0, len, type, ctx));
+    Outcome od = Outcome.capture(() -> dec.decodeAsDouble(wire, 0, len, type, ctx));
+    Outcome ob = Outcome.capture(() -> dec.decodeAsBoolean(wire, 0, len, type, ctx));
+
+    // Layer 1: every accessor honours the offset (same value read at offset 0 and at offset 3 of a pad).
+    byte[] pad = pad(wire);
+    assertValueAgrees(name + " decodeAsInt(byte[]) offset", oi,
+        Outcome.capture(() -> dec.decodeAsInt(pad, 3, len, type, ctx)));
+    assertValueAgrees(name + " decodeAsLong(byte[]) offset", ol,
+        Outcome.capture(() -> dec.decodeAsLong(pad, 3, len, type, ctx)));
+    assertValueAgrees(name + " decodeAsFloat(byte[]) offset", of,
+        Outcome.capture(() -> dec.decodeAsFloat(pad, 3, len, type, ctx)));
+    assertValueAgrees(name + " decodeAsDouble(byte[]) offset", od,
+        Outcome.capture(() -> dec.decodeAsDouble(pad, 3, len, type, ctx)));
+    assertValueAgrees(name + " decodeAsBoolean(byte[]) offset", ob,
+        Outcome.capture(() -> dec.decodeAsBoolean(pad, 3, len, type, ctx)));
+
+    // Layer 2 + getObject cross-check.
+    numericLattice(name + " binary", familyOf(type.getOid(), codec.getDefaultJavaType()), oi, ol, of, od);
+    getObjectConsistency(name + " getObject(binary)", type, RawValue.binary(wire), ctx, oi, ol, of, od);
+  }
+
+  /**
+   * Asserts the text primitive accessors of {@code type}'s codec are mutually consistent on
+   * {@code text}. A no-op when the codec is not a {@link PrimitiveTextDecoder}. See the section comment.
+   *
+   * @param type the backend type whose codec the context resolves
+   * @param text the (fuzzed) text input fed to every accessor
+   * @param ctx the offline codec context, which must resolve {@code type}
+   */
+  public static void textGetterConsistency(PgType type, String text, CodecContext ctx)
+      throws SQLException {
+    Codec codec = ctx.resolveCodec(type.getOid());
+    if (!(codec instanceof PrimitiveTextDecoder)) {
+      return;
+    }
+    PrimitiveTextDecoder dec = (PrimitiveTextDecoder) codec;
+    String name = codec.getTypeName();
+    char[] chars = text.toCharArray();
+    char[] pad = pad(chars);
+    int clen = chars.length;
+    byte[] textBytes = text.getBytes(ctx.getCharset());
+    Outcome oi = Outcome.capture(() -> dec.decodeAsInt(text, type, ctx));
+    Outcome ol = Outcome.capture(() -> dec.decodeAsLong(text, type, ctx));
+    Outcome of = Outcome.capture(() -> dec.decodeAsFloat(text, type, ctx));
+    Outcome od = Outcome.capture(() -> dec.decodeAsDouble(text, type, ctx));
+    Outcome ob = Outcome.capture(() -> dec.decodeAsBoolean(text, type, ctx));
+
+    // Layer 1: the String, char[], char[]@offset and (int/long) ASCII-bytes forms agree with the String
+    // form whenever both succeed.
+    assertValueAgrees(name + " decodeAsInt(char[])", oi,
+        Outcome.capture(() -> dec.decodeAsInt(chars, 0, clen, type, ctx)));
+    assertValueAgrees(name + " decodeAsInt(char[]) offset", oi,
+        Outcome.capture(() -> dec.decodeAsInt(pad, 3, clen, type, ctx)));
+    assertValueAgrees(name + " decodeTextBytesAsInt", oi,
+        Outcome.capture(() -> dec.decodeTextBytesAsInt(textBytes, type, ctx)));
+    assertValueAgrees(name + " decodeAsLong(char[])", ol,
+        Outcome.capture(() -> dec.decodeAsLong(chars, 0, clen, type, ctx)));
+    assertValueAgrees(name + " decodeAsLong(char[]) offset", ol,
+        Outcome.capture(() -> dec.decodeAsLong(pad, 3, clen, type, ctx)));
+    assertValueAgrees(name + " decodeTextBytesAsLong", ol,
+        Outcome.capture(() -> dec.decodeTextBytesAsLong(textBytes, type, ctx)));
+    assertValueAgrees(name + " decodeAsFloat(char[])", of,
+        Outcome.capture(() -> dec.decodeAsFloat(chars, 0, clen, type, ctx)));
+    assertValueAgrees(name + " decodeAsFloat(char[]) offset", of,
+        Outcome.capture(() -> dec.decodeAsFloat(pad, 3, clen, type, ctx)));
+    assertValueAgrees(name + " decodeAsDouble(char[])", od,
+        Outcome.capture(() -> dec.decodeAsDouble(chars, 0, clen, type, ctx)));
+    assertValueAgrees(name + " decodeAsDouble(char[]) offset", od,
+        Outcome.capture(() -> dec.decodeAsDouble(pad, 3, clen, type, ctx)));
+    assertValueAgrees(name + " decodeAsBoolean(char[])", ob,
+        Outcome.capture(() -> dec.decodeAsBoolean(chars, 0, clen, type, ctx)));
+
+    numericLattice(name + " text", familyOf(type.getOid(), codec.getDefaultJavaType()), oi, ol, of, od);
+  }
+
+  /**
+   * The Layer-2 numeric lattice: the {@code int}/{@code long}/{@code float}/{@code double} views of one
+   * value agree through the standard casts. Applied per {@link NumericFamily}; a no-op for
+   * {@link NumericFamily#OTHER}.
+   */
+  private static void numericLattice(String label, NumericFamily family,
+      Outcome oi, Outcome ol, Outcome of, Outcome od) {
+    if (family == NumericFamily.OTHER) {
+      return;
+    }
+    if (family == NumericFamily.UNSIGNED) {
+      // getInt is the raw low 32 bits of getLong (a signed reinterpretation), not a range-checked
+      // narrowing, so the signed INV-1/INV-2/INV-3a-b do not apply. The sound relations are the
+      // truncating one and the float-narrowing one.
+      if (!oi.threw && !ol.threw) {
+        assertEquals((int) longOf(ol.value), intOf(oi.value),
+            label + " INV-U1: decodeAsInt == (int) decodeAsLong");
+      }
+      if (!od.threw && !of.threw) {
+        assertFloatBits(label + " INV-U3c: decodeAsFloat == (float) decodeAsDouble",
+            (float) doubleOf(od.value), floatOf(of.value));
+      }
+      return;
+    }
+    if (family == NumericFamily.INTEGRAL) {
+      // INV-1: int fits => long succeeds and is the same integer.
+      if (!oi.threw) {
+        assertFalse(ol.threw, () -> label + " INV-1: decodeAsInt succeeded but decodeAsLong threw");
+        assertEquals((long) intOf(oi.value), longOf(ol.value),
+            label + " INV-1: decodeAsLong == (long) decodeAsInt");
+      }
+      // INV-3a/3b: reading the integer as double/float is the exact cast of the long.
+      if (!ol.threw) {
+        long l = longOf(ol.value);
+        assertFalse(od.threw, () -> label + " INV-3a: decodeAsLong succeeded but decodeAsDouble threw");
+        assertDoubleBits(label + " INV-3a: decodeAsDouble == (double) decodeAsLong",
+            (double) l, doubleOf(od.value));
+        assertFalse(of.threw, () -> label + " INV-3b: decodeAsLong succeeded but decodeAsFloat threw");
+        assertFloatBits(label + " INV-3b: decodeAsFloat == (float) decodeAsLong",
+            (float) l, floatOf(of.value));
+      }
+    }
+    if (!od.threw) {
+      double d = doubleOf(od.value);
+      // INV-3c: reading as float is the narrowing cast of reading as double (integral + floating).
+      if (family == NumericFamily.INTEGRAL || family == NumericFamily.FLOATING) {
+        assertFalse(of.threw, () -> label + " INV-3c: decodeAsDouble succeeded but decodeAsFloat threw");
+        assertFloatBits(label + " INV-3c: decodeAsFloat == (float) decodeAsDouble",
+            (float) d, floatOf(of.value));
+      }
+      // INV-2: a value outside int range must be REJECTED by decodeAsInt, never truncated/saturated.
+      if (Double.isFinite(d) && (d < Integer.MIN_VALUE || d > Integer.MAX_VALUE)) {
+        assertTrue(oi.threw, () -> label + " INV-2: value " + d
+            + " is out of int range but decodeAsInt did not throw (returned " + oi.value + ")");
+      }
+    }
+  }
+
+  /**
+   * The getObject cross-check: when both {@code Codecs.decode(.., X.class)} and the primitive accessor
+   * of that width produce a value, the two values agree. It has teeth on the codec's own default type
+   * ({@code decode(int8, Long.class)} vs {@code decodeAsLong}); for a target the boxing cast rejects,
+   * {@code decode} throws and there is nothing to compare. The success-ness itself is not compared: the
+   * boxing path ({@code decodeBinaryAs}) and the primitive path may validate a malformed-length wire
+   * with different strictness, which is not the value consistency this checks.
+   */
+  private static void getObjectConsistency(String label, PgType type, RawValue raw, CodecContext ctx,
+      Outcome oi, Outcome ol, Outcome of, Outcome od) {
+    assertGetObject(label + " Integer", type, raw, ctx, Integer.class, oi);
+    assertGetObject(label + " Long", type, raw, ctx, Long.class, ol);
+    assertGetObject(label + " Float", type, raw, ctx, Float.class, of);
+    assertGetObject(label + " Double", type, raw, ctx, Double.class, od);
+  }
+
+  private static void assertGetObject(String label, PgType type, RawValue raw, CodecContext ctx,
+      Class<?> target, Outcome primitive) {
+    @Nullable Object decoded;
+    try {
+      decoded = Codecs.decode(raw, type, ctx, target);
+    } catch (SQLException | RuntimeException e) {
+      // "либо падает": a target the codec cannot produce (or a bad wire) is an allowed outcome.
+      return;
+    }
+    if (decoded == null || primitive.threw) {
+      return;
+    }
+    assertEquals(primitive.value, decoded, label + ": getObject == primitive accessor");
+  }
+
+  /** Layer-1 overload agreement: two forms of one accessor return the same value when both succeed. */
+  private static void assertValueAgrees(String label, Outcome a, Outcome b) {
+    if (!a.threw && !b.threw) {
+      // Boxed Float/Double equality is bit-canonical (NaN == NaN, -0.0 != 0.0), which is what we want.
+      assertEquals(a.value, b.value, label + " overloads agree");
+    }
+  }
+
+  /** Bit-canonical float equality (all NaNs equal, -0.0f distinct from 0.0f). */
+  private static void assertFloatBits(String label, float expected, float actual) {
+    assertEquals(Float.floatToIntBits(expected), Float.floatToIntBits(actual), label);
+  }
+
+  /** Bit-canonical double equality (all NaNs equal, -0.0 distinct from 0.0). */
+  private static void assertDoubleBits(String label, double expected, double actual) {
+    assertEquals(Double.doubleToLongBits(expected), Double.doubleToLongBits(actual), label);
   }
 
   // The result of one codec call: the value it returned, or the SQLState it failed with. Two calls

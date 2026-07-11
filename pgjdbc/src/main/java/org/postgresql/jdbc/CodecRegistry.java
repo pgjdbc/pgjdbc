@@ -59,12 +59,14 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -423,6 +425,23 @@ public class CodecRegistry {
     pinBuiltinOid(Oid.LSEG, LsegCodec.INSTANCE);
     pinBuiltinOid(Oid.PATH, PathCodec.INSTANCE);
     pinBuiltinOid(Oid.POLYGON, PolygonCodec.INSTANCE);
+  }
+
+  /**
+   * Read-only view of the built-in codecs pinned by their canonical OID -- the {@code int4 -> 23},
+   * {@code point -> 600}, ... bindings set up in {@link #registerBuiltinOids()}.
+   *
+   * <p>The returned map is a snapshot copy ordered by OID. It carries only the pinned built-in
+   * codecs: user and service-loaded registrations, the name-only built-ins (such as {@code hstore}),
+   * and the unpinned {@link org.postgresql.jdbc.codec.FallbackCodec} are all absent. Intended for
+   * tests and tooling that enumerate the built-in codecs -- for example a capability-coverage guard
+   * that checks every codec advertising an optional capability is reachable by OID.</p>
+   *
+   * @return an unmodifiable {@code OID -> codec} snapshot of the pinned built-in codecs
+   * @since 42.8.0
+   */
+  public Map<Integer, Codec> builtinCodecsByOid() {
+    return Collections.unmodifiableMap(new TreeMap<>(builtinCodecsByOid));
   }
 
   /**
