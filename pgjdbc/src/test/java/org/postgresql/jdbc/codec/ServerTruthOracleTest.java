@@ -15,12 +15,39 @@ import org.postgresql.geometric.PGpath;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.geometric.PGpolygon;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.data.Bit1EdgeCases;
+import org.postgresql.test.data.BoolEdgeCases;
 import org.postgresql.test.data.BoxEdgeCases;
+import org.postgresql.test.data.ByteaEdgeCases;
+import org.postgresql.test.data.CircleEdgeCases;
+import org.postgresql.test.data.DateEdgeCases;
+import org.postgresql.test.data.DateRangeEdgeCases;
 import org.postgresql.test.data.EdgeCase;
+import org.postgresql.test.data.Float4EdgeCases;
+import org.postgresql.test.data.Float8EdgeCases;
+import org.postgresql.test.data.Int2EdgeCases;
+import org.postgresql.test.data.Int4EdgeCases;
+import org.postgresql.test.data.Int4RangeEdgeCases;
+import org.postgresql.test.data.Int8EdgeCases;
+import org.postgresql.test.data.IntArrayEdgeCases;
 import org.postgresql.test.data.IntervalEdgeCases;
+import org.postgresql.test.data.JsonEdgeCases;
+import org.postgresql.test.data.LineEdgeCases;
+import org.postgresql.test.data.LsegEdgeCases;
+import org.postgresql.test.data.NumRangeEdgeCases;
 import org.postgresql.test.data.NumericEdgeCases;
+import org.postgresql.test.data.OidEdgeCases;
+import org.postgresql.test.data.PathEdgeCases;
+import org.postgresql.test.data.PointEdgeCases;
+import org.postgresql.test.data.PolygonEdgeCases;
+import org.postgresql.test.data.TextEdgeCases;
+import org.postgresql.test.data.TimeEdgeCases;
 import org.postgresql.test.data.TimeTzEdgeCases;
+import org.postgresql.test.data.TimestampEdgeCases;
 import org.postgresql.test.data.TimestampTzEdgeCases;
+import org.postgresql.test.data.TsRangeEdgeCases;
+import org.postgresql.test.data.UuidEdgeCases;
+import org.postgresql.test.data.VarbitEdgeCases;
 import org.postgresql.util.PGInterval;
 import org.postgresql.util.PGRange;
 
@@ -68,6 +95,8 @@ class ServerTruthOracleTest {
   private static int int4rangeOid;
   private static int int8rangeOid;
   private static int numrangeOid;
+  private static int daterangeOid;
+  private static int tsrangeOid;
 
   @BeforeAll
   static void setUpClass() throws Exception {
@@ -83,6 +112,8 @@ class ServerTruthOracleTest {
       int4rangeOid = (int) ParityHarness.oidAndArray(con, "int4range")[0];
       int8rangeOid = (int) ParityHarness.oidAndArray(con, "int8range")[0];
       numrangeOid = (int) ParityHarness.oidAndArray(con, "numrange")[0];
+      daterangeOid = (int) ParityHarness.oidAndArray(con, "daterange")[0];
+      tsrangeOid = (int) ParityHarness.oidAndArray(con, "tsrange")[0];
     }
     // A connection that requests binary receive for every value: prepareThreshold=-1 forces a
     // standalone Describe before the first Bind, so the server returns binary. Used by the
@@ -102,6 +133,8 @@ class ServerTruthOracleTest {
       st.execute("SET IntervalStyle = 'postgres'");
       st.execute("SET DateStyle = 'ISO, MDY'");
       st.execute("SET TIME ZONE 'UTC'");
+      st.execute("SET lc_monetary = 'C'");
+      st.execute("SET bytea_output = 'hex'");
     }
   }
 
@@ -222,25 +255,29 @@ class ServerTruthOracleTest {
   @TestFactory
   List<DynamicTest> scalars() {
     List<DynamicTest> t = new ArrayList<>();
-    t.add(encode("int2/max", Oid.INT2, "int2", (short) 32767, "32767"));
-    t.add(encode("int2/min", Oid.INT2, "int2", (short) -32768, "-32768"));
-    t.add(encode("int4/answer", Oid.INT4, "int4", 42, "42"));
-    t.add(encode("int4/min", Oid.INT4, "int4", Integer.MIN_VALUE, "-2147483648"));
-    t.add(encode("int8/max", Oid.INT8, "int8", Long.MAX_VALUE, "9223372036854775807"));
-    t.add(encode("float4/simple", Oid.FLOAT4, "float4", 1.5f, "1.5"));
-    t.add(encode("float4/tenth", Oid.FLOAT4, "float4", 0.1f, "0.1"));
-    t.add(encode("float8/pi", Oid.FLOAT8, "float8", Math.PI, "3.141592653589793"));
-    t.add(encode("float8/tenth", Oid.FLOAT8, "float8", 0.1, "0.1"));
-    t.add(encode("bool/true", Oid.BOOL, "bool", Boolean.TRUE, "true"));
-    t.add(encode("bool/false", Oid.BOOL, "bool", Boolean.FALSE, "false"));
-    t.add(encode("bytea/bytes", Oid.BYTEA, "bytea",
-        new byte[]{0, 1, (byte) 0xFE, (byte) 0xFF}, "\\x0001feff"));
-    // A zero-length binary value cannot travel this path: setPGobject binds a PGBinaryObject of
-    // lengthInBytes()==0 as SQL NULL, so an empty bytea/text is indistinguishable from NULL here.
-    t.add(encode("uuid", Oid.UUID, "uuid",
-        java.util.UUID.fromString("550e8400-e29b-41d4-a716-446655440000"),
-        "550e8400-e29b-41d4-a716-446655440000"));
+    // Integer/float/bool catalogues carry a bind value(); bytea/uuid are literal-only, so build the
+    // bind value from the literal. The empty bytea is skipped: setPGobject binds a zero-length
+    // PGBinaryObject as SQL NULL, so an empty value is indistinguishable from NULL on this path.
+    t.addAll(encodeEdges("int2", Oid.INT2, "int2", Int2EdgeCases.ALL));
+    t.addAll(encodeEdges("int4", Oid.INT4, "int4", Int4EdgeCases.ALL));
+    t.addAll(encodeEdges("int8", Oid.INT8, "int8", Int8EdgeCases.ALL));
+    t.addAll(encodeEdges("float4", Oid.FLOAT4, "float4", Float4EdgeCases.ALL));
+    t.addAll(encodeEdges("float8", Oid.FLOAT8, "float8", Float8EdgeCases.ALL));
+    t.addAll(encodeEdges("bool", Oid.BOOL, "bool", BoolEdgeCases.ALL));
+    t.addAll(encodeEdgesVia("bytea", Oid.BYTEA, "bytea", without(ByteaEdgeCases.ALL, "empty"),
+        ServerTruthOracleTest::byteaFromHex));
+    t.addAll(encodeEdgesVia("uuid", Oid.UUID, "uuid", UuidEdgeCases.ALL, java.util.UUID::fromString));
     return t;
+  }
+
+  /** Parses a PostgreSQL {@code \\x}-prefixed hex bytea literal into bytes. */
+  private static byte[] byteaFromHex(String literal) {
+    String hex = literal.substring(2); // drop the leading \x
+    byte[] out = new byte[hex.length() / 2];
+    for (int i = 0; i < out.length; i++) {
+      out[i] = (byte) Integer.parseInt(hex.substring(i * 2, i * 2 + 2), 16);
+    }
+    return out;
   }
 
   /**
@@ -251,20 +288,15 @@ class ServerTruthOracleTest {
    */
   @TestFactory
   List<DynamicTest> geometry() {
+    // The geometric catalogues are literal-only, so build the bind value from the literal via each
+    // type's PG*(String) constructor; a literal the constructor cannot hold is skipped.
     List<DynamicTest> t = new ArrayList<>();
-    t.add(encode("point", Oid.POINT, "point", new PGpoint(1.5, 2.5), "(1.5,2.5)"));
-    t.add(encode("circle", Oid.CIRCLE, "circle", new PGcircle(1, 2, 3), "<(1,2),3>"));
-    t.add(encode("lseg", Oid.LSEG, "lseg", new PGlseg(1, 2, 3, 4), "[(1,2),(3,4)]"));
-    t.add(encode("line", Oid.LINE, "line", new PGline(1, 2, 3), "{1,2,3}"));
-    t.add(encode("path/closed", Oid.PATH, "path",
-        new PGpath(new PGpoint[]{new PGpoint(1, 1), new PGpoint(2, 2), new PGpoint(3, 3)}, false),
-        "((1,1),(2,2),(3,3))"));
-    t.add(encode("path/open", Oid.PATH, "path",
-        new PGpath(new PGpoint[]{new PGpoint(1, 1), new PGpoint(2, 2)}, true),
-        "[(1,1),(2,2)]"));
-    t.add(encode("polygon", Oid.POLYGON, "polygon",
-        new PGpolygon(new PGpoint[]{new PGpoint(1, 1), new PGpoint(2, 2), new PGpoint(3, 3)}),
-        "((1,1),(2,2),(3,3))"));
+    t.addAll(encodeEdgesVia("point", Oid.POINT, "point", PointEdgeCases.ALL, PGpoint::new));
+    t.addAll(encodeEdgesVia("circle", Oid.CIRCLE, "circle", CircleEdgeCases.ALL, PGcircle::new));
+    t.addAll(encodeEdgesVia("lseg", Oid.LSEG, "lseg", LsegEdgeCases.ALL, PGlseg::new));
+    t.addAll(encodeEdgesVia("line", Oid.LINE, "line", LineEdgeCases.ALL, PGline::new));
+    t.addAll(encodeEdgesVia("path", Oid.PATH, "path", PathEdgeCases.ALL, PGpath::new));
+    t.addAll(encodeEdgesVia("polygon", Oid.POLYGON, "polygon", PolygonEdgeCases.ALL, PGpolygon::new));
     return t;
   }
 
@@ -296,7 +328,9 @@ class ServerTruthOracleTest {
    * a composite element. The array OID is what the codec encodes and what the parameter is bound as;
    * the {@code type[]} name resolves through the server's {@code regtype} cast, so it serves both the
    * bind-side lookup and the SQL cast. The array-of-composite case exercises the ArrayCodec /
-   * CompositeCodec composition end to end.
+   * CompositeCodec composition end to end. Bind values are hand-built for the same reason as
+   * {@link #ranges()}: the array catalogues are literal-only and there is no from-literal path to the
+   * {@code Object[]} / {@link java.sql.Struct} the encoder takes.
    */
   @TestFactory
   List<DynamicTest> arrays() {
@@ -319,7 +353,9 @@ class ServerTruthOracleTest {
    * Range encode-truth: {@link org.postgresql.jdbc.codec.RangeCodec} composes on the bound codec, so
    * the bound's own encoding is exercised through the range. numrange in particular carries a
    * {@code numeric} scale in each bound, so the server ::text pins the dscale of the bounds the binary
-   * encoder produced -- a place a bound-scale bug would hide.
+   * encoder produced -- a place a bound-scale bug would hide. Like {@link #arrays()} and
+   * {@link #composites()}, these bind values are hand-built: the range catalogues are literal-only and
+   * {@link PGRange} has no from-literal constructor, so the encoder cannot be driven from a catalogue.
    */
   @TestFactory
   List<DynamicTest> ranges() {
@@ -384,9 +420,51 @@ class ServerTruthOracleTest {
     // scientific-notation getString bug is fixed in NumericCodec.decodeAsString.
     List<DynamicTest> t = new ArrayList<>();
     t.addAll(decodeEdges("numeric", Oid.NUMERIC, "numeric", NumericEdgeCases.ALL));
+    t.addAll(decodeEdges("date", Oid.DATE, "date", DateEdgeCases.ALL));
+    t.addAll(decodeEdges("timestamp", Oid.TIMESTAMP, "timestamp", TimestampEdgeCases.ALL));
     t.addAll(decodeEdges("timestamptz", Oid.TIMESTAMPTZ, "timestamptz", TimestampTzEdgeCases.ALL));
+    t.addAll(decodeEdges("time", Oid.TIME, "time", TimeEdgeCases.ALL));
     t.addAll(decodeEdges("timetz", Oid.TIMETZ, "timetz", TimeTzEdgeCases.ALL));
     t.addAll(decodeEdges("interval", Oid.INTERVAL, "interval", IntervalEdgeCases.ALL));
+    return t;
+  }
+
+  /**
+   * Decode-truth for the remaining catalogue types whose {@code getString} equals the server's
+   * {@code ::text}: integers, bool, bytea, uuid, text, oid, json, bit strings, network types, arrays
+   * and ranges. Three families are handled elsewhere because their getString is deliberately not the
+   * server's text: geometry (driver PGobject form, see the box note), float4/float8 (Java
+   * {@code Double.toString}) and money (a plain parseable number, not the locale currency form) -- the
+   * last two are pinned in {@link #decodeKnownDivergences()}.
+   */
+  @TestFactory
+  List<DynamicTest> decodeMoreTypes() {
+    List<DynamicTest> t = new ArrayList<>();
+    t.addAll(decodeEdges("int2", Oid.INT2, "int2", Int2EdgeCases.ALL));
+    t.addAll(decodeEdges("int4", Oid.INT4, "int4", Int4EdgeCases.ALL));
+    t.addAll(decodeEdges("int8", Oid.INT8, "int8", Int8EdgeCases.ALL));
+    t.addAll(decodeEdges("bool", Oid.BOOL, "bool", BoolEdgeCases.ALL));
+    t.addAll(decodeEdges("bytea", Oid.BYTEA, "bytea", ByteaEdgeCases.ALL));
+    t.addAll(decodeEdges("uuid", Oid.UUID, "uuid", UuidEdgeCases.ALL));
+    t.addAll(decodeEdges("text", Oid.TEXT, "text", TextEdgeCases.ALL));
+    t.addAll(decodeEdges("oid", Oid.OID, "oid", OidEdgeCases.ALL));
+    t.addAll(decodeEdges("json", Oid.JSON, "json", JsonEdgeCases.ALL));
+    t.addAll(decodeEdges("bit", Oid.BIT, "bit", Bit1EdgeCases.ALL));
+    t.addAll(decodeEdges("varbit", Oid.VARBIT, "varbit", VarbitEdgeCases.ALL));
+    t.addAll(decodeEdges("int4[]", Oid.INT4_ARRAY, "int4[]", IntArrayEdgeCases.ALL));
+    if (haveRanges) {
+      // int4range "full" ([-2147483648,2147483647]) is skipped: the server itself rejects it, because
+      // canonicalising the inclusive upper bound to [lower,2147483648) overflows int4.
+      t.addAll(decodeEdges("int4range", int4rangeOid, "int4range",
+          without(Int4RangeEdgeCases.ALL, "full")));
+      t.addAll(decodeEdges("numrange", numrangeOid, "numrange", NumRangeEdgeCases.ALL));
+      t.addAll(decodeEdges("daterange", daterangeOid, "daterange", DateRangeEdgeCases.ALL));
+      t.addAll(decodeEdges("tsrange", tsrangeOid, "tsrange", TsRangeEdgeCases.ALL));
+    }
+    // inet/cidr/macaddr/macaddr8 are out of scope for this binary oracle: they have no binary codec, so
+    // forcing binary receive makes the fallback text codec mis-decode the wire. text[] is left out too:
+    // like geometry, the driver's array getString is its own form (it quotes every element, {"a","b"},
+    // where the server minimises quoting, {a,b}).
     return t;
   }
 
@@ -415,6 +493,23 @@ class ServerTruthOracleTest {
     t.add(DynamicTest.dynamicTest("box/mixed-corners", () ->
         ServerTruthOracle.assertDecodeDivergence(binaryCon, Oid.BOX, "box",
             "(1,4),(3,2)", "(3.0,4.0),(1.0,2.0)", "(3,4),(1,2)")));
+    // float4/float8: binary getString uses Java Double/Float.toString (the ".0" suffix and the "E9"
+    // exponent form) where the server prints "1" and "2.147483648e+09". This is the same text/binary
+    // getString split the numeric fix closed, but the exact PostgreSQL float text (shortest round-trip,
+    // e+NN exponent) is non-trivial to reproduce -- a candidate follow-up, pinned here for now.
+    t.add(DynamicTest.dynamicTest("float8/whole-number-suffix", () ->
+        ServerTruthOracle.assertDecodeDivergence(binaryCon, Oid.FLOAT8, "float8", "1", "1.0", "1")));
+    t.add(DynamicTest.dynamicTest("float8/exponent-form", () ->
+        ServerTruthOracle.assertDecodeDivergence(binaryCon, Oid.FLOAT8, "float8",
+            "9223372036854775807", "9.223372036854776E18", "9.223372036854776e+18")));
+    // money: getString returns a plain, parseable number where the server prints the locale currency
+    // form ($ and thousands separators). This is the driver's own canonical form, not a bug.
+    t.add(DynamicTest.dynamicTest("money/no-currency-format", () ->
+        ServerTruthOracle.assertDecodeDivergence(binaryCon, Oid.MONEY, "money",
+            "1.00", "1.00", "$1.00")));
+    t.add(DynamicTest.dynamicTest("money/no-grouping", () ->
+        ServerTruthOracle.assertDecodeDivergence(binaryCon, Oid.MONEY, "money",
+            "92233720368547758.07", "92233720368547758.07", "$92,233,720,368,547,758.07")));
     return t;
   }
 
