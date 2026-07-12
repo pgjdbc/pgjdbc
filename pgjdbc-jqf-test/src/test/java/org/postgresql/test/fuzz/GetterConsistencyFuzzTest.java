@@ -36,7 +36,13 @@ class GetterConsistencyFuzzTest {
   void binary(byte[] wire) throws SQLException {
     CodecContext ctx = CodecFuzzSupport.consistencyContext();
     for (PgType type : CodecFuzzSupport.primitiveDecoderTypes()) {
-      CodecFuzzSupport.binaryGetterConsistency(type, wire, ctx);
+      try {
+        CodecFuzzSupport.binaryGetterConsistency(type, wire, ctx);
+      } catch (AssertionError failure) {
+        // Re-throw naming the failing type and the exact wire, with a repro recipe, so a fuzz finding
+        // says which data it happened on rather than only which accessor disagreed.
+        throw CodecFuzzSupport.binaryReproError(failure, type, wire);
+      }
     }
   }
 
@@ -44,7 +50,11 @@ class GetterConsistencyFuzzTest {
   void text(String text) throws SQLException {
     CodecContext ctx = CodecFuzzSupport.consistencyContext();
     for (PgType type : CodecFuzzSupport.primitiveDecoderTypes()) {
-      CodecFuzzSupport.textGetterConsistency(type, text, ctx);
+      try {
+        CodecFuzzSupport.textGetterConsistency(type, text, ctx);
+      } catch (AssertionError failure) {
+        throw CodecFuzzSupport.textReproError(failure, type, text);
+      }
     }
   }
 }

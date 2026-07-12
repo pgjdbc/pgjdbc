@@ -877,6 +877,84 @@ public final class CodecFuzzSupport {
     numericLattice(name + " text", familyOf(type.getOid(), codec.getDefaultJavaType()), oi, ol, of, od);
   }
 
+  // --- Reproducible failures: turn a bare assertion into "which type, on what data, how to repro" -----
+
+  /**
+   * Wraps a getter-consistency {@link AssertionError} from a binary check with the exact fuzzed wire and
+   * a reproduction pointer, so a fuzz failure names the data it happened on rather than only the
+   * accessor. The {@code @FuzzTest} calls this per type; the wrapped message keeps the original
+   * expected/actual as its tail and cause.
+   *
+   * @param failure the original assertion failure
+   * @param type the backend type whose codec failed
+   * @param wire the binary wire the fuzzer fed
+   * @return an {@link AssertionError} whose message leads with the type, the wire and a repro recipe
+   */
+  public static AssertionError binaryReproError(AssertionError failure, PgType type, byte[] wire) {
+    return reproError(failure, type, "binary wire", describeWire(wire), "binaryGetterConsistency");
+  }
+
+  /**
+   * Wraps a getter-consistency {@link AssertionError} from a text check with the exact fuzzed text and a
+   * reproduction pointer. See {@link #binaryReproError}.
+   *
+   * @param failure the original assertion failure
+   * @param type the backend type whose codec failed
+   * @param text the text the fuzzer fed
+   * @return an {@link AssertionError} whose message leads with the type, the text and a repro recipe
+   */
+  public static AssertionError textReproError(AssertionError failure, PgType type, String text) {
+    return reproError(failure, type, "text", describeText(text), "textGetterConsistency");
+  }
+
+  private static AssertionError reproError(AssertionError failure, PgType type, String inputKind,
+      String inputDesc, String method) {
+    String header = "getter-consistency failure on oid " + type.getOid() + " -- " + inputKind + " "
+        + inputDesc + "\n  reproduce: CodecFuzzSupport." + method + "(type for oid " + type.getOid()
+        + ", " + inputKind + " above, CodecFuzzSupport.consistencyContext())\n  cause: ";
+    return new AssertionError(header + failure.getMessage(), failure);
+  }
+
+  /** Renders a fuzzed wire as {@code 0x<hex> (N bytes)}, capped, for a copy-pasteable failure message. */
+  private static String describeWire(byte[] wire) {
+    int shown = Math.min(wire.length, 256);
+    StringBuilder sb = new StringBuilder(2 + shown * 2 + 16).append("0x");
+    for (int i = 0; i < shown; i++) {
+      sb.append(Character.forDigit((wire[i] >> 4) & 0xF, 16)).append(Character.forDigit(wire[i] & 0xF, 16));
+    }
+    if (wire.length > shown) {
+      sb.append("...");
+    }
+    return sb.append(" (").append(wire.length).append(" bytes)").toString();
+  }
+
+  /** Renders fuzzed text as a Java-escaped, capped literal {@code "..." (N chars)}. */
+  private static String describeText(String text) {
+    int shown = Math.min(text.length(), 256);
+    StringBuilder sb = new StringBuilder(shown + 16).append('"');
+    for (int i = 0; i < shown; i++) {
+      char c = text.charAt(i);
+      if (c == '"' || c == '\\') {
+        sb.append('\\').append(c);
+      } else if (c == '\n') {
+        sb.append("\\n");
+      } else if (c == '\r') {
+        sb.append("\\r");
+      } else if (c == '\t') {
+        sb.append("\\t");
+      } else if (c < 0x20 || c > 0x7e) {
+        sb.append(String.format("\\u%04x", (int) c));
+      } else {
+        sb.append(c);
+      }
+    }
+    sb.append('"');
+    if (text.length() > shown) {
+      sb.append("...");
+    }
+    return sb.append(" (").append(text.length()).append(" chars)").toString();
+  }
+
   /**
    * The Layer-2 numeric lattice: the {@code int}/{@code long}/{@code float}/{@code double} views of one
    * value agree through the standard casts. Applied per {@link NumericFamily}; a no-op for
