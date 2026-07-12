@@ -11,6 +11,7 @@ import org.postgresql.api.codec.PrimitiveBinaryDecoder;
 import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.TypeDescriptor;
+import org.postgresql.core.Encoding;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.NumberParser;
 
@@ -144,6 +145,25 @@ public final class OidCodec implements StreamingBinaryCodec, PrimitiveBinaryDeco
         throw Exceptions.cannotConvertValue("oid", text, e);
       }
     }
+  }
+
+  @Override
+  public long decodeTextBytesAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    // oid text is a signed-long-range decimal (see decodeAsLong), so the byte fast path uses long
+    // bounds; getInt narrows with a raw (int) cast, matching decodeAsInt.
+    if (Encoding.hasAsciiNumbers(ctx.getCharset())) {
+      try {
+        return NumberParser.getFastLong(data, Long.MIN_VALUE, Long.MAX_VALUE);
+      } catch (NumberFormatException ignored) {
+        // Fall through to string parsing
+      }
+    }
+    return decodeAsLong(new String(data, ctx.getCharset()), type, ctx);
+  }
+
+  @Override
+  public int decodeTextBytesAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return (int) decodeTextBytesAsLong(data, type, ctx);
   }
 
   @Override

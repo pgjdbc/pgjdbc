@@ -13,6 +13,7 @@ import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.PrimitiveTextEncoder;
 import org.postgresql.api.codec.TextSink;
 import org.postgresql.api.codec.TypeDescriptor;
+import org.postgresql.core.Encoding;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.NumberParser;
 
@@ -161,6 +162,23 @@ public final class Int2Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
         throw Exceptions.cannotConvertValue("short", text, e);
       }
     }
+  }
+
+  @Override
+  public int decodeTextBytesAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    if (Encoding.hasAsciiNumbers(ctx.getCharset())) {
+      try {
+        return (int) NumberParser.getFastLong(data, Short.MIN_VALUE, Short.MAX_VALUE);
+      } catch (NumberFormatException ignored) {
+        // Fall through to string parsing
+      }
+    }
+    return decodeAsInt(new String(data, ctx.getCharset()), type, ctx);
+  }
+
+  @Override
+  public long decodeTextBytesAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return decodeTextBytesAsInt(data, type, ctx);
   }
 
   @Override

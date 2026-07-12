@@ -9,7 +9,9 @@ import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveBinaryDecoder;
 import org.postgresql.api.codec.PrimitiveTextDecoder;
 import org.postgresql.api.codec.TypeDescriptor;
+import org.postgresql.core.Encoding;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.NumberParser;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -266,6 +268,58 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
   public long decodeAsLong(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     BigDecimal bd = decodeAsBigDecimal(data, type, ctx);
     return bd == null ? 0 : bigDecimalToLong(bd);
+  }
+
+  // getInt/getLong on a text numeric otherwise decode the wire bytes to a String and build a
+  // BigDecimal just to round it. When the value has no fractional part -- a bare optional sign
+  // followed by ASCII digits -- the digits parse straight off the bytes with no String or
+  // BigDecimal. A fractional or special value ('.', an exponent, NaN/Infinity) is not eligible:
+  // getFastLong truncates the fraction toward zero, whereas numeric->int rounds half-away-from-zero
+  // (see bigDecimalToInt), so those fall back to the BigDecimal path, which rounds correctly.
+
+  @Override
+  public int decodeTextBytesAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    if (isPlainIntegerAscii(data) && Encoding.hasAsciiNumbers(ctx.getCharset())) {
+      try {
+        return (int) NumberParser.getFastLong(data, Integer.MIN_VALUE, Integer.MAX_VALUE);
+      } catch (NumberFormatException ignored) {
+        // Out of int range; fall back to the BigDecimal path, which throws the range error.
+      }
+    }
+    return decodeAsInt(new String(data, ctx.getCharset()), type, ctx);
+  }
+
+  @Override
+  public long decodeTextBytesAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    if (isPlainIntegerAscii(data) && Encoding.hasAsciiNumbers(ctx.getCharset())) {
+      try {
+        return NumberParser.getFastLong(data, Long.MIN_VALUE, Long.MAX_VALUE);
+      } catch (NumberFormatException ignored) {
+        // Out of long range; fall back to the BigDecimal path, which throws the range error.
+      }
+    }
+    return decodeAsLong(new String(data, ctx.getCharset()), type, ctx);
+  }
+
+  /**
+   * Reports whether {@code data} is a plain integer in ASCII: an optional leading {@code '-'} then
+   * at least one ASCII digit and nothing else. A {@code '.'}, an exponent, or a NaN/Infinity literal
+   * makes it ineligible for the {@link NumberParser#getFastLong(byte[], long, long)} byte fast path,
+   * which would truncate a fraction the numeric-to-integer cast is required to round.
+   */
+  private static boolean isPlainIntegerAscii(byte[] data) {
+    int len = data.length;
+    int start = len > 0 && data[0] == '-' ? 1 : 0;
+    if (start == len) {
+      return false; // empty, or a bare "-"
+    }
+    for (int i = start; i < len; i++) {
+      byte b = data[i];
+      if (b < '0' || b > '9') {
+        return false;
+      }
+    }
+    return true;
   }
 
   private static int bigDecimalToInt(BigDecimal bd) throws SQLException {

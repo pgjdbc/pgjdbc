@@ -17,6 +17,7 @@ import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
+import org.postgresql.jdbc.TestCodecContext;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 
 class NumericCodecTest {
@@ -214,6 +216,62 @@ class NumericCodecTest {
     assertEquals(2L, codec.decodeAsLong(new CharArraySequence(chars, 0, chars.length), numericType, null));
     assertEquals(codec.decodeAsLong("1.5", numericType, null),
         codec.decodeAsLong(new CharArraySequence(chars, 0, chars.length), numericType, null));
+  }
+
+  // ==================== Text-as-bytes Decoding ====================
+
+  // numeric overrides decodeTextBytesAsInt/Long: a plain integer parses straight off the wire bytes
+  // with no String or BigDecimal, while a fractional or special value falls back to the BigDecimal
+  // path, which rounds half-away-from-zero rather than truncating the way the byte fast path would.
+
+  @Test
+  void decodeTextBytesAsInt_plainInteger_fastPath() throws SQLException {
+    CodecContext ctx = TestCodecContext.create();
+    assertEquals(42, codec.decodeTextBytesAsInt("42".getBytes(StandardCharsets.US_ASCII), numericType, ctx));
+    assertEquals(-42, codec.decodeTextBytesAsInt("-42".getBytes(StandardCharsets.US_ASCII), numericType, ctx));
+    assertEquals(0, codec.decodeTextBytesAsInt("0".getBytes(StandardCharsets.US_ASCII), numericType, ctx));
+  }
+
+  @Test
+  void decodeTextBytesAsLong_plainInteger_fastPath() throws SQLException {
+    CodecContext ctx = TestCodecContext.create();
+    assertEquals(9999999999L,
+        codec.decodeTextBytesAsLong("9999999999".getBytes(StandardCharsets.US_ASCII), numericType, ctx));
+  }
+
+  @Test
+  void decodeTextBytesAsInt_fraction_roundsNotTruncates() throws SQLException {
+    // The byte fast path must not swallow the fraction: '2.5'::numeric::int4 = 3 (round
+    // half-away-from-zero), not 2 (getFastLong truncation). The fractional value falls back to the
+    // BigDecimal path, so it rounds like decodeAsInt.
+    CodecContext ctx = TestCodecContext.create();
+    assertEquals(3, codec.decodeTextBytesAsInt("2.5".getBytes(StandardCharsets.US_ASCII), numericType, ctx));
+    assertEquals(-3, codec.decodeTextBytesAsInt("-2.5".getBytes(StandardCharsets.US_ASCII), numericType, ctx));
+    assertEquals(2, codec.decodeTextBytesAsInt("2.4".getBytes(StandardCharsets.US_ASCII), numericType, ctx));
+    assertEquals(1, codec.decodeTextBytesAsInt(".9".getBytes(StandardCharsets.US_ASCII), numericType, ctx));
+  }
+
+  @Test
+  void decodeTextBytesAsLong_fraction_roundsNotTruncates() throws SQLException {
+    CodecContext ctx = TestCodecContext.create();
+    assertEquals(2L, codec.decodeTextBytesAsLong("1.5".getBytes(StandardCharsets.US_ASCII), numericType, ctx));
+  }
+
+  @Test
+  void decodeTextBytesAsInt_overflow() {
+    // A plain integer beyond int range must still be rejected through the byte fast path, falling
+    // back to the BigDecimal path which throws the range error.
+    CodecContext ctx = TestCodecContext.create();
+    assertThrows(PSQLException.class,
+        () -> codec.decodeTextBytesAsInt("2147483648".getBytes(StandardCharsets.US_ASCII), numericType, ctx));
+  }
+
+  @Test
+  void decodeTextBytesAsInt_specialValue_refused() {
+    // NaN/Infinity are not eligible for the fast path; they fall back and refuse int decoding.
+    CodecContext ctx = TestCodecContext.create();
+    assertThrows(PSQLException.class,
+        () -> codec.decodeTextBytesAsInt("NaN".getBytes(StandardCharsets.US_ASCII), numericType, ctx));
   }
 
   @Test

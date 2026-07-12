@@ -16,6 +16,7 @@ import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
+import org.postgresql.jdbc.TestCodecContext;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.PSQLException;
 
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 
 class OidCodecTest {
@@ -162,6 +164,36 @@ class OidCodecTest {
   @Test
   void decodeAsLong_text() throws SQLException {
     assertEquals(42L, codec.decodeAsLong("42", oidType, null));
+  }
+
+  // ==================== Text-as-bytes Decoding ====================
+
+  // oid overrides decodeTextBytesAsLong/Int so getLong/getInt parse the digits straight off the
+  // wire bytes with no per-row String. getInt narrows with a raw (int) cast (unsigned wrap),
+  // matching decodeAsInt and the legacy driver.
+
+  @Test
+  void decodeTextBytesAsLong_fastPath() throws SQLException {
+    CodecContext ctx = TestCodecContext.create();
+    assertEquals(42L, codec.decodeTextBytesAsLong("42".getBytes(StandardCharsets.US_ASCII), oidType, ctx));
+    assertEquals(0L, codec.decodeTextBytesAsLong("0".getBytes(StandardCharsets.US_ASCII), oidType, ctx));
+    assertEquals(4294967295L,
+        codec.decodeTextBytesAsLong("4294967295".getBytes(StandardCharsets.US_ASCII), oidType, ctx));
+  }
+
+  @Test
+  void decodeTextBytesAsInt_fastPath() throws SQLException {
+    CodecContext ctx = TestCodecContext.create();
+    assertEquals(42, codec.decodeTextBytesAsInt("42".getBytes(StandardCharsets.US_ASCII), oidType, ctx));
+    // oid 4294967295 wraps to -1 as a signed int, matching decodeAsInt and the legacy driver.
+    assertEquals(-1, codec.decodeTextBytesAsInt("4294967295".getBytes(StandardCharsets.US_ASCII), oidType, ctx));
+  }
+
+  @Test
+  void decodeTextBytesAsLong_fallbackForFastPathReject() throws SQLException {
+    // Surrounding whitespace makes the byte fast path reject, exercising the String fallback.
+    CodecContext ctx = TestCodecContext.create();
+    assertEquals(42L, codec.decodeTextBytesAsLong(" 42 ".getBytes(StandardCharsets.US_ASCII), oidType, ctx));
   }
 
   @Test
