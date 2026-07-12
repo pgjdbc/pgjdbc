@@ -735,7 +735,9 @@ public final class CodecFuzzSupport {
   // typsend, so getByOid falls all the way through to the fallback. It lets the fuzzer cover
   // FallbackCodec's primitive text/byte accessors, which the OID-driven enumeration would otherwise
   // skip; consistencyContext() registers it so it resolves offline.
-  private static final int FALLBACK_PROBE_OID = 999_999;
+  // Package-private so GetterConsistencyEdgeCaseTest's coverage guard can name this probe symbolically
+  // when it acknowledges the Fallback probe as driven only by the fuzzer, not by an edge-case catalogue.
+  static final int FALLBACK_PROBE_OID = 999_999;
   private static final PgType FALLBACK_PROBE_TYPE = scalar(FALLBACK_PROBE_OID, "fuzz_unknown", 'X');
 
   private static final List<PgType> PRIMITIVE_DECODER_TYPES = buildPrimitiveDecoderTypes();
