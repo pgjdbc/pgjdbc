@@ -10,6 +10,7 @@ import org.postgresql.api.codec.Format;
 import org.postgresql.api.codec.RawValue;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
+import org.postgresql.jdbc.OfflineCodecs;
 import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.jdbc.PgType;
 
@@ -78,7 +79,7 @@ class RawScalarDecodeFuzzTest {
 
   @FuzzTest(arguments = PgValueArgumentsFactory.class)
   void decodeRawBytes(byte[] payload) throws SQLException {
-    PgCodecContext ctx = (PgCodecContext) PgCodecContext.offlineBuilder().build();
+    PgCodecContext ctx = (PgCodecContext) OfflineCodecs.builder().build();
     for (int oid : IDEMPOTENT_OIDS) {
       PgType type = scalar(oid);
       decode(RawValue.binary(payload), type, ctx, Format.BINARY, true);

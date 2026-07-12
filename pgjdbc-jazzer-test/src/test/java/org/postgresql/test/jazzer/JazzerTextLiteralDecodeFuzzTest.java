@@ -9,7 +9,7 @@ import org.postgresql.api.codec.CodecContext;
 import org.postgresql.core.Oid;
 import org.postgresql.fuzzkit.CodecFuzzSupport;
 import org.postgresql.fuzzkit.coercion.PgTypeDescriptors;
-import org.postgresql.jdbc.PgCodecContext;
+import org.postgresql.jdbc.OfflineCodecs;
 import org.postgresql.jdbc.PgType;
 
 import com.code_intelligence.jazzer.junit.FuzzTest;
@@ -53,7 +53,7 @@ class JazzerTextLiteralDecodeFuzzTest {
 
   /** The registered point composite so its {@code (x,y,label)} literal parser resolves offline. */
   private static final CodecContext POINT_CONTEXT =
-      PgCodecContext.offlineBuilder().type(POINT).build();
+      OfflineCodecs.builder().type(POINT).build();
 
   @FuzzTest
   void int4ArrayLiteral(@NotNull String literal) throws SQLException {

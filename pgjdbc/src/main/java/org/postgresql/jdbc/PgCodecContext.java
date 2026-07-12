@@ -10,6 +10,8 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 import org.postgresql.api.Experimental;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.CodecContextBuilder;
+import org.postgresql.api.codec.CodecLookup;
 import org.postgresql.api.codec.IntervalStyle;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.BaseConnection;
@@ -255,8 +257,19 @@ public final class PgCodecContext implements CodecContext {
    *
    * @return a new offline builder
    */
-  public static OfflineBuilder offlineBuilder() {
+  static CodecContextBuilder offlineBuilder() {
     return new OfflineBuilder();
+  }
+
+  /**
+   * Returns a fresh codec registry with the built-in codecs, viewed through the read-only
+   * {@link CodecLookup} SPI. Package-private: {@link OfflineCodecs#defaultRegistry()} is the public
+   * entry point.
+   *
+   * @return a new default codec registry
+   */
+  static CodecLookup newDefaultRegistry() {
+    return new CodecRegistry();
   }
 
   /**
@@ -749,7 +762,7 @@ public final class PgCodecContext implements CodecContext {
    * codecs, no {@code getObject} java.time preferences, and no boolean-to-numeric coercion.</p>
    */
   @Experimental("Codec API is experimental and may change in future releases")
-  public static final class OfflineBuilder {
+  public static final class OfflineBuilder implements CodecContextBuilder {
     private Charset charset = StandardCharsets.UTF_8;
     private TimeZone timeZone = TimeZone.getTimeZone("UTC");
     private boolean integerDateTimes = true;
@@ -771,6 +784,7 @@ public final class PgCodecContext implements CodecContext {
      * @param charset the character set
      * @return this builder
      */
+    @Override
     public OfflineBuilder charset(Charset charset) {
       this.charset = charset;
       return this;
@@ -783,6 +797,7 @@ public final class PgCodecContext implements CodecContext {
      * @param timeZone the session time zone
      * @return this builder
      */
+    @Override
     public OfflineBuilder timeZone(TimeZone timeZone) {
       this.timeZone = timeZone;
       return this;
@@ -795,6 +810,7 @@ public final class PgCodecContext implements CodecContext {
      * @param integerDateTimes true for integer datetimes
      * @return this builder
      */
+    @Override
     public OfflineBuilder integerDateTimes(boolean integerDateTimes) {
       this.integerDateTimes = integerDateTimes;
       return this;
@@ -807,8 +823,14 @@ public final class PgCodecContext implements CodecContext {
      * @param registry the codec registry
      * @return this builder
      */
-    public OfflineBuilder registry(CodecRegistry registry) {
-      this.registry = registry;
+    @Override
+    public OfflineBuilder registry(CodecLookup registry) {
+      if (!(registry instanceof CodecRegistry)) {
+        throw new IllegalArgumentException(
+            "registry must be obtained from OfflineCodecs.defaultRegistry(); got "
+                + (registry == null ? "null" : registry.getClass().getName()));
+      }
+      this.registry = (CodecRegistry) registry;
       return this;
     }
 
@@ -818,6 +840,7 @@ public final class PgCodecContext implements CodecContext {
      * @param type the type descriptor
      * @return this builder
      */
+    @Override
     public OfflineBuilder type(TypeDescriptor type) {
       this.typesByOid.put(type.getOid(), type);
       return this;
@@ -829,6 +852,7 @@ public final class PgCodecContext implements CodecContext {
      * @param types the type descriptors by OID
      * @return this builder
      */
+    @Override
     public OfflineBuilder types(Map<Integer, ? extends TypeDescriptor> types) {
       this.typesByOid.putAll(types);
       return this;
@@ -846,6 +870,7 @@ public final class PgCodecContext implements CodecContext {
      * @param timestamptz true to prefer {@link java.time.OffsetDateTime} for {@code timestamptz}
      * @return this builder
      */
+    @Override
     public OfflineBuilder prefersJavaTime(boolean date, boolean time, boolean timetz,
         boolean timestamp, boolean timestamptz) {
       this.prefersJavaTimeForDate = date;
@@ -863,6 +888,7 @@ public final class PgCodecContext implements CodecContext {
      * @param convertBooleanToNumeric true to enable the coercion
      * @return this builder
      */
+    @Override
     public OfflineBuilder convertBooleanToNumeric(boolean convertBooleanToNumeric) {
       this.convertBooleanToNumeric = convertBooleanToNumeric;
       return this;
@@ -873,6 +899,7 @@ public final class PgCodecContext implements CodecContext {
      *
      * @return a {@link CodecContext} that encodes and decodes without a connection
      */
+    @Override
     public CodecContext build() {
       CodecRegistry codecs = registry != null ? registry : new CodecRegistry();
       TimeZone tz = timeZone;

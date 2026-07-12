@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import org.postgresql.api.Experimental;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
+import org.postgresql.api.codec.CodecLookup;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
@@ -121,7 +122,7 @@ import java.util.logging.Logger;
  * @since 42.8.0
  */
 @Experimental("Codec API is experimental and may change in future releases")
-public class CodecRegistry {
+public class CodecRegistry implements CodecLookup {
 
   private static final Logger LOGGER = Logger.getLogger(CodecRegistry.class.getName());
 
@@ -440,6 +441,7 @@ public class CodecRegistry {
    * @return an unmodifiable {@code OID -> codec} snapshot of the pinned built-in codecs
    * @since 42.8.0
    */
+  @Override
   public Map<Integer, Codec> builtinCodecsByOid() {
     return Collections.unmodifiableMap(new TreeMap<>(builtinCodecsByOid));
   }
@@ -585,6 +587,7 @@ public class CodecRegistry {
    * @param typeName the PostgreSQL type name
    * @return the codec, or null if not found
    */
+  @Override
   public @Nullable Codec getByName(String typeName) {
     NameKey key = new NameKey(null, typeName);
     Codec codec = userCodecsByName.get(key);
@@ -614,6 +617,7 @@ public class CodecRegistry {
    * @param pgType the type information (may be null for cache-only lookup)
    * @return the codec (never null - returns FallbackCodec for unknown types)
    */
+  @Override
   public Codec getByOid(int oid, @Nullable TypeDescriptor pgType) {
     // 1. User OID registration: an explicit per-connection binding wins outright.
     Codec userOid = userOidCodecs.get(oid);
@@ -703,6 +707,7 @@ public class CodecRegistry {
    * @param javaClass the Java class
    * @return the codec, or null if not registered
    */
+  @Override
   public @Nullable Codec getByClass(Class<?> javaClass) {
     return codecsByClass.get(javaClass);
   }
@@ -717,6 +722,7 @@ public class CodecRegistry {
    * @param javaClass the Java class to find a codec for
    * @return a codec that can handle the class, or null if none found
    */
+  @Override
   public @Nullable Codec findCodecFor(Class<?> javaClass) {
     // Exact match
     Codec codec = codecsByClass.get(javaClass);
@@ -810,6 +816,7 @@ public class CodecRegistry {
    * @param pgType the type information
    * @return the binary codec, or null if the codec doesn't support binary
    */
+  @Override
   public @Nullable BinaryCodec getBinaryCodec(int oid, @Nullable TypeDescriptor pgType) {
     Codec codec = getByOid(oid, pgType);
     return codec instanceof BinaryCodec ? (BinaryCodec) codec : null;
@@ -822,6 +829,7 @@ public class CodecRegistry {
    * @param pgType the type information
    * @return the text codec, or null if the codec doesn't support text
    */
+  @Override
   public @Nullable TextCodec getTextCodec(int oid, @Nullable TypeDescriptor pgType) {
     Codec codec = getByOid(oid, pgType);
     return codec instanceof TextCodec ? (TextCodec) codec : null;
@@ -835,6 +843,7 @@ public class CodecRegistry {
    * @param oid the PostgreSQL type OID
    * @return the binary codec (never null)
    */
+  @Override
   public BinaryCodec getBinaryCodec(int oid) {
     Codec codec = getByOid(oid, null);
     return codec instanceof BinaryCodec ? (BinaryCodec) codec : FallbackCodec.INSTANCE;
@@ -848,6 +857,7 @@ public class CodecRegistry {
    * @param oid the PostgreSQL type OID
    * @return the text codec (never null)
    */
+  @Override
   public TextCodec getTextCodec(int oid) {
     Codec codec = getByOid(oid, null);
     return codec instanceof TextCodec ? (TextCodec) codec : FallbackCodec.INSTANCE;
@@ -866,6 +876,7 @@ public class CodecRegistry {
    * @param pgType the type information
    * @return true if the resolved codec can decode the binary representation
    */
+  @Override
   public boolean canDecodeBinary(int oid, @Nullable TypeDescriptor pgType) {
     Codec codec = getByOid(oid, pgType);
     return codec instanceof BinaryCodec && ((BinaryCodec) codec).supportsBinaryRead();
@@ -883,6 +894,7 @@ public class CodecRegistry {
    * @param pgType the type information
    * @return true if the resolved codec can decode the text representation
    */
+  @Override
   public boolean canDecodeText(int oid, @Nullable TypeDescriptor pgType) {
     Codec codec = getByOid(oid, pgType);
     return codec instanceof TextCodec && ((TextCodec) codec).supportsTextRead();
@@ -914,6 +926,7 @@ public class CodecRegistry {
    * @param typeName the PostgreSQL type name
    * @return true if a codec is registered
    */
+  @Override
   public boolean hasCodecForName(String typeName) {
     NameKey key = new NameKey(null, typeName);
     return userCodecsByName.containsKey(key)
@@ -928,6 +941,7 @@ public class CodecRegistry {
    * @param javaClass the Java class
    * @return true if a codec is registered
    */
+  @Override
   public boolean hasCodecForClass(Class<?> javaClass) {
     return codecsByClass.containsKey(javaClass);
   }

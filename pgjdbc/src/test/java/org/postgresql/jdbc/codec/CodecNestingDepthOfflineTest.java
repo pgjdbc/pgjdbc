@@ -10,13 +10,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.CodecContextBuilder;
 import org.postgresql.api.codec.Codecs;
 import org.postgresql.api.codec.Format;
 import org.postgresql.api.codec.RawValue;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.CodecDepth;
 import org.postgresql.jdbc.ObjectName;
-import org.postgresql.jdbc.PgCodecContext;
+import org.postgresql.jdbc.OfflineCodecs;
 import org.postgresql.jdbc.PgField;
 import org.postgresql.jdbc.PgStruct;
 import org.postgresql.jdbc.PgType;
@@ -72,7 +73,7 @@ class CodecNestingDepthOfflineTest {
   void compositeBinaryEncodeAtBudgetPassesOverBudgetThrows() throws Throwable {
     PgType recordType = anonymousRecord(field("f1", Oid.RECORD, 1));
     PgType leafType = anonymousRecord(field("f1", Oid.INT4, 1));
-    CodecContext ctx = PgCodecContext.offlineBuilder().build();
+    CodecContext ctx = OfflineCodecs.builder().build();
 
     assertPassesAtThrowsOver(recordType, leafType, ctx, Format.BINARY);
   }
@@ -83,7 +84,7 @@ class CodecNestingDepthOfflineTest {
     // without a depth guard (only the binary encode path had one).
     PgType recordType = anonymousRecord(field("f1", Oid.RECORD, 1));
     PgType leafType = anonymousRecord(field("f1", Oid.INT4, 1));
-    CodecContext ctx = PgCodecContext.offlineBuilder().build();
+    CodecContext ctx = OfflineCodecs.builder().build();
 
     assertPassesAtThrowsOver(recordType, leafType, ctx, Format.TEXT);
   }
@@ -91,7 +92,7 @@ class CodecNestingDepthOfflineTest {
   @Test
   void compositeBinaryDecodeAtBudgetPassesOverBudgetThrows() throws Throwable {
     PgType recordType = anonymousRecord(field("f1", Oid.RECORD, 1));
-    CodecContext ctx = PgCodecContext.offlineBuilder().build();
+    CodecContext ctx = OfflineCodecs.builder().build();
 
     // A record nested exactly BUDGET deep decodes; one deeper trips the guard.
     withDepthBudget(BUDGET, false,
@@ -135,7 +136,7 @@ class CodecNestingDepthOfflineTest {
   void domainChainBinaryDecodeThrows() throws Throwable {
     // A chain of domains over domains, innermost base int4. Domains forward the wire bytes unchanged,
     // so a bare 4-byte int is enough: the guard trips while unwrapping.
-    PgCodecContext.OfflineBuilder builder = PgCodecContext.offlineBuilder();
+    CodecContextBuilder builder = OfflineCodecs.builder();
     int baseOid = Oid.INT4;
     PgType outer = null;
     for (int i = 0; i < BUDGET + 4; i++) {
@@ -238,7 +239,7 @@ class CodecNestingDepthOfflineTest {
     PgType recordType = composite("cyc", CYCLE_RECORD_OID, field("f1", CYCLE_ARRAY_OID, 1));
     PgType arrayType = new PgType(new ObjectName("public", "_cyc"), "public._cyc", CYCLE_ARRAY_OID,
         'b', 'A', -1, CYCLE_RECORD_OID, 0, 0);
-    CodecContext ctx = PgCodecContext.offlineBuilder().type(recordType).type(arrayType).build();
+    CodecContext ctx = OfflineCodecs.builder().type(recordType).type(arrayType).build();
     return new Cycle(recordType, ctx);
   }
 

@@ -15,6 +15,7 @@ import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.CharArraySequence;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.CodecContextBuilder;
 import org.postgresql.api.codec.Codecs;
 import org.postgresql.api.codec.Format;
 import org.postgresql.api.codec.PrimitiveBinaryDecoder;
@@ -32,9 +33,8 @@ import org.postgresql.fuzzkit.coercion.Fidelity;
 import org.postgresql.fuzzkit.coercion.LeafRepr;
 import org.postgresql.fuzzkit.coercion.PgTypeDescriptors;
 import org.postgresql.fuzzkit.coercion.ScalarDescriptor;
-import org.postgresql.jdbc.CodecRegistry;
 import org.postgresql.jdbc.ObjectName;
-import org.postgresql.jdbc.PgCodecContext;
+import org.postgresql.jdbc.OfflineCodecs;
 import org.postgresql.jdbc.PgField;
 import org.postgresql.jdbc.PgStruct;
 import org.postgresql.jdbc.PgType;
@@ -770,7 +770,7 @@ public final class CodecFuzzSupport {
 
   private static List<PgType> buildPrimitiveDecoderTypes() {
     List<PgType> types = new ArrayList<>();
-    for (Map.Entry<Integer, Codec> entry : new CodecRegistry().builtinCodecsByOid().entrySet()) {
+    for (Map.Entry<Integer, Codec> entry : OfflineCodecs.defaultRegistry().builtinCodecsByOid().entrySet()) {
       Codec codec = entry.getValue();
       if (codec instanceof PrimitiveBinaryDecoder || codec instanceof PrimitiveTextDecoder) {
         types.add(scalar(entry.getKey(), codec.getTypeName(), 'X'));
@@ -1752,7 +1752,7 @@ public final class CodecFuzzSupport {
   public static void structRoundTrip(FuzzNode root) throws SQLException {
     List<PgType> registry = new ArrayList<>();
     Built built = build(root, new int[]{90_000}, registry);
-    PgCodecContext.OfflineBuilder builder = OfflineCodecContexts.offlineBuilder();
+    CodecContextBuilder builder = OfflineCodecContexts.offlineBuilder();
     for (PgType type : registry) {
       builder.type(type);
     }

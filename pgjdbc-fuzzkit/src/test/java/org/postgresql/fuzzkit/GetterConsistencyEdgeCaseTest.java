@@ -5,13 +5,13 @@
 
 package org.postgresql.fuzzkit;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.Codecs;
 import org.postgresql.api.codec.Format;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.PgType;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import org.postgresql.test.data.Bit1EdgeCases;
 import org.postgresql.test.data.BoolEdgeCases;
 import org.postgresql.test.data.EdgeCase;

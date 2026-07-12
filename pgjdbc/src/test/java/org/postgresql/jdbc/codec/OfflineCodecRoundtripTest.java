@@ -19,6 +19,7 @@ import org.postgresql.api.codec.RawValue;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
+import org.postgresql.jdbc.OfflineCodecs;
 import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.util.PSQLException;
@@ -86,7 +87,7 @@ class OfflineCodecRoundtripTest {
   }
 
   private static CodecContext offline() {
-    return PgCodecContext.offlineBuilder().build();
+    return OfflineCodecs.builder().build();
   }
 
   private static <T> T roundtrip(Object value, TypeDescriptor type, CodecContext ctx, Format format,
@@ -158,7 +159,7 @@ class OfflineCodecRoundtripTest {
 
   @Test
   void offlineBuilderProducesConnectionlessContext() {
-    CodecContext ctx = PgCodecContext.offlineBuilder()
+    CodecContext ctx = OfflineCodecs.builder()
         .charset(UTF_8)
         .timeZone(TimeZone.getTimeZone("UTC"))
         .integerDateTimes(true)

@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import org.postgresql.jdbc.CodecRegistry;
 import org.postgresql.jdbc.ObjectName;
-import org.postgresql.jdbc.PgCodecContext;
+import org.postgresql.jdbc.OfflineCodecs;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.util.PSQLState;
 
@@ -98,7 +98,7 @@ class DefaultDecodeInvariantTest {
     FixedNumberCodec codec = new FixedNumberCodec(value);
     CodecRegistry registry = new CodecRegistry();
     registry.registerByOid(oid, codec);
-    CodecContext ctx = PgCodecContext.offlineBuilder().registry(registry).type(type).build();
+    CodecContext ctx = OfflineCodecs.builder().registry(registry).type(type).build();
     return new Fixture(oid, type, codec, ctx);
   }
 

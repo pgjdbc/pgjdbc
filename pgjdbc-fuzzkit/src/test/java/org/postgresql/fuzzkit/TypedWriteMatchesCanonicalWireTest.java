@@ -15,6 +15,7 @@ import org.postgresql.fuzzkit.coercion.PgTypeDescriptors;
 import org.postgresql.fuzzkit.coercion.ScalarDescriptor;
 import org.postgresql.fuzzkit.coercion.WriteCoercions.Method;
 import org.postgresql.jdbc.ObjectName;
+import org.postgresql.jdbc.OfflineCodecs;
 import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.jdbc.PgSQLOutputBinary;
 import org.postgresql.jdbc.PgSQLOutputText;
@@ -116,7 +117,7 @@ class TypedWriteMatchesCanonicalWireTest {
       throws SQLException {
     int oid = descriptor.oid();
     PgType comp = FuzzComposites.singleField(oid);
-    PgCodecContext ctx = (PgCodecContext) PgCodecContext.offlineBuilder()
+    PgCodecContext ctx = (PgCodecContext) OfflineCodecs.builder()
         .type(comp)
         .timeZone(TimeZone.getDefault())
         .build();

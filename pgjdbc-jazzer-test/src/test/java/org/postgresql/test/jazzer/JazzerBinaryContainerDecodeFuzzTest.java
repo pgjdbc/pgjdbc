@@ -10,7 +10,7 @@ import org.postgresql.core.Oid;
 import org.postgresql.fuzzkit.CodecFuzzSupport;
 import org.postgresql.fuzzkit.coercion.PgTypeDescriptors;
 import org.postgresql.jdbc.ObjectName;
-import org.postgresql.jdbc.PgCodecContext;
+import org.postgresql.jdbc.OfflineCodecs;
 import org.postgresql.jdbc.PgType;
 
 import com.code_intelligence.jazzer.junit.FuzzTest;
@@ -59,7 +59,7 @@ class JazzerBinaryContainerDecodeFuzzTest {
 
   /** The registered point composite so its field framing resolves offline. */
   private static final CodecContext POINT_CONTEXT =
-      PgCodecContext.offlineBuilder().type(POINT).build();
+      OfflineCodecs.builder().type(POINT).build();
 
   // An offline int4range: a range type (typtype='r') carrying its subtype OID directly, so RangeCodec
   // resolves the int4 bound codec without a connection (pg_range.rngsubtype is normally loaded lazily).
@@ -70,7 +70,7 @@ class JazzerBinaryContainerDecodeFuzzTest {
       new PgType(new ObjectName("pg_catalog", "int4range"), "pg_catalog.int4range",
           INT4RANGE_OID, 'r', 'R', -1, 0, 0, 0).withRangeSubtype(Oid.INT4);
   private static final CodecContext INT4RANGE_CONTEXT =
-      PgCodecContext.offlineBuilder().type(INT4RANGE).build();
+      OfflineCodecs.builder().type(INT4RANGE).build();
 
   @FuzzTest
   void int4ArrayBinary(byte @NotNull [] data) {

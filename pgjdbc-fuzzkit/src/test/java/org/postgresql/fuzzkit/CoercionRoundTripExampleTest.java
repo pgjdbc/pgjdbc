@@ -12,6 +12,7 @@ import org.postgresql.api.codec.Format;
 import org.postgresql.api.codec.RawValue;
 import org.postgresql.core.Oid;
 import org.postgresql.fuzzkit.coercion.PgTypeDescriptors;
+import org.postgresql.jdbc.OfflineCodecs;
 import org.postgresql.jdbc.PgCodecContext;
 import org.postgresql.jdbc.PgSQLInputText;
 import org.postgresql.jdbc.PgType;
@@ -81,7 +82,7 @@ class CoercionRoundTripExampleTest {
   /** Encodes a time literal into a single-field {@code time} composite (text) and reads it via readTime. */
   private static Object readBackAsTime(String literal) throws SQLException {
     PgType comp = FuzzComposites.singleField(Oid.TIME);
-    PgCodecContext ctx = (PgCodecContext) PgCodecContext.offlineBuilder()
+    PgCodecContext ctx = (PgCodecContext) OfflineCodecs.builder()
         .type(comp)
         .timeZone(TimeZone.getDefault())
         .build();
