@@ -9,6 +9,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.postgresql.api.Experimental;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.math.BigDecimal;
 import java.sql.SQLException;
 
 /**
@@ -18,12 +21,18 @@ import java.sql.SQLException;
  * <p>The primitive accessors used to live as boxing {@code default} methods on {@link TextCodec}
  * itself; they now live here, so only a codec that can produce the primitive opts in. A caller with a
  * base-typed reference goes through
- * {@link PrimitiveDecoders#asInt(TextCodec, String, TypeDescriptor, CodecContext)} and friends, which
- * fall back to boxing through {@link TextCodec#decodeText}.</p>
+ * {@link PrimitiveDecoders#asInt(TextCodec, CharSequence, TypeDescriptor, CodecContext)} and friends,
+ * which fall back to boxing through {@link TextCodec#decodeText}.</p>
  *
- * <p>Each primitive comes in two forms, mirroring {@link TextCodec#decodeText}: a {@code String}
- * for a caller that already holds one, and a {@code char[]} {@code [offset, offset + length)} slice
- * for a container codec decoding an already-unquoted element in place, with no per-element
+ * <p>Each primitive takes a single {@link CharSequence}, so there is exactly one place to override
+ * per primitive and the {@code String} and in-place-slice forms can never drift apart. Unification is
+ * needed here because both forms once had boxing defaults, so overriding one and leaving the other
+ * let them diverge silently. The two-method {@link TextCodec#decodeText} needs no such unification:
+ * its {@code String} form is mandatory and its {@code char[]} form delegates to it, so neither can
+ * silently diverge. A caller that
+ * already holds a {@code String} passes it straight through (a {@code String} is a
+ * {@code CharSequence}); a container codec decoding an already-unquoted element off a larger buffer
+ * wraps the slice in a reusable {@link CharArraySequence}, so it parses in place with no per-element
  * {@code String}. {@link #decodeTextBytesAsInt}/{@link #decodeTextBytesAsLong} are the ASCII-bytes
  * fast paths a numeric codec overrides to parse digits straight from the wire bytes.</p>
  *
@@ -39,159 +48,83 @@ public interface PrimitiveTextDecoder extends TextCodec {
   /**
    * Decodes {@code data} as an int.
    *
-   * @param data the text data
+   * @param data the text data; a {@code String} or a borrowed {@link CharArraySequence} slice
    * @param type the PostgreSQL type information
    * @param ctx the codec context
    * @return the int value
    * @throws SQLException if decoding fails or the value overflows int range
    */
-  default int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return PrimitiveDecoders.boxToInt(decodeText(data, type, ctx));
-  }
-
-  /**
-   * Decodes the slice {@code data[offset, offset + length)} as an int.
-   *
-   * @param data the backing buffer
-   * @param offset start of this value's chars within {@code data}
-   * @param length number of chars for this value
-   * @param type the PostgreSQL type information
-   * @param ctx the codec context
-   * @return the int value
-   * @throws SQLException if decoding fails or the value overflows int range
-   */
-  default int decodeAsInt(char[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
-      throws SQLException {
-    // Route through the String form, not boxToInt(decodeText(...)): a codec that overrides the String
-    // accessor with a non-truncating conversion (numeric/money round to nearest, matching PostgreSQL's
-    // numeric->int cast) must decode a char[] the same way, or getInt on "0.9" would round from a String
-    // but truncate from an array element. A codec with a faster char[] path overrides this method.
-    return decodeAsInt(new String(data, offset, length), type, ctx);
+  default int decodeAsInt(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return PrimitiveDecoders.boxToInt(decodeText(data.toString(), type, ctx));
   }
 
   /**
    * Decodes {@code data} as a long.
    *
-   * @param data the text data
+   * @param data the text data; a {@code String} or a borrowed {@link CharArraySequence} slice
    * @param type the PostgreSQL type information
    * @param ctx the codec context
    * @return the long value
    * @throws SQLException if decoding fails or the value overflows long range
    */
-  default long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return PrimitiveDecoders.boxToLong(decodeText(data, type, ctx));
-  }
-
-  /**
-   * Decodes the slice {@code data[offset, offset + length)} as a long.
-   *
-   * @param data the backing buffer
-   * @param offset start of this value's chars within {@code data}
-   * @param length number of chars for this value
-   * @param type the PostgreSQL type information
-   * @param ctx the codec context
-   * @return the long value
-   * @throws SQLException if decoding fails or the value overflows long range
-   */
-  default long decodeAsLong(char[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
-      throws SQLException {
-    // See decodeAsInt(char[]): route through the String form so a rounding/custom String accessor is
-    // honoured on a char[] element too.
-    return decodeAsLong(new String(data, offset, length), type, ctx);
+  default long decodeAsLong(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return PrimitiveDecoders.boxToLong(decodeText(data.toString(), type, ctx));
   }
 
   /**
    * Decodes {@code data} as a float.
    *
-   * @param data the text data
+   * @param data the text data; a {@code String} or a borrowed {@link CharArraySequence} slice
    * @param type the PostgreSQL type information
    * @param ctx the codec context
    * @return the float value
    * @throws SQLException if decoding fails
    */
-  default float decodeAsFloat(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return PrimitiveDecoders.boxToFloat(decodeText(data, type, ctx));
-  }
-
-  /**
-   * Decodes the slice {@code data[offset, offset + length)} as a float.
-   *
-   * @param data the backing buffer
-   * @param offset start of this value's chars within {@code data}
-   * @param length number of chars for this value
-   * @param type the PostgreSQL type information
-   * @param ctx the codec context
-   * @return the float value
-   * @throws SQLException if decoding fails
-   */
-  default float decodeAsFloat(char[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
-      throws SQLException {
-    // See decodeAsInt(char[]): route through the String form so an overridden String accessor is
-    // honoured on a char[] element too.
-    return decodeAsFloat(new String(data, offset, length), type, ctx);
+  default float decodeAsFloat(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return PrimitiveDecoders.boxToFloat(decodeText(data.toString(), type, ctx));
   }
 
   /**
    * Decodes {@code data} as a double.
    *
-   * @param data the text data
+   * @param data the text data; a {@code String} or a borrowed {@link CharArraySequence} slice
    * @param type the PostgreSQL type information
    * @param ctx the codec context
    * @return the double value
    * @throws SQLException if decoding fails
    */
-  default double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return PrimitiveDecoders.boxToDouble(decodeText(data, type, ctx));
-  }
-
-  /**
-   * Decodes the slice {@code data[offset, offset + length)} as a double.
-   *
-   * @param data the backing buffer
-   * @param offset start of this value's chars within {@code data}
-   * @param length number of chars for this value
-   * @param type the PostgreSQL type information
-   * @param ctx the codec context
-   * @return the double value
-   * @throws SQLException if decoding fails
-   */
-  default double decodeAsDouble(char[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
-      throws SQLException {
-    // See decodeAsInt(char[]): route through the String form so an overridden String accessor is
-    // honoured on a char[] element too.
-    return decodeAsDouble(new String(data, offset, length), type, ctx);
+  default double decodeAsDouble(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return PrimitiveDecoders.boxToDouble(decodeText(data.toString(), type, ctx));
   }
 
   /**
    * Decodes {@code data} as a boolean.
    *
-   * @param data the text data
+   * @param data the text data; a {@code String} or a borrowed {@link CharArraySequence} slice
    * @param type the PostgreSQL type information
    * @param ctx the codec context
    * @return the boolean value
    * @throws SQLException if decoding fails
    */
-  default boolean decodeAsBoolean(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  default boolean decodeAsBoolean(CharSequence data, TypeDescriptor type, CodecContext ctx)
+      throws SQLException {
+    String text = data.toString();
     return BooleanCoercion.castAndCheck(
-        decodeText(data, type, ctx), () -> decodeAsString(data, type, ctx));
+        decodeText(text, type, ctx), () -> decodeAsString(text, type, ctx));
   }
 
   /**
-   * Decodes the slice {@code data[offset, offset + length)} as a boolean.
+   * Decodes {@code data} as a {@link BigDecimal}.
    *
-   * @param data the backing buffer
-   * @param offset start of this value's chars within {@code data}
-   * @param length number of chars for this value
+   * @param data the text data; a {@code String} or a borrowed {@link CharArraySequence} slice
    * @param type the PostgreSQL type information
    * @param ctx the codec context
-   * @return the boolean value
-   * @throws SQLException if decoding fails
+   * @return the BigDecimal value, or {@code null} if the value is SQL NULL
+   * @throws SQLException if the value cannot be represented as a BigDecimal
    */
-  default boolean decodeAsBoolean(char[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
+  default @Nullable BigDecimal decodeAsBigDecimal(CharSequence data, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    // See decodeAsInt(char[]): route through the String form so an overridden String accessor is
-    // honoured on a char[] element too.
-    return decodeAsBoolean(new String(data, offset, length), type, ctx);
+    return PrimitiveDecoders.boxToBigDecimal(decodeText(data.toString(), type, ctx));
   }
 
   /**

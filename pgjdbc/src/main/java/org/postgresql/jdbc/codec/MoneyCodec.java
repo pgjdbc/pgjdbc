@@ -99,27 +99,27 @@ public final class MoneyCodec implements PrimitiveBinaryDecoder, PrimitiveTextDe
   }
 
   @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return toInt(parseMoney(data));
   }
 
   @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return toLong(parseMoney(data));
   }
 
   @Override
-  public float decodeAsFloat(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public float decodeAsFloat(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return (float) parseMoney(data).doubleValue();
   }
 
   @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return parseMoney(data).doubleValue();
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx)
+  public @Nullable BigDecimal decodeAsBigDecimal(CharSequence data, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     return parseMoney(data);
   }
@@ -296,15 +296,20 @@ public final class MoneyCodec implements PrimitiveBinaryDecoder, PrimitiveTextDe
    * The one rendering this cannot disambiguate is a zero-fraction-digit currency written with grouping
    * (for example {@code "1,234,567"}), which is ambiguous from the text alone.</p>
    */
-  private static BigDecimal parseMoney(String data) throws SQLException {
-    boolean negative = data.indexOf('(') >= 0 || data.indexOf('-') >= 0;
+  private static BigDecimal parseMoney(CharSequence data) throws SQLException {
+    int length = data.length();
+    boolean negative = false;
 
-    // Keep only the digits and separators, dropping the currency symbol, whitespace, sign and parens.
-    StringBuilder tokens = new StringBuilder(data.length());
-    for (int i = 0; i < data.length(); i++) {
+    // Keep only the digits and separators, dropping the currency symbol, whitespace, sign and parens;
+    // a '(' or '-' anywhere marks a negative amount (folded into this scan instead of two indexOf
+    // passes, so a borrowed CharArraySequence slice is parsed without a String copy).
+    StringBuilder tokens = new StringBuilder(length);
+    for (int i = 0; i < length; i++) {
       char c = data.charAt(i);
       if (c >= '0' && c <= '9' || c == '.' || c == ',') {
         tokens.append(c);
+      } else if (c == '(' || c == '-') {
+        negative = true;
       }
     }
 

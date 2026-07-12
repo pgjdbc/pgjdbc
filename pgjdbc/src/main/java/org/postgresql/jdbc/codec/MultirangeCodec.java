@@ -19,7 +19,6 @@ import org.postgresql.util.PGmultirange;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -176,12 +175,6 @@ public final class MultirangeCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
-      CodecContext ctx) throws SQLException {
-    throw Exceptions.cannotConvertMultirangeToBigDecimal();
-  }
-
-  @Override
   @SuppressWarnings("unchecked")
   public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
       Class<T> targetClass, CodecContext ctx) throws SQLException {
@@ -269,11 +262,6 @@ public final class MultirangeCodec implements StreamingBinaryCodec, TextCodec {
       return (T) data;
     }
     throw Exceptions.cannotDecodeMultirangeTo(targetClass.getName());
-  }
-
-  @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw Exceptions.cannotConvertMultirangeToBigDecimal();
   }
 
   @Override

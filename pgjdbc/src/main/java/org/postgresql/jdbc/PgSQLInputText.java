@@ -135,7 +135,7 @@ public final class PgSQLInputText extends PgSQLInput {
 
   @Override
   protected @Nullable BigDecimal decodeBigDecimal() throws SQLException {
-    return getCodec().decodeAsBigDecimal(currentValue(), getCurrentType(), ctx);
+    return PrimitiveDecoders.asBigDecimal(getCodec(), currentValue(), getCurrentType(), ctx);
   }
 
   @Override

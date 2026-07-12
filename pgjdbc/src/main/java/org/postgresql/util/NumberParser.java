@@ -156,4 +156,74 @@ public class NumberParser {
     }
     return val;
   }
+
+  /**
+   * Optimised {@link CharSequence} slice to number parser, mirroring
+   * {@link #getFastLong(char[], int, int, long, long)} for a text value already decoded to
+   * characters and exposed as a {@link CharSequence} — a {@link String}, or a borrowed
+   * {@link org.postgresql.api.codec.CharArraySequence} view over one element of an array text
+   * literal, parsed in place without copying it out. This code does not handle null values, so the
+   * caller must handle them first. Fraction part is discarded.
+   *
+   * @param chars characters containing an integer represented as ASCII digits
+   * @param offset start of the digits within {@code chars}
+   * @param length number of characters to parse
+   * @return The parsed number.
+   * @throws NumberFormatException If the number is invalid or out of range for fast parsing.
+   *                               The value must then be parsed by another (less optimised) method.
+   */
+  public static long getFastLong(CharSequence chars, int offset, int length, long minVal, long maxVal)
+      throws NumberFormatException {
+    if (length == 0) {
+      throw FAST_NUMBER_FAILED;
+    }
+
+    int end = offset + length;
+    boolean neg = chars.charAt(offset) == '-';
+
+    long val = 0;
+    int start = neg ? offset + 1 : offset;
+    while (start < end) {
+      char ch = chars.charAt(start++);
+      if (ch < '0' || ch > '9') {
+        if (ch == '.') {
+          if (neg && length == 2 || !neg && length == 1) {
+            // reject "." and "-."
+            throw FAST_NUMBER_FAILED;
+          }
+          while (start < end) {
+            ch = chars.charAt(start++);
+            if (ch < '0' || ch > '9') {
+              throw FAST_NUMBER_FAILED;
+            }
+          }
+          break;
+        } else {
+          throw FAST_NUMBER_FAILED;
+        }
+      }
+
+      if (val < MIN_LONG_DIV_TEN) {
+        throw FAST_NUMBER_FAILED;
+      }
+      val *= 10;
+      int digit = ch - '0';
+      if (val < Long.MIN_VALUE + digit) {
+        throw FAST_NUMBER_FAILED;
+      }
+      val -= digit;
+    }
+
+    if (!neg) {
+      if (val == Long.MIN_VALUE) {
+        throw FAST_NUMBER_FAILED;
+      }
+      val = -val;
+    }
+
+    if (val < minVal || val > maxVal) {
+      throw FAST_NUMBER_FAILED;
+    }
+    return val;
+  }
 }

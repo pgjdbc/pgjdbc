@@ -97,7 +97,7 @@ public final class BoolCodec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   }
 
   @Override
-  public boolean decodeAsBoolean(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public boolean decodeAsBoolean(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return BooleanTypeUtil.fromString(data);
   }
 
@@ -109,7 +109,7 @@ public final class BoolCodec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   }
 
   @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     requireBooleanToNumeric(ctx, "int");
     return decodeAsBoolean(data, type, ctx) ? 1 : 0;
   }
@@ -122,7 +122,7 @@ public final class BoolCodec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   }
 
   @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     requireBooleanToNumeric(ctx, "long");
     return decodeAsBoolean(data, type, ctx) ? 1L : 0L;
   }
@@ -135,7 +135,7 @@ public final class BoolCodec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   }
 
   @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     requireBooleanToNumeric(ctx, "double");
     return decodeAsBoolean(data, type, ctx) ? 1.0 : 0.0;
   }
@@ -148,7 +148,7 @@ public final class BoolCodec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   }
 
   @Override
-  public float decodeAsFloat(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public float decodeAsFloat(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     requireBooleanToNumeric(ctx, "float");
     return decodeAsBoolean(data, type, ctx) ? 1.0f : 0.0f;
   }
@@ -161,7 +161,7 @@ public final class BoolCodec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public @Nullable BigDecimal decodeAsBigDecimal(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     requireBooleanToNumeric(ctx, "BigDecimal");
     return decodeAsBoolean(data, type, ctx) ? BigDecimal.ONE : BigDecimal.ZERO;
   }

@@ -7,6 +7,9 @@ package org.postgresql.api.codec;
 
 import org.postgresql.api.Experimental;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.math.BigDecimal;
 import java.sql.SQLException;
 
 /**
@@ -115,5 +118,21 @@ public interface PrimitiveBinaryDecoder extends BinaryCodec {
       throws SQLException {
     return BooleanCoercion.castAndCheck(
         decodeBinary(data, offset, length, type, ctx), () -> decodeAsString(data, offset, length, type, ctx));
+  }
+
+  /**
+   * Decodes the slice {@code data[offset, offset + length)} as a {@link BigDecimal}.
+   *
+   * @param data the backing buffer
+   * @param offset start of this value's bytes within {@code data}
+   * @param length number of bytes for this value
+   * @param type the PostgreSQL type information
+   * @param ctx the codec context
+   * @return the BigDecimal value, or {@code null} if the value is SQL NULL
+   * @throws SQLException if the value cannot be represented as a BigDecimal
+   */
+  default @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return PrimitiveDecoders.boxToBigDecimal(decodeBinary(data, offset, length, type, ctx));
   }
 }

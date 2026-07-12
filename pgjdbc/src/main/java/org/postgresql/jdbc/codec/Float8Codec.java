@@ -115,11 +115,12 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   }
 
   @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    String text = data.toString();
     try {
-      return Double.parseDouble(data.trim());
+      return Double.parseDouble(text.trim());
     } catch (NumberFormatException e) {
-      throw Exceptions.cannotConvertValue("double", data, e);
+      throw Exceptions.cannotConvertValue("double", text, e);
     }
   }
 
@@ -130,7 +131,7 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   }
 
   @Override
-  public float decodeAsFloat(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public float decodeAsFloat(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return (float) decodeAsDouble(data, type, ctx);
   }
 
@@ -141,7 +142,7 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   }
 
   @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return NumberDecoders.floatingToInt(decodeAsDouble(data, type, ctx));
   }
 
@@ -152,7 +153,7 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   }
 
   @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return NumberDecoders.floatingToLong(decodeAsDouble(data, type, ctx));
   }
 

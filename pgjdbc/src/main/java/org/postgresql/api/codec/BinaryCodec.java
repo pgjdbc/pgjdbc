@@ -10,7 +10,6 @@ import org.postgresql.api.Experimental;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.sql.SQLException;
 
 /**
@@ -28,9 +27,11 @@ import java.sql.SQLException;
  * buffer, so a container codec (array, range, composite) decodes each element, bound, or field in
  * place without a per-element {@link java.util.Arrays#copyOfRange}. A codec implements the primary
  * {@link #decodeBinary(byte[], int, int, TypeDescriptor, CodecContext)}; the whole-array
- * {@code decodeBinary(byte[], ...)} and the {@code decodeAsString}/{@code decodeAsBigDecimal}/
- * {@code decodeAsBytes}/{@code decodeBinaryAs} accessors are convenience defaults that fan out from
- * it. A codec overrides a slice accessor only when its result differs from decoding through
+ * {@code decodeBinary(byte[], ...)} and the {@code decodeAsString}/{@code decodeAsBytes}/
+ * {@code decodeBinaryAs} accessors are convenience defaults that fan out from it. The
+ * {@code decodeAsBigDecimal} accessor is an opt-in {@link PrimitiveBinaryDecoder} capability rather
+ * than a base default. A codec overrides a slice accessor only when its result differs from decoding
+ * through
  * {@code decodeBinary} and converting (for example {@code bytea}'s hex text, or a numeric codec that
  * converts to {@code Long}/{@code Double}).</p>
  *
@@ -152,45 +153,6 @@ public interface BinaryCodec extends Codec {
       CodecContext ctx) throws SQLException {
     Object value = decodeBinary(data, offset, length, type, ctx);
     return value == null ? null : value.toString();
-  }
-
-  /**
-   * Decodes {@code data[offset, offset + length)} as a BigDecimal.
-   *
-   * <p>The default converts the number decoded through
-   * {@link #decodeBinary(byte[], int, int, TypeDescriptor, CodecContext)}.</p>
-   *
-   * @param data the backing buffer
-   * @param offset start of this value's bytes within {@code data}
-   * @param length number of bytes for this value
-   * @param type the PostgreSQL type information
-   * @param ctx the codec context
-   * @return the BigDecimal value
-   * @throws SQLException if decoding fails
-   */
-  default @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
-      CodecContext ctx) throws SQLException {
-    Object value = decodeBinary(data, offset, length, type, ctx);
-    if (value == null) {
-      return null;
-    }
-    if (value instanceof BigDecimal) {
-      return (BigDecimal) value;
-    }
-    if (value instanceof Number) {
-      if (value instanceof Long || value instanceof Integer || value instanceof Short || value instanceof Byte) {
-        return BigDecimal.valueOf(((Number) value).longValue());
-      }
-      double doubleValue = ((Number) value).doubleValue();
-      // BigDecimal has no non-finite form, so a NaN or infinite float refuses rather than letting
-      // BigDecimal.valueOf throw an unchecked NumberFormatException. This mirrors the text default
-      // (TextCodec.decodeAsBigDecimal) and the binary float codecs, which raise the same state.
-      if (Double.isNaN(doubleValue) || Double.isInfinite(doubleValue)) {
-        throw Exceptions.valueOutOfRange(value, "BigDecimal");
-      }
-      return BigDecimal.valueOf(doubleValue);
-    }
-    throw Codecs.cannotDecode(value, "BigDecimal");
   }
 
   /**

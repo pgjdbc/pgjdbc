@@ -122,57 +122,87 @@ public final class PrimitiveDecoders {
         () -> codec.decodeAsString(data, offset, length, type, ctx));
   }
 
+  /**
+   * Decodes {@code data[offset, offset + length)} as a {@link BigDecimal} through {@code codec}'s
+   * native path when it implements {@link PrimitiveBinaryDecoder}, otherwise by boxing through
+   * {@link BinaryCodec#decodeBinary}.
+   */
+  public static @Nullable BigDecimal asBigDecimal(BinaryCodec codec, byte[] data, int offset,
+      int length, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    if (codec instanceof PrimitiveBinaryDecoder) {
+      return ((PrimitiveBinaryDecoder) codec).decodeAsBigDecimal(data, offset, length, type, ctx);
+    }
+    return boxToBigDecimal(codec.decodeBinary(data, offset, length, type, ctx));
+  }
+
   // ===========================================================================
   // Text
   // ===========================================================================
 
   /**
    * Decodes {@code data} as an int through {@code codec}'s native path when it implements
-   * {@link PrimitiveTextDecoder}, otherwise by boxing through {@link TextCodec#decodeText}.
+   * {@link PrimitiveTextDecoder}, otherwise by boxing through {@link TextCodec#decodeText}. The
+   * {@code data} may be a {@code String} or a borrowed {@link CharArraySequence} slice; the boxing
+   * fallback copies it out with {@link CharSequence#toString()}.
    */
-  public static int asInt(TextCodec codec, String data, TypeDescriptor type, CodecContext ctx)
+  public static int asInt(TextCodec codec, CharSequence data, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     if (codec instanceof PrimitiveTextDecoder) {
       return ((PrimitiveTextDecoder) codec).decodeAsInt(data, type, ctx);
     }
-    return boxToInt(codec.decodeText(data, type, ctx));
+    return boxToInt(codec.decodeText(data.toString(), type, ctx));
   }
 
-  /** Decodes {@code data} as a long; see {@link #asInt(TextCodec, String, TypeDescriptor, CodecContext)}. */
-  public static long asLong(TextCodec codec, String data, TypeDescriptor type, CodecContext ctx)
+  /** Decodes {@code data} as a long; see {@link #asInt(TextCodec, CharSequence, TypeDescriptor, CodecContext)}. */
+  public static long asLong(TextCodec codec, CharSequence data, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     if (codec instanceof PrimitiveTextDecoder) {
       return ((PrimitiveTextDecoder) codec).decodeAsLong(data, type, ctx);
     }
-    return boxToLong(codec.decodeText(data, type, ctx));
+    return boxToLong(codec.decodeText(data.toString(), type, ctx));
   }
 
-  /** Decodes {@code data} as a float; see {@link #asInt(TextCodec, String, TypeDescriptor, CodecContext)}. */
-  public static float asFloat(TextCodec codec, String data, TypeDescriptor type, CodecContext ctx)
+  /** Decodes {@code data} as a float; see {@link #asInt(TextCodec, CharSequence, TypeDescriptor, CodecContext)}. */
+  public static float asFloat(TextCodec codec, CharSequence data, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     if (codec instanceof PrimitiveTextDecoder) {
       return ((PrimitiveTextDecoder) codec).decodeAsFloat(data, type, ctx);
     }
-    return boxToFloat(codec.decodeText(data, type, ctx));
+    return boxToFloat(codec.decodeText(data.toString(), type, ctx));
   }
 
-  /** Decodes {@code data} as a double; see {@link #asInt(TextCodec, String, TypeDescriptor, CodecContext)}. */
-  public static double asDouble(TextCodec codec, String data, TypeDescriptor type, CodecContext ctx)
+  /** Decodes {@code data} as a double; see {@link #asInt(TextCodec, CharSequence, TypeDescriptor, CodecContext)}. */
+  public static double asDouble(TextCodec codec, CharSequence data, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     if (codec instanceof PrimitiveTextDecoder) {
       return ((PrimitiveTextDecoder) codec).decodeAsDouble(data, type, ctx);
     }
-    return boxToDouble(codec.decodeText(data, type, ctx));
+    return boxToDouble(codec.decodeText(data.toString(), type, ctx));
   }
 
-  /** Decodes {@code data} as a boolean; see {@link #asInt(TextCodec, String, TypeDescriptor, CodecContext)}. */
-  public static boolean asBoolean(TextCodec codec, String data, TypeDescriptor type, CodecContext ctx)
+  /** Decodes {@code data} as a boolean; see {@link #asInt(TextCodec, CharSequence, TypeDescriptor, CodecContext)}. */
+  public static boolean asBoolean(TextCodec codec, CharSequence data, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     if (codec instanceof PrimitiveTextDecoder) {
       return ((PrimitiveTextDecoder) codec).decodeAsBoolean(data, type, ctx);
     }
+    String text = data.toString();
     return BooleanCoercion.castAndCheck(
-        codec.decodeText(data, type, ctx), () -> codec.decodeAsString(data, type, ctx));
+        codec.decodeText(text, type, ctx), () -> codec.decodeAsString(text, type, ctx));
+  }
+
+  /**
+   * Decodes {@code data} as a {@link BigDecimal} through {@code codec}'s native path when it
+   * implements {@link PrimitiveTextDecoder}, otherwise by boxing through {@link TextCodec#decodeText}.
+   * The {@code data} may be a {@code String} or a borrowed {@link CharArraySequence} slice; the boxing
+   * fallback copies it out with {@link CharSequence#toString()}.
+   */
+  public static @Nullable BigDecimal asBigDecimal(TextCodec codec, CharSequence data,
+      TypeDescriptor type, CodecContext ctx) throws SQLException {
+    if (codec instanceof PrimitiveTextDecoder) {
+      return ((PrimitiveTextDecoder) codec).decodeAsBigDecimal(data, type, ctx);
+    }
+    return boxToBigDecimal(codec.decodeText(data.toString(), type, ctx));
   }
 
   /**
@@ -269,5 +299,28 @@ public final class PrimitiveDecoders {
       return ((Number) value).doubleValue();
     }
     throw Codecs.cannotDecode(value, "double");
+  }
+
+  static @Nullable BigDecimal boxToBigDecimal(@Nullable Object value) throws SQLException {
+    if (value == null) {
+      return null;
+    }
+    if (value instanceof BigDecimal) {
+      return (BigDecimal) value;
+    }
+    if (value instanceof Number) {
+      if (value instanceof Long || value instanceof Integer || value instanceof Short
+          || value instanceof Byte) {
+        return BigDecimal.valueOf(((Number) value).longValue());
+      }
+      double doubleValue = ((Number) value).doubleValue();
+      // BigDecimal has no non-finite form, so a NaN or infinite float refuses rather than letting
+      // BigDecimal.valueOf throw an unchecked NumberFormatException.
+      if (Double.isNaN(doubleValue) || Double.isInfinite(doubleValue)) {
+        throw Exceptions.valueOutOfRange(value, "BigDecimal");
+      }
+      return BigDecimal.valueOf(doubleValue);
+    }
+    throw Codecs.cannotDecode(value, "BigDecimal");
   }
 }

@@ -168,11 +168,12 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
   }
 
   @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    String text = data.toString();
     try {
-      return Integer.parseInt(data.trim());
+      return Integer.parseInt(text.trim());
     } catch (NumberFormatException e) {
-      throw Exceptions.cannotConvertValue("int", data, e);
+      throw Exceptions.cannotConvertValue("int", text, e);
     }
   }
 
@@ -188,11 +189,12 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
   }
 
   @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    String text = data.toString();
     try {
-      return Long.parseLong(data.trim());
+      return Long.parseLong(text.trim());
     } catch (NumberFormatException e) {
-      throw Exceptions.cannotConvertValue("long", data, e);
+      throw Exceptions.cannotConvertValue("long", text, e);
     }
   }
 
@@ -208,11 +210,12 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
   }
 
   @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    String text = data.toString();
     try {
-      return Double.parseDouble(data.trim());
+      return Double.parseDouble(text.trim());
     } catch (NumberFormatException e) {
-      throw Exceptions.cannotConvertValue("double", data, e);
+      throw Exceptions.cannotConvertValue("double", text, e);
     }
   }
 
@@ -226,7 +229,7 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
   }
 
   @Override
-  public float decodeAsFloat(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public float decodeAsFloat(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return (float) decodeAsDouble(data, type, ctx);
   }
 

@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.postgresql.api.codec.CharArraySequence;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.api.codec.TypeDescriptor;
@@ -169,7 +170,7 @@ class NumericCodecTest {
   @Test
   void decodeAsDouble_negativeZero_charArrayMatchesString() throws SQLException {
     char[] chars = "-0.0".toCharArray();
-    double viaChars = codec.decodeAsDouble(chars, 0, chars.length, numericType, null);
+    double viaChars = codec.decodeAsDouble(new CharArraySequence(chars, 0, chars.length), numericType, null);
     assertEquals(Double.doubleToRawLongBits(codec.decodeAsDouble("-0.0", numericType, null)),
         Double.doubleToRawLongBits(viaChars));
     assertEquals(Double.doubleToRawLongBits(-0.0), Double.doubleToRawLongBits(viaChars));
@@ -178,7 +179,7 @@ class NumericCodecTest {
   @Test
   void decodeAsFloat_negativeZero_charArrayMatchesString() throws SQLException {
     char[] chars = "-0.0".toCharArray();
-    float viaChars = codec.decodeAsFloat(chars, 0, chars.length, numericType, null);
+    float viaChars = codec.decodeAsFloat(new CharArraySequence(chars, 0, chars.length), numericType, null);
     assertEquals(Float.floatToRawIntBits(codec.decodeAsFloat("-0.0", numericType, null)),
         Float.floatToRawIntBits(viaChars));
     assertEquals(Float.floatToRawIntBits(-0.0f), Float.floatToRawIntBits(viaChars));
@@ -191,7 +192,7 @@ class NumericCodecTest {
     for (String special : new String[]{"NaN", "Infinity", "-Infinity"}) {
       char[] chars = special.toCharArray();
       assertEquals(Double.doubleToRawLongBits(codec.decodeAsDouble(special, numericType, null)),
-          Double.doubleToRawLongBits(codec.decodeAsDouble(chars, 0, chars.length, numericType, null)),
+          Double.doubleToRawLongBits(codec.decodeAsDouble(new CharArraySequence(chars, 0, chars.length), numericType, null)),
           special);
     }
   }
@@ -202,17 +203,17 @@ class NumericCodecTest {
   @Test
   void decodeAsInt_charArray_roundsLikeString() throws SQLException {
     char[] chars = ".9".toCharArray();
-    assertEquals(1, codec.decodeAsInt(chars, 0, chars.length, numericType, null));
+    assertEquals(1, codec.decodeAsInt(new CharArraySequence(chars, 0, chars.length), numericType, null));
     assertEquals(codec.decodeAsInt(".9", numericType, null),
-        codec.decodeAsInt(chars, 0, chars.length, numericType, null));
+        codec.decodeAsInt(new CharArraySequence(chars, 0, chars.length), numericType, null));
   }
 
   @Test
   void decodeAsLong_charArray_roundsLikeString() throws SQLException {
     char[] chars = "1.5".toCharArray();
-    assertEquals(2L, codec.decodeAsLong(chars, 0, chars.length, numericType, null));
+    assertEquals(2L, codec.decodeAsLong(new CharArraySequence(chars, 0, chars.length), numericType, null));
     assertEquals(codec.decodeAsLong("1.5", numericType, null),
-        codec.decodeAsLong(chars, 0, chars.length, numericType, null));
+        codec.decodeAsLong(new CharArraySequence(chars, 0, chars.length), numericType, null));
   }
 
   @Test

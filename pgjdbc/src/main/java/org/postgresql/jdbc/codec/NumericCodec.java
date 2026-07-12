@@ -157,8 +157,8 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    String trimmed = data.trim();
+  public @Nullable BigDecimal decodeAsBigDecimal(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    String trimmed = data.toString().trim();
     if ("NaN".equalsIgnoreCase(trimmed)) {
       throw Exceptions.badValueForType("BigDecimal", "NaN");
     }
@@ -169,7 +169,7 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
     try {
       return new BigDecimal(trimmed);
     } catch (NumberFormatException e) {
-      throw Exceptions.cannotConvertValue("numeric", data, e);
+      throw Exceptions.cannotConvertValue("numeric", trimmed, e);
     }
   }
 
@@ -181,8 +181,8 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
   }
 
   @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    String trimmed = data.trim();
+  public double decodeAsDouble(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    String trimmed = data.toString().trim();
     if ("NaN".equalsIgnoreCase(trimmed)) {
       return Double.NaN;
     }
@@ -195,7 +195,7 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
     try {
       return Double.parseDouble(trimmed);
     } catch (NumberFormatException e) {
-      throw Exceptions.cannotConvertValue("double", data, e);
+      throw Exceptions.cannotConvertValue("double", trimmed, e);
     }
   }
 
@@ -206,7 +206,7 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
   }
 
   @Override
-  public float decodeAsFloat(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public float decodeAsFloat(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return (float) decodeAsDouble(data, type, ctx);
   }
 
@@ -218,7 +218,7 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
   }
 
   @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     BigDecimal bd = decodeAsBigDecimal(data, type, ctx);
     return bd == null ? 0 : bigDecimalToInt(bd);
   }
@@ -231,7 +231,7 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
   }
 
   @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     BigDecimal bd = decodeAsBigDecimal(data, type, ctx);
     return bd == null ? 0 : bigDecimalToLong(bd);
   }

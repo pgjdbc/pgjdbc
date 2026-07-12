@@ -317,7 +317,7 @@ public final class DomainCodec implements StreamingBinaryCodec, StreamingTextCod
   }
 
   @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
@@ -332,7 +332,7 @@ public final class DomainCodec implements StreamingBinaryCodec, StreamingTextCod
   }
 
   @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
@@ -347,7 +347,7 @@ public final class DomainCodec implements StreamingBinaryCodec, StreamingTextCod
   }
 
   @Override
-  public float decodeAsFloat(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public float decodeAsFloat(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
@@ -362,7 +362,7 @@ public final class DomainCodec implements StreamingBinaryCodec, StreamingTextCod
   }
 
   @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
@@ -377,7 +377,7 @@ public final class DomainCodec implements StreamingBinaryCodec, StreamingTextCod
   }
 
   @Override
-  public boolean decodeAsBoolean(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public boolean decodeAsBoolean(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
@@ -399,24 +399,24 @@ public final class DomainCodec implements StreamingBinaryCodec, StreamingTextCod
       Codec baseCodec = getBaseCodec(type, ctx);
       TypeDescriptor baseType = getBaseType(type, ctx);
       if (baseCodec instanceof BinaryCodec) {
-        return ((BinaryCodec) baseCodec).decodeAsBigDecimal(data, offset, length, baseType, ctx);
+        return PrimitiveDecoders.asBigDecimal((BinaryCodec) baseCodec, data, offset, length, baseType, ctx);
       }
-      return FallbackCodec.INSTANCE.decodeAsBigDecimal(data, offset, length, baseType, ctx);
+      return PrimitiveDecoders.asBigDecimal(FallbackCodec.INSTANCE, data, offset, length, baseType, ctx);
     } finally {
       CodecDepth.exit();
     }
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public @Nullable BigDecimal decodeAsBigDecimal(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
       Codec baseCodec = getBaseCodec(type, ctx);
       TypeDescriptor baseType = getBaseType(type, ctx);
       if (baseCodec instanceof TextCodec) {
-        return ((TextCodec) baseCodec).decodeAsBigDecimal(data, baseType, ctx);
+        return PrimitiveDecoders.asBigDecimal((TextCodec) baseCodec, data, baseType, ctx);
       }
-      return FallbackCodec.INSTANCE.decodeAsBigDecimal(data, baseType, ctx);
+      return PrimitiveDecoders.asBigDecimal(FallbackCodec.INSTANCE, data, baseType, ctx);
     } finally {
       CodecDepth.exit();
     }

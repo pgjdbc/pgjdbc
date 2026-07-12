@@ -510,10 +510,6 @@ class Exceptions {
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
-  static SQLException cannotConvertRangeToBigDecimal() {
-    return new PSQLException(GT.tr("Cannot convert range to BigDecimal"), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
   static SQLException cannotEncodeMultirange(Object value) {
     return new PSQLException(
         GT.tr("Cannot encode {0} as multirange type", value.getClass().getName()),
@@ -524,11 +520,6 @@ class Exceptions {
     return new PSQLException(
         GT.tr("Cannot decode multirange to {0}", targetClassName),
         PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  static SQLException cannotConvertMultirangeToBigDecimal() {
-    return new PSQLException(
-        GT.tr("Cannot convert multirange to BigDecimal"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   static SQLException rangeSubtypeUnresolvedForDecode(String rangeTypeFullName) {

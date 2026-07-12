@@ -8,6 +8,7 @@ package org.postgresql.jdbc.codec;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import org.postgresql.api.codec.CharArraySequence;
 import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
@@ -150,16 +151,16 @@ class Float4CodecTest {
   @Test
   void decodeAsInt_charArray_roundsLikeString() throws SQLException {
     char[] chars = "0.6".toCharArray();
-    assertEquals(1, codec.decodeAsInt(chars, 0, chars.length, float4Type, null));
+    assertEquals(1, codec.decodeAsInt(new CharArraySequence(chars, 0, chars.length), float4Type, null));
     assertEquals(codec.decodeAsInt("0.6", float4Type, null),
-        codec.decodeAsInt(chars, 0, chars.length, float4Type, null));
+        codec.decodeAsInt(new CharArraySequence(chars, 0, chars.length), float4Type, null));
   }
 
   @Test
   void decodeAsLong_charArray_roundsLikeString() throws SQLException {
     char[] chars = "1.5".toCharArray();
-    assertEquals(2L, codec.decodeAsLong(chars, 0, chars.length, float4Type, null));
+    assertEquals(2L, codec.decodeAsLong(new CharArraySequence(chars, 0, chars.length), float4Type, null));
     assertEquals(codec.decodeAsLong("1.5", float4Type, null),
-        codec.decodeAsLong(chars, 0, chars.length, float4Type, null));
+        codec.decodeAsLong(new CharArraySequence(chars, 0, chars.length), float4Type, null));
   }
 }

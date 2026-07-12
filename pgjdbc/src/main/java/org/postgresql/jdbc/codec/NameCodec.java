@@ -73,7 +73,7 @@ public final class NameCodec implements PrimitiveBinaryDecoder, PrimitiveTextDec
   }
 
   @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return TextCodecImpl.INSTANCE.decodeAsInt(data, type, ctx);
   }
 
@@ -84,7 +84,7 @@ public final class NameCodec implements PrimitiveBinaryDecoder, PrimitiveTextDec
   }
 
   @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return TextCodecImpl.INSTANCE.decodeAsLong(data, type, ctx);
   }
 
@@ -95,7 +95,7 @@ public final class NameCodec implements PrimitiveBinaryDecoder, PrimitiveTextDec
   }
 
   @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return TextCodecImpl.INSTANCE.decodeAsDouble(data, type, ctx);
   }
 
@@ -106,7 +106,7 @@ public final class NameCodec implements PrimitiveBinaryDecoder, PrimitiveTextDec
   }
 
   @Override
-  public float decodeAsFloat(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public float decodeAsFloat(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return TextCodecImpl.INSTANCE.decodeAsFloat(data, type, ctx);
   }
 
@@ -117,7 +117,7 @@ public final class NameCodec implements PrimitiveBinaryDecoder, PrimitiveTextDec
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public @Nullable BigDecimal decodeAsBigDecimal(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return TextCodecImpl.INSTANCE.decodeAsBigDecimal(data, type, ctx);
   }
 
@@ -128,7 +128,7 @@ public final class NameCodec implements PrimitiveBinaryDecoder, PrimitiveTextDec
   }
 
   @Override
-  public boolean decodeAsBoolean(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public boolean decodeAsBoolean(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return TextCodecImpl.INSTANCE.decodeAsBoolean(data, type, ctx);
   }
 

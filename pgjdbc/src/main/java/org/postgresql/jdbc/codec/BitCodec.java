@@ -87,14 +87,8 @@ public final class BitCodec implements PrimitiveBinaryDecoder, PrimitiveTextDeco
   }
 
   @Override
-  public boolean decodeAsBoolean(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public boolean decodeAsBoolean(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return BooleanTypeUtil.fromString(data);
-  }
-
-  @Override
-  public boolean decodeAsBoolean(char[] data, int offset, int length, TypeDescriptor type,
-      CodecContext ctx) throws SQLException {
-    return BooleanTypeUtil.fromString(new String(data, offset, length));
   }
 
   @Override

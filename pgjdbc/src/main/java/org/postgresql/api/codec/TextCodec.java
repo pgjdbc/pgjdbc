@@ -9,7 +9,6 @@ import org.postgresql.api.Experimental;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.math.BigDecimal;
 import java.sql.SQLException;
 
 /**
@@ -53,6 +52,16 @@ public interface TextCodec extends Codec {
    * <p>The default copies the slice and delegates to
    * {@link #decodeText(String, TypeDescriptor, CodecContext)}, so codecs that do not
    * override it keep the existing behaviour.</p>
+   *
+   * <p>This capability keeps two methods, the mandatory
+   * {@link #decodeText(String, TypeDescriptor, CodecContext)} and this delegating slice default,
+   * rather than the single {@code CharSequence} method the primitive accessors on
+   * {@link PrimitiveTextDecoder} use. The primitive forms were unified because both had boxing
+   * defaults, so overriding one and leaving the other let them drift apart silently. That cannot
+   * happen here. The {@code String} form has no default, so it is always the codec's real
+   * implementation. This slice form routes through it unless a codec deliberately overrides it with a
+   * faster path, and such an override then owes the usual contract of matching the {@code String}
+   * result, which {@code TextCodecSliceTest} verifies.</p>
    *
    * @param data backing buffer; only {@code [offset, offset + length)} is this value
    * @param offset start of this value's chars within {@code data}
@@ -120,39 +129,6 @@ public interface TextCodec extends Codec {
   default @Nullable String decodeAsString(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     Object value = decodeText(data, type, ctx);
     return value == null ? null : value.toString();
-  }
-
-  /**
-   * Decodes text data as a BigDecimal value.
-   *
-   * @param data the text data
-   * @param type the PostgreSQL type information
-   * @param ctx the codec context
-   * @return the BigDecimal value
-   * @throws SQLException if decoding fails
-   */
-  default @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    Object value = decodeText(data, type, ctx);
-    if (value == null) {
-      return null;
-    }
-    if (value instanceof BigDecimal) {
-      return (BigDecimal) value;
-    }
-    if (value instanceof Number) {
-      if (value instanceof Long || value instanceof Integer || value instanceof Short || value instanceof Byte) {
-        return BigDecimal.valueOf(((Number) value).longValue());
-      }
-      double doubleValue = ((Number) value).doubleValue();
-      // BigDecimal has no non-finite form, so a NaN or infinite float refuses rather than letting
-      // BigDecimal.valueOf throw an unchecked NumberFormatException. This mirrors the binary default
-      // (BinaryCodec.decodeAsBigDecimal) and the float codecs, which raise the same state.
-      if (Double.isNaN(doubleValue) || Double.isInfinite(doubleValue)) {
-        throw Exceptions.valueOutOfRange(value, "BigDecimal");
-      }
-      return BigDecimal.valueOf(doubleValue);
-    }
-    throw Codecs.cannotDecode(value, "BigDecimal");
   }
 
   /**

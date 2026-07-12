@@ -115,11 +115,12 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   }
 
   @Override
-  public float decodeAsFloat(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public float decodeAsFloat(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    String text = data.toString();
     try {
-      return Float.parseFloat(data.trim());
+      return Float.parseFloat(text.trim());
     } catch (NumberFormatException e) {
-      throw Exceptions.cannotConvertValue("float", data, e);
+      throw Exceptions.cannotConvertValue("float", text, e);
     }
   }
 
@@ -130,7 +131,7 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   }
 
   @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsFloat(data, type, ctx);
   }
 
@@ -143,7 +144,7 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   }
 
   @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return NumberDecoders.floatingToInt(decodeAsFloat(data, type, ctx));
   }
 
@@ -154,7 +155,7 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   }
 
   @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return NumberDecoders.floatingToLong(decodeAsFloat(data, type, ctx));
   }
 

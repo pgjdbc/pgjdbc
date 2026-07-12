@@ -148,24 +148,20 @@ public final class Int4Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   }
 
   @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    try {
-      return Integer.parseInt(data.trim());
-    } catch (NumberFormatException e) {
-      throw Exceptions.cannotConvertValue("int", data, e);
-    }
-  }
-
-  @Override
-  public int decodeAsInt(char[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
-      throws SQLException {
+  public int decodeAsInt(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     try {
       return (int) NumberParser.getFastLong(
-          data, offset, length, Integer.MIN_VALUE, Integer.MAX_VALUE);
+          data, 0, data.length(), Integer.MIN_VALUE, Integer.MAX_VALUE);
     } catch (NumberFormatException fast) {
-      // The fast path rejects a leading '+', whitespace, or an out-of-range value; the String
-      // primitive form owns the parse and the error message.
-      return decodeAsInt(new String(data, offset, length), type, ctx);
+      // The fast path rejects a leading '+', whitespace, or an out-of-range value; fall back to the
+      // String parser, which owns the parse and the error message. A String reaching here is copied
+      // out once; a borrowed CharArraySequence slice parses in place on the fast path.
+      String text = data.toString();
+      try {
+        return Integer.parseInt(text.trim());
+      } catch (NumberFormatException e) {
+        throw Exceptions.cannotConvertValue("int", text, e);
+      }
     }
   }
 
@@ -193,7 +189,7 @@ public final class Int4Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   }
 
   @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsInt(data, type, ctx);
   }
 
@@ -204,7 +200,7 @@ public final class Int4Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   }
 
   @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsInt(data, type, ctx);
   }
 

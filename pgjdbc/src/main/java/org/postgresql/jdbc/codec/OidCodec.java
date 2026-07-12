@@ -114,7 +114,7 @@ public final class OidCodec implements StreamingBinaryCodec, PrimitiveBinaryDeco
   }
 
   @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return (int) decodeAsLong(data, type, ctx);
   }
 
@@ -129,25 +129,20 @@ public final class OidCodec implements StreamingBinaryCodec, PrimitiveBinaryDeco
   }
 
   @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    // Long bounds, matching decodeText(char[]): the oid text is parsed as a signed long without
+    // masking to unsigned 32-bit.
     try {
-      return Long.parseLong(data.trim());
-    } catch (NumberFormatException e) {
-      throw Exceptions.cannotConvertValue("oid", data, e);
-    }
-  }
-
-  @Override
-  public long decodeAsLong(char[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
-      throws SQLException {
-    // Long bounds, matching decodeAsLong(String)/decodeText(char[]): the oid text is parsed as a
-    // signed long without masking to unsigned 32-bit.
-    try {
-      return NumberParser.getFastLong(data, offset, length, Long.MIN_VALUE, Long.MAX_VALUE);
+      return NumberParser.getFastLong(data, 0, data.length(), Long.MIN_VALUE, Long.MAX_VALUE);
     } catch (NumberFormatException fast) {
-      // The fast path rejects a leading '+', whitespace, or an out-of-range value; the String
-      // primitive form owns the parse and the error message.
-      return decodeAsLong(new String(data, offset, length), type, ctx);
+      // The fast path rejects a leading '+', whitespace, or an out-of-range value; fall back to the
+      // String parser, which owns the parse and the error message.
+      String text = data.toString();
+      try {
+        return Long.parseLong(text.trim());
+      } catch (NumberFormatException e) {
+        throw Exceptions.cannotConvertValue("oid", text, e);
+      }
     }
   }
 
@@ -158,7 +153,7 @@ public final class OidCodec implements StreamingBinaryCodec, PrimitiveBinaryDeco
   }
 
   @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return decodeAsLong(data, type, ctx);
   }
 

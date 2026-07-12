@@ -14,7 +14,6 @@ import org.postgresql.util.HStoreConverter;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Map;
@@ -108,17 +107,6 @@ public final class HstoreCodec implements BinaryCodec, TextCodec {
       return (T) decodeText(data, type, ctx);
     }
     throw Exceptions.cannotDecode("hstore", targetClass.getName());
-  }
-
-  @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
-      CodecContext ctx) throws SQLException {
-    throw Exceptions.cannotDecode("hstore", "BigDecimal");
-  }
-
-  @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    throw Exceptions.cannotDecode("hstore", "BigDecimal");
   }
 
   @Override

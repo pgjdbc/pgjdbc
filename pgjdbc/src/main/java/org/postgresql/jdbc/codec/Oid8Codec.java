@@ -109,7 +109,7 @@ public final class Oid8Codec implements StreamingBinaryCodec, PrimitiveBinaryDec
   }
 
   @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public int decodeAsInt(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return UnsignedLongDecoders.toUnsignedInt(decodeAsLong(data, type, ctx));
   }
 
@@ -123,11 +123,12 @@ public final class Oid8Codec implements StreamingBinaryCodec, PrimitiveBinaryDec
   }
 
   @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public long decodeAsLong(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    String text = data.toString();
     try {
-      return Long.parseUnsignedLong(data.trim());
+      return Long.parseUnsignedLong(text.trim());
     } catch (NumberFormatException e) {
-      throw Exceptions.cannotConvertValue("oid8", data, e);
+      throw Exceptions.cannotConvertValue("oid8", text, e);
     }
   }
 
@@ -138,7 +139,7 @@ public final class Oid8Codec implements StreamingBinaryCodec, PrimitiveBinaryDec
   }
 
   @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public double decodeAsDouble(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return UnsignedLongDecoders.toDouble(decodeAsLong(data, type, ctx));
   }
 
@@ -152,7 +153,7 @@ public final class Oid8Codec implements StreamingBinaryCodec, PrimitiveBinaryDec
   }
 
   @Override
-  public float decodeAsFloat(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+  public float decodeAsFloat(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return (float) decodeAsDouble(data, type, ctx);
   }
 

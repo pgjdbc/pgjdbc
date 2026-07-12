@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.CharArraySequence;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.Codecs;
@@ -333,9 +334,9 @@ public final class CodecFuzzSupport {
       assertSameOutcome(name + " decodeAsInt(String) vs decodeText", viaText,
           Outcome.capture(() -> dec.decodeAsInt(text, type, ctx)));
       assertSameOutcome(name + " decodeAsInt(char[]) vs decodeText", viaText,
-          Outcome.capture(() -> dec.decodeAsInt(chars, 0, chars.length, type, ctx)));
+          Outcome.capture(() -> dec.decodeAsInt(new CharArraySequence(chars, 0, chars.length), type, ctx)));
       assertSameOutcome(name + " decodeAsInt(char[]) at offset vs decodeText", viaText,
-          Outcome.capture(() -> dec.decodeAsInt(pad(chars), 3, chars.length, type, ctx)));
+          Outcome.capture(() -> dec.decodeAsInt(new CharArraySequence(pad(chars), 3, chars.length), type, ctx)));
       assertSameOutcome(name + " decodeTextBytesAsInt vs decodeText", viaText,
           Outcome.capture(() -> dec.decodeTextBytesAsInt(text.getBytes(ctx.getCharset()), type, ctx)));
     }
@@ -395,9 +396,9 @@ public final class CodecFuzzSupport {
       assertSameOutcome(name + " decodeAsLong(String) vs decodeText", viaText,
           Outcome.capture(() -> dec.decodeAsLong(text, type, ctx)));
       assertSameOutcome(name + " decodeAsLong(char[]) vs decodeText", viaText,
-          Outcome.capture(() -> dec.decodeAsLong(chars, 0, chars.length, type, ctx)));
+          Outcome.capture(() -> dec.decodeAsLong(new CharArraySequence(chars, 0, chars.length), type, ctx)));
       assertSameOutcome(name + " decodeAsLong(char[]) at offset vs decodeText", viaText,
-          Outcome.capture(() -> dec.decodeAsLong(pad(chars), 3, chars.length, type, ctx)));
+          Outcome.capture(() -> dec.decodeAsLong(new CharArraySequence(pad(chars), 3, chars.length), type, ctx)));
       assertSameOutcome(name + " decodeTextBytesAsLong vs decodeText", viaText,
           Outcome.capture(() -> dec.decodeTextBytesAsLong(text.getBytes(ctx.getCharset()), type, ctx)));
     }
@@ -453,9 +454,9 @@ public final class CodecFuzzSupport {
       assertSameOutcome(name + " decodeAsLong(String) vs decodeText", viaText,
           Outcome.capture(() -> dec.decodeAsLong(text, type, ctx)));
       assertSameOutcome(name + " decodeAsLong(char[]) vs decodeText", viaText,
-          Outcome.capture(() -> dec.decodeAsLong(chars, 0, chars.length, type, ctx)));
+          Outcome.capture(() -> dec.decodeAsLong(new CharArraySequence(chars, 0, chars.length), type, ctx)));
       assertSameOutcome(name + " decodeAsLong(char[]) at offset vs decodeText", viaText,
-          Outcome.capture(() -> dec.decodeAsLong(pad(chars), 3, chars.length, type, ctx)));
+          Outcome.capture(() -> dec.decodeAsLong(new CharArraySequence(pad(chars), 3, chars.length), type, ctx)));
       assertSameOutcome(name + " decodeTextBytesAsLong vs decodeText", viaText,
           Outcome.capture(() -> dec.decodeTextBytesAsLong(text.getBytes(ctx.getCharset()), type, ctx)));
     }
@@ -515,9 +516,9 @@ public final class CodecFuzzSupport {
       assertSameOutcome(name + " decodeAsFloat(String) vs decodeText", viaText,
           Outcome.capture(() -> dec.decodeAsFloat(text, type, ctx)));
       assertSameOutcome(name + " decodeAsFloat(char[]) vs decodeText", viaText,
-          Outcome.capture(() -> dec.decodeAsFloat(chars, 0, chars.length, type, ctx)));
+          Outcome.capture(() -> dec.decodeAsFloat(new CharArraySequence(chars, 0, chars.length), type, ctx)));
       assertSameOutcome(name + " decodeAsFloat(char[]) at offset vs decodeText", viaText,
-          Outcome.capture(() -> dec.decodeAsFloat(pad(chars), 3, chars.length, type, ctx)));
+          Outcome.capture(() -> dec.decodeAsFloat(new CharArraySequence(pad(chars), 3, chars.length), type, ctx)));
     }
   }
 
@@ -575,9 +576,9 @@ public final class CodecFuzzSupport {
       assertSameOutcome(name + " decodeAsDouble(String) vs decodeText", viaText,
           Outcome.capture(() -> dec.decodeAsDouble(text, type, ctx)));
       assertSameOutcome(name + " decodeAsDouble(char[]) vs decodeText", viaText,
-          Outcome.capture(() -> dec.decodeAsDouble(chars, 0, chars.length, type, ctx)));
+          Outcome.capture(() -> dec.decodeAsDouble(new CharArraySequence(chars, 0, chars.length), type, ctx)));
       assertSameOutcome(name + " decodeAsDouble(char[]) at offset vs decodeText", viaText,
-          Outcome.capture(() -> dec.decodeAsDouble(pad(chars), 3, chars.length, type, ctx)));
+          Outcome.capture(() -> dec.decodeAsDouble(new CharArraySequence(pad(chars), 3, chars.length), type, ctx)));
     }
   }
 
@@ -618,7 +619,7 @@ public final class CodecFuzzSupport {
       assertSameOutcome(name + " decodeAsBoolean(String) vs decodeText", viaText,
           Outcome.capture(() -> dec.decodeAsBoolean(text, type, ctx)));
       assertSameOutcome(name + " decodeAsBoolean(char[]) vs decodeText", viaText,
-          Outcome.capture(() -> dec.decodeAsBoolean(chars, 0, chars.length, type, ctx)));
+          Outcome.capture(() -> dec.decodeAsBoolean(new CharArraySequence(chars, 0, chars.length), type, ctx)));
     }
   }
 
@@ -864,27 +865,27 @@ public final class CodecFuzzSupport {
     // Layer 1: the String, char[], char[]@offset and (int/long) ASCII-bytes forms agree with the String
     // form whenever both succeed.
     assertValueAgrees(name + " decodeAsInt(char[])", oi,
-        Outcome.capture(() -> dec.decodeAsInt(chars, 0, clen, type, ctx)));
+        Outcome.capture(() -> dec.decodeAsInt(new CharArraySequence(chars, 0, clen), type, ctx)));
     assertValueAgrees(name + " decodeAsInt(char[]) offset", oi,
-        Outcome.capture(() -> dec.decodeAsInt(pad, 3, clen, type, ctx)));
+        Outcome.capture(() -> dec.decodeAsInt(new CharArraySequence(pad, 3, clen), type, ctx)));
     assertValueAgrees(name + " decodeTextBytesAsInt", oi,
         Outcome.capture(() -> dec.decodeTextBytesAsInt(textBytes, type, ctx)));
     assertValueAgrees(name + " decodeAsLong(char[])", ol,
-        Outcome.capture(() -> dec.decodeAsLong(chars, 0, clen, type, ctx)));
+        Outcome.capture(() -> dec.decodeAsLong(new CharArraySequence(chars, 0, clen), type, ctx)));
     assertValueAgrees(name + " decodeAsLong(char[]) offset", ol,
-        Outcome.capture(() -> dec.decodeAsLong(pad, 3, clen, type, ctx)));
+        Outcome.capture(() -> dec.decodeAsLong(new CharArraySequence(pad, 3, clen), type, ctx)));
     assertValueAgrees(name + " decodeTextBytesAsLong", ol,
         Outcome.capture(() -> dec.decodeTextBytesAsLong(textBytes, type, ctx)));
     assertValueAgrees(name + " decodeAsFloat(char[])", of,
-        Outcome.capture(() -> dec.decodeAsFloat(chars, 0, clen, type, ctx)));
+        Outcome.capture(() -> dec.decodeAsFloat(new CharArraySequence(chars, 0, clen), type, ctx)));
     assertValueAgrees(name + " decodeAsFloat(char[]) offset", of,
-        Outcome.capture(() -> dec.decodeAsFloat(pad, 3, clen, type, ctx)));
+        Outcome.capture(() -> dec.decodeAsFloat(new CharArraySequence(pad, 3, clen), type, ctx)));
     assertValueAgrees(name + " decodeAsDouble(char[])", od,
-        Outcome.capture(() -> dec.decodeAsDouble(chars, 0, clen, type, ctx)));
+        Outcome.capture(() -> dec.decodeAsDouble(new CharArraySequence(chars, 0, clen), type, ctx)));
     assertValueAgrees(name + " decodeAsDouble(char[]) offset", od,
-        Outcome.capture(() -> dec.decodeAsDouble(pad, 3, clen, type, ctx)));
+        Outcome.capture(() -> dec.decodeAsDouble(new CharArraySequence(pad, 3, clen), type, ctx)));
     assertValueAgrees(name + " decodeAsBoolean(char[])", ob,
-        Outcome.capture(() -> dec.decodeAsBoolean(chars, 0, clen, type, ctx)));
+        Outcome.capture(() -> dec.decodeAsBoolean(new CharArraySequence(chars, 0, clen), type, ctx)));
 
     numericLattice(name + " text", familyOf(type.getOid(), codec.getDefaultJavaType()), oi, ol, of, od,
         obd);

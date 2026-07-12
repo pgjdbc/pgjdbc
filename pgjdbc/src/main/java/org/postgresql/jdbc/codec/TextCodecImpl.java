@@ -93,8 +93,8 @@ public final class TextCodecImpl
   }
 
   @Override
-  public int decodeAsInt(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return parseAsInt(data);
+  public int decodeAsInt(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return parseAsInt(data.toString());
   }
 
   @Override
@@ -105,8 +105,8 @@ public final class TextCodecImpl
   }
 
   @Override
-  public long decodeAsLong(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return parseAsLong(data);
+  public long decodeAsLong(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return parseAsLong(data.toString());
   }
 
   @Override
@@ -117,8 +117,8 @@ public final class TextCodecImpl
   }
 
   @Override
-  public double decodeAsDouble(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return parseAsDouble(data);
+  public double decodeAsDouble(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return parseAsDouble(data.toString());
   }
 
   @Override
@@ -129,8 +129,8 @@ public final class TextCodecImpl
   }
 
   @Override
-  public float decodeAsFloat(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return (float) parseAsDouble(data);
+  public float decodeAsFloat(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return (float) parseAsDouble(data.toString());
   }
 
   @Override
@@ -140,8 +140,8 @@ public final class TextCodecImpl
   }
 
   @Override
-  public @Nullable BigDecimal decodeAsBigDecimal(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return parseAsBigDecimal(data);
+  public @Nullable BigDecimal decodeAsBigDecimal(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return parseAsBigDecimal(data.toString());
   }
 
   @Override
@@ -152,8 +152,8 @@ public final class TextCodecImpl
   }
 
   @Override
-  public boolean decodeAsBoolean(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return parseAsBoolean(data);
+  public boolean decodeAsBoolean(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return parseAsBoolean(data.toString());
   }
 
   @Override

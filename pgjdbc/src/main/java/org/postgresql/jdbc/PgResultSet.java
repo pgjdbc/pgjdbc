@@ -2835,7 +2835,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         }
         TypeDescriptor type = field.getPgType();
         CodecContext ctx = getCodecContext();
-        BigDecimal bd = codec.decodeAsBigDecimal(value, 0, value.length, type, ctx);
+        BigDecimal bd = PrimitiveDecoders.asBigDecimal(codec, value, 0, value.length, type, ctx);
         if (bd != null) {
           bd = scaleBigDecimal(bd, scale);
         }
@@ -2852,7 +2852,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       Field moneyField = getFieldWithCodec(columnIndex);
       TextCodec moneyCodec = moneyField.getTextCodec();
       if (moneyCodec != null) {
-        BigDecimal bd = moneyCodec.decodeAsBigDecimal(castNonNull(getString(columnIndex)),
+        BigDecimal bd = PrimitiveDecoders.asBigDecimal(moneyCodec, castNonNull(getString(columnIndex)),
             moneyField.getPgType(), getCodecContext());
         return bd == null ? null : scaleBigDecimal(bd, scale);
       }
@@ -2877,7 +2877,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       Field field = getFieldWithCodec(columnIndex);
       TextCodec codec = field.getTextCodec();
       if (codec != null) {
-        BigDecimal bd = codec.decodeAsBigDecimal(stringValue, field.getPgType(), getCodecContext());
+        BigDecimal bd = PrimitiveDecoders.asBigDecimal(codec, stringValue, field.getPgType(), getCodecContext());
         if (bd != null) {
           return scaleBigDecimal(bd, scale);
         }

@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.postgresql.api.codec.CharArraySequence;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.api.codec.TypeDescriptor;
@@ -182,7 +183,7 @@ class Xid8CodecTest {
     char[] chars = MAX_UNSIGNED_BIG_INTEGER.toString().toCharArray();
     assertEquals(
         Double.doubleToRawLongBits(codec.decodeAsDouble(MAX_UNSIGNED_BIG_INTEGER.toString(), xid8Type, null)),
-        Double.doubleToRawLongBits(codec.decodeAsDouble(chars, 0, chars.length, xid8Type, null)));
+        Double.doubleToRawLongBits(codec.decodeAsDouble(new CharArraySequence(chars, 0, chars.length), xid8Type, null)));
   }
 
   @Test

@@ -177,7 +177,7 @@ public final class PgSQLInputBinary extends PgSQLInput {
 
   @Override
   protected @Nullable BigDecimal decodeBigDecimal() throws SQLException {
-    return getCodec().decodeAsBigDecimal(source, curOffset, curLength, getCurrentType(), ctx);
+    return PrimitiveDecoders.asBigDecimal(getCodec(), source, curOffset, curLength, getCurrentType(), ctx);
   }
 
   @Override

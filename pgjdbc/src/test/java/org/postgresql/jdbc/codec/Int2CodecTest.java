@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.postgresql.api.codec.CharArraySequence;
 import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
@@ -87,14 +88,14 @@ class Int2CodecTest {
   void decodeAsInt_charSlice() throws SQLException {
     // The fast path reads the digits off the slice with no String and no box.
     char[] buf = "x-42y".toCharArray();
-    assertEquals(-42, codec.decodeAsInt(buf, 1, 3, int2Type, null));
+    assertEquals(-42, codec.decodeAsInt(new CharArraySequence(buf, 1, 3), int2Type, null));
     // A leading '+' is rejected by the fast path and handled by the String fallback.
     char[] plus = "+7".toCharArray();
-    assertEquals(7, codec.decodeAsInt(plus, 0, plus.length, int2Type, null));
+    assertEquals(7, codec.decodeAsInt(new CharArraySequence(plus, 0, plus.length), int2Type, null));
     // Out of int2 range surfaces the same error as the String form.
     char[] overflow = "40000".toCharArray();
     assertThrows(PSQLException.class,
-        () -> codec.decodeAsInt(overflow, 0, overflow.length, int2Type, null));
+        () -> codec.decodeAsInt(new CharArraySequence(overflow, 0, overflow.length), int2Type, null));
   }
 
   @Test

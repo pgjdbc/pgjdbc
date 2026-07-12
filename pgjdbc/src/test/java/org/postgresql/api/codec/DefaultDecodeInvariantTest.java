@@ -153,7 +153,7 @@ class DefaultDecodeInvariantTest {
     assertEquals(42.0f, PrimitiveDecoders.asFloat(f.binary, wire, f.type, f.ctx));
     assertEquals(42.0, PrimitiveDecoders.asDouble(f.binary, wire, f.type, f.ctx));
     assertEquals(BigDecimal.valueOf(42),
-        f.binary.decodeAsBigDecimal(wire, 0, wire.length, f.type, f.ctx));
+        PrimitiveDecoders.asBigDecimal(f.binary, wire, 0, wire.length, f.type, f.ctx));
   }
 
   // ==================== out of range -> refuse, never truncate ====================
@@ -176,8 +176,8 @@ class DefaultDecodeInvariantTest {
   @Test
   void outOfLongRange_getBigDecimalExact() throws SQLException {
     Fixture f = fixture(OUT_OF_LONG);
-    assertEquals(OUT_OF_LONG, f.binary.decodeAsBigDecimal(wire, 0, wire.length, f.type, f.ctx));
-    assertEquals(OUT_OF_LONG, f.text.decodeAsBigDecimal("ignored", f.type, f.ctx));
+    assertEquals(OUT_OF_LONG, PrimitiveDecoders.asBigDecimal(f.binary, wire, 0, wire.length, f.type, f.ctx));
+    assertEquals(OUT_OF_LONG, PrimitiveDecoders.asBigDecimal(f.text, "ignored", f.type, f.ctx));
   }
 
   // ==================== NaN / Infinity ====================
@@ -189,9 +189,9 @@ class DefaultDecodeInvariantTest {
     assertRefusesOutOfRange("asLong(NaN)", () -> PrimitiveDecoders.asLong(f.binary, wire, f.type, f.ctx));
     // The binary and text BigDecimal defaults must refuse, not throw NumberFormatException.
     assertRefusesOutOfRange("decodeAsBigDecimal(NaN,binary)",
-        () -> f.binary.decodeAsBigDecimal(wire, 0, wire.length, f.type, f.ctx));
+        () -> PrimitiveDecoders.asBigDecimal(f.binary, wire, 0, wire.length, f.type, f.ctx));
     assertRefusesOutOfRange("decodeAsBigDecimal(NaN,text)",
-        () -> f.text.decodeAsBigDecimal("ignored", f.type, f.ctx));
+        () -> PrimitiveDecoders.asBigDecimal(f.text, "ignored", f.type, f.ctx));
   }
 
   @Test
@@ -200,9 +200,9 @@ class DefaultDecodeInvariantTest {
     assertRefusesOutOfRange("asInt(Inf)", () -> PrimitiveDecoders.asInt(f.binary, wire, f.type, f.ctx));
     assertRefusesOutOfRange("asLong(Inf)", () -> PrimitiveDecoders.asLong(f.binary, wire, f.type, f.ctx));
     assertRefusesOutOfRange("decodeAsBigDecimal(Inf,binary)",
-        () -> f.binary.decodeAsBigDecimal(wire, 0, wire.length, f.type, f.ctx));
+        () -> PrimitiveDecoders.asBigDecimal(f.binary, wire, 0, wire.length, f.type, f.ctx));
     assertRefusesOutOfRange("decodeAsBigDecimal(Inf,text)",
-        () -> f.text.decodeAsBigDecimal("ignored", f.type, f.ctx));
+        () -> PrimitiveDecoders.asBigDecimal(f.text, "ignored", f.type, f.ctx));
   }
 
   @Test
