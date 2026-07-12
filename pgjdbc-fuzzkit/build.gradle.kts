@@ -37,6 +37,8 @@ dependencies {
             attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.SHADOWED))
         }
     }
+
+    testImplementation(projects.testkit)
 }
 
 tasks.test {

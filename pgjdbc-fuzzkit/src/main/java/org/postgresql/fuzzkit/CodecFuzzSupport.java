@@ -47,6 +47,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
@@ -704,11 +705,17 @@ public final class CodecFuzzSupport {
    * {@code oid}/{@code oid8}/{@code xid8} are unsigned, so their {@code int} view is the raw low bits of
    * their {@code long} view rather than a signed narrowing -- a separate family from signed integrals.
    */
-  private enum NumericFamily { INTEGRAL, UNSIGNED, FLOATING, DECIMAL, OTHER }
+  private enum NumericFamily { INTEGRAL, UNSIGNED, FLOATING, DECIMAL, MONETARY, OTHER }
 
   private static NumericFamily familyOf(int oid, Class<?> javaType) {
     if (oid == Oid.OID || oid == Oid.OID8 || oid == Oid.XID8) {
       return NumericFamily.UNSIGNED;
+    }
+    // money defaults to Double but its integer accessors truncate the exact decimal toward zero rather
+    // than rounding the double (float rint) or the decimal (numeric HALF_UP), so it needs its own family
+    // -- classified before the Double->FLOATING rule below would swallow it.
+    if (oid == Oid.MONEY) {
+      return NumericFamily.MONETARY;
     }
     if (javaType == Integer.class || javaType == Long.class || javaType == Short.class) {
       return NumericFamily.INTEGRAL;
@@ -804,6 +811,7 @@ public final class CodecFuzzSupport {
     Outcome of = Outcome.capture(() -> dec.decodeAsFloat(wire, 0, len, type, ctx));
     Outcome od = Outcome.capture(() -> dec.decodeAsDouble(wire, 0, len, type, ctx));
     Outcome ob = Outcome.capture(() -> dec.decodeAsBoolean(wire, 0, len, type, ctx));
+    Outcome obd = Outcome.capture(() -> dec.decodeAsBigDecimal(wire, 0, len, type, ctx));
 
     // Layer 1: every accessor honours the offset (same value read at offset 0 and at offset 3 of a pad).
     byte[] pad = pad(wire);
@@ -819,7 +827,8 @@ public final class CodecFuzzSupport {
         Outcome.capture(() -> dec.decodeAsBoolean(pad, 3, len, type, ctx)));
 
     // Layer 2 + getObject cross-check.
-    numericLattice(name + " binary", familyOf(type.getOid(), codec.getDefaultJavaType()), oi, ol, of, od);
+    numericLattice(name + " binary", familyOf(type.getOid(), codec.getDefaultJavaType()), oi, ol, of, od,
+        obd);
     getObjectConsistency(name + " getObject(binary)", type, RawValue.binary(wire), ctx, oi, ol, of, od);
   }
 
@@ -848,6 +857,7 @@ public final class CodecFuzzSupport {
     Outcome of = Outcome.capture(() -> dec.decodeAsFloat(text, type, ctx));
     Outcome od = Outcome.capture(() -> dec.decodeAsDouble(text, type, ctx));
     Outcome ob = Outcome.capture(() -> dec.decodeAsBoolean(text, type, ctx));
+    Outcome obd = Outcome.capture(() -> dec.decodeAsBigDecimal(text, type, ctx));
 
     // Layer 1: the String, char[], char[]@offset and (int/long) ASCII-bytes forms agree with the String
     // form whenever both succeed.
@@ -874,7 +884,8 @@ public final class CodecFuzzSupport {
     assertValueAgrees(name + " decodeAsBoolean(char[])", ob,
         Outcome.capture(() -> dec.decodeAsBoolean(chars, 0, clen, type, ctx)));
 
-    numericLattice(name + " text", familyOf(type.getOid(), codec.getDefaultJavaType()), oi, ol, of, od);
+    numericLattice(name + " text", familyOf(type.getOid(), codec.getDefaultJavaType()), oi, ol, of, od,
+        obd);
   }
 
   // --- Reproducible failures: turn a bare assertion into "which type, on what data, how to repro" -----
@@ -957,11 +968,14 @@ public final class CodecFuzzSupport {
 
   /**
    * The Layer-2 numeric lattice: the {@code int}/{@code long}/{@code float}/{@code double} views of one
-   * value agree through the standard casts. Applied per {@link NumericFamily}; a no-op for
-   * {@link NumericFamily#OTHER}.
+   * value agree through the standard casts, and the integer accessors round in the direction the family
+   * mandates -- ties-to-even for {@code FLOATING} (INV-4, against the double), half-away-from-zero for
+   * {@code DECIMAL} (INV-5) and truncation toward zero for {@code MONETARY} (INV-7), the latter two
+   * against {@code decodeAsBigDecimal} rather than the lossy double. Applied per {@link NumericFamily};
+   * a no-op for {@link NumericFamily#OTHER}.
    */
   private static void numericLattice(String label, NumericFamily family,
-      Outcome oi, Outcome ol, Outcome of, Outcome od) {
+      Outcome oi, Outcome ol, Outcome of, Outcome od, Outcome obd) {
     // Success-monotonicity, EVERY family (before the numeric-only lattice below): float and double are
     // equi-permissive floating reads -- float saturates and never range-overflows, so a value readable
     // as one is readable as the other -- and long is wider than int. A codec that reads a value as one
@@ -1011,17 +1025,74 @@ public final class CodecFuzzSupport {
     }
     if (!od.threw) {
       double d = doubleOf(od.value);
-      // INV-3c: reading as float is the narrowing cast of reading as double (integral + floating).
-      if (family == NumericFamily.INTEGRAL || family == NumericFamily.FLOATING) {
+      // INV-3c: reading as float is the narrowing cast of reading as double (integral, floating, money).
+      if (family == NumericFamily.INTEGRAL || family == NumericFamily.FLOATING
+          || family == NumericFamily.MONETARY) {
         assertFalse(of.threw, () -> label + " INV-3c: decodeAsDouble succeeded but decodeAsFloat threw");
         assertFloatBits(label + " INV-3c: decodeAsFloat == (float) decodeAsDouble",
             (float) d, floatOf(of.value));
       }
+      // INV-4 (FLOATING only): the integer accessors are the range-checked rint (round-half-to-even) of
+      // the double, matching PG float8->int (C rint). This pins the rounding DIRECTION, which INV-2's
+      // +/-0.5 range slack deliberately cannot: a float codec that rounded 2.5 -> 3 (half-up) instead of
+      // -> 2 (half-even) would satisfy INV-2 but fail here. Sound to round the double directly because
+      // decodeAsInt IS defined as rint(decodeAsDouble); no independent precision is lost.
+      if (family == NumericFamily.FLOATING) {
+        if (!oi.threw) {
+          assertEquals((int) Math.rint(d), intOf(oi.value),
+              label + " INV-4i: decodeAsInt == (int) rint(decodeAsDouble)");
+        }
+        if (!ol.threw) {
+          assertEquals((long) Math.rint(d), longOf(ol.value),
+              label + " INV-4l: decodeAsLong == (long) rint(decodeAsDouble)");
+        }
+      }
       // INV-2: a value outside int range must be REJECTED by decodeAsInt, never truncated/saturated.
-      if (Double.isFinite(d) && (d < Integer.MIN_VALUE || d > Integer.MAX_VALUE)) {
+      // The numeric/float accessors round to nearest before the range check, so a value in (MAX, MAX+0.5]
+      // rounds back to MAX and legitimately fits -- only a value that stays out of range after rounding
+      // (magnitude past the boundary by more than half a unit) must throw. The +/-0.5 margin keeps the
+      // check sound for both round-half-up (numeric) and round-half-even (float). money is excluded: it
+      // truncates toward zero, so it legitimately keeps a value up to (MAX+1) exclusive -- INV-7 pins its
+      // range exactly against the truncated decimal instead.
+      if (family != NumericFamily.MONETARY && Double.isFinite(d)
+          && (d > Integer.MAX_VALUE + 0.5 || d < Integer.MIN_VALUE - 0.5)) {
         assertTrue(oi.threw, () -> label + " INV-2: value " + d
             + " is out of int range but decodeAsInt did not throw (returned " + oi.value + ")");
       }
+    }
+    // Exact-decimal rounding, per family. Both pin the rounding DIRECTION that INV-2's +/-0.5 slack
+    // cannot -- a numeric codec that rounded 2.5 -> 2 (or a money codec that rounded away from zero
+    // rather than truncating) would satisfy INV-2 but fail here.
+    //   INV-5 (DECIMAL): numeric rounds HALF_UP (round-half-away-from-zero), matching PG numeric->int.
+    //   INV-7 (MONETARY): money truncates toward zero, matching its legacy getLong fallback.
+    if (family == NumericFamily.DECIMAL) {
+      assertExactDecimalIntRounding(label, "INV-5", RoundingMode.HALF_UP, oi, ol, obd);
+    } else if (family == NumericFamily.MONETARY) {
+      assertExactDecimalIntRounding(label, "INV-7", RoundingMode.DOWN, oi, ol, obd);
+    }
+  }
+
+  /**
+   * Pins the integer accessors against the codec's own {@code decodeAsBigDecimal}, rounded to an integer
+   * by {@code mode}. Rounding the EXACT decimal, never the lossy double, is what lets this catch a
+   * flipped rounding direction without raising false failures on ties the double cannot represent --
+   * {@code "2.4999999999999999"} parses to the double {@code 2.5} (which would round up), while the exact
+   * decimal rounds down. {@code intValueExact}/{@code longValueExact} cannot overflow here: when the
+   * primitive accessor succeeded, the same rounding already fit its width.
+   */
+  private static void assertExactDecimalIntRounding(String label, String inv, RoundingMode mode,
+      Outcome oi, Outcome ol, Outcome obd) {
+    if (obd.threw || obd.value == null) {
+      return;
+    }
+    BigDecimal rounded = ((BigDecimal) obd.value).setScale(0, mode);
+    if (!oi.threw) {
+      assertEquals(rounded.intValueExact(), intOf(oi.value),
+          label + " " + inv + "i: decodeAsInt == decodeAsBigDecimal rounded " + mode);
+    }
+    if (!ol.threw) {
+      assertEquals(rounded.longValueExact(), longOf(ol.value),
+          label + " " + inv + "l: decodeAsLong == decodeAsBigDecimal rounded " + mode);
     }
   }
 

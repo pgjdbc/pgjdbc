@@ -105,6 +105,8 @@ tasks.test {
 val fuzzing = providers.systemProperty("jqf.fuzz").map { it.toBoolean() }.orElse(false)
 
 tasks.test {
+    dependsOn(":pgjdbc-fuzzkit:test")
+
     // The Zest guidance is a single stateful object per campaign, so the @FuzzTest nodes
     // must not run in parallel.
     systemProperty("junit.jupiter.execution.parallel.enabled", "false")
