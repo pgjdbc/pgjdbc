@@ -5,8 +5,6 @@
 
 package org.postgresql.jdbc.codec;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
 import org.postgresql.core.Oid;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGbox;
@@ -381,29 +379,14 @@ class ServerTruthOracleTest {
     // the session IntervalStyle -- both timetz and interval were promoted here from known divergences.
     // (box is excluded: its getString is still the driver's own PGobject form -- see
     // decodeKnownDivergences.)
-    // "end_of_day" timetz is excluded here and handled as a pinned finding below: the driver's binary
-    // decode of timetz 24:00:00 throws. (The numeric "tiny" scientific-notation getString was a bug,
-    // now fixed in NumericCodec.decodeAsString, so it decodes truthfully here.)
+    // getString of every catalogue corner, including timetz/interval 24:00:00 (which getObject
+    // refuses but getString renders straight from the wire, so decode-truth holds). The numeric "tiny"
+    // scientific-notation getString bug is fixed in NumericCodec.decodeAsString.
     List<DynamicTest> t = new ArrayList<>();
     t.addAll(decodeEdges("numeric", Oid.NUMERIC, "numeric", NumericEdgeCases.ALL));
     t.addAll(decodeEdges("timestamptz", Oid.TIMESTAMPTZ, "timestamptz", TimestampTzEdgeCases.ALL));
-    t.addAll(decodeEdges("timetz", Oid.TIMETZ, "timetz", without(TimeTzEdgeCases.ALL, "end_of_day")));
+    t.addAll(decodeEdges("timetz", Oid.TIMETZ, "timetz", TimeTzEdgeCases.ALL));
     t.addAll(decodeEdges("interval", Oid.INTERVAL, "interval", IntervalEdgeCases.ALL));
-    return t;
-  }
-
-  /**
-   * A boundary the testkit catalogues surfaced, pinned to its current behaviour so a change is caught:
-   * the server accepts timetz {@code 24:00:00} (its documented upper bound) but the driver's binary
-   * decode rejects {@code 86400000000} microseconds, because {@code OffsetTime} cannot represent
-   * 24:00:00. Candidate bug, pinned until fixed.
-   */
-  @TestFactory
-  List<DynamicTest> decodeCatalogueFindings() {
-    List<DynamicTest> t = new ArrayList<>();
-    t.add(DynamicTest.dynamicTest("timetz/end_of_day/binary-decode-throws", () ->
-        assertThrows(SQLException.class, () ->
-            ServerTruthOracle.assertDecodeTruth(binaryCon, Oid.TIMETZ, "timetz", "24:00:00+00"))));
     return t;
   }
 

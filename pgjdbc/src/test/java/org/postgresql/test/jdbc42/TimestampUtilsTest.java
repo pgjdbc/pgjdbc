@@ -81,7 +81,9 @@ class TimestampUtilsTest {
     assertToLocalTime("23:59:59.9999999"); // 900 NanoSeconds
     assertToLocalTime("23:59:59.99999999"); // 990 NanoSeconds
     assertToLocalTime("23:59:59.999999998"); // 998 NanoSeconds
-    assertToLocalTime(LocalTime.MAX.toString(), "24:00:00", "LocalTime can't represent 24:00:00");
+    // 24:00:00 is PostgreSQL's upper bound; LocalTime cannot represent it, so it is refused (read as
+    // a string instead).
+    assertThrows(SQLException.class, () -> timestampUtils.toLocalTime("24:00:00"));
   }
 
   private void assertToLocalTime(String inputTime) throws SQLException {
@@ -110,7 +112,11 @@ class TimestampUtilsTest {
 
     assertToLocalTimeBin("23:59:59", 86_399_000_000L);
     assertToLocalTimeBin("23:59:59.999999", 86_399_999_999L);
-    assertToLocalTimeBin(LocalTime.MAX.toString(), 86_400_000_000L, "LocalTime can't represent 24:00:00");
+    // 24:00:00 (86_400_000_000 micros) is a valid time the server sends, but LocalTime cannot hold it,
+    // so toLocalTimeBin refuses it (read as a string instead).
+    byte[] max = new byte[8];
+    ByteConverter.int8(max, 0, 86_400_000_000L);
+    assertThrows(SQLException.class, () -> timestampUtils.toLocalTimeBin(max));
   }
 
   private void assertToLocalTimeBin(String expectedOutput, long inputMicros) throws SQLException {
@@ -167,7 +173,9 @@ class TimestampUtilsTest {
     assertToOffsetTime("23:59:59.9999999+01:00", "23:59:59.9999999+01"); // 900 NanoSeconds
     assertToOffsetTime("23:59:59.99999999+01:00", "23:59:59.99999999+01"); // 990 NanoSeconds
     assertToOffsetTime("23:59:59.999999998+01:00", "23:59:59.999999998+01"); // 998 NanoSeconds
-    assertToOffsetTime(OffsetTime.MAX.toString(), "24:00:00+01");
+    // 24:00:00 is PostgreSQL's upper bound; OffsetTime cannot represent it, so it is refused (read as
+    // a string instead) rather than silently returning OffsetTime.MAX at offset -18:00.
+    assertThrows(SQLException.class, () -> timestampUtils.toOffsetTime("24:00:00+01"));
   }
 
   private void assertToOffsetTime(String expectedOutput, String inputTime) throws SQLException {

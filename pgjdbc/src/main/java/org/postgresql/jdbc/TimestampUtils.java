@@ -72,7 +72,6 @@ public class TimestampUtils {
   // LocalTime.MAX is 23:59:59.999_999_999, and it wraps to 24:00:00 when nanos exceed 999_999_499
   // since PostgreSQL has microsecond resolution only
   private static final LocalTime MAX_TIME = LocalTime.MAX.minus(Duration.ofNanos(500));
-  private static final long MAX_TIME_NANOS = MAX_TIME.toNanoOfDay();
   private static final OffsetDateTime MAX_OFFSET_DATETIME = OffsetDateTime.MAX.minus(Duration.ofMillis(500));
   private static final LocalDateTime MAX_LOCAL_DATETIME = LocalDateTime.MAX.minus(Duration.ofMillis(500));
   // low value for dates is   4713 BC
@@ -442,6 +441,19 @@ public class TimestampUtils {
         PSQLState.DATETIME_OVERFLOW, cause);
   }
 
+  /**
+   * Reports that PostgreSQL's {@code 24:00:00} (a valid {@code time}/{@code timetz} value, its
+   * documented upper bound) cannot be represented as {@code javaType}, whose range stops at
+   * {@code 23:59:59.999999999}. Getting the value as a string returns {@code 24:00:00} losslessly, so
+   * the message points there. Uses {@code datetime_field_overflow} SQLSTATE (22008).
+   */
+  private static PSQLException time24NotRepresentable(String javaType) {
+    return new PSQLException(
+        GT.tr("The time value 24:00:00 cannot be represented as {0}; read it as a string instead.",
+            javaType),
+        PSQLState.DATETIME_OVERFLOW);
+  }
+
   private static ParsedTimestamp parseDate(byte[] dateBytes) throws SQLException {
     return parseDate(dateBytes, 0, dateBytes.length);
   }
@@ -567,7 +579,7 @@ public class TimestampUtils {
 
   static LocalTime parseLocalTime(String s) throws SQLException {
     if ("24:00:00".equals(s)) {
-      return LocalTime.MAX;
+      throw time24NotRepresentable("java.time.LocalTime");
     }
 
     try {
@@ -608,6 +620,12 @@ public class TimestampUtils {
       micros = (long) (seconds * 1_000_000d);
     } else {
       micros = ByteConverter.int8(bytes, offset);
+    }
+
+    if (micros == MICROS_PER_DAY) {
+      // 24:00:00: a valid timetz the server sends, but OffsetTime cannot hold it. getString reads it
+      // losslessly; refusing here beats the baseline, which silently returned OffsetTime.MAX (-18:00).
+      throw time24NotRepresentable("java.time.OffsetTime");
     }
 
     try {
@@ -653,12 +671,13 @@ public class TimestampUtils {
   }
 
   static OffsetTime toOffsetTime(byte[] bytes, int offset, int length) throws SQLException {
-    // Not sure how to do this. There is no 24:00:00 in java, the largest time is 23:59:59.999999999-18:00
+    // 24:00:00 is a valid timetz (PostgreSQL's upper bound) but has no java.time.OffsetTime form;
+    // refuse it here (getString reads it losslessly).
     for ( int i = 0; i < 8; i++ ) {
       if (bytes[offset + i] != MAX_OFFSET[i]) {
         break;
       } else if (i == 7) {
-        return OffsetTime.MAX;
+        throw time24NotRepresentable("java.time.OffsetTime");
       }
     }
 
@@ -1263,6 +1282,25 @@ public class TimestampUtils {
     }
   }
 
+  /**
+   * Renders the binary {@code time} payload as a string, straight from the wire so getString stays
+   * lossless for 24:00:00 (which {@link #toLocalTimeBin} refuses as a {@link LocalTime}).
+   */
+  static String toStringLocalTimeBin(boolean usesDouble, byte[] value, int offset, int length,
+      @Nullable StringBuilder out) throws PSQLException {
+    if (length != 8) {
+      throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.", "time"),
+          PSQLState.BAD_DATETIME_FORMAT);
+    }
+    long micros = usesDouble
+        ? (long) (ByteConverter.float8(value, offset) * 1_000_000d)
+        : ByteConverter.int8(value, offset);
+    if (micros == MICROS_PER_DAY) {
+      return "24:00:00";
+    }
+    return toStringLocalTime(LocalTime.ofNanoOfDay(Math.multiplyExact(micros, 1000L)), out);
+  }
+
   static String toStringLocalTime(LocalTime localTime, @Nullable StringBuilder out) {
     StringBuilder sb = setupBuffer(out);
 
@@ -1327,6 +1365,17 @@ public class TimestampUtils {
     // The binary timetz payload carries its own UTC offset, so render it as-is: getString then
     // matches the text format and the server's timetz output. Unlike timestamptz (an instant shown
     // in the session zone), timetz has a fixed offset that must not be shifted away.
+    long micros = usesDouble
+        ? (long) (ByteConverter.float8(value, 0) * 1_000_000d)
+        : ByteConverter.int8(value, 0);
+    if (micros == MICROS_PER_DAY) {
+      // 24:00:00 has no OffsetTime form, so render it straight from the wire (its offset and all),
+      // keeping getString lossless where getObject(OffsetTime) refuses it.
+      StringBuilder sb = setupBuffer(out);
+      sb.append("24:00:00");
+      appendTimeZone(sb, ZoneOffset.ofTotalSeconds(-ByteConverter.int4(value, 8)));
+      return sb.toString();
+    }
     OffsetTime offsetTimeBin = toOffsetTimeBin(usesDouble, value, 0, value.length);
     return toStringOffsetTime(offsetTimeBin, out);
   }
@@ -1661,12 +1710,14 @@ public class TimestampUtils {
       micros = ByteConverter.int8(bytes, offset);
     }
 
+    if (micros == MICROS_PER_DAY) {
+      // 24:00:00: a valid time the server sends, but LocalTime cannot hold it. getString reads it
+      // losslessly; refusing here replaces the baseline's clamp to LocalTime.MAX (a silent 1us loss).
+      throw time24NotRepresentable("java.time.LocalTime");
+    }
+
     try {
-      long nanos = Math.multiplyExact(micros, 1000L);
-      if (nanos > MAX_TIME_NANOS) {
-        return LocalTime.MAX;
-      }
-      return LocalTime.ofNanoOfDay(nanos);
+      return LocalTime.ofNanoOfDay(Math.multiplyExact(micros, 1000L));
     } catch (ArithmeticException | DateTimeException e) {
       // A well-formed server never sends a time outside a single day; a value this far out of
       // range is corrupt wire data. Surface a clean SQLException instead of leaking an unchecked

@@ -190,6 +190,12 @@ public final class TemporalCodecs {
     return TimestampUtils.toStringOffsetDateTime(value, null);
   }
 
+  /** Formats the binary {@code time} payload as text without an intermediate object (24:00:00-safe). */
+  public static String formatLocalTimeBin(byte[] data, int off, int len, CodecContext ctx)
+      throws SQLException {
+    return TimestampUtils.toStringLocalTimeBin(ctx.usesDoubleDateTime(), data, off, len, null);
+  }
+
   /** Formats the binary {@code timetz} payload as text without an intermediate object. */
   public static String formatOffsetTimeBin(byte[] data, CodecContext ctx) throws SQLException {
     return TimestampUtils.toStringOffsetTimeBin(ctx.usesDoubleDateTime(), data, null);

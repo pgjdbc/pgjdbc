@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc42;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGProperty;
@@ -121,11 +122,13 @@ public class PreparedStatementTest extends BaseTest4 {
 
     ResultSet rs = con.createStatement().executeQuery("select tt from timetable order by id asc");
     assertTrue(rs.next());
-    LocalTime localTime = (LocalTime) rs.getObject(1, LocalTime.class);
-    assertEquals(LocalTime.MAX, localTime);
+    // LocalTime.MAX (23:59:59.999999999) rounds up to 24:00:00 on the wire, which java.time cannot
+    // read back, so getObject refuses it while getString reads it losslessly.
+    assertThrows(SQLException.class, () -> rs.getObject(1, LocalTime.class));
+    assertEquals("24:00:00", rs.getString(1));
 
     assertTrue(rs.next());
-    localTime = (LocalTime) rs.getObject(1, LocalTime.class);
+    LocalTime localTime = (LocalTime) rs.getObject(1, LocalTime.class);
     assertEquals(LocalTime.MIN, localTime);
   }
 }

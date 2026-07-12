@@ -160,8 +160,9 @@ public final class TimeCodec implements StreamingBinaryCodec, TextCodec {
   @Override
   public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
-    LocalTime lt = TemporalCodecs.decodeLocalTimeBin(data, offset, length, ctx);
-    return lt == null ? null : TemporalCodecs.formatLocalTime(lt, ctx);
+    // Render from the wire rather than via decodeLocalTimeBin, so 24:00:00 -- which has no LocalTime
+    // form and makes getObject refuse -- still reads back as the string "24:00:00".
+    return TemporalCodecs.formatLocalTimeBin(data, offset, length, ctx);
   }
 
   @Override

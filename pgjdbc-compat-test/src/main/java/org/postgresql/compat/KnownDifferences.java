@@ -332,6 +332,20 @@ public final class KnownDifferences {
     // ::text, where the baseline used BigDecimal's scientific notation (1E-20).
     point(numericEdgeLabel("binary", "tiny", Accessor.GET_STRING),
         "getString on a small binary numeric now uses the plain form instead of scientific notation");
+
+    // 24:00:00 policy (issues #1385 / #3224): PostgreSQL accepts time/timetz 24:00:00 (its documented
+    // upper bound), but java.time.LocalTime/OffsetTime cannot represent it. getObject(LocalTime/
+    // OffsetTime) now refuses it consistently over text and binary, where the baseline returned
+    // LocalTime.MAX / OffsetTime.MAX (the latter at a bogus -18:00 offset); getString reads the value
+    // back losslessly, which also fixes a baseline crash on binary timetz getString.
+    point(edgeLabel("time-edge", "text", "end_of_day", Accessor.GET_OBJECT_LOCAL_TIME),
+        "getObject(LocalTime) now refuses time 24:00:00 instead of returning LocalTime.MAX");
+    point(edgeLabel("time-edge", "binary", "end_of_day", Accessor.GET_OBJECT_LOCAL_TIME),
+        "getObject(LocalTime) now refuses time 24:00:00 instead of returning LocalTime.MAX");
+    point(edgeLabel("timetz-edge", "text", "end_of_day", Accessor.GET_OBJECT_OFFSET_TIME),
+        "getObject(OffsetTime) now refuses timetz 24:00:00 instead of returning OffsetTime.MAX");
+    point(edgeLabel("timetz-edge", "binary", "end_of_day", Accessor.GET_STRING),
+        "getString now reads binary timetz 24:00:00 as its true value where the baseline threw");
   }
 
   private KnownDifferences() {

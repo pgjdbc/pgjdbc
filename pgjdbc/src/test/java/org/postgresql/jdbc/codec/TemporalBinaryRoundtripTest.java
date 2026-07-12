@@ -7,6 +7,7 @@ package org.postgresql.jdbc.codec;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.PGStatement;
 import org.postgresql.api.codec.BinaryCodec;
@@ -61,7 +62,11 @@ class TemporalBinaryRoundtripTest {
     PgType t = type("time", "time without time zone", 1083);
     CodecContext ctx = TestCodecContext.create(false, true, false, false, false);
     assertEquals(LocalTime.MIDNIGHT, roundtrip(TimeCodec.INSTANCE, t, LocalTime.MIDNIGHT, ctx));
-    assertEquals(LocalTime.MAX, roundtrip(TimeCodec.INSTANCE, t, LocalTime.MAX, ctx));
+    // The largest micro-precise time round-trips; LocalTime.MAX (23:59:59.999999999) rounds up to
+    // 24:00:00 on encode, which the server keeps but LocalTime cannot decode back, so it is refused.
+    LocalTime maxMicros = LocalTime.of(23, 59, 59, 999_999_000);
+    assertEquals(maxMicros, roundtrip(TimeCodec.INSTANCE, t, maxMicros, ctx));
+    assertThrows(SQLException.class, () -> roundtrip(TimeCodec.INSTANCE, t, LocalTime.MAX, ctx));
   }
 
   @Test

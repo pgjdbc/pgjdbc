@@ -152,7 +152,7 @@ class DifferentialWriteValueFuzzTest {
   private static void seed(List<String> unexpected, String castType, List<EdgeCase> cases) {
     for (EdgeCase edge : cases) {
       Object value = edge.value();
-      if (value == null) {
+      if (value == null || isKnownParityDifference(castType, edge.name())) {
         continue;
       }
       ObservableOutcome cur = DifferentialProbe.writeValue(castNonNull(current), castType, value);
@@ -162,6 +162,15 @@ class DifferentialWriteValueFuzzTest {
         unexpected.add(castType + "|" + edge.name() + " -> " + diff);
       }
     }
+  }
+
+  /**
+   * Seed cells where the current driver deliberately diverges from the 42.7 baseline, registered as
+   * server-parity fixes in {@code KnownDifferences} for the read matrix. numeric {@code tiny}:
+   * getString now renders the plain form where the baseline used scientific notation ({@code 1E-20}).
+   */
+  private static boolean isKnownParityDifference(String castType, String caseName) {
+    return "numeric".equals(castType) && "tiny".equals(caseName);
   }
 
   private static <T> T castNonNull(@Nullable T value) {
