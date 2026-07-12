@@ -132,12 +132,6 @@ public final class Oid8Codec implements StreamingBinaryCodec, PrimitiveBinaryDec
   }
 
   @Override
-  public long decodeAsLong(char[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
-      throws SQLException {
-    return decodeAsLong(new String(data, offset, length), type, ctx);
-  }
-
-  @Override
   public double decodeAsDouble(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     return UnsignedLongDecoders.toDouble(decodeAsLong(data, offset, length, type, ctx));
@@ -148,15 +142,9 @@ public final class Oid8Codec implements StreamingBinaryCodec, PrimitiveBinaryDec
     return UnsignedLongDecoders.toDouble(decodeAsLong(data, type, ctx));
   }
 
-  // float, and the char[] double, must mirror the unsigned decodeAsDouble above. The default forms
-  // decode via decodeBinary/decodeText to the raw signed long and widen that, so for an oid8 at or
-  // above 2^63 they would read a large negative value while decodeAsDouble reads the unsigned one.
-  @Override
-  public double decodeAsDouble(char[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
-      throws SQLException {
-    return decodeAsDouble(new String(data, offset, length), type, ctx);
-  }
-
+  // float must mirror the unsigned decodeAsDouble above. The boxing default would widen decodeBinary's
+  // raw signed long, so for an oid8 at or above 2^63 it would read a large negative value while
+  // decodeAsDouble reads the unsigned one. (The char[] forms follow via the String-routing default.)
   @Override
   public float decodeAsFloat(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
@@ -166,12 +154,6 @@ public final class Oid8Codec implements StreamingBinaryCodec, PrimitiveBinaryDec
   @Override
   public float decodeAsFloat(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return (float) decodeAsDouble(data, type, ctx);
-  }
-
-  @Override
-  public float decodeAsFloat(char[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
-      throws SQLException {
-    return (float) decodeAsDouble(data, offset, length, type, ctx);
   }
 
   @Override

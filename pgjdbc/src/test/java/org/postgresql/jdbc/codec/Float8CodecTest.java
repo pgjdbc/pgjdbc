@@ -171,4 +171,22 @@ class Float8CodecTest {
   void getDefaultJavaType() {
     assertEquals(Double.class, codec.getDefaultJavaType());
   }
+
+  // Regression: the char[] int/long accessors must round (Math.rint) like the String/binary forms, not
+  // fall to the truncating boxToInt/boxToLong default -- "0.6" rounds to 1, "1.5" to 2, not 0 and 1.
+  @Test
+  void decodeAsInt_charArray_roundsLikeString() throws SQLException {
+    char[] chars = "0.6".toCharArray();
+    assertEquals(1, codec.decodeAsInt(chars, 0, chars.length, float8Type, null));
+    assertEquals(codec.decodeAsInt("0.6", float8Type, null),
+        codec.decodeAsInt(chars, 0, chars.length, float8Type, null));
+  }
+
+  @Test
+  void decodeAsLong_charArray_roundsLikeString() throws SQLException {
+    char[] chars = "1.5".toCharArray();
+    assertEquals(2L, codec.decodeAsLong(chars, 0, chars.length, float8Type, null));
+    assertEquals(codec.decodeAsLong("1.5", float8Type, null),
+        codec.decodeAsLong(chars, 0, chars.length, float8Type, null));
+  }
 }

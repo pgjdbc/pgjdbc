@@ -196,6 +196,25 @@ class NumericCodecTest {
     }
   }
 
+  // Regression: decodeAsInt/decodeAsLong round to nearest (PostgreSQL's numeric->int cast), so the
+  // char[] form must round too rather than fall to the truncating boxToInt default -- ".9" rounds to 1,
+  // "1.5" to 2, not truncate to 0 and 1.
+  @Test
+  void decodeAsInt_charArray_roundsLikeString() throws SQLException {
+    char[] chars = ".9".toCharArray();
+    assertEquals(1, codec.decodeAsInt(chars, 0, chars.length, numericType, null));
+    assertEquals(codec.decodeAsInt(".9", numericType, null),
+        codec.decodeAsInt(chars, 0, chars.length, numericType, null));
+  }
+
+  @Test
+  void decodeAsLong_charArray_roundsLikeString() throws SQLException {
+    char[] chars = "1.5".toCharArray();
+    assertEquals(2L, codec.decodeAsLong(chars, 0, chars.length, numericType, null));
+    assertEquals(codec.decodeAsLong("1.5", numericType, null),
+        codec.decodeAsLong(chars, 0, chars.length, numericType, null));
+  }
+
   @Test
   void decodeAsString_text() throws SQLException {
     String result = codec.decodeAsString("123.456", numericType, null);

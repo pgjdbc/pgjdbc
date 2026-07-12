@@ -62,7 +62,11 @@ public interface PrimitiveTextDecoder extends TextCodec {
    */
   default int decodeAsInt(char[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    return PrimitiveDecoders.boxToInt(decodeText(data, offset, length, type, ctx));
+    // Route through the String form, not boxToInt(decodeText(...)): a codec that overrides the String
+    // accessor with a non-truncating conversion (numeric/money round to nearest, matching PostgreSQL's
+    // numeric->int cast) must decode a char[] the same way, or getInt on "0.9" would round from a String
+    // but truncate from an array element. A codec with a faster char[] path overrides this method.
+    return decodeAsInt(new String(data, offset, length), type, ctx);
   }
 
   /**
@@ -91,7 +95,9 @@ public interface PrimitiveTextDecoder extends TextCodec {
    */
   default long decodeAsLong(char[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    return PrimitiveDecoders.boxToLong(decodeText(data, offset, length, type, ctx));
+    // See decodeAsInt(char[]): route through the String form so a rounding/custom String accessor is
+    // honoured on a char[] element too.
+    return decodeAsLong(new String(data, offset, length), type, ctx);
   }
 
   /**
@@ -120,7 +126,9 @@ public interface PrimitiveTextDecoder extends TextCodec {
    */
   default float decodeAsFloat(char[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    return PrimitiveDecoders.boxToFloat(decodeText(data, offset, length, type, ctx));
+    // See decodeAsInt(char[]): route through the String form so an overridden String accessor is
+    // honoured on a char[] element too.
+    return decodeAsFloat(new String(data, offset, length), type, ctx);
   }
 
   /**
@@ -149,7 +157,9 @@ public interface PrimitiveTextDecoder extends TextCodec {
    */
   default double decodeAsDouble(char[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    return PrimitiveDecoders.boxToDouble(decodeText(data, offset, length, type, ctx));
+    // See decodeAsInt(char[]): route through the String form so an overridden String accessor is
+    // honoured on a char[] element too.
+    return decodeAsDouble(new String(data, offset, length), type, ctx);
   }
 
   /**
@@ -179,9 +189,9 @@ public interface PrimitiveTextDecoder extends TextCodec {
    */
   default boolean decodeAsBoolean(char[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    return BooleanCoercion.castAndCheck(
-        decodeText(data, offset, length, type, ctx),
-        () -> decodeAsString(new String(data, offset, length), type, ctx));
+    // See decodeAsInt(char[]): route through the String form so an overridden String accessor is
+    // honoured on a char[] element too.
+    return decodeAsBoolean(new String(data, offset, length), type, ctx);
   }
 
   /**
