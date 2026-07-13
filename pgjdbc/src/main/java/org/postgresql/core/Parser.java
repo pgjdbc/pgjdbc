@@ -86,6 +86,8 @@ public class Parser {
     parenthesis, ? and ;
     for single/double/dollar quotes, and comments we just want to move the index
      */
+    int queryStart = 0;
+    int queryEnd = 0;
     for (int i = 0; i < aChars.length; i++) {
       char aChar = aChars[i];
       boolean isKeyWordChar = false;
@@ -126,6 +128,7 @@ public class Parser {
 
         case '?':
           nativeSql.append(aChars, fragmentStart, i - fragmentStart);
+          queryEnd = i + 1;
           if (i + 1 < aChars.length && aChars[i + 1] == '?') /* replace ?? with ? */ {
             nativeSql.append('?');
             i++; // make sure the coming ? is not treated as a bind
@@ -150,6 +153,7 @@ public class Parser {
             if (!whitespaceOnly) {
               numberOfStatements++;
               nativeSql.append(aChars, fragmentStart, i - fragmentStart);
+              queryEnd = i + 1;
               whitespaceOnly = true;
             }
             fragmentStart = i + 1;
@@ -169,8 +173,9 @@ public class Parser {
                   valuesParenthesisOpenPosition = -1;
                   valuesParenthesisClosePosition = -1;
                 }
+                String originalSql = query.substring(queryStart, queryEnd);
 
-                nativeQueries.add(new NativeQuery(nativeSql.toString(),
+                nativeQueries.add(new NativeQuery(nativeSql.toString(), originalSql,
                     toIntArray(bindPositions), false,
                     SqlCommand.createStatementTypeInfo(
                         currentCommandType, isBatchedReWriteConfigured, valuesParenthesisOpenPosition,
@@ -188,6 +193,8 @@ public class Parser {
                 bindPositions.clear();
               }
               nativeSql.setLength(0);
+              queryStart = queryEnd;
+              queryEnd += 1;
               isValuesFound = false;
               isCurrentReWriteCompatible = false;
               valuesParenthesisOpenPosition = -1;
@@ -296,6 +303,7 @@ public class Parser {
 
     if (fragmentStart < aChars.length && !whitespaceOnly) {
       nativeSql.append(aChars, fragmentStart, aChars.length - fragmentStart);
+      queryEnd = aChars.length;
     } else {
       if (numberOfStatements > 1) {
         isReturningPresent = false;
@@ -314,7 +322,9 @@ public class Parser {
       isReturningPresent = true;
     }
 
-    NativeQuery lastQuery = new NativeQuery(nativeSql.toString(),
+    String originalSql = query.substring(queryStart, queryEnd);
+
+    NativeQuery lastQuery = new NativeQuery(nativeSql.toString(), originalSql,
         toIntArray(bindPositions), !splitStatements,
         SqlCommand.createStatementTypeInfo(currentCommandType,
             isBatchedReWriteConfigured, valuesParenthesisOpenPosition, valuesParenthesisClosePosition,
