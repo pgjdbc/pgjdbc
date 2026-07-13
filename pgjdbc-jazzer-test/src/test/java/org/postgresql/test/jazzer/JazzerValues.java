@@ -193,9 +193,10 @@ final class JazzerValues {
    */
   static String bitString(FuzzedDataProvider data) {
     int length = data.consumeInt(1, 32);
+    boolean[] booleans = data.consumeBooleans(length);
     StringBuilder sb = new StringBuilder(length);
-    for (int i = 0; i < length; i++) {
-      sb.append(data.consumeBoolean() ? '1' : '0');
+    for (boolean value : booleans) {
+      sb.append(value ? '1' : '0');
     }
     return sb.toString();
   }

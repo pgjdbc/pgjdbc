@@ -9,6 +9,7 @@ import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.CodecFormatSupport;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TextCodec;
@@ -157,13 +158,22 @@ public final class PGobjectCodec implements StreamingBinaryCodec, StreamingTextC
   }
 
   @Override
-  public boolean supportsBinaryEncoding() {
-    return delegate instanceof BinaryCodec && ((BinaryCodec) delegate).supportsBinaryEncoding();
+  public boolean encodesBinary() {
+    return delegate instanceof BinaryCodec && ((BinaryCodec) delegate).encodesBinary();
   }
 
   @Override
   public boolean canEncodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return delegate instanceof BinaryCodec && ((BinaryCodec) delegate).canEncodeBinary(value, type, ctx);
+  }
+
+  @Override
+  public boolean decodesBinary() {
+    // A PGBinaryObject subclass reads the binary wire itself (fromBinary); any other subclass renders
+    // binary only by delegating to the underlying codec, so it reads binary exactly when the delegate
+    // does. Without this the adapter would inherit the default true and claim a binary receive its
+    // text-only delegate cannot honour, decoding a non-null value as null.
+    return binaryObject || CodecFormatSupport.canReadBinary(delegate);
   }
 
   @Override

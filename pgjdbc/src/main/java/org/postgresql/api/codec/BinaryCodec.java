@@ -93,21 +93,21 @@ public interface BinaryCodec extends Codec {
    *
    * @return true if {@code encodeBinary} emits a real binary representation (the default)
    */
-  default boolean supportsBinaryEncoding() {
+  default boolean encodesBinary() {
     return true;
   }
 
   /**
    * Whether {@code value} can be encoded for {@code type} as a real PostgreSQL binary payload. This
-   * is the value-level companion to {@link #supportsBinaryEncoding()}: that method decides at the
+   * is the value-level companion to {@link #encodesBinary()}: that method decides at the
    * type level (a codec whose {@code encodeBinary} only emits text bytes returns {@code false}),
    * while this one lets a codec reject a particular value whose binary form it cannot produce. A
    * composite codec, for instance, binary-encodes only {@link java.sql.Struct} / {@link
    * java.sql.SQLData} / {@link org.postgresql.util.PGBinaryObject} values and binds a plain {@link
    * org.postgresql.util.PGobject} as text, while an array codec needs every leaf to be
    * binary-encodable. Containers and parameter-binding callers gate the binary path on this rather
-   * than on {@link #supportsBinaryEncoding()} alone. The default defers to {@link
-   * #supportsBinaryEncoding()}, so value-independent codecs need not override it.
+   * than on {@link #encodesBinary()} alone. The default defers to {@link
+   * #encodesBinary()}, so value-independent codecs need not override it.
    *
    * @param value the value to be encoded
    * @param type the target type metadata
@@ -116,12 +116,12 @@ public interface BinaryCodec extends Codec {
    * @throws SQLException if type metadata cannot be resolved
    */
   default boolean canEncodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return supportsBinaryEncoding();
+    return encodesBinary();
   }
 
   /**
    * Whether {@link #decodeBinary} reads the real PostgreSQL binary wire format for this type. This
-   * is the read-side counterpart to {@link #supportsBinaryEncoding()}, and the capability the driver
+   * is the read-side counterpart to {@link #encodesBinary()}, and the capability the driver
    * gates binary <em>receive</em> on: only a type whose codec returns {@code true} is requested in
    * binary, so a codec that implements {@link BinaryCodec} only for the bind/encode direction (or
    * that cannot parse the server's binary representation) returns {@code false} and stays in text.
@@ -129,7 +129,7 @@ public interface BinaryCodec extends Codec {
    *
    * @return true if {@link #decodeBinary} reads the real binary representation (the default)
    */
-  default boolean supportsBinaryRead() {
+  default boolean decodesBinary() {
     return true;
   }
 

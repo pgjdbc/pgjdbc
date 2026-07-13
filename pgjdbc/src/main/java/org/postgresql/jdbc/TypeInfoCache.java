@@ -1141,7 +1141,7 @@ public class TypeInfoCache implements TypeInfo {
   /**
    * Whether the driver can decode this exact type from binary (non-recursive).
    * Asks the resolved codec's read-side capability
-   * ({@link org.postgresql.api.codec.BinaryCodec#supportsBinaryRead()}) rather than
+   * ({@link org.postgresql.api.codec.BinaryCodec#decodesBinary()}) rather than
    * testing {@code instanceof} alone. An unmapped type resolves to {@code FallbackCodec},
    * which only wraps the raw bytes rather than reading the real binary wire, so it reports
    * no binary-read and the type is requested in text (received as {@code PGobject}); a

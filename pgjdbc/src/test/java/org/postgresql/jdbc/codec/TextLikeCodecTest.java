@@ -47,8 +47,8 @@ class TextLikeCodecTest {
   void readsBothTextAndBinary() {
     // Unlike FallbackCodec (binary-read off), the text-send binary wire is the charset text, so this
     // codec reads both -- which is what makes its types eligible for binary receive.
-    assertTrue(codec.supportsBinaryRead());
-    assertTrue(codec.supportsTextRead());
+    assertTrue(codec.decodesBinary());
+    assertTrue(codec.decodesText());
   }
 
   @Test

@@ -23,7 +23,7 @@ import java.util.Arrays;
  *
  * <p>For such a type the binary wire bytes are exactly the charset text, so both wire formats decode
  * to a text {@link PGobject} carrying the type name (like {@link FallbackCodec}). Unlike
- * {@code FallbackCodec}, this reports {@link #supportsBinaryRead()} {@code true}: the binary form is
+ * {@code FallbackCodec}, this reports {@link #decodesBinary()} {@code true}: the binary form is
  * genuinely decodable, so a value nested in a binary {@code record} reads as a readable
  * {@code PGobject} rather than a {@link org.postgresql.util.PGUnknownBinary}.</p>
  *
@@ -49,7 +49,7 @@ public final class TextLikeCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public boolean supportsBinaryRead() {
+  public boolean decodesBinary() {
     // The binary wire of a text-send type is the charset text, so it is genuinely decodable here
     // (unlike FallbackCodec). Returning true makes the type eligible for binary receive and lets a
     // value nested in a binary record decode to a PGobject instead of PGUnknownBinary.

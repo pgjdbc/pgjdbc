@@ -52,6 +52,13 @@ class DelegatingCodecDepthGuardArchTest {
   private static final String API_CODEC_PACKAGE = "org.postgresql.api.codec";
 
   /**
+   * Capability queries that share the {@code encode…}/{@code decode…} prefix but read a codec's
+   * support flags rather than delegating a value, so they neither recurse nor imply a depth guard.
+   */
+  private static final Set<String> CAPABILITY_METHODS =
+      new LinkedHashSet<>(Arrays.asList("encodesBinary", "decodesBinary", "decodesText"));
+
+  /**
    * Codecs that delegate to another codec yet deliberately carry no depth guard of their own because
    * they cannot create unbounded recursion.
    *
@@ -114,6 +121,11 @@ class DelegatingCodecDepthGuardArchTest {
         continue;
       }
       String method = call.getName();
+      if (CAPABILITY_METHODS.contains(method)) {
+        // A capability query (e.g. elementCodec.encodesBinary()) reads a support flag; it is not
+        // element delegation and cannot recurse, so it must not count as delegating.
+        continue;
+      }
       if (method.equals("writeElement")
           || method.startsWith("decode")
           || method.startsWith("encode")) {

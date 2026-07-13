@@ -103,7 +103,7 @@ public interface TextCodec extends Codec {
 
   /**
    * Whether {@link #decodeText} reads the PostgreSQL text wire format for this type. This is the
-   * read-side counterpart to {@link BinaryCodec#supportsBinaryRead()}. Text is the universal receive
+   * read-side counterpart to {@link BinaryCodec#decodesBinary()}. Text is the universal receive
    * format, so the default is {@code true} and almost every codec keeps it; a codec that handles
    * only the binary representation returns {@code false}. The capability lets a caller pick a
    * readable format without resorting to {@code instanceof}, which matters for the offline and
@@ -111,7 +111,7 @@ public interface TextCodec extends Codec {
    *
    * @return true if {@link #decodeText} reads the text representation (the default)
    */
-  default boolean supportsTextRead() {
+  default boolean decodesText() {
     return true;
   }
 

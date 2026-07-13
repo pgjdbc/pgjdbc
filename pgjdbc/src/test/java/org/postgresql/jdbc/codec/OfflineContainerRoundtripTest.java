@@ -908,7 +908,7 @@ class OfflineContainerRoundtripTest {
   void moneyStaysTextOnReceive() {
     // money renders per lc_monetary; the driver cannot rebuild that string from the raw int64, so it
     // never requests money in binary. This is what keeps the numeric getters and getString correct.
-    assertEquals(false, MoneyCodec.INSTANCE.supportsBinaryRead(), "money supportsBinaryRead");
+    assertEquals(false, MoneyCodec.INSTANCE.decodesBinary(), "money supportsBinaryRead");
     assertEquals(Double.class, MoneyCodec.INSTANCE.getDefaultJavaType(), "money default Java type");
   }
 

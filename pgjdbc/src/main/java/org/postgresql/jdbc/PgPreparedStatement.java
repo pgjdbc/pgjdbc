@@ -7,6 +7,8 @@ package org.postgresql.jdbc;
 
 import org.postgresql.Driver;
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.Codec;
+import org.postgresql.api.codec.Format;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.CachedQuery;
@@ -19,6 +21,7 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.jdbc.codec.ArrayCodec;
+import org.postgresql.jdbc.codec.CodecFormatPolicy;
 import org.postgresql.jdbc.codec.DateCodec;
 import org.postgresql.jdbc.codec.TimeCodec;
 import org.postgresql.jdbc.codec.TimestampCodec;
@@ -752,26 +755,19 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   private void bindArrayValue(int parameterIndex, Object value, int oid, PgType arrayType)
       throws SQLException {
     PgCodecContext ctx = connection.getCodecContext();
-    CodecRegistry codecs = ctx.getCodecs();
-    if (connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-      BinaryCodec codec = codecs.getBinaryCodec(oid, arrayType);
-      // canEncodeBinary checks the driver can encode the value; backendCanReceiveBinary
-      // checks the server can parse it (typreceive), recursing into the element type — so
-      // a custom array whose element has no binary input stays in text instead of erroring.
-      if (codec != null && codec.canEncodeBinary(value, arrayType, ctx)
-          && connection.getTypeInfo().backendCanReceiveBinary(arrayType)) {
-        bindBytes(parameterIndex, codec.encodeBinary(value, arrayType, ctx), oid);
-        return;
-      }
+    Codec codec = ctx.getCodecs().getByOid(oid, arrayType);
+    // Prefer binary unless in simple query mode; backendCanReceiveBinary checks the server can parse
+    // it (typreceive), recursing into the element type, so a custom array whose element has no binary
+    // input stays in text instead of erroring. chooseBindFormat adds the driver-side canEncodeBinary
+    // gate, keeping this in step with the scalar bind path.
+    boolean backendCanBinary = connection.getPreferQueryMode() != PreferQueryMode.SIMPLE
+        && connection.getTypeInfo().backendCanReceiveBinary(arrayType);
+    if (CodecFormatPolicy.chooseBindFormat(codec, value, arrayType, ctx, backendCanBinary)
+        == Format.BINARY) {
+      bindBytes(parameterIndex, ((BinaryCodec) codec).encodeBinary(value, arrayType, ctx), oid);
+    } else {
+      bindString(parameterIndex, ((TextCodec) codec).encodeText(value, arrayType, ctx), oid);
     }
-
-    TextCodec codec = codecs.getTextCodec(oid, arrayType);
-    if (codec == null) {
-      throw new PSQLException(
-          GT.tr("No text codec registered for type {0}", arrayType.getTypeName()),
-          PSQLState.SYSTEM_ERROR);
-    }
-    bindString(parameterIndex, codec.encodeText(value, arrayType, ctx), oid);
   }
 
   private static String castToString(final Object in) throws SQLException {
@@ -1510,25 +1506,15 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       Object value, PgType pgType) throws SQLException {
     int oid = pgType.getOid();
     PgCodecContext ctx = connection.getCodecContext();
-    CodecRegistry codecs = ctx.getCodecs();
-    if (connection.binaryTransferSend(oid)
-        && connection.getTypeInfo().backendCanReceiveBinary(pgType)) {
-      BinaryCodec codec = codecs.getBinaryCodec(oid, pgType);
-      if (codec == null) {
-        throw new PSQLException(
-            GT.tr("No binary codec registered for type {0}", pgType.getTypeName()),
-            PSQLState.SYSTEM_ERROR);
-      }
-      bindBytes(parameterIndex, codec.encodeBinary(value, pgType, ctx), oid);
-      return;
+    Codec codec = ctx.getCodecs().getByOid(oid, pgType);
+    boolean backendCanBinary = connection.binaryTransferSend(oid)
+        && connection.getTypeInfo().backendCanReceiveBinary(pgType);
+    if (CodecFormatPolicy.chooseBindFormat(codec, value, pgType, ctx, backendCanBinary)
+        == Format.BINARY) {
+      bindBytes(parameterIndex, ((BinaryCodec) codec).encodeBinary(value, pgType, ctx), oid);
+    } else {
+      bindLiteral(parameterIndex, ((TextCodec) codec).encodeText(value, pgType, ctx), oid);
     }
-    TextCodec codec = codecs.getTextCodec(oid, pgType);
-    if (codec == null) {
-      throw new PSQLException(
-          GT.tr("No text codec registered for type {0}", pgType.getTypeName()),
-          PSQLState.SYSTEM_ERROR);
-    }
-    bindLiteral(parameterIndex, codec.encodeText(value, pgType, ctx), oid);
   }
 
   @Override

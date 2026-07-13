@@ -63,8 +63,8 @@ class FallbackCodecTest {
     // The fallback does not interpret the real binary wire, so the receive-format choice must
     // request an unmapped type in text (PGobject) rather than binary (PGUnknownBinary). It still
     // decodes binary when the server sends it anyway, e.g. an unmapped field inside a binary record.
-    assertFalse(codec.supportsBinaryRead());
-    assertTrue(codec.supportsTextRead());
+    assertFalse(codec.decodesBinary());
+    assertTrue(codec.decodesText());
   }
 
   @Test

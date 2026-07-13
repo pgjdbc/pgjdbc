@@ -71,7 +71,7 @@ class CodecRegistryTest {
     }
 
     @Override
-    public boolean supportsBinaryRead() {
+    public boolean decodesBinary() {
       return false;
     }
   }

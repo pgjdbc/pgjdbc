@@ -46,7 +46,7 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
   }
 
   @Override
-  public boolean supportsBinaryRead() {
+  public boolean decodesBinary() {
     // The fallback does not interpret the real binary wire of an unmapped type; it only wraps
     // the raw bytes. Reporting false makes the receive-format choice request such a type in text,
     // so it arrives as a readable PGobject (decodeText) rather than PGUnknownBinary. Binary data

@@ -7,6 +7,7 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.api.codec.CodecFormatSupport;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
@@ -609,7 +610,7 @@ public class PgArray implements Array {
     Object array = fieldArray;
     if (fieldBytes == null && array != null
         && getConnection().getPreferQueryMode() != PreferQueryMode.SIMPLE
-        && ArrayCodec.INSTANCE.canEncodeBinary(array, getPgType(), codecContext)) {
+        && CodecFormatSupport.canWriteBinary(ArrayCodec.INSTANCE, array, getPgType(), codecContext)) {
       fieldBytes = ArrayCodec.INSTANCE.encodeBinary(array, getPgType(), codecContext);
     }
     return fieldBytes;

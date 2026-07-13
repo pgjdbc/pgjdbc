@@ -24,10 +24,11 @@ import java.sql.SQLException;
  * types (array, composite, range, domain) still need a live connection and report that with a clear
  * error rather than a silent failure.</p>
  *
- * <p>{@link #encode} with {@link Format#BINARY} emits the codec's binary wire form. That form
- * round-trips through {@link #decode}, but for codecs whose binary encoder is not a true server-bound
- * representation it is not necessarily what a {@code PreparedStatement} would send — bind such values
- * through a statement instead.</p>
+ * <p>Both directions enforce the codec's format capability. {@link #encode} to a {@link Format} the
+ * codec cannot produce for the value, or {@link #decode} of a value whose format the codec cannot
+ * read, fails rather than returning bytes the far side cannot interpret. A successful {@code encode}
+ * to {@link Format#BINARY} is therefore a real server binary payload. The offline and
+ * {@code COPY BINARY} paths rely on this, since they have no format negotiation to fall back on.</p>
  *
  * @since 42.8.0
  */
@@ -51,16 +52,11 @@ public final class Codecs {
       throws SQLException {
     Codec codec = ctx.resolveCodec(type.getOid());
     if (format == Format.BINARY) {
-      if (!(codec instanceof BinaryCodec)) {
-        throw Exceptions.noCodecForFormat(type, "binary");
-      }
-      return RawValue.binary(((BinaryCodec) codec).encodeBinary(value, type, ctx));
+      BinaryCodec binary = CodecFormatSupport.requireBinaryEncoder(codec, value, type, ctx);
+      return RawValue.binary(binary.encodeBinary(value, type, ctx));
     }
-    if (!(codec instanceof TextCodec)) {
-      throw Exceptions.noCodecForFormat(type, "text");
-    }
-    String text = ((TextCodec) codec).encodeText(value, type, ctx);
-    return RawValue.text(text.getBytes(ctx.getCharset()));
+    TextCodec text = CodecFormatSupport.requireTextEncoder(codec, type);
+    return RawValue.text(text.encodeText(value, type, ctx).getBytes(ctx.getCharset()));
   }
 
   /**
@@ -82,17 +78,12 @@ public final class Codecs {
       Class<T> targetClass) throws SQLException {
     Codec codec = ctx.resolveCodec(type.getOid());
     if (value.getFormat() == Format.BINARY) {
-      if (!(codec instanceof BinaryCodec)) {
-        throw Exceptions.noCodecForFormat(type, "binary");
-      }
-      return ((BinaryCodec) codec).decodeBinaryAs(
+      BinaryCodec binary = CodecFormatSupport.requireBinaryDecoder(codec, type);
+      return binary.decodeBinaryAs(
           value.backingArray(), value.getOffset(), value.getLength(), type, targetClass, ctx);
     }
-    if (!(codec instanceof TextCodec)) {
-      throw Exceptions.noCodecForFormat(type, "text");
-    }
-    return ((TextCodec) codec)
-        .decodeTextAs(value.asString(ctx.getCharset()), type, targetClass, ctx);
+    TextCodec text = CodecFormatSupport.requireTextDecoder(codec, type);
+    return text.decodeTextAs(value.asString(ctx.getCharset()), type, targetClass, ctx);
   }
 
   /**

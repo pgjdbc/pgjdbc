@@ -181,7 +181,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     }
     TypeDescriptor elementType = ctx.resolveType(elementOid);
     BinaryCodec elementCodec = ctx.resolveBinaryCodec(elementOid);
-    if (elementCodec == null || !elementCodec.supportsBinaryEncoding()) {
+    if (elementCodec == null || !elementCodec.encodesBinary()) {
       return false;
     }
     return leavesBinaryEncodable(javaArray, elementType, elementCodec, ctx);

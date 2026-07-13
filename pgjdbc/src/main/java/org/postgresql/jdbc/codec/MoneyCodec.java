@@ -27,7 +27,7 @@ import java.sql.SQLException;
  * are all {@code lc_monetary} properties; none of them travels over the wire protocol
  * ({@code frac_digits} is not even a {@code GUC}). The driver therefore cannot rebuild the server's
  * localized rendering (for example {@code "$1.00"} or {@code "-$1.00"}) from the raw binary int64,
- * so it keeps {@code money} on the <em>text</em> receive format: {@link #supportsBinaryRead()}
+ * so it keeps {@code money} on the <em>text</em> receive format: {@link #decodesBinary()}
  * returns {@code false}, so the type is requested in text, the server formats it per its locale, and
  * this codec only strips the currency decoration to recover the numeric value. This matches the
  * historical driver, which never listed {@code money} among the binary-transfer OIDs.</p>
@@ -78,7 +78,7 @@ public final class MoneyCodec implements PrimitiveBinaryDecoder, PrimitiveTextDe
   }
 
   @Override
-  public boolean supportsBinaryRead() {
+  public boolean decodesBinary() {
     // Keep money on text receive: the server renders it per lc_monetary and the driver cannot
     // reconstruct that string (symbol, grouping, frac_digits) from the raw int64. See the class
     // comment.

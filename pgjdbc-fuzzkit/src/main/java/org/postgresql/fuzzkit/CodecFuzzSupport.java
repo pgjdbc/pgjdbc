@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.api.codec.BinaryCodec;
@@ -16,6 +17,7 @@ import org.postgresql.api.codec.CharArraySequence;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.CodecContextBuilder;
+import org.postgresql.api.codec.CodecFormatSupport;
 import org.postgresql.api.codec.Codecs;
 import org.postgresql.api.codec.Format;
 import org.postgresql.api.codec.PrimitiveBinaryDecoder;
@@ -1414,8 +1416,8 @@ public final class CodecFuzzSupport {
     }
 
     @Override
-    public boolean supportsBinaryEncoding() {
-      return bin.supportsBinaryEncoding();
+    public boolean encodesBinary() {
+      return bin.encodesBinary();
     }
 
     @Override
@@ -1424,8 +1426,8 @@ public final class CodecFuzzSupport {
     }
 
     @Override
-    public boolean supportsBinaryRead() {
-      return bin.supportsBinaryRead();
+    public boolean decodesBinary() {
+      return bin.decodesBinary();
     }
 
     @Override
@@ -1450,8 +1452,8 @@ public final class CodecFuzzSupport {
     }
 
     @Override
-    public boolean supportsTextRead() {
-      return txt.supportsTextRead();
+    public boolean decodesText() {
+      return txt.decodesText();
     }
   }
 
@@ -1464,6 +1466,7 @@ public final class CodecFuzzSupport {
   public static <T> void roundTrip(Object value, PgType type, Class<T> target, CodecContext ctx)
       throws SQLException {
     encodeParity(value, type, ctx);
+    formatEnforcementParity(value, type, ctx);
     for (Format format : Format.values()) {
       RawValue raw = Codecs.encode(value, type, ctx, format);
       @Nullable T back = Codecs.decode(raw, type, ctx, target);
@@ -1489,6 +1492,43 @@ public final class CodecFuzzSupport {
     RawValue raw = Codecs.encode(value, type, ctx, Format.TEXT);
     @Nullable T back = Codecs.decode(raw, type, ctx, target);
     assertEquals(value, back, () -> type.getTypeName() + " text round-trip");
+  }
+
+  /**
+   * Asserts {@link Codecs#encode}/{@link Codecs#decode} enforce the requested wire format exactly as
+   * the codec's declared capability allows: encoding succeeds and keeps the requested format when the
+   * codec can write it and fails otherwise, and decoding a binary value is refused when the codec
+   * cannot read binary. This pins the format-capability contract under fuzzing, where the value -- not
+   * only the type -- decides {@link CodecFormatSupport#canWriteBinary}, so a per-value divergence
+   * between the predicate and the codec's own {@code encodeBinary} surfaces on the generated value.
+   * Folded into {@link #roundTrip}.
+   *
+   * @param value the value to encode
+   * @param type the offline type
+   * @param ctx the offline codec context
+   */
+  public static void formatEnforcementParity(Object value, PgType type, CodecContext ctx)
+      throws SQLException {
+    Codec codec = ctx.resolveCodec(type.getOid());
+    assertEncodeEnforced(CodecFormatSupport.canWriteBinary(codec, value, type, ctx),
+        value, type, ctx, Format.BINARY);
+    assertEncodeEnforced(CodecFormatSupport.canWriteText(codec), value, type, ctx, Format.TEXT);
+    if (!CodecFormatSupport.canReadBinary(codec)) {
+      assertThrows(SQLException.class,
+          () -> Codecs.decode(RawValue.binary(new byte[0]), type, ctx, Object.class),
+          () -> type.getTypeName() + " cannot read binary, so Codecs.decode(BINARY) must refuse");
+    }
+  }
+
+  private static void assertEncodeEnforced(boolean writable, Object value, PgType type,
+      CodecContext ctx, Format format) throws SQLException {
+    if (writable) {
+      assertEquals(format, Codecs.encode(value, type, ctx, format).getFormat(),
+          () -> type.getTypeName() + " encode " + format + " must keep the requested format");
+    } else {
+      assertThrows(SQLException.class, () -> Codecs.encode(value, type, ctx, format),
+          () -> type.getTypeName() + " cannot write " + format + ", so encode must refuse");
+    }
   }
 
   /** numeric round-trip compared by value ({@code compareTo}) so trailing-zero scale is ignored. */
@@ -1607,7 +1647,9 @@ public final class CodecFuzzSupport {
   public static void crossFormatString(Object value, PgType type, CodecContext ctx)
       throws SQLException {
     Codec codec = ctx.resolveCodec(type.getOid());
-    if (!(codec instanceof BinaryCodec) || !(codec instanceof TextCodec)) {
+    // Compares getString across both formats, so both must be readable. canReadBinary/canReadText fold
+    // the instanceof and the read-capability flag, so a codec that reads only one format is skipped.
+    if (!CodecFormatSupport.canReadBinary(codec) || !CodecFormatSupport.canReadText(codec)) {
       return;
     }
     // Some types render to a string that the binary decodeAsString now formats to match the server
@@ -1623,11 +1665,9 @@ public final class CodecFuzzSupport {
         || oid == Oid.INTERVAL) {
       return;
     }
+    // The gate above already established both read capabilities; narrow for the decodeAsString calls.
     BinaryCodec bin = (BinaryCodec) codec;
     TextCodec txt = (TextCodec) codec;
-    if (!bin.supportsBinaryRead() || !txt.supportsTextRead()) {
-      return;
-    }
     String textForm = Codecs.encode(value, type, ctx, Format.TEXT).asString(ctx.getCharset());
     byte[] binForm = Codecs.encode(value, type, ctx, Format.BINARY).toByteArray();
     @Nullable String viaText = txt.decodeAsString(textForm, type, ctx);

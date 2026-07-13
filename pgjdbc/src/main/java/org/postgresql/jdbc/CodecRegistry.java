@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import org.postgresql.api.Experimental;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
+import org.postgresql.api.codec.CodecFormatSupport;
 import org.postgresql.api.codec.CodecLookup;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
@@ -867,7 +868,7 @@ public class CodecRegistry implements CodecLookup {
    * Whether the driver can decode this type from the binary wire format.
    *
    * <p>This resolves the codec and asks its read-side capability
-   * ({@link BinaryCodec#supportsBinaryRead()}) rather than testing {@code instanceof}
+   * ({@link BinaryCodec#decodesBinary()}) rather than testing {@code instanceof}
    * alone, so a codec that implements {@link BinaryCodec} only for the encode direction
    * is not mistaken for a binary decoder. The format-negotiation layer gates binary
    * receive on this.</p>
@@ -878,15 +879,14 @@ public class CodecRegistry implements CodecLookup {
    */
   @Override
   public boolean canDecodeBinary(int oid, @Nullable TypeDescriptor pgType) {
-    Codec codec = getByOid(oid, pgType);
-    return codec instanceof BinaryCodec && ((BinaryCodec) codec).supportsBinaryRead();
+    return CodecFormatSupport.canReadBinary(getByOid(oid, pgType));
   }
 
   /**
    * Whether the driver can decode this type from the text wire format.
    *
    * <p>The text counterpart to {@link #canDecodeBinary(int, TypeDescriptor)}, consulting
-   * {@link TextCodec#supportsTextRead()}. Text is the universal receive format, so this is
+   * {@link TextCodec#decodesText()}. Text is the universal receive format, so this is
    * true for almost every type; it is exposed for callers (offline and {@code COPY}) that
    * choose a format from codec capability rather than format negotiation.</p>
    *
@@ -896,8 +896,7 @@ public class CodecRegistry implements CodecLookup {
    */
   @Override
   public boolean canDecodeText(int oid, @Nullable TypeDescriptor pgType) {
-    Codec codec = getByOid(oid, pgType);
-    return codec instanceof TextCodec && ((TextCodec) codec).supportsTextRead();
+    return CodecFormatSupport.canReadText(getByOid(oid, pgType));
   }
 
   /**

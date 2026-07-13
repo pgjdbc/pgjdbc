@@ -11,8 +11,8 @@ import org.postgresql.api.Experimental;
  * The wire format of an encoded PostgreSQL value: the {@link #TEXT} representation a human can read,
  * or the compact {@link #BINARY} representation.
  *
- * <p>Most codecs read and write both. {@link BinaryCodec#supportsBinaryRead()} and
- * {@link TextCodec#supportsTextRead()} report which one a given codec actually decodes, which the
+ * <p>Most codecs read and write both. {@link BinaryCodec#decodesBinary()} and
+ * {@link TextCodec#decodesText()} report which one a given codec actually decodes, which the
  * offline and {@code COPY} paths consult because they have no format negotiation to fall back on.</p>
  *
  * @since 42.8.0

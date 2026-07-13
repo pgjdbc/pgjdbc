@@ -6,6 +6,7 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.Codecs;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -90,6 +91,20 @@ class Exceptions {
    */
   static SQLException cannotEncode(String sourceType, String targetType) {
     return Codecs.cannotEncode(sourceType, targetType);
+  }
+
+  /**
+   * No registered codec can encode a value of {@code type} in either wire format. Thrown by the bind
+   * negotiator when the resolved codec writes neither binary nor text, so the driver has no way to
+   * send the parameter.
+   *
+   * @param type the type whose codec can write no format
+   * @return conversion error, carrying {@link PSQLState#INVALID_PARAMETER_TYPE}
+   */
+  static SQLException noWritableFormat(TypeDescriptor type) {
+    return new PSQLException(
+        GT.tr("No codec can encode a value of type {0} in binary or text format", type.getTypeName()),
+        PSQLState.INVALID_PARAMETER_TYPE);
   }
 
   /**
