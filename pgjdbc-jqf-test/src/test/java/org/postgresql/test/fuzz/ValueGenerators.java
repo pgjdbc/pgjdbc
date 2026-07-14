@@ -5,6 +5,7 @@
 
 package org.postgresql.test.fuzz;
 
+import org.postgresql.fuzzkit.FuzzText;
 import org.postgresql.fuzzkit.coercion.PgTypeDescriptors;
 import org.postgresql.fuzzkit.coercion.ScalarDescriptor;
 import org.postgresql.fuzzkit.coercion.WriteCoercions.Method;
@@ -58,8 +59,14 @@ final class ValueGenerators {
       Generator.integers(Byte.MIN_VALUE, Byte.MAX_VALUE).map(Integer::byteValue);
   private static final Generator<Short> SHORTS =
       Generator.integers(Short.MIN_VALUE, Short.MAX_VALUE).map(Integer::shortValue);
+  // Full-BMP Unicode below the surrogate block (U+0000..U+D7FF), so every string is well-formed and
+  // round-trips through the text codec; FuzzText.stripNul drops NUL, which PostgreSQL text cannot carry.
+  // This mirrors the Jazzer front-end's Unicode string, reaching the multi-byte UTF-8 paths the former
+  // printable-ASCII generator never did. Lone surrogates are excluded (not merely stripped of NUL) because
+  // STRINGS also feeds the round-trip and writer fuzzers, where a lone surrogate would encode to '?' and
+  // break write->read equality.
   private static final Generator<String> STRINGS =
-      Generator.stringsOf(Generator.asciiPrintableChars());
+      Generator.stringsOf(Generator.charsInRange((char) 0, (char) 0xD7FF)).map(FuzzText::stripNul);
 
   private static final Map<Class<?>, Generator<?>> REGISTRY = buildRegistry();
 

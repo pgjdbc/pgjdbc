@@ -7,6 +7,7 @@ package org.postgresql.fuzzkit;
 
 import org.postgresql.api.codec.Codecs;
 import org.postgresql.api.codec.Format;
+import org.postgresql.api.codec.PrefersJavaTime;
 import org.postgresql.api.codec.RawValue;
 import org.postgresql.fuzzkit.coercion.CoercionOutcome;
 import org.postgresql.jdbc.ObjectName;
@@ -53,12 +54,12 @@ public final class CoercionFuzzSupport {
   public static void run(CoercionCase c) throws SQLException {
     int oid = c.kind.oid();
     PgType comp = FuzzComposites.singleField(oid);
-    boolean[] p = c.prefersJavaTime;
+    PrefersJavaTime p = c.prefersJavaTime;
     Map<String, String> config = ReadOracle.configFor(p);
     PgCodecContext ctx = (PgCodecContext) OfflineCodecContexts.offlineBuilder()
         .type(comp)
         .timeZone(TimeZone.getDefault())
-        .prefersJavaTime(p[0], p[1], p[2], p[3], p[4])
+        .prefersJavaTime(p)
         .build();
 
     // The target class is only meaningful for readObject(Class); other readers ignore it, so a null

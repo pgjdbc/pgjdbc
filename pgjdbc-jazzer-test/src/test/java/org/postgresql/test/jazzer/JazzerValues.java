@@ -28,18 +28,23 @@ import java.time.OffsetTime;
 import java.time.ZoneOffset;
 
 /**
- * The Jazzer-side value generator: draws a value of a read-populated scalar's natural class from a
+ * The Jazzer-side value generators for the coercion and codec fuzzers, drawing from a
  * {@link FuzzedDataProvider}. This is the Jazzer counterpart of pgjdbc-jqf-test's {@code ValueGenerators}
- * (which draws from jetCheck). Both feed the shared oracle a value of the descriptor's natural class, so
- * the two fuzzers differ only in the front-end that produces the value, not in the oracle that checks it.
+ * (which draws the same values from jetCheck): both feed the shared oracle a value of the descriptor's
+ * natural class, so the two fuzzers differ only in the front-end that produces the value, not in the
+ * oracle that checks it.
  *
- * <p>It covers every natural class the reader axis draws: the ten coercion scalars plus the read-only
- * scalars ({@code int2} as {@code Short}, {@code float4} as {@code Float}, {@code float8} as
- * {@code Double}, {@code bytea} as {@code byte[]}, {@code oid} as {@code Long}, and the text types
- * {@code varchar}/{@code bpchar}/{@code name} as {@code String}).
+ * <p>{@link #draw} serves the coercion reader's provider path -- the natural classes Jazzer cannot mutate
+ * natively into an encodable value: {@code numeric}'s {@link BigDecimal} (bounded scale) and the temporal
+ * types ({@code date}, {@code time}, {@code timetz}, {@code timestamp}, {@code timestamptz}), whose ranges
+ * must stay within the wire's. The Jazzer-native scalars (integral, floating-point, {@code boolean},
+ * {@code byte[]}, {@code String}) take a typed {@code @FuzzTest} parameter in the generated reader and
+ * never reach {@link #draw}; a {@code String} argument is sanitised with
+ * {@link org.postgresql.fuzzkit.FuzzText#stripNul} there. The remaining methods generate the {@code json},
+ * {@code bit}, {@code interval} and geometric values the codec round-trip fuzzers draw.
  *
- * <p>The ranges match the jetCheck generators so every drawn value encodes on the canonical wire: the
- * coercion oracle exercises the read side, so the value has to be encodable for the read to be reached.
+ * <p>The ranges keep every drawn value encodable on the canonical wire: the coercion oracle exercises the
+ * read side, so the value has to be encodable for the read to be reached.
  */
 final class JazzerValues {
 
@@ -50,41 +55,18 @@ final class JazzerValues {
   }
 
   /**
-   * Draws a value of {@code naturalClass} from the fuzzer input.
+   * Draws a value of {@code naturalClass} from the fuzzer input, for a provider-path coercion scalar
+   * ({@code numeric} or a temporal type).
    *
    * @param data the fuzzer input
-   * @param naturalClass the scalar's natural class (a coercion scalar or a read-only scalar)
+   * @param naturalClass the scalar's natural class
    * @return a value of that class
-   * @throws IllegalArgumentException if the class is not a read-populated scalar's natural class
+   * @throws IllegalArgumentException if the class is not a provider-path scalar's natural class (a
+   *     Jazzer-native scalar takes a typed {@code @FuzzTest} parameter instead)
    */
   static Object draw(FuzzedDataProvider data, Class<?> naturalClass) {
-    if (naturalClass == Integer.class) {
-      return data.consumeInt();
-    }
-    if (naturalClass == Long.class) {
-      return data.consumeLong();
-    }
-    if (naturalClass == Short.class) {
-      return data.consumeShort();
-    }
-    if (naturalClass == Float.class) {
-      return data.consumeFloat();
-    }
-    if (naturalClass == Double.class) {
-      return data.consumeDouble();
-    }
     if (naturalClass == BigDecimal.class) {
       return BigDecimal.valueOf(data.consumeLong(), data.consumeInt(0, 12));
-    }
-    if (naturalClass == Boolean.class) {
-      return data.consumeBoolean();
-    }
-    if (naturalClass == byte[].class) {
-      // A bounded byte[] for bytea; every byte sequence encodes, so no filtering is needed.
-      return data.consumeBytes(16);
-    }
-    if (naturalClass == String.class) {
-      return printableAscii(data);
     }
     if (naturalClass == Date.class) {
       return Date.valueOf(LocalDate.ofEpochDay(data.consumeInt(MIN_DAY, MAX_DAY)));
@@ -118,12 +100,6 @@ final class JazzerValues {
 
   private static ZoneOffset offset(FuzzedDataProvider data) {
     return ZoneOffset.ofTotalSeconds(data.consumeInt(-1080, 1080) * 60);
-  }
-
-  private static String printableAscii(FuzzedDataProvider data) {
-    // The jetCheck generator draws printable ASCII; strip control characters (including NUL, which
-    // PostgreSQL text cannot carry) so the value always encodes.
-    return data.consumeAsciiString(16).replaceAll("[\\x00-\\x1F\\x7F]", "");
   }
 
   // --- PGobject / PGInterval scalars (U7a) ---------------------------------------------------

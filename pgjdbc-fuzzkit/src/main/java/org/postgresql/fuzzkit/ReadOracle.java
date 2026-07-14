@@ -6,6 +6,7 @@
 package org.postgresql.fuzzkit;
 
 import org.postgresql.api.codec.Format;
+import org.postgresql.api.codec.PrefersJavaTime;
 import org.postgresql.fuzzkit.coercion.CoercionOutcome;
 import org.postgresql.fuzzkit.coercion.OutcomeContract;
 import org.postgresql.fuzzkit.coercion.OutcomeContract.Direction;
@@ -66,21 +67,26 @@ public final class ReadOracle {
     return withControls.toArray(new Class<?>[0]);
   }
 
-  /** The {@code prefersJavaTime} connection parameters, in {@code CoercionCase} flag order. */
-  private static final String[] PREFERS_JAVA_TIME = {
-      "prefersJavaTimeForDate", "prefersJavaTimeForTime", "prefersJavaTimeForTimetz",
-      "prefersJavaTimeForTimestamp", "prefersJavaTimeForTimestamptz"};
-
   private ReadOracle() {
   }
 
-  /** The connection config for a set of {@code prefersJavaTime} flags (all five, in flag order). */
-  static Map<String, String> configFor(boolean[] prefersJavaTime) {
+  /** The connection config for a set of {@code prefersJavaTime} flags. */
+  static Map<String, String> configFor(PrefersJavaTime prefersJavaTime) {
     Map<String, String> config = new HashMap<>();
-    for (int i = 0; i < PREFERS_JAVA_TIME.length; i++) {
-      if (prefersJavaTime[i]) {
-        config.put(PREFERS_JAVA_TIME[i], "true");
-      }
+    if (prefersJavaTime.forDate()) {
+      config.put("prefersJavaTimeForDate", "true");
+    }
+    if (prefersJavaTime.forTime()) {
+      config.put("prefersJavaTimeForTime", "true");
+    }
+    if (prefersJavaTime.forTimetz()) {
+      config.put("prefersJavaTimeForTimetz", "true");
+    }
+    if (prefersJavaTime.forTimestamp()) {
+      config.put("prefersJavaTimeForTimestamp", "true");
+    }
+    if (prefersJavaTime.forTimestamptz()) {
+      config.put("prefersJavaTimeForTimestamptz", "true");
     }
     return config;
   }

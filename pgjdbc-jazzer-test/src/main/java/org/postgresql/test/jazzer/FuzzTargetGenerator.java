@@ -40,5 +40,6 @@ public final class FuzzTargetGenerator {
     Path generatedSourcesRoot = Paths.get(args[0]);
     ScalarDecodeRobustnessFuzzTestGenerator.generate(generatedSourcesRoot);
     PrimitiveCapabilityFuzzTestGenerator.generate(generatedSourcesRoot);
+    CoercionReaderFuzzTestGenerator.generate(generatedSourcesRoot);
   }
 }

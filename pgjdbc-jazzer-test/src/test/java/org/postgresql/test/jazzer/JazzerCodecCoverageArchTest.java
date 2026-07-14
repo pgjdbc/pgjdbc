@@ -45,7 +45,6 @@ class JazzerCodecCoverageArchTest {
       JazzerScalarCodecFuzzTest.class,
       JazzerBinaryContainerDecodeFuzzTest.class,
       JazzerTextLiteralDecodeFuzzTest.class,
-      JazzerCoercionReaderFuzzTest.class,
   };
 
   @Test

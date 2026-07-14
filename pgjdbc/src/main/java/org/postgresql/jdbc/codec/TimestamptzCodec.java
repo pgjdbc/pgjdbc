@@ -157,7 +157,7 @@ public final class TimestamptzCodec implements StreamingBinaryCodec, TextCodec {
       return t == null ? null : targetClass.cast(t.getTime());
     }
     if (targetClass == String.class) {
-      return targetClass.cast(TemporalCodecs.formatOffsetDateTimeBin(data, ctx));
+      return targetClass.cast(TemporalCodecs.formatOffsetDateTimeBin(data, offset, length, ctx));
     }
     throw Exceptions.cannotDecode("timestamptz", targetClass.getName());
   }
@@ -203,7 +203,7 @@ public final class TimestamptzCodec implements StreamingBinaryCodec, TextCodec {
   @Override
   public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
-    return TemporalCodecs.formatOffsetDateTimeBin(data, ctx);
+    return TemporalCodecs.formatOffsetDateTimeBin(data, offset, length, ctx);
   }
 
   @Override

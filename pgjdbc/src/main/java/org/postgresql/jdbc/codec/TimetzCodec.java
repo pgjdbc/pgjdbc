@@ -131,7 +131,7 @@ public final class TimetzCodec implements StreamingBinaryCodec, TextCodec {
       return t == null ? null : targetClass.cast(t.getTime());
     }
     if (targetClass == String.class) {
-      return targetClass.cast(TemporalCodecs.formatOffsetTimeBin(data, ctx));
+      return targetClass.cast(TemporalCodecs.formatOffsetTimeBin(data, offset, length, ctx));
     }
     throw Exceptions.cannotDecode("timetz", targetClass.getName());
   }
@@ -177,7 +177,7 @@ public final class TimetzCodec implements StreamingBinaryCodec, TextCodec {
   @Override
   public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
-    return TemporalCodecs.formatOffsetTimeBin(data, ctx);
+    return TemporalCodecs.formatOffsetTimeBin(data, offset, length, ctx);
   }
 
   @Override

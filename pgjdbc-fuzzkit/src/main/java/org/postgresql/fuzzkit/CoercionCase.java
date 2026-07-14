@@ -5,11 +5,10 @@
 
 package org.postgresql.fuzzkit;
 
+import org.postgresql.api.codec.PrefersJavaTime;
 import org.postgresql.fuzzkit.coercion.ScalarDescriptor;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-
-import java.util.Arrays;
 
 /**
  * One cell of the SQLData read matrix: a field value of a given PostgreSQL type on the canonical wire
@@ -30,11 +29,11 @@ public final class CoercionCase {
   final SqlInputReader reader;
   /** The {@code readObject(Class)} target, or {@code null} for any other reader. */
   final @Nullable Class<?> targetClass;
-  /** {@code [date, time, timetz, timestamp, timestamptz]}. */
-  final boolean[] prefersJavaTime;
+  /** The per-type {@code getObject} java.time preferences of the context. */
+  final PrefersJavaTime prefersJavaTime;
 
   public CoercionCase(ScalarDescriptor kind, Object value, SqlInputReader reader,
-      @Nullable Class<?> targetClass, boolean[] prefersJavaTime) {
+      @Nullable Class<?> targetClass, PrefersJavaTime prefersJavaTime) {
     this.kind = kind;
     this.value = value;
     this.reader = reader;
@@ -42,10 +41,34 @@ public final class CoercionCase {
     this.prefersJavaTime = prefersJavaTime;
   }
 
+  /**
+   * Builds a case whose {@code prefersJavaTime} flags come from the five low bits of a single byte:
+   * {@code 0x01} date, {@code 0x02} time, {@code 0x04} timetz, {@code 0x08} timestamp, {@code 0x10}
+   * timestamptz. It lets a generated {@code @FuzzTest} draw the whole config axis as one
+   * {@code FuzzedDataProvider} byte and hand it straight here, keeping the generated body to a single
+   * line; pass {@code 0} for the all-false config.
+   *
+   * @param kind the field type descriptor
+   * @param value a value of the field type on the canonical wire
+   * @param reader the SQLInput reader under test
+   * @param targetClass the {@code readObject(Class)} target, or {@code null} for any other reader
+   * @param prefersJavaTime the packed {@code prefersJavaTime} flags (five low bits)
+   */
+  public CoercionCase(ScalarDescriptor kind, Object value, SqlInputReader reader,
+      @Nullable Class<?> targetClass, byte prefersJavaTime) {
+    this(kind, value, reader, targetClass, PrefersJavaTime.builder()
+        .date((prefersJavaTime & 0x01) != 0)
+        .time((prefersJavaTime & 0x02) != 0)
+        .timetz((prefersJavaTime & 0x04) != 0)
+        .timestamp((prefersJavaTime & 0x08) != 0)
+        .timestamptz((prefersJavaTime & 0x10) != 0)
+        .build());
+  }
+
   @Override
   public String toString() {
     return "CoercionCase{oid=" + kind.oid() + ", value=" + value + ", reader="
         + reader + ", targetClass=" + (targetClass == null ? "-" : targetClass.getSimpleName())
-        + ", prefersJavaTime=" + Arrays.toString(prefersJavaTime) + '}';
+        + ", prefersJavaTime=" + prefersJavaTime + '}';
   }
 }

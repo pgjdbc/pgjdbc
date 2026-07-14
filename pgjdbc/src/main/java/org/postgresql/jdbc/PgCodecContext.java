@@ -13,6 +13,7 @@ import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.CodecContextBuilder;
 import org.postgresql.api.codec.CodecLookup;
 import org.postgresql.api.codec.IntervalStyle;
+import org.postgresql.api.codec.PrefersJavaTime;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Encoding;
@@ -863,21 +864,16 @@ public final class PgCodecContext implements CodecContext {
      * Each flag makes {@code decode(..., Object.class)} on that type yield the java.time class rather
      * than the {@code java.sql} one.
      *
-     * @param date true to prefer {@link java.time.LocalDate} for {@code date}
-     * @param time true to prefer {@link java.time.LocalTime} for {@code time}
-     * @param timetz true to prefer {@link java.time.OffsetTime} for {@code timetz}
-     * @param timestamp true to prefer {@link java.time.LocalDateTime} for {@code timestamp}
-     * @param timestamptz true to prefer {@link java.time.OffsetDateTime} for {@code timestamptz}
+     * @param prefers the per-type java.time preferences; build one with {@link PrefersJavaTime#builder()}
      * @return this builder
      */
     @Override
-    public OfflineBuilder prefersJavaTime(boolean date, boolean time, boolean timetz,
-        boolean timestamp, boolean timestamptz) {
-      this.prefersJavaTimeForDate = date;
-      this.prefersJavaTimeForTime = time;
-      this.prefersJavaTimeForTimetz = timetz;
-      this.prefersJavaTimeForTimestamp = timestamp;
-      this.prefersJavaTimeForTimestamptz = timestamptz;
+    public OfflineBuilder prefersJavaTime(PrefersJavaTime prefers) {
+      this.prefersJavaTimeForDate = prefers.forDate();
+      this.prefersJavaTimeForTime = prefers.forTime();
+      this.prefersJavaTimeForTimetz = prefers.forTimetz();
+      this.prefersJavaTimeForTimestamp = prefers.forTimestamp();
+      this.prefersJavaTimeForTimestamptz = prefers.forTimestamptz();
       return this;
     }
 

@@ -5,6 +5,7 @@
 
 package org.postgresql.test.fuzz;
 
+import org.postgresql.api.codec.PrefersJavaTime;
 import org.postgresql.core.Oid;
 import org.postgresql.fuzzkit.CoercionCase;
 import org.postgresql.fuzzkit.CoercionRoundTripCase;
@@ -408,10 +409,13 @@ public final class PgValueArgumentsFactory implements ArgumentsGeneratorFactory 
     int classIndex = env.generate(Generator.integers(0, ReadOracle.TARGET_CLASSES.length - 1));
     Class<?> targetClass =
         reader == SqlInputReader.READ_OBJECT_AS ? ReadOracle.TARGET_CLASSES[classIndex] : null;
-    boolean[] prefs = new boolean[5];
-    for (int i = 0; i < prefs.length; i++) {
-      prefs[i] = env.generate(Generator.booleans());
-    }
+    PrefersJavaTime prefs = PrefersJavaTime.builder()
+        .date(env.generate(Generator.booleans()))
+        .time(env.generate(Generator.booleans()))
+        .timetz(env.generate(Generator.booleans()))
+        .timestamp(env.generate(Generator.booleans()))
+        .timestamptz(env.generate(Generator.booleans()))
+        .build();
     return new CoercionCase(descriptor, value, reader, targetClass, prefs);
   });
 

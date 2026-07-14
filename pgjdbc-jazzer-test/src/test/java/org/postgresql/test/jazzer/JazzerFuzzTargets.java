@@ -7,8 +7,6 @@ package org.postgresql.test.jazzer;
 
 import org.postgresql.core.Oid;
 import org.postgresql.fuzzkit.ScalarDecodeRobustnessModel;
-import org.postgresql.fuzzkit.coercion.PgTypeDescriptors;
-import org.postgresql.fuzzkit.coercion.ScalarDescriptor;
 import org.postgresql.test.data.EdgeCase;
 import org.postgresql.test.data.Int4EdgeCases;
 import org.postgresql.test.data.Int8EdgeCases;
@@ -31,11 +29,13 @@ import java.util.TreeSet;
  * carries a value (a {@code byte[]}, a {@link String}, an {@code int}, or a {@code long}) -- how to derive
  * a representative seed corpus from the shared edge-case catalogues.
  *
- * <p>This registry covers only the hand-written targets: the container decoders, the round-trip targets,
- * and the coercion reader. The uniform scalar decode targets are generated from the codec registry into
- * {@code GeneratedScalarDecodeRobustnessFuzzTest}, and the primitive-capability parity targets into
- * {@code GeneratedPrimitiveCapabilityFuzzTest}; {@link JazzerSeedCorpusGenerator} seeds the scalar family
- * straight from {@link ScalarDecodeRobustnessModel}, so neither generated family is listed or accounted for here.
+ * <p>This registry covers only the hand-written targets: the container decoders and the round-trip
+ * targets. The uniform scalar decode targets are generated from the codec registry into
+ * {@code GeneratedScalarDecodeRobustnessFuzzTest}, the primitive-capability parity targets into
+ * {@code GeneratedPrimitiveCapabilityFuzzTest}, and the coercion-reader matrix per scalar into
+ * {@code Generated<Type>CoercionReaderFuzzTest}; {@link JazzerSeedCorpusGenerator} seeds the scalar family
+ * straight from {@link ScalarDecodeRobustnessModel}, so none of the generated families is listed or
+ * accounted for here.
  *
  * <p>It is the source of truth for two consumers, so the two never drift:
  * <ul>
@@ -47,9 +47,9 @@ import java.util.TreeSet;
  * </ul>
  *
  * <p>Not every target is seedable. The {@link com.code_intelligence.jazzer.api.FuzzedDataProvider}
- * targets (the geometric, {@code json}/{@code jsonb}, {@code bit}/{@code varbit}, {@code interval}, and
- * coercion-reader ones) consume raw libFuzzer bytes through a provider, not a typed argument, so a value
- * cannot be reverse-encoded into a seed file; they carry no seeds here. The array-binary and {@code bytea}
+ * targets (the geometric, {@code json}/{@code jsonb}, {@code bit}/{@code varbit}, and {@code interval}
+ * ones) consume raw libFuzzer bytes through a provider, not a typed argument, so a value cannot be
+ * reverse-encoded into a seed file; they carry no seeds here. The array-binary and {@code bytea}
  * targets are seedable in principle but their edge-case catalogues carry no typed {@link EdgeCase#value()}
  * (they are read-only literals), so a canonical binary wire cannot be encoded from them; they too carry no
  * seeds. Every such omission is intentional and noted on the target below.
@@ -198,10 +198,11 @@ final class JazzerFuzzTargets {
         both(Oid.INT4, Oid.TEXT), JazzerFuzzTargets::noSeeds));
 
     // The uniform scalar decode targets (numeric/int4/text binary and text, and every other built-in
-    // scalar) are generated into GeneratedScalarDecodeRobustnessFuzzTest, and the primitive-capability
-    // parity targets into GeneratedPrimitiveCapabilityFuzzTest; both are seeded directly from their shared
-    // models (the parity ones carry no seed), so neither is registered here. This registry now covers only
-    // the hand-written container, round-trip, and coercion-reader targets.
+    // scalar) are generated into GeneratedScalarDecodeRobustnessFuzzTest, the primitive-capability parity
+    // targets into GeneratedPrimitiveCapabilityFuzzTest, and the coercion-reader matrix per scalar into
+    // Generated<Type>CoercionReaderFuzzTest; the generated families are seeded (or not) from their own
+    // sources, so none is registered here. This registry now covers only the hand-written container and
+    // round-trip targets.
 
     // --- JazzerBinaryContainerDecodeFuzzTest: adversarial container binary wire. ---------------------
     // The container decoders drive their leaf codecs' binary decode. The array/composite edge-case
@@ -229,13 +230,9 @@ final class JazzerFuzzTargets {
     targets.add(new Target(literal, "multirangeLiteral", none(), only(Oid.INT4),
         JazzerFuzzTargets::noSeeds));
 
-    // --- JazzerCoercionReaderFuzzTest: reads every read-populated scalar in both formats. ------------
-    // Its reader axis is PgTypeDescriptors.readScalars(), so it is the coverage source for the temporal
-    // and text scalars (date, time, timetz, timestamp, timestamptz, varchar, bpchar, name) no other
-    // target reaches. It draws its case from a FuzzedDataProvider, so it is not seedable.
-    Set<Integer> readScalarOids = readScalarOids();
-    targets.add(new Target(JazzerCoercionReaderFuzzTest.class, "readerLeaksOnlySqlException",
-        readScalarOids, readScalarOids, JazzerFuzzTargets::noSeeds));
+    // The coercion-reader matrix is generated per scalar into Generated<Type>CoercionReaderFuzzTest (see
+    // CoercionReaderFuzzTestGenerator); like the other generated families it is not registered here, and
+    // its FuzzedDataProvider targets carry no reverse-encoded seed.
 
     return Collections.unmodifiableList(targets);
   }
@@ -254,14 +251,6 @@ final class JazzerFuzzTargets {
 
   private static Set<Integer> none() {
     return Collections.emptySet();
-  }
-
-  private static Set<Integer> readScalarOids() {
-    Set<Integer> out = new TreeSet<>();
-    for (ScalarDescriptor descriptor : PgTypeDescriptors.readScalars()) {
-      out.add(descriptor.oid());
-    }
-    return out;
   }
 
   // --- Seed derivations --------------------------------------------------------------------------

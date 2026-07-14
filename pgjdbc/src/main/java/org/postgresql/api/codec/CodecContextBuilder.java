@@ -85,15 +85,10 @@ public interface CodecContextBuilder {
    * Each flag makes {@code decode(..., Object.class)} on that type yield the java.time class rather
    * than the {@code java.sql} one.
    *
-   * @param date true to prefer {@link java.time.LocalDate} for {@code date}
-   * @param time true to prefer {@link java.time.LocalTime} for {@code time}
-   * @param timetz true to prefer {@link java.time.OffsetTime} for {@code timetz}
-   * @param timestamp true to prefer {@link java.time.LocalDateTime} for {@code timestamp}
-   * @param timestamptz true to prefer {@link java.time.OffsetDateTime} for {@code timestamptz}
+   * @param prefers the per-type java.time preferences; build one with {@link PrefersJavaTime#builder()}
    * @return this builder
    */
-  CodecContextBuilder prefersJavaTime(boolean date, boolean time, boolean timetz,
-      boolean timestamp, boolean timestamptz);
+  CodecContextBuilder prefersJavaTime(PrefersJavaTime prefers);
 
   /**
    * Sets whether numeric getters on a {@code bool} value coerce it to {@code 1}/{@code 0} instead of

@@ -1356,27 +1356,27 @@ public class TimestampUtils {
    */
   public String toStringOffsetTimeBin(byte[] value) throws PSQLException {
     try (ResourceLock ignore = lock.obtain()) {
-      return toStringOffsetTimeBin(usesDouble, value, sbuf);
+      return toStringOffsetTimeBin(usesDouble, value, 0, value.length, sbuf);
     }
   }
 
-  static String toStringOffsetTimeBin(boolean usesDouble, byte[] value,
+  static String toStringOffsetTimeBin(boolean usesDouble, byte[] value, int offset, int length,
       @Nullable StringBuilder out) throws PSQLException {
     // The binary timetz payload carries its own UTC offset, so render it as-is: getString then
     // matches the text format and the server's timetz output. Unlike timestamptz (an instant shown
     // in the session zone), timetz has a fixed offset that must not be shifted away.
     long micros = usesDouble
-        ? (long) (ByteConverter.float8(value, 0) * 1_000_000d)
-        : ByteConverter.int8(value, 0);
+        ? (long) (ByteConverter.float8(value, offset) * 1_000_000d)
+        : ByteConverter.int8(value, offset);
     if (micros == MICROS_PER_DAY) {
       // 24:00:00 has no OffsetTime form, so render it straight from the wire (its offset and all),
       // keeping getString lossless where getObject(OffsetTime) refuses it.
       StringBuilder sb = setupBuffer(out);
       sb.append("24:00:00");
-      appendTimeZone(sb, ZoneOffset.ofTotalSeconds(-ByteConverter.int4(value, 8)));
+      appendTimeZone(sb, ZoneOffset.ofTotalSeconds(-ByteConverter.int4(value, offset + 8)));
       return sb.toString();
     }
-    OffsetTime offsetTimeBin = toOffsetTimeBin(usesDouble, value, 0, value.length);
+    OffsetTime offsetTimeBin = toOffsetTimeBin(usesDouble, value, offset, length);
     return toStringOffsetTime(offsetTimeBin, out);
   }
 
@@ -1420,13 +1420,14 @@ public class TimestampUtils {
    */
   public String toStringOffsetDateTime(byte[] value) throws PSQLException {
     try (ResourceLock ignore = lock.obtain()) {
-      return toStringOffsetDateTimeBin(usesDouble, timeZoneProvider.get(), value, sbuf);
+      return toStringOffsetDateTimeBin(usesDouble, timeZoneProvider.get(), value, 0, value.length,
+          sbuf);
     }
   }
 
   static String toStringOffsetDateTimeBin(boolean usesDouble, TimeZone clientTz, byte[] value,
-      @Nullable StringBuilder out) throws PSQLException {
-    OffsetDateTime offsetDateTime = toOffsetDateTimeBin(usesDouble, value, 0, value.length);
+      int offset, int length, @Nullable StringBuilder out) throws PSQLException {
+    OffsetDateTime offsetDateTime = toOffsetDateTimeBin(usesDouble, value, offset, length);
     return toStringOffsetDateTime(withClientOffsetSameInstant(offsetDateTime, clientTz), out);
   }
 
