@@ -19,10 +19,10 @@ import org.junit.jupiter.api.Test;
 /**
  * Pins the shape of a getter-consistency fuzz failure: it must name the failing type, show the exact
  * input the fuzzer fed (hex wire or escaped text), point at how to reproduce, and keep the original
- * expected/actual as its cause. {@link GetterConsistencyFuzzTest} wraps every finding through these
+ * expected/actual as its cause. {@link JqfGetterConsistencyFuzzTest} wraps every finding through these
  * helpers so a red fuzz run is actionable rather than only naming the disagreeing accessor.
  */
-class GetterConsistencyReproTest {
+class JqfGetterConsistencyReproTest {
 
   private static final PgType FLOAT4 = PgTypeDescriptors.scalar(Oid.FLOAT4).pgType();
 

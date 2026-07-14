@@ -64,7 +64,7 @@ class JazzerScalarCodecFuzzTest {
   // oid8 (PostgreSQL 18+, blind spot Z6): an unsigned 64-bit object identifier, represented by its raw
   // bit pattern (see Oid8Codec). encode/decode are exact inverses over the whole long domain, so the
   // generic byte-for-byte roundTrip oracle applies unmodified -- unlike oid8Parity in
-  // JazzerPrimitiveCapabilityFuzzTest, which independently probes the unsigned text form and so needs
+  // GeneratedPrimitiveCapabilityFuzzTest, which independently probes the unsigned text form and so needs
   // unsignedLongPrimitiveParity instead of longPrimitiveParity. Not a registered descriptor (pinned
   // built-in codec, no coercion row), so the PgType is built inline like the PGobject/geometric scalars
   // below.

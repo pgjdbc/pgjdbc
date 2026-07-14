@@ -5,12 +5,8 @@
 
 package org.postgresql.test.jazzer;
 
-import org.postgresql.api.codec.CodecContext;
-import org.postgresql.core.Oid;
 import org.postgresql.fuzzkit.CodecFuzzSupport;
-import org.postgresql.fuzzkit.coercion.PgTypeDescriptors;
-import org.postgresql.jdbc.OfflineCodecs;
-import org.postgresql.jdbc.PgType;
+import org.postgresql.fuzzkit.ContainerDecodeTypes;
 
 import com.code_intelligence.jazzer.junit.FuzzTest;
 import com.code_intelligence.jazzer.mutation.annotation.NotNull;
@@ -18,12 +14,14 @@ import com.code_intelligence.jazzer.mutation.annotation.NotNull;
 import java.sql.SQLException;
 
 /**
- * The Jazzer port of {@code RawTextLiteralDecodeFuzzTest} in pgjdbc-jqf-test: the same adversarial
- * text-literal decode invariant over the same four targets (int4[], text[], the point composite, and
- * numeric), differing only in how the literal arrives. jqf composes a typed {@link String}; here
- * Jazzer's mutation framework maps a {@code @NotNull String} straight from the {@code @FuzzTest}
- * signature. The oracle is shared -- {@link CodecFuzzSupport#decodeTextExpectingNoLeak} -- so a leak
- * surfaces identically under both front-ends.
+ * The Jazzer port of {@code JqfTextLiteralDecodeFuzzTest} in pgjdbc-jqf-test: the same adversarial
+ * text-literal decode invariant over the container targets (int4[], text[], the point composite, and the
+ * int4range / int4multirange grammars), differing only in how the literal arrives. jqf composes a typed
+ * {@link String}; here Jazzer's mutation framework maps a {@code @NotNull String} straight from the
+ * {@code @FuzzTest} signature. The oracle is shared -- {@link CodecFuzzSupport#decodeTextExpectingNoLeak}
+ * -- so a leak surfaces identically under both front-ends. The scalar text-literal targets (numeric and
+ * the rest) are generated into {@code GeneratedScalarDecodeRobustnessFuzzTest}, so only the container
+ * grammars stay hand-written here; the types come from {@link ContainerDecodeTypes}.
  *
  * <p>The invariant is the weak one this fuzzer targets (blind spot Z3): the text-literal parsers -- the
  * array literal grammar ({@code MultiDimArrayText} over {@code LiteralCursor}), the composite literal
@@ -37,8 +35,8 @@ import java.sql.SQLException;
  * depth, so a pathologically deep {@code {{{{...}}}} } literal can drive a {@link StackOverflowError}.
  * The bounded corpus never reaches that depth; a long guided campaign over the two array targets can. A
  * recursion-depth bound in the parser is a prerequisite for turning the array targets into always-on
- * ones (see FUZZ_ROADMAP.md), the same way {@code numericBinary} in {@code JazzerDecodeRobustnessFuzzTest}
- * carries {@code @Disabled} for finding F3.
+ * ones, the same way {@code numeric_binary} in {@code GeneratedScalarDecodeRobustnessFuzzTest} carries
+ * {@code @Disabled} for finding F3.
  *
  * <p>Run as bounded regression with {@code gradle :pgjdbc-jazzer-test:test}; fuzz one target with
  * {@code gradle :pgjdbc-jazzer-test:test -Pjazzer.fuzz=1 --tests '*compositeLiteral*'}. The array
@@ -46,32 +44,33 @@ import java.sql.SQLException;
  */
 class JazzerTextLiteralDecodeFuzzTest {
 
-  private static final PgType INT4_ARRAY = PgTypeDescriptors.array(Oid.INT4_ARRAY).pgType();
-  private static final PgType TEXT_ARRAY = PgTypeDescriptors.array(Oid.TEXT_ARRAY).pgType();
-  private static final PgType NUMERIC = PgTypeDescriptors.scalar(Oid.NUMERIC).pgType();
-  private static final PgType POINT = PgTypeDescriptors.composite(PgTypeDescriptors.POINT_OID).pgType();
-
-  /** The registered point composite so its {@code (x,y,label)} literal parser resolves offline. */
-  private static final CodecContext POINT_CONTEXT =
-      OfflineCodecs.builder().type(POINT).build();
-
   @FuzzTest
   void int4ArrayLiteral(@NotNull String literal) throws SQLException {
-    CodecFuzzSupport.decodeTextExpectingNoLeak(literal, INT4_ARRAY, CodecFuzzSupport.builtins());
+    CodecFuzzSupport.decodeTextExpectingNoLeak(literal, ContainerDecodeTypes.INT4_ARRAY,
+        CodecFuzzSupport.builtins());
   }
 
   @FuzzTest
   void textArrayLiteral(@NotNull String literal) throws SQLException {
-    CodecFuzzSupport.decodeTextExpectingNoLeak(literal, TEXT_ARRAY, CodecFuzzSupport.builtins());
+    CodecFuzzSupport.decodeTextExpectingNoLeak(literal, ContainerDecodeTypes.TEXT_ARRAY,
+        CodecFuzzSupport.builtins());
   }
 
   @FuzzTest
   void compositeLiteral(@NotNull String literal) throws SQLException {
-    CodecFuzzSupport.decodeTextExpectingNoLeak(literal, POINT, POINT_CONTEXT);
+    CodecFuzzSupport.decodeTextExpectingNoLeak(literal, ContainerDecodeTypes.POINT,
+        ContainerDecodeTypes.POINT_CONTEXT);
   }
 
   @FuzzTest
-  void numericLiteral(@NotNull String literal) throws SQLException {
-    CodecFuzzSupport.decodeTextExpectingNoLeak(literal, NUMERIC, CodecFuzzSupport.builtins());
+  void rangeLiteral(@NotNull String literal) throws SQLException {
+    CodecFuzzSupport.decodeTextExpectingNoLeak(literal, ContainerDecodeTypes.INT4RANGE,
+        ContainerDecodeTypes.INT4RANGE_CONTEXT);
+  }
+
+  @FuzzTest
+  void multirangeLiteral(@NotNull String literal) throws SQLException {
+    CodecFuzzSupport.decodeTextExpectingNoLeak(literal, ContainerDecodeTypes.INT4MULTIRANGE,
+        ContainerDecodeTypes.INT4MULTIRANGE_CONTEXT);
   }
 }

@@ -1974,19 +1974,22 @@ public final class CodecFuzzSupport {
    */
   public static void decodeTextExpectingNoLeak(String literal, PgType type, CodecContext ctx) {
     RawValue raw = RawValue.text(literal.getBytes(StandardCharsets.UTF_8));
+    @Nullable Object decoded;
     try {
-      Codecs.decode(raw, type, ctx, Object.class);
+      decoded = Codecs.decode(raw, type, ctx, Object.class);
     } catch (SQLException refused) {
       // Expected: a malformed literal refuses per value.
+      return;
     } catch (RuntimeException leak) {
       throw new AssertionError("text decode of t" + type.getOid() + " leaked "
           + leak.getClass().getName() + " (expected only SQLException) on literal "
           + quoteLiteral(literal), leak);
     }
+    reencodeExpectingNoLeak(decoded, type, ctx, Format.TEXT);
   }
 
   /**
-   * The weak decode-robustness invariant for adversarial binary wire, the binary sibling of
+   * The decode-robustness invariant for adversarial binary wire, the binary sibling of
    * {@link #decodeTextExpectingNoLeak}: decodes {@code data} as {@code type} in the binary format and
    * asserts the decoder either returns a value or refuses with a clean {@link SQLException}. It must
    * never leak an unchecked {@link RuntimeException}.
@@ -2007,20 +2010,245 @@ public final class CodecFuzzSupport {
    * robustness gap for the campaign to report, not a per-value contract breach for this oracle to
    * translate.
    *
+   * <p>This decodes the whole array from offset 0. The offset-aware sibling
+   * {@link #decodeBinarySliceExpectingNoLeak} fuzzes the {@code byte[] + off + len} path independently, so
+   * the two decode arithmetics stay separate targets rather than being conflated here.
+   *
    * @param data the arbitrary bytes to decode as a binary wire value
    * @param type the backend type to decode the bytes as
    * @param ctx the offline codec context, which must resolve {@code type}
    */
   public static void decodeBinaryExpectingNoLeak(byte[] data, PgType type, CodecContext ctx) {
+    @Nullable Object decoded;
     try {
-      Codecs.decode(RawValue.binary(data), type, ctx, Object.class);
+      decoded = Codecs.decode(RawValue.binary(data), type, ctx, Object.class);
     } catch (SQLException refused) {
       // Expected: malformed bytes refuse per value.
+      return;
     } catch (RuntimeException leak) {
       throw new AssertionError("binary decode of t" + type.getOid() + " leaked "
           + leak.getClass().getName() + " (expected only SQLException) on bytes "
           + hexPrefix(data), leak);
     }
+    reencodeExpectingNoLeak(decoded, type, ctx, Format.BINARY);
+  }
+
+  /**
+   * The offset-aware sibling of {@link #decodeBinaryExpectingNoLeak}: the same no-leak invariant, but the
+   * decode runs from a non-zero offset in a canary buffer with no trailing slack, so it exercises the
+   * {@code byte[] + off + len} path independently of the whole-array path.
+   *
+   * <p>The bytes sit flush against the end of {@code [0xFF, 0xFF, 0xFF] ++ data}, decoded at offset 3 with
+   * length {@code data.length}, so {@code offset + length == buffer.length}. This has two effects. First,
+   * it exercises the decoders' offset arithmetic -- a codec that ignores the value offset reads the
+   * {@code 0xFF} canary instead of the value. Second, it leaves no trailing bytes for an over-read to land
+   * in, so a read past the value's end runs off the array end and surfaces as the
+   * {@link ArrayIndexOutOfBoundsException} this method already converts to an {@link AssertionError}.
+   *
+   * @param data the arbitrary bytes to decode as a binary wire value, placed at a non-zero offset
+   * @param type the backend type to decode the bytes as
+   * @param ctx the offline codec context, which must resolve {@code type}
+   */
+  public static void decodeBinarySliceExpectingNoLeak(byte[] data, PgType type, CodecContext ctx) {
+    byte[] buffer = new byte[BINARY_CANARY.length + data.length];
+    System.arraycopy(BINARY_CANARY, 0, buffer, 0, BINARY_CANARY.length);
+    System.arraycopy(data, 0, buffer, BINARY_CANARY.length, data.length);
+    @Nullable Object decoded;
+    try {
+      decoded = Codecs.decode(RawValue.of(Format.BINARY, buffer, BINARY_CANARY.length, data.length),
+          type, ctx, Object.class);
+    } catch (SQLException refused) {
+      // Expected: malformed bytes refuse per value.
+      return;
+    } catch (RuntimeException leak) {
+      throw new AssertionError("binary slice decode of t" + type.getOid() + " leaked "
+          + leak.getClass().getName() + " (expected only SQLException) on bytes "
+          + hexPrefix(data), leak);
+    }
+    reencodeExpectingNoLeak(decoded, type, ctx, Format.BINARY);
+  }
+
+  // Leading canary bytes prepended to the value in decodeBinarySliceExpectingNoLeak so the decode runs
+  // from a non-zero offset; 0xFF (not 0x00) so a codec that mistakenly reads from index 0 sees a non-zero
+  // byte rather than a benign zero.
+  private static final byte[] BINARY_CANARY = {(byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
+
+  // --- Idempotence partition: which scalar decodes round-trip their value exactly -----------------
+
+  // Scalar OIDs whose value survives a decode/encode round-trip exactly, so after a successful decode the
+  // idempotence invariant decode(encode(decode(b))) == decode(b) holds and is asserted. Fixed-width or
+  // whole-buffer decoders with no scale, precision or sub-second normalisation. Shared by both fuzz engines
+  // (Jazzer and JQF) so their raw-bytes decode fuzzers agree on which types carry the stronger invariant.
+  private static final Set<Integer> IDEMPOTENT_SCALAR_OIDS = Collections.unmodifiableSet(
+      new LinkedHashSet<>(Arrays.asList(Oid.INT2, Oid.INT4, Oid.INT8, Oid.OID, Oid.OID8, Oid.XID8,
+          Oid.BOOL, Oid.BYTEA, Oid.TEXT, Oid.VARCHAR, Oid.BPCHAR, Oid.NAME, Oid.UUID)));
+
+  // Scalar OIDs swept under the no-leak invariant only: decode is bounded and safe, but re-encode may
+  // normalise the value (floats to their shortest form, temporal drops sub-second precision, numeric
+  // rescales), so idempotence does not hold for a value reached from arbitrary bytes.
+  private static final Set<Integer> NO_LEAK_SCALAR_OIDS = Collections.unmodifiableSet(
+      new LinkedHashSet<>(Arrays.asList(Oid.FLOAT4, Oid.FLOAT8, Oid.DATE, Oid.TIME, Oid.TIMETZ,
+          Oid.TIMESTAMP, Oid.TIMESTAMPTZ, Oid.INTERVAL, Oid.JSON, Oid.JSONB, Oid.NUMERIC, Oid.BIT,
+          Oid.VARBIT)));
+
+  private static final List<Integer> SCALAR_ROBUSTNESS_OIDS = concatScalarRobustnessOids();
+
+  private static List<Integer> concatScalarRobustnessOids() {
+    List<Integer> all = new ArrayList<>(IDEMPOTENT_SCALAR_OIDS);
+    all.addAll(NO_LEAK_SCALAR_OIDS);
+    return Collections.unmodifiableList(all);
+  }
+
+  /**
+   * The scalar OIDs the raw-bytes decode fuzzers sweep: the idempotent set followed by the no-leak set. A
+   * fuzzer that drives arbitrary bytes through every scalar decode (for example {@code
+   * RawScalarDecodeFuzzTest}, or a generated per-OID equivalent) enumerates this surface, so both engines
+   * exercise the same types under the same partition.
+   *
+   * @return the scalar OIDs to sweep, in a stable order
+   */
+  public static List<Integer> scalarRobustnessOids() {
+    return SCALAR_ROBUSTNESS_OIDS;
+  }
+
+  /**
+   * Whether {@code oid}'s scalar decode is idempotent: re-encoding the decoded value and decoding again
+   * reproduces it exactly. True for the fixed-width and whole-buffer scalars; false for the normalising ones
+   * (float, temporal, numeric, bit) and for any OID outside the swept scalar surface.
+   *
+   * @param oid the scalar type OID
+   * @return {@code true} if the decode/encode round-trip preserves the value
+   */
+  public static boolean isIdempotentScalar(int oid) {
+    return IDEMPOTENT_SCALAR_OIDS.contains(oid);
+  }
+
+  /**
+   * The re-encode leg of the decode-robustness invariant, one wire format. A value a codec just produced
+   * from (adversarial) wire must re-encode in {@code format} without leaking an unchecked exception; a clean
+   * {@link SQLException} is allowed (a value recovered from arbitrary bytes can sit outside the encodable
+   * domain) and re-encoding is then vacuous. When the scalar is idempotent ({@link #isIdempotentScalar}) the
+   * stronger invariant also applies: decoding the re-encoded bytes must reproduce the original value -- a
+   * codec cannot decode one thing and re-encode another. Re-encoded bytes are otherwise NOT compared to the
+   * input, since many valid wires are non-canonical.
+   *
+   * <p>Reaches a gap the round-trip fuzzers, seeded by generated <em>values</em>, never do: they only feed
+   * the encoder a value they generated, not one recovered from hostile bytes. A no-op for a {@code null}
+   * decode result.
+   *
+   * @param decoded the value the decoder returned, or {@code null}
+   * @param type the backend type whose codec produced {@code decoded}
+   * @param ctx the offline codec context, which must resolve {@code type}
+   * @param format the wire format {@code decoded} was decoded from, and the one it must re-encode to
+   */
+  private static void reencodeExpectingNoLeak(@Nullable Object decoded, PgType type, CodecContext ctx,
+      Format format) {
+    if (decoded == null) {
+      return;
+    }
+    RawValue reencoded;
+    try {
+      reencoded = Codecs.encode(decoded, type, ctx, format);
+    } catch (SQLException cannotReencode) {
+      // Vacuous: the decoded value has no wire form in this format, or the codec cannot write it.
+      return;
+    } catch (RuntimeException leak) {
+      throw new AssertionError("re-encode " + format + " of t" + type.getOid() + " leaked "
+          + leak.getClass().getName() + " (expected only SQLException) on a decoded "
+          + decoded.getClass().getSimpleName(), leak);
+    }
+    if (!isIdempotentScalar(type.getOid())) {
+      return;
+    }
+    Object second;
+    try {
+      second = Codecs.decode(reencoded, type, ctx, Object.class);
+    } catch (SQLException refused) {
+      throw new AssertionError("decode(encode(decode(b))) refused on t" + type.getOid() + " " + format
+          + " though decode(b) returned " + describeValue(decoded), refused);
+    }
+    if (!valueEquals(decoded, second)) {
+      throw new AssertionError("decode not idempotent on t" + type.getOid() + " " + format
+          + ": decode(b)=" + describeValue(decoded) + " but decode(encode(decode(b)))="
+          + describeValue(second));
+    }
+  }
+
+  private static boolean valueEquals(@Nullable Object a, @Nullable Object b) {
+    if (a instanceof byte[] && b instanceof byte[]) {
+      return Arrays.equals((byte[]) a, (byte[]) b);
+    }
+    if (a instanceof BigDecimal && b instanceof BigDecimal) {
+      // Compare by value: re-encoding may normalise the scale (1E+2 vs 100) without losing the value.
+      return ((BigDecimal) a).compareTo((BigDecimal) b) == 0;
+    }
+    return a == null ? b == null : a.equals(b);
+  }
+
+  private static String describeValue(@Nullable Object v) {
+    return v instanceof byte[] ? Arrays.toString((byte[]) v) : String.valueOf(v);
+  }
+
+  /**
+   * A scalar-by-OID convenience over {@link #decodeBinaryExpectingNoLeak}: builds the offline scalar
+   * {@link PgType} and built-in context for {@code oid}, so a generated target need not construct either.
+   * The type name is cosmetic -- resolution runs off the pinned OID -- so a synthetic {@code "t" + oid} is
+   * used.
+   *
+   * @param data the arbitrary bytes to decode as a binary wire value
+   * @param oid the pinned built-in scalar OID to decode the bytes as
+   */
+  public static void decodeScalarBinaryExpectingNoLeak(byte[] data, int oid) {
+    decodeBinaryExpectingNoLeak(data, scalar(oid, "t" + oid, 'X'), builtins());
+  }
+
+  /**
+   * A scalar-by-OID convenience over {@link #decodeBinarySliceExpectingNoLeak}: the offset-aware sibling of
+   * {@link #decodeScalarBinaryExpectingNoLeak}, building the same offline scalar type and context.
+   *
+   * @param data the arbitrary bytes to decode as a binary wire value, placed at a non-zero offset
+   * @param oid the pinned built-in scalar OID to decode the bytes as
+   */
+  public static void decodeScalarBinarySliceExpectingNoLeak(byte[] data, int oid) {
+    decodeBinarySliceExpectingNoLeak(data, scalar(oid, "t" + oid, 'X'), builtins());
+  }
+
+  /**
+   * A scalar-by-OID convenience over {@link #decodeTextExpectingNoLeak}: builds the offline scalar
+   * {@link PgType} and built-in context for {@code oid}, so a generated target need not construct either.
+   *
+   * @param literal the arbitrary literal to decode as a text wire value
+   * @param oid the pinned built-in scalar OID to decode the literal as
+   */
+  public static void decodeScalarTextExpectingNoLeak(String literal, int oid) {
+    decodeTextExpectingNoLeak(literal, scalar(oid, "t" + oid, 'X'), builtins());
+  }
+
+  /**
+   * A scalar-by-OID convenience that drives raw bytes through the text decode path, as opposed to
+   * {@link #decodeScalarTextExpectingNoLeak}, which takes an already-decoded {@link String}. Feeding
+   * arbitrary bytes as the text wire reaches decoders on inputs a valid-UTF-8 {@code String} generator never
+   * produces (a byte-oriented engine such as JQF's raw-bytes fuzzer uses this). Follows the same contract:
+   * the decode returns a value or refuses with a clean {@link SQLException}, never an unchecked leak, and a
+   * returned value is put through {@link #reencodeExpectingNoLeak}.
+   *
+   * @param textBytes the arbitrary bytes to decode as a text wire value
+   * @param oid the pinned built-in scalar OID to decode the bytes as
+   */
+  public static void decodeScalarTextBytesExpectingNoLeak(byte[] textBytes, int oid) {
+    PgType type = scalar(oid, "t" + oid, 'X');
+    CodecContext ctx = builtins();
+    @Nullable Object decoded;
+    try {
+      decoded = Codecs.decode(RawValue.text(textBytes), type, ctx, Object.class);
+    } catch (SQLException refused) {
+      // Expected: malformed bytes refuse per value.
+      return;
+    } catch (RuntimeException leak) {
+      throw new AssertionError("text-bytes decode of t" + oid + " leaked " + leak.getClass().getName()
+          + " (expected only SQLException) on bytes " + hexPrefix(textBytes), leak);
+    }
+    reencodeExpectingNoLeak(decoded, type, ctx, Format.TEXT);
   }
 
   private static String quoteLiteral(String s) {

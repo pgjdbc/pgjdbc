@@ -16,8 +16,6 @@ repositories {
     mavenLocal()
 }
 
-val jqfVersion = "2.2-SNAPSHOT"
-
 // https://github.com/gradle/gradle/pull/16627
 private inline fun <reified T : Named> AttributeContainer.attribute(attr: Attribute<T>, value: String) =
     attribute(attr, objects.named<T>(value))
@@ -47,15 +45,8 @@ dependencies {
         }
     }
 
-    // The fuzzer-independent core: the coercion dictionaries and the offline codec oracles this
-    // module's jetCheck generators and @FuzzTest targets assert against. Shared with pgjdbc-jazzer-test.
-    testImplementation(projects.pgjdbcFuzzkit)
-    // The jetCheck generators annotate nullable draws with @Nullable.
-    testImplementation("org.checkerframework:checker-qual:3.55.1")
-
-    // The shaded driver jar exposes the org.postgresql.api.codec surface plus the offline
-    // PgCodecContext/PgType/PgStruct classes the fuzz target drives without a connection.
-    testImplementation(projects.postgresql) {
+    implementation(projects.pgjdbcFuzzkit)
+    implementation(projects.postgresql) {
         attributes {
             attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.SHADOWED))
         }
@@ -64,10 +55,10 @@ dependencies {
     // JQF: the JUnit 5 @FuzzTest engine and the jetCheck-backed argument generator.
     // jqf-generator-jetcheck is discovered through the ServiceLoader, so the auto-provider
     // tests need no further wiring.
-    testImplementation("edu.berkeley.cs.jqf:jqf-junit5:$jqfVersion")
-    testImplementation("edu.berkeley.cs.jqf:jqf-generator-jetcheck:$jqfVersion")
+    testImplementation("edu.berkeley.cs.jqf:jqf-junit5:2.2-SNAPSHOT")
+    testImplementation("edu.berkeley.cs.jqf:jqf-generator-jetcheck:2.2-SNAPSHOT")
 
-    jqfInstrumentAgent("edu.berkeley.cs.jqf:jqf-instrument:$jqfVersion")
+    jqfInstrumentAgent("edu.berkeley.cs.jqf:jqf-instrument:2.2-SNAPSHOT")
 
     // The differential value fuzzer reuses the compat oracle core (probe + comparator + isolated
     // baseline loader) and TestUtil for the connection settings.
@@ -85,6 +76,35 @@ val legacyDriverClasspath = configurations.resolvable("legacyDriverClasspath") {
 
 dependencies {
     legacyDriver(libs.pgjdbc.compat.baseline)
+}
+
+val generatedFuzzTargetsDir = layout.buildDirectory.dir("generated/sources/fuzzTargets/java")
+val generateJqfFuzzTargets = tasks.register<JavaExec>("generateJqfFuzzTargets") {
+    description = "Generates the module's @FuzzTest source families from the shared fuzzkit models."
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    // The compiled main classes plus the runtime dependencies (the codec registry). Deliberately the
+    // classes directories only, not the full main output: the output also carries the Jandex-indexed
+    // resources, and depending on those would tie generation to processJandexIndex for no benefit.
+    classpath(sourceSets.main.map { it.output.classesDirs }, configurations.runtimeClasspath)
+    mainClass.set("org.postgresql.test.fuzz.FuzzTargetGenerator")
+    argumentProviders.add(CommandLineArgumentProvider {
+        listOf(generatedFuzzTargetsDir.get().asFile.absolutePath)
+    })
+    // Deliberately no declared outputs: a declared output directory makes Gradle flag an implicit dependency
+    // for every Autostyle formatter that globs the project tree. Generation is cheap and deterministic
+    // (identical bytes on a rerun), so it simply runs each time rather than carrying up-to-date state.
+}
+
+sourceSets.test {
+    java.srcDir(generatedFuzzTargetsDir)
+}
+
+tasks.compileTestJava {
+    dependsOn(generateJqfFuzzTargets)
+}
+
+tasks.withType<Checkstyle>().configureEach {
+    exclude("**/Generated*FuzzTest.java")
 }
 
 tasks.test {

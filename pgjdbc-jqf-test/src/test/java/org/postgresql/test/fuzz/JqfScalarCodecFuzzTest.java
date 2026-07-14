@@ -35,7 +35,7 @@ import java.time.OffsetTime;
  * <p>Run as bounded regression with {@code gradle :pgjdbc-jqf-test:test}; fuzz with
  * {@code -Djqf.fuzz=true -Djqf.fuzz.trials=10000}.
  */
-class ScalarCodecFuzzTest {
+class JqfScalarCodecFuzzTest {
 
   @FuzzTest
   void int2RoundTrip(short value) throws SQLException {
@@ -58,7 +58,7 @@ class ScalarCodecFuzzTest {
   // oid8 (PostgreSQL 18+, blind spot Z6): an unsigned 64-bit object identifier, represented by its raw
   // bit pattern (see Oid8Codec). encode/decode are exact inverses over the whole long domain, so the
   // generic byte-for-byte roundTrip oracle applies unmodified -- unlike oid8Parity in
-  // PrimitiveCapabilityFuzzTest, which independently probes the unsigned text form and so needs
+  // GeneratedPrimitiveCapabilityFuzzTest, which independently probes the unsigned text form and so needs
   // unsignedLongPrimitiveParity instead of longPrimitiveParity. Not a registered descriptor (pinned
   // built-in codec, no coercion row), so the PgType is built inline like the PGobject/geometric scalars
   // below.

@@ -26,7 +26,7 @@ import java.sql.SQLException;
  * <p>Run as bounded regression with {@code gradle :pgjdbc-jqf-test:test}; fuzz with
  * {@code -Djqf.fuzz=true -Djqf.fuzz.trials=10000}.
  */
-class StructuralCodecFuzzTest {
+class JqfStructuralCodecFuzzTest {
 
   @FuzzTest(arguments = PgValueArgumentsFactory.class)
   void arrayRoundTrip(FuzzArray array) throws SQLException {

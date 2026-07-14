@@ -30,7 +30,7 @@ import java.sql.SQLException;
  * <p>Run as bounded regression with {@code gradle :pgjdbc-jqf-test:test}; fuzz with
  * {@code -Djqf.fuzz=true -Djqf.fuzz.trials=100000}.
  */
-class GetterConsistencyFuzzTest {
+class JqfGetterConsistencyFuzzTest {
 
   @FuzzTest(arguments = PgValueArgumentsFactory.class)
   void binary(byte[] wire) throws SQLException {

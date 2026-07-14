@@ -26,7 +26,7 @@ import java.sql.SQLException;
  * <p>Run as bounded regression with {@code gradle :pgjdbc-jqf-test:test}; fuzz with
  * {@code -Djqf.fuzz=true -Djqf.fuzz.trials=10000}.
  */
-class CrossFormatCodecFuzzTest {
+class JqfCrossFormatCodecFuzzTest {
 
   @FuzzTest
   void int4CrossFormat(int value) throws SQLException {

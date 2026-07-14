@@ -86,7 +86,7 @@ class GetterConsistencyEdgeCaseTest {
    * purpose. {@code oid8}/{@code xid8} are 64-bit identifier types with no rounding edges worth pinning;
    * {@code varchar}/{@code bpchar}/{@code name} decode identically to {@code text} (already covered) and
    * carry no distinct boundary literals; the Fallback probe is a synthetic unknown type, not a real
-   * catalogued type. All stay exercised by {@code GetterConsistencyFuzzTest}.
+   * catalogued type. All stay exercised by {@code JqfGetterConsistencyFuzzTest}.
    */
   private static final Set<Integer> FUZZER_ONLY = new TreeSet<>(Arrays.asList(
       Oid.OID8, Oid.XID8, Oid.VARCHAR, Oid.BPCHAR, Oid.NAME, CodecFuzzSupport.FALLBACK_PROBE_OID));
@@ -130,7 +130,7 @@ class GetterConsistencyEdgeCaseTest {
 
   /**
    * The deterministic edge-case coverage must not silently fall behind the fuzzer. {@code
-   * GetterConsistencyFuzzTest} drives every primitive-decoder type the registry pins (via {@link
+   * JqfGetterConsistencyFuzzTest} drives every primitive-decoder type the registry pins (via {@link
    * CodecFuzzSupport#primitiveDecoderTypes()}); this guard fails when such a type is neither driven here
    * by an edge-case catalogue nor acknowledged as fuzzer-only in {@link #FUZZER_ONLY}, so a newly pinned
    * primitive-decoder codec forces a conscious choice rather than slipping through. It mirrors {@code

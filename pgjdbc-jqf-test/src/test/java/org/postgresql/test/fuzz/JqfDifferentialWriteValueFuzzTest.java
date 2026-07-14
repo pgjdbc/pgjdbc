@@ -52,7 +52,7 @@ import java.util.Properties;
  * <p>Run as bounded regression with {@code gradle -PpgjdbcJqf :pgjdbc-jqf-test:test}; fuzz with
  * {@code -Djqf.fuzz=true -Djqf.fuzz.trials=20000}.
  */
-class DifferentialWriteValueFuzzTest {
+class JqfDifferentialWriteValueFuzzTest {
   private static @Nullable LegacyDriverLoader baselineLoader;
   private static @Nullable Connection current;
   private static @Nullable Connection baseline;

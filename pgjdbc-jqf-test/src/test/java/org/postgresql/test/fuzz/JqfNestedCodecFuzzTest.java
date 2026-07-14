@@ -22,7 +22,7 @@ import java.sql.SQLException;
  * <p>Run as bounded regression with {@code gradle :pgjdbc-jqf-test:test}; fuzz with
  * {@code -Djqf.fuzz=true -Djqf.fuzz.trials=10000}.
  */
-class NestedCodecFuzzTest {
+class JqfNestedCodecFuzzTest {
 
   @FuzzTest(arguments = PgValueArgumentsFactory.class)
   void structRoundTrip(FuzzNode struct) throws SQLException {

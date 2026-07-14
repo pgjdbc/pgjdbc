@@ -32,7 +32,7 @@ import java.util.TimeZone;
 
 /**
  * Hand-picked round-trip examples, run as plain {@code @Test}s rather than through the fuzzed matrix of
- * {@link CoercionRoundTripFuzzTest}. Useful for pinning a specific scenario or reproducing a case.
+ * {@link JqfCoercionRoundTripFuzzTest}. Useful for pinning a specific scenario or reproducing a case.
  */
 class CoercionRoundTripExampleTest {
 

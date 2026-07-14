@@ -23,7 +23,7 @@ import java.sql.SQLException;
  * <p>Run as bounded regression with {@code gradle :pgjdbc-jqf-test:test}; fuzz with
  * {@code -Djqf.fuzz=true -Djqf.fuzz.trials=20000}.
  */
-class CoercionReaderFuzzTest {
+class JqfCoercionReaderFuzzTest {
 
   @FuzzTest(arguments = PgValueArgumentsFactory.class)
   void readerLeaksOnlySqlException(CoercionCase coercion) throws SQLException {

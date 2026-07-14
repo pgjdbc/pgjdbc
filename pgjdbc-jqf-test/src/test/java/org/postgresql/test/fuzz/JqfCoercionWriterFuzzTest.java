@@ -13,7 +13,7 @@ import edu.berkeley.cs.jqf.junit5.FuzzTest;
 import java.sql.SQLException;
 
 /**
- * Coverage-guided SQLData write coercion property, the mirror of {@link CoercionReaderFuzzTest}. It
+ * Coverage-guided SQLData write coercion property, the mirror of {@link JqfCoercionReaderFuzzTest}. It
  * fuzzes the whole write matrix -- attribute type × {@link java.sql.SQLOutput} writer × value × wire
  * format -- and asserts each encode outcome against the {@link org.postgresql.fuzzkit.coercion.WriteCoercions}
  * registry: a writer either encodes the value or refuses with the registry's {@code SQLState}; it must
@@ -23,7 +23,7 @@ import java.sql.SQLException;
  * <p>Run as bounded regression with {@code gradle :pgjdbc-jqf-test:test}; fuzz with
  * {@code -Djqf.fuzz=true -Djqf.fuzz.trials=20000}.
  */
-class CoercionWriterFuzzTest {
+class JqfCoercionWriterFuzzTest {
 
   @FuzzTest(arguments = PgValueArgumentsFactory.class)
   void writerLeaksOnlySqlException(CoercionWriteCase coercion) throws SQLException {

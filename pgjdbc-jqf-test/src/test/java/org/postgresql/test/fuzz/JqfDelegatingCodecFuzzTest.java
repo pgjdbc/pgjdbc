@@ -30,7 +30,7 @@ import java.sql.SQLException;
  * arguments factory is needed. Run as bounded regression with {@code gradle :pgjdbc-jqf-test:test};
  * fuzz with {@code -Djqf.fuzz=true -Djqf.fuzz.trials=10000}.
  */
-class DelegatingCodecFuzzTest {
+class JqfDelegatingCodecFuzzTest {
 
   // Built-in range and multirange OIDs (pg_type). Offline codec resolution keys on typtype and the
   // type name alias, so these travel with the type name into the synthetic PgType.
