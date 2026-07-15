@@ -33,4 +33,16 @@ public interface PGField {
    * @return the type OID
    */
   int getTypeOid();
+
+  /**
+   * Returns the attribute's type modifier ({@code pg_attribute.atttypmod}), for example the precision
+   * and scale of a {@code numeric(10,2)} field. A codec stamps this onto the field's descriptor
+   * ({@code ctx.resolveType(getTypeOid(), getTypmod())}) so a modifier-sensitive field decodes
+   * correctly. The default is {@code -1}, meaning no modifier applies.
+   *
+   * @return the attribute type modifier, or {@code -1} when none applies
+   */
+  default int getTypmod() {
+    return -1;
+  }
 }

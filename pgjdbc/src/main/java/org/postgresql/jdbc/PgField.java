@@ -68,6 +68,7 @@ public final class PgField implements PGField {
    *
    * @return the type modifier, or -1 if not applicable
    */
+  @Override
   public int getTypmod() {
     return typmod;
   }

@@ -89,8 +89,9 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     PgCodecContext impl = impl(ctx);
     if (impl.isConnectionBound()) {
       byte[] data = offset == 0 && length == buf.length ? buf : Arrays.copyOfRange(buf, offset, offset + length);
-      // Lazy PgArray over the binary payload; elements decode on access through the connection.
-      return new PgArray(impl.getConnection(), type.getOid(), data);
+      // Lazy PgArray over the binary payload; elements decode on access through the connection. The
+      // array modifier travels with it so a numeric(p,s)[] element decodes to its declared scale.
+      return new PgArray(impl.getConnection(), type.getOid(), type.getTypmod(), data);
     }
     // Offline: no connection to back a lazy java.sql.Array, so decode eagerly to a Java array.
     return decodeBinaryArray(buf, offset, length, type, ctx);
@@ -239,7 +240,10 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     if (leafComponentType == Object.class || leafComponentType.isPrimitive()) {
       return null;
     }
-    TypeDescriptor elementType = ctx.resolveType(arrayType.getTypelem());
+    // Stamp the array modifier onto the element as the generic walker does, so the codec honours the
+    // descriptor's typmod uniformly across every typed target (String[], CustomDto[], ...), not only
+    // the default-component target that falls through to decodeBinaryArray.
+    TypeDescriptor elementType = ctx.resolveType(arrayType.getTypelem(), arrayType.getTypmod());
     Codec elementCodec = ctx.resolveCodec(arrayType.getTypelem());
     Class<?> defaultComponent;
     if (fastLeaf != null) {
@@ -258,8 +262,9 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     PgCodecContext impl = impl(ctx);
     if (impl.isConnectionBound()) {
-      // Lazy PgArray over the text literal; elements decode on access through the connection.
-      return new PgArray(impl.getConnection(), type.getOid(), data);
+      // Lazy PgArray over the text literal; elements decode on access through the connection. The
+      // array modifier travels with it so a numeric(p,s)[] element decodes to its declared scale.
+      return new PgArray(impl.getConnection(), type.getOid(), type.getTypmod(), data);
     }
     // Offline: no connection to back a lazy java.sql.Array, so decode eagerly to a Java array.
     return decodeTextArray(data, type, ctx);
@@ -478,7 +483,8 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     if (fast != null) {
       return MultiDimArrayBinary.decode(data, offset, length, fast.getBoxedComponentType(), ctx, fast);
     }
-    TypeDescriptor elementType = ctx.resolveType(arrayType.getTypelem());
+    // The array modifier is the element modifier (numeric(p,s)[] pins the scale on each element).
+    TypeDescriptor elementType = ctx.resolveType(arrayType.getTypelem(), arrayType.getTypmod());
     Codec elementCodec = ctx.resolveCodec(arrayType.getTypelem());
     Class<?> componentType = genericComponentType(elementType, elementCodec);
     Class<?> componentType1 = componentType != null ? componentType : Object.class;
@@ -502,7 +508,8 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
       return MultiDimArrayText.decode(data, fast.getBoxedComponentType(),
           arrayType.getDelimiter(), ctx, fast);
     }
-    TypeDescriptor elementType = ctx.resolveType(arrayType.getTypelem());
+    // The array modifier is the element modifier (numeric(p,s)[] pins the scale on each element).
+    TypeDescriptor elementType = ctx.resolveType(arrayType.getTypelem(), arrayType.getTypmod());
     Codec elementCodec = ctx.resolveCodec(arrayType.getTypelem());
     Class<?> componentType = genericComponentType(elementType, elementCodec);
     Class<?> componentType1 = componentType != null ? componentType : Object.class;
@@ -611,7 +618,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
       // read the slice for the duration of this call — it needs its own copy whenever buf is a larger
       // shared buffer that may be reused or overwritten afterwards.
       byte[] data = offset == 0 && length == buf.length ? buf : Arrays.copyOfRange(buf, offset, offset + length);
-      return (T) new PgArray(impl(ctx).requireConnection(type), type.getOid(), data);
+      return (T) new PgArray(impl(ctx).requireConnection(type), type.getOid(), type.getTypmod(), data);
     }
     if (targetClass.isArray()) {
       Class<?> leafComponentType = MultiDimArraySupport.leafComponentType(targetClass);
@@ -660,7 +667,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     }
     if (targetClass == Array.class || targetClass == PgArray.class) {
       // A java.sql.Array is connection-bound (lazy getResultSet); offline cannot back one.
-      return (T) new PgArray(impl(ctx).requireConnection(type), type.getOid(), data);
+      return (T) new PgArray(impl(ctx).requireConnection(type), type.getOid(), type.getTypmod(), data);
     }
     if (targetClass.isArray()) {
       Class<?> leafComponentType = MultiDimArraySupport.leafComponentType(targetClass);

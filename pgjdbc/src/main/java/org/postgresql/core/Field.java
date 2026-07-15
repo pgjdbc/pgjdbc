@@ -44,6 +44,9 @@ public class Field {
   private @Nullable FieldMetadata metadata;
 
   private @Nullable PgType pgType;
+  // pgType stamped with this column's mod (getMod), so a codec can decode a modifier-sensitive type
+  // such as numeric(10,2); equals pgType itself when mod is -1. Lazily built, mirroring pgType/codec.
+  private @Nullable PgType typeDescriptor;
   private @Nullable Codec codec;
 
   /**
@@ -168,6 +171,25 @@ public class Field {
 
   public PgType getPgType() {
     return castNonNull(pgType);
+  }
+
+  /**
+   * Returns this field's type descriptor stamped with the column modifier ({@link #getMod()}), so a
+   * codec can decode a modifier-sensitive type such as {@code numeric(10,2)}. When the field has no
+   * modifier ({@code mod == -1}), this is the plain {@link #getPgType()}.
+   *
+   * <p>Requires {@link #initializePgType(TypeInfo)} to have been called first.</p>
+   *
+   * @return the mod-carrying type descriptor
+   */
+  public PgType getTypeDescriptor() {
+    PgType descriptor = typeDescriptor;
+    if (descriptor == null) {
+      PgType base = castNonNull(pgType);
+      descriptor = mod == -1 ? base : base.withTypmod(mod);
+      typeDescriptor = descriptor;
+    }
+    return descriptor;
   }
 
   public int getSQLType() {

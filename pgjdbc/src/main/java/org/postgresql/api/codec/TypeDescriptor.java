@@ -60,6 +60,41 @@ public interface TypeDescriptor {
   int getTyptypmod();
 
   /**
+   * Returns the modifier applied to the value at this position: a result column's type modifier, a
+   * composite attribute's modifier, or a domain's pinned modifier.
+   *
+   * <p>This differs from {@link #getTyptypmod()}, which reports the type's own
+   * {@code pg_type.typtypmod} from the catalog. A base type such as {@code numeric} carries
+   * {@code typtypmod == -1} even when a column pins a precision and scale, so the applied modifier of
+   * {@code numeric(10,2)} reaches a codec only through this method, not through
+   * {@link #getTyptypmod()}.</p>
+   *
+   * <p>A codec reads this when the decode depends on the modifier — for example, rescaling a
+   * {@code numeric} to the column's declared scale. The default is {@code -1}, meaning no modifier
+   * applies.</p>
+   *
+   * @return the applied type modifier, or {@code -1} when none applies
+   */
+  default int getTypmod() {
+    return -1;
+  }
+
+  /**
+   * Returns a view of this descriptor that reports {@code typmod} from {@link #getTypmod()} and
+   * leaves every other property unchanged.
+   *
+   * <p>The driver stamps a result column's modifier onto the descriptor it hands a codec, so the
+   * codec can decode a modifier-sensitive type. An offline caller does the same to decode a value as,
+   * say, {@code numeric(10,2)}: {@code ctx.resolveType(oid).withTypmod(typmod)}.</p>
+   *
+   * @param typmod the modifier to report from {@link #getTypmod()}
+   * @return a descriptor equal to this one except for {@link #getTypmod()}
+   */
+  default TypeDescriptor withTypmod(int typmod) {
+    return new TypmodTypeDescriptor(this, typmod);
+  }
+
+  /**
    * Returns the element type OID for an array type ({@code pg_type.typelem}).
    *
    * @return the element type OID, or {@code 0} if this is not an array type

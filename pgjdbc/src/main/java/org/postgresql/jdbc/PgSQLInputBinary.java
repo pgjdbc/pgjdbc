@@ -228,6 +228,7 @@ public final class PgSQLInputBinary extends PgSQLInput {
     // A nested array materializes a connection-bound PgArray; offline reports a clear limitation. The
     // field bytes must be copied out because the PgArray outlives this reader and owns its own buffer.
     byte[] arrayBytes = Arrays.copyOfRange(source, curOffset, curOffset + curLength);
-    return new PgArray(ctx.requireConnection(getCurrentType()), getCurrentType().getOid(), arrayBytes);
+    return new PgArray(ctx.requireConnection(getCurrentType()), getCurrentType().getOid(),
+        getCurrentType().getTypmod(), arrayBytes);
   }
 }

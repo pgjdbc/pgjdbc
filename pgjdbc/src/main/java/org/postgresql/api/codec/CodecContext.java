@@ -160,6 +160,23 @@ public interface CodecContext {
   TypeDescriptor resolveType(int oid) throws SQLException;
 
   /**
+   * Resolves a type by OID and stamps the given applied modifier onto the descriptor, so a codec can
+   * decode a modifier-sensitive value such as {@code numeric(10,2)}. Equivalent to
+   * {@code resolveType(oid).withTypmod(typmod)}.
+   *
+   * <p>An offline or {@code COPY} caller uses this to supply a column or attribute modifier that no
+   * {@code RowDescription} provides: {@code ctx.resolveType(oid, typmod)}.</p>
+   *
+   * @param oid the PostgreSQL type OID
+   * @param typmod the applied type modifier, or {@code -1} for none
+   * @return the resolved descriptor reporting {@code typmod} from {@link TypeDescriptor#getTypmod()}
+   * @throws SQLException if the type metadata cannot be loaded
+   */
+  default TypeDescriptor resolveType(int oid, int typmod) throws SQLException {
+    return resolveType(oid).withTypmod(typmod);
+  }
+
+  /**
    * Resolves the codec registered for a child type by OID. Returns the fallback codec for an
    * unknown OID, so the result is never null.
    *

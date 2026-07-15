@@ -48,14 +48,14 @@ import java.sql.SQLException;
  *   ({@code ResultSetMetaData.getColumnTypeName}, {@code DatabaseMetaData}), which report the
  *   domain rather than its base type.</li>
  *
- *   <li><strong>The domain's type modifier is not propagated.</strong> A domain may pin a typmod
- *   on its base type (for example {@code CREATE DOMAIN price AS numeric(10,2)}), stored in
- *   {@code pg_type.typtypmod}. The base codec is handed the base {@link TypeDescriptor}, so it does
- *   not observe that typmod. This is currently harmless: the numeric codecs encode from the value's
- *   own scale and precision and do not apply a typmod on encode, and the server enforces the
- *   domain constraint on input regardless. Code that needs the domain typmod — column-size
- *   reporting, for instance — must read it from the domain {@link TypeDescriptor} via
- *   {@link TypeDescriptor#getTyptypmod()}, not from anything this codec forwards.</li>
+ *   <li><strong>The domain's type modifier is propagated on decode.</strong> A domain may pin a
+ *   typmod on its base type (for example {@code CREATE DOMAIN price AS numeric(10,2)}), stored in
+ *   {@code pg_type.typtypmod}. This codec forwards that modifier to the base type via
+ *   {@link TypeDescriptor#withTypmod(int)}, so a modifier-sensitive base codec — numeric rescaling to
+ *   the declared scale, for instance — observes it through {@link TypeDescriptor#getTypmod()}. Encode
+ *   is unaffected: the numeric codecs encode from the value's own scale and the server enforces the
+ *   domain constraint on input regardless. The domain's own {@link TypeDescriptor#getTyptypmod()} is
+ *   left unchanged for metadata such as column-size reporting.</li>
  * </ul>
  */
 public final class DomainCodec implements StreamingBinaryCodec, StreamingTextCodec,
@@ -87,7 +87,13 @@ public final class DomainCodec implements StreamingBinaryCodec, StreamingTextCod
     if (baseTypeOid == 0) {
       return domainType;
     }
-    return ctx.resolveType(baseTypeOid);
+    // A domain pins its base type's modifier in pg_type.typtypmod (CREATE DOMAIN price AS
+    // numeric(10,2)); a domain column may also arrive with an applied modifier. Forward whichever
+    // applies so the base codec can decode a modifier-sensitive base type such as numeric. Encode
+    // ignores it (numeric encodes from the value's own scale), so stamping here is decode-only in
+    // effect.
+    int typmod = domainType.getTypmod() != -1 ? domainType.getTypmod() : domainType.getTyptypmod();
+    return ctx.resolveType(baseTypeOid, typmod);
   }
 
   @Override

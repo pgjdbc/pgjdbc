@@ -1320,6 +1320,63 @@ public class PreparedStatementTest extends BaseTest4 {
       assertTrue(rs.next());
       BigDecimal expected = new BigDecimal("1500").setScale(-2, RoundingMode.HALF_EVEN);
       assertEquals(expected, rs.getObject(1), "1500::numeric(2,-2) as rs.getObject");
+      // getString renders the plain server text, and matches getObject's value (only the scale, an
+      // internal BigDecimal detail, differs).
+      assertEquals("1500", rs.getString(1), "1500::numeric(2,-2) as rs.getString");
+      // getBigDecimal stays wire-faithful: it does not apply the column typmod, so the scale is 0.
+      BigDecimal asBigDecimal = rs.getBigDecimal(1);
+      assertEquals(0, asBigDecimal.scale(), "getBigDecimal does not apply the column typmod");
+      assertEquals(0, asBigDecimal.compareTo(new BigDecimal("1500")), "getBigDecimal value");
+      // Typed getObject(col, BigDecimal.class) is wire-faithful like getBigDecimal (scale 0), not
+      // scaled like the untyped getObject(col) above; this is the deliberate typed/untyped split.
+      BigDecimal typed = rs.getObject(1, BigDecimal.class);
+      assertNotNull(typed);
+      assertEquals(0, typed.scale(), "getObject(BigDecimal.class) is wire-faithful");
+    }
+  }
+
+  @Test
+  public void testNegativeNumericScaleArray() throws SQLException {
+    assumeMinimumServerVersion("numeric with a negative scale typmod requires v15",
+        ServerVersion.v15);
+    try (PreparedStatement pstmt =
+             con.prepareStatement("select array[1500,2500]::numeric(2,-2)[]");
+         ResultSet rs = pstmt.executeQuery()) {
+      assertTrue(rs.next());
+      // The array column modifier is the element modifier, so getArray() yields each element at the
+      // declared scale -2, consistent with the scalar getObject on numeric(2,-2).
+      java.sql.Array array = rs.getArray(1);
+      assertNotNull(array);
+      BigDecimal[] elements = (BigDecimal[]) array.getArray();
+      assertEquals(new BigDecimal("1500").setScale(-2, RoundingMode.HALF_EVEN), elements[0],
+          "numeric(2,-2)[] element 0");
+      assertEquals(new BigDecimal("2500").setScale(-2, RoundingMode.HALF_EVEN), elements[1],
+          "numeric(2,-2)[] element 1");
+    }
+  }
+
+  @Test
+  public void testNegativeNumericScaleMultidimArrayViaResultSet() throws SQLException {
+    assumeMinimumServerVersion("numeric with a negative scale typmod requires v15",
+        ServerVersion.v15);
+    try (PreparedStatement pstmt =
+             con.prepareStatement("select '{{1500,2500}}'::numeric(2,-2)[][]");
+         ResultSet rs = pstmt.executeQuery()) {
+      assertTrue(rs.next());
+      java.sql.Array outer = rs.getArray(1);
+      assertNotNull(outer);
+      // Read the outer array as a ResultSet whose VALUE column is a numeric(2,-2)[] sub-array; the
+      // nested getArray() must carry the modifier through and rescale its own elements.
+      try (ResultSet rows = outer.getResultSet()) {
+        assertTrue(rows.next());
+        java.sql.Array inner = rows.getArray(2);
+        assertNotNull(inner);
+        BigDecimal[] elements = (BigDecimal[]) inner.getArray();
+        assertEquals(new BigDecimal("1500").setScale(-2, RoundingMode.HALF_EVEN), elements[0],
+            "numeric(2,-2)[][] nested element 0");
+        assertEquals(new BigDecimal("2500").setScale(-2, RoundingMode.HALF_EVEN), elements[1],
+            "numeric(2,-2)[][] nested element 1");
+      }
     }
   }
 

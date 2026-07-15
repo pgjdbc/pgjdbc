@@ -36,6 +36,10 @@ public class PgType implements TypeDescriptor {
   private final char typtype;      // 'b'=base, 'c'=composite, 'e'=enum, 'd'=domain, 'p'=pseudo, 'r'=range, 'm'=multirange
   private final char typcategory;  // 'A'=array, 'B'=boolean, 'N'=numeric, 'S'=string, etc.
   private final int typtypmod;
+  // The modifier applied to the value this descriptor stands for (a column's typmod, a composite
+  // attribute's modifier, or a domain's pinned modifier); -1 unless stamped via withTypmod(). This is
+  // distinct from typtypmod, which is the type's own pg_type.typtypmod.
+  private final int typmod;
 
   private final int typelem;
   private final int arrayOid;
@@ -194,13 +198,13 @@ public class PgType implements TypeDescriptor {
                  int typtypmod, int typelem, int arrayOid, int typbasetype, char delimiter,
                  @Nullable List<PgField> fields, String typsend, String typreceive) {
     this(typeName, fullName, oid, typtype, typcategory, typtypmod, typelem, arrayOid, typbasetype,
-        delimiter, fields, typsend, typreceive, Oid.UNSPECIFIED, Oid.UNSPECIFIED);
+        delimiter, fields, typsend, typreceive, Oid.UNSPECIFIED, Oid.UNSPECIFIED, -1);
   }
 
   private PgType(ObjectName typeName, String fullName, int oid, char typtype, char typcategory,
                  int typtypmod, int typelem, int arrayOid, int typbasetype, char delimiter,
                  @Nullable List<PgField> fields, String typsend, String typreceive,
-                 int rangeSubtype, int multirangeRange) {
+                 int rangeSubtype, int multirangeRange, int typmod) {
     this.typeName = typeName;
     this.fullName = fullName;
     this.oid = oid;
@@ -216,6 +220,7 @@ public class PgType implements TypeDescriptor {
     this.fields = fields != null ? Collections.unmodifiableList(fields) : null;
     this.rangeSubtype = rangeSubtype;
     this.multirangeRange = multirangeRange;
+    this.typmod = typmod;
   }
 
   /**
@@ -364,6 +369,11 @@ public class PgType implements TypeDescriptor {
   @Override
   public int getTyptypmod() {
     return typtypmod;
+  }
+
+  @Override
+  public int getTypmod() {
+    return typmod;
   }
 
   /**
@@ -638,7 +648,26 @@ public class PgType implements TypeDescriptor {
   public PgType withFields(List<PgField> fields) {
     return new PgType(typeName, fullName, oid, typtype, typcategory,
         typtypmod, typelem, arrayOid, typbasetype, delimiter, fields, typsend, typreceive,
-        rangeSubtype, multirangeRange);
+        rangeSubtype, multirangeRange, typmod);
+  }
+
+  /**
+   * Creates a copy of this PgType reporting the given applied modifier from {@link #getTypmod()}.
+   * Used to stamp a result column's, composite attribute's, or domain's modifier onto the descriptor
+   * handed to a codec, so a modifier-sensitive type such as {@code numeric(10,2)} decodes correctly.
+   * Leaves {@code pg_type.typtypmod} ({@link #getTyptypmod()}) unchanged.
+   *
+   * @param typmod the applied type modifier, or {@code -1} for none
+   * @return a copy reporting {@code typmod} from {@link #getTypmod()}, or {@code this} if unchanged
+   */
+  @Override
+  public PgType withTypmod(int typmod) {
+    if (typmod == this.typmod) {
+      return this;
+    }
+    return new PgType(typeName, fullName, oid, typtype, typcategory,
+        typtypmod, typelem, arrayOid, typbasetype, delimiter, fields, typsend, typreceive,
+        rangeSubtype, multirangeRange, typmod);
   }
 
   /**
@@ -651,7 +680,7 @@ public class PgType implements TypeDescriptor {
   public PgType withRangeSubtype(int rangeSubtype) {
     return new PgType(typeName, fullName, oid, typtype, typcategory,
         typtypmod, typelem, arrayOid, typbasetype, delimiter, fields, typsend, typreceive,
-        rangeSubtype, multirangeRange);
+        rangeSubtype, multirangeRange, typmod);
   }
 
   /**
@@ -664,7 +693,7 @@ public class PgType implements TypeDescriptor {
   public PgType withMultirangeRange(int multirangeRange) {
     return new PgType(typeName, fullName, oid, typtype, typcategory,
         typtypmod, typelem, arrayOid, typbasetype, delimiter, fields, typsend, typreceive,
-        rangeSubtype, multirangeRange);
+        rangeSubtype, multirangeRange, typmod);
   }
 
   public boolean isCaseSensitive() {

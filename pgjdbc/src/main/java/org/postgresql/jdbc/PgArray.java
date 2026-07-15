@@ -58,6 +58,14 @@ public class PgArray implements Array {
   private final int oid;
 
   /**
+   * The array column's type modifier ({@code pg_attribute.atttypmod}), which applies to the elements
+   * (for example the scale of a {@code numeric(10,2)[]}); {@code -1} when unknown, as for an array a
+   * caller built rather than one decoded from a result. Stamped onto the element descriptor so a
+   * modifier-sensitive element codec (numeric) decodes to the declared scale.
+   */
+  private final int typmod;
+
+  /**
    * Snapshot of PgCodecContext at array creation time.
    * This ensures consistent type mappings during array operations.
    */
@@ -76,9 +84,10 @@ public class PgArray implements Array {
    */
   protected @Nullable Object fieldArray;
 
-  private PgArray(BaseConnection connection, int oid) throws SQLException {
+  private PgArray(BaseConnection connection, int oid, int typmod) throws SQLException {
     this.connection = connection;
     this.oid = oid;
+    this.typmod = typmod;
     this.codecContext = connection.getCodecContext();
   }
 
@@ -92,7 +101,21 @@ public class PgArray implements Array {
    */
   public PgArray(BaseConnection connection, int oid, @Nullable String fieldString)
       throws SQLException {
-    this(connection, oid);
+    this(connection, oid, -1, fieldString);
+  }
+
+  /**
+   * Create a new Array carrying the array column's type modifier.
+   *
+   * @param connection a database connection
+   * @param oid the oid of the array datatype
+   * @param typmod the array column's type modifier, applied to the elements, or {@code -1}
+   * @param fieldString the array data in string form
+   * @throws SQLException if something wrong happens
+   */
+  public PgArray(BaseConnection connection, int oid, int typmod, @Nullable String fieldString)
+      throws SQLException {
+    this(connection, oid, typmod);
     this.fieldString = fieldString;
   }
 
@@ -106,7 +129,21 @@ public class PgArray implements Array {
    */
   public PgArray(BaseConnection connection, int oid, byte @Nullable [] fieldBytes)
       throws SQLException {
-    this(connection, oid);
+    this(connection, oid, -1, fieldBytes);
+  }
+
+  /**
+   * Create a new Array carrying the array column's type modifier.
+   *
+   * @param connection a database connection
+   * @param oid the oid of the array datatype
+   * @param typmod the array column's type modifier, applied to the elements, or {@code -1}
+   * @param fieldBytes the array data in byte form
+   * @throws SQLException if something wrong happens
+   */
+  public PgArray(BaseConnection connection, int oid, int typmod, byte @Nullable [] fieldBytes)
+      throws SQLException {
+    this(connection, oid, typmod);
     this.fieldBytes = fieldBytes;
   }
 
@@ -120,7 +157,7 @@ public class PgArray implements Array {
    */
   public PgArray(BaseConnection connection, int oid, Object fieldArray)
       throws SQLException {
-    this(connection, oid);
+    this(connection, oid, -1);
     this.fieldArray = fieldArray;
   }
 
@@ -158,6 +195,15 @@ public class PgArray implements Array {
 
   private PgType getPgType() throws SQLException {
     return typeInfo().getPgTypeByOid(oid);
+  }
+
+  /**
+   * The array type descriptor stamped with the column modifier ({@link #typmod}), so a
+   * modifier-sensitive element codec (numeric) decodes each element to the declared scale. Equals
+   * {@link #getPgType()} when no modifier applies.
+   */
+  private PgType arrayDescriptor() throws SQLException {
+    return getPgType().withTypmod(typmod);
   }
 
   private PgType getElementPgType() throws SQLException {
@@ -236,10 +282,10 @@ public class PgArray implements Array {
     if (ArrayCodec.canDecodeArrayViaWalker(getPgType(), codecContext)) {
       byte[] fieldBytes = this.fieldBytes;
       if (fieldBytes != null && !useTextRepresentation) {
-        TypeDescriptor arrayType = getPgType();
+        TypeDescriptor arrayType = arrayDescriptor();
         full = ArrayCodec.decodeBinaryArray(fieldBytes, 0, fieldBytes.length, arrayType, codecContext);
       } else if (fieldString != null) {
-        full = ArrayCodec.decodeTextArray(fieldString, getPgType(), codecContext);
+        full = ArrayCodec.decodeTextArray(fieldString, arrayDescriptor(), codecContext);
       }
     }
     if (full == null) {
@@ -344,7 +390,7 @@ public class PgArray implements Array {
     if (dims.length == 0) {
       fields[0] = new Field("INDEX", Oid.INT4);
       fields[0].setFormat(Field.BINARY_FORMAT);
-      fields[1] = new Field("VALUE", elementOid);
+      fields[1] = new Field("VALUE", elementOid, (short) 0, typmod);
       fields[1].setFormat(Field.BINARY_FORMAT);
       for (int i = 1; i < index; i++) {
         int len = ByteConverter.int4(fieldBytes, pos);
@@ -356,7 +402,7 @@ public class PgArray implements Array {
     } else if (thisDimension == dims.length - 1) {
       fields[0] = new Field("INDEX", Oid.INT4);
       fields[0].setFormat(Field.BINARY_FORMAT);
-      fields[1] = new Field("VALUE", elementOid);
+      fields[1] = new Field("VALUE", elementOid, (short) 0, typmod);
       fields[1].setFormat(Field.BINARY_FORMAT);
       for (int i = 1; i < index; i++) {
         int len = ByteConverter.int4(fieldBytes, pos);
@@ -382,7 +428,9 @@ public class PgArray implements Array {
     } else {
       fields[0] = new Field("INDEX", Oid.INT4);
       fields[0].setFormat(Field.BINARY_FORMAT);
-      fields[1] = new Field("VALUE", oid);
+      // The row is a sub-array of the same element type, so it carries the same modifier — the nested
+      // PgArray needs it to rescale its own numeric(p,s) elements.
+      fields[1] = new Field("VALUE", oid, (short) 0, typmod);
       fields[1].setFormat(Field.BINARY_FORMAT);
       int nextDimension = thisDimension + 1;
       int dimensionsLeft = dims.length - nextDimension;
@@ -522,8 +570,12 @@ public class PgArray implements Array {
 
     Field[] fields = new Field[2];
     fields[0] = new Field("INDEX", Oid.INT4);
-    // 1-D: the VALUE column is the element type; higher dimensions expose each row as a sub-array.
-    fields[1] = new Field("VALUE", split.dimensions() <= 1 ? getPgType().getTypelem() : oid);
+    // The array modifier is the element modifier and applies at every depth: a 1-D row is the scalar
+    // element type (numeric(2,-2)[] decodes each row to the declared scale), a higher-dimensional row
+    // is a sub-array of the same element type whose nested PgArray needs the modifier to rescale in
+    // turn.
+    boolean oneDimensional = split.dimensions() <= 1;
+    fields[1] = new Field("VALUE", oneDimensional ? getPgType().getTypelem() : oid, (short) 0, typmod);
 
     for (int i = 0; i < count; i++) {
       int offset = (int) index + i;

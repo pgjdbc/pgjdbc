@@ -194,6 +194,7 @@ public final class PgSQLInputText extends PgSQLInput {
   @Override
   protected Array decodeArray() throws SQLException {
     // A nested array materializes a connection-bound PgArray; offline reports a clear limitation.
-    return new PgArray(ctx.requireConnection(getCurrentType()), getCurrentType().getOid(), currentValue());
+    return new PgArray(ctx.requireConnection(getCurrentType()), getCurrentType().getOid(),
+        getCurrentType().getTypmod(), currentValue());
   }
 }

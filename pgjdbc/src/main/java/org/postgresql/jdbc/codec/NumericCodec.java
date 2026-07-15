@@ -69,10 +69,13 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
         return d;
       }
     }
-    if (result instanceof BigDecimal) {
-      return result;
-    }
-    return BigDecimal.valueOf(result.doubleValue());
+    BigDecimal bd = result instanceof BigDecimal
+        ? (BigDecimal) result
+        : BigDecimal.valueOf(result.doubleValue());
+    // getObject rescales to the column's declared scale (e.g. the negative scale of numeric(2,-2)),
+    // which the wire dscale alone does not carry. getBigDecimal (decodeAsBigDecimal) stays
+    // wire-faithful, so the rescale lives here rather than in the shared bigDecimalFromWire.
+    return applyTypmodScale(bd, type.getTypmod());
   }
 
   @Override
@@ -106,6 +109,7 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
     if ("-Infinity".equalsIgnoreCase(trimmed)) {
       return Double.NEGATIVE_INFINITY;
     }
+    // decodeAsBigDecimal applies the descriptor's modifier, so getObject on a text numeric rescales.
     return decodeAsBigDecimal(data, type, ctx);
   }
 
@@ -160,7 +164,11 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
   @Override
   public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
-    return bigDecimalFromWire(data, offset, length);
+    BigDecimal bd = bigDecimalFromWire(data, offset, length);
+    // Honour the descriptor's applied modifier so a numeric(p,s)[] element decodes to its declared
+    // scale. A plain column's getBigDecimal stays wire-faithful because the ResultSet hands this a
+    // descriptor without a modifier; only a stamped one (an array element) rescales.
+    return bd == null ? null : applyTypmodScale(bd, type.getTypmod());
   }
 
   private static @Nullable BigDecimal bigDecimalFromWire(byte[] data, int offset, int length)
@@ -201,7 +209,7 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
       throw Exceptions.badValueForType("BigDecimal", trimmed);
     }
     try {
-      return new BigDecimal(trimmed);
+      return applyTypmodScale(new BigDecimal(trimmed), type.getTypmod());
     } catch (NumberFormatException e) {
       throw Exceptions.cannotConvertValue("numeric", trimmed, e);
     }
@@ -445,6 +453,29 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
     } catch (IllegalArgumentException | ArithmeticException e) {
       throw Exceptions.invalidBinaryNumericValue(e);
     }
+  }
+
+  /**
+   * Rescales {@code bd} to the scale encoded in {@code typmod}, or returns it unchanged when no
+   * modifier applies ({@code typmod == -1}). This reproduces the {@code getObject} contract, where a
+   * {@code numeric(p,s)} value carries the column's declared scale — including a negative scale such
+   * as {@code numeric(2,-2)} — that the wire {@code dscale} alone does not convey. Rounds
+   * {@link RoundingMode#HALF_EVEN}, matching the legacy {@code PgResultSet} rescale.
+   */
+  private static BigDecimal applyTypmodScale(BigDecimal bd, int typmod) {
+    if (typmod == -1) {
+      return bd;
+    }
+    return bd.setScale(decodeNumericScale(typmod), RoundingMode.HALF_EVEN);
+  }
+
+  /**
+   * Extracts the (possibly negative) scale from a {@code numeric} type modifier. Mirrors PostgreSQL's
+   * numeric typmod layout: after removing the {@code VARHDRSZ} offset, the low 11 bits hold the scale
+   * as a sign-extended value, so {@code numeric(2,-2)} yields {@code -2}.
+   */
+  private static int decodeNumericScale(int typmod) {
+    return ((((typmod - 4) & 0x7ff) ^ 0x400) - 0x400);
   }
 
   /**

@@ -384,6 +384,10 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
     CodecDepth.enter();
     try {
       List<DecodedField> binaryFields = decodeBinaryFields(data, offset, length);
+      // Catalog attributes carry the modifiers the binary wire does not (it self-describes only the
+      // field OID). Read them positionally, guarded by an OID match below so a wire/catalog skew
+      // (e.g. dropped columns, or the anonymous RECORD with no attributes) falls back to no modifier.
+      List<? extends PGField> catalogFields = type.getFields();
       @Nullable Object[] attributes = new @Nullable Object[binaryFields.size()];
       for (int i = 0; i < binaryFields.size(); i++) {
         DecodedField field = binaryFields.get(i);
@@ -392,7 +396,12 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
           continue;
         }
         int fieldOid = field.getTypeOid();
-        TypeDescriptor fieldType = ctx.resolveType(fieldOid);
+        int fieldTypmod = -1;
+        if (catalogFields != null && i < catalogFields.size()
+            && catalogFields.get(i).getTypeOid() == fieldOid) {
+          fieldTypmod = catalogFields.get(i).getTypmod();
+        }
+        TypeDescriptor fieldType = ctx.resolveType(fieldOid, fieldTypmod);
         BinaryCodec fieldCodec = ctx.resolveBinaryCodec(fieldOid);
         if (fieldCodec == null) {
           attributes[i] = field.getData();
@@ -546,7 +555,9 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
         }
         PGField field = fieldList.get(index);
         int fieldOid = field.getTypeOid();
-        TypeDescriptor fieldType = ctx.resolveType(fieldOid);
+        // Stamp the attribute modifier (atttypmod) so a modifier-sensitive field such as
+        // numeric(10,2) decodes to its declared scale.
+        TypeDescriptor fieldType = ctx.resolveType(fieldOid, field.getTypmod());
         TextCodec fieldCodec = ctx.resolveTextCodec(fieldOid);
         if (fieldCodec == null) {
           attributes[index] = new String(buf, offset, length);

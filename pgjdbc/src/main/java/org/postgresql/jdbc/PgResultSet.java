@@ -316,8 +316,9 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         return getLong(columnIndex);
       case Types.NUMERIC:
       case Types.DECIMAL:
-        return getNumeric(columnIndex,
-            field.getMod() == -1 ? null : (Integer) decodeNumericScale(field.getMod()), true);
+        // NumericCodec rescales to the column's typmod from the field descriptor (getTypeDescriptor),
+        // so this dispatch no longer extracts the scale itself.
+        return decodeViaCodec(columnIndex);
       case Types.REAL:
         return getFloat(columnIndex);
       case Types.FLOAT:
@@ -507,11 +508,19 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   }
 
   protected Array makeArray(int oid, byte[] value) throws SQLException {
-    return new PgArray(connection, oid, value);
+    return makeArray(oid, -1, value);
   }
 
   protected Array makeArray(int oid, String value) throws SQLException {
-    return new PgArray(connection, oid, value);
+    return makeArray(oid, -1, value);
+  }
+
+  protected Array makeArray(int oid, int typmod, byte[] value) throws SQLException {
+    return new PgArray(connection, oid, typmod, value);
+  }
+
+  protected Array makeArray(int oid, int typmod, String value) throws SQLException {
+    return new PgArray(connection, oid, typmod, value);
   }
 
   @Pure
@@ -522,11 +531,15 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return null;
     }
 
-    int oid = fields[i - 1].getOID();
+    // The column modifier is the element modifier for an array (numeric(p,s)[]), so pass it to the
+    // PgArray for the element decode.
+    Field field = fields[i - 1];
+    int oid = field.getOID();
+    int typmod = field.getMod();
     if (isBinary(i)) {
-      return makeArray(oid, value);
+      return makeArray(oid, typmod, value);
     }
-    return makeArray(oid, castNonNull(getFixedString(i)));
+    return makeArray(oid, typmod, castNonNull(getFixedString(i)));
   }
 
   @Override
@@ -2430,7 +2443,10 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       Field field = getFieldWithCodec(columnIndex);
       BinaryCodec codec = field.getBinaryCodec();
       if (codec != null) {
-        PgType pgType = field.getPgType();
+        // The descriptor carries the column modifier so binary getString of a modifier-sensitive
+        // type (e.g. numeric) renders through the same path as getObject, closing the earlier
+        // asymmetry where getString skipped the typmod rescale.
+        PgType pgType = field.getTypeDescriptor();
         PgCodecContext ctx = getCodecContext();
         return codec.decodeAsString(value, 0, value.length, pgType, ctx);
       }
@@ -3172,13 +3188,6 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return internalGetObject(columnIndex, field);
     }
 
-    // Special case: numeric/decimal must be rescaled to the column's typmod scale
-    // (e.g. a negative scale from numeric(2,-2), PostgreSQL 15+) — the codec path below
-    // decodes the wire value as-is and knows nothing about the column's typmod.
-    if (oid == Oid.NUMERIC) {
-      return internalGetObject(columnIndex, field);
-    }
-
     // Special case: XML returns SQLXML wrapper for the JDBC contract; the
     // codec layer otherwise hands back String.
     if (oid == Oid.XML) {
@@ -3211,9 +3220,11 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       dateTimeHelper.getDefaultCalendar();
     }
 
-    // Use codec for all other types
+    // Use codec for all other types. The descriptor carries the column modifier (field.getMod()),
+    // so a modifier-sensitive codec — numeric rescaling to the column's declared scale, for
+    // instance — sees it; this is what lets numeric go through the codec instead of a legacy path.
     field = getFieldWithCodec(columnIndex);
-    PgType pgType = field.getPgType();
+    PgType pgType = field.getTypeDescriptor();
     PgCodecContext ctx = getCodecContext();
 
     // Honor the connection-level type map: if the user has registered a Java
@@ -3420,7 +3431,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return null;
     }
     Field field = getFieldWithCodec(columnIndex);
-    PgType pgType = field.getPgType();
+    PgType pgType = field.getTypeDescriptor();
     PgCodecContext ctx = getCodecContext();
     if (isBinary(columnIndex)) {
       BinaryCodec codec = field.getBinaryCodec();
@@ -3635,18 +3646,6 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
     BigDecimal val = toBigDecimal(s);
     return scaleBigDecimal(val, scale);
-  }
-
-  /**
-   * Extracts the scale of a {@code numeric} column from its type modifier. Since PostgreSQL 15 the
-   * scale is a signed 11-bit value (e.g. {@code numeric(2,-2)}), so it must be sign-extended rather
-   * than masked with {@code 0xffff}.
-   *
-   * @param typmod the column type modifier, which must not be {@code -1}
-   * @return the (possibly negative) scale
-   */
-  private static int decodeNumericScale(int typmod) {
-    return ((((typmod - 4) & 0x7ff) ^ 0x400) - 0x400);
   }
 
   private static BigDecimal scaleBigDecimal(BigDecimal val, @Nullable Integer scale)
@@ -3981,6 +3980,11 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
 
     Field field = getFieldWithCodec(columnIndex);
+    // Typed getObject(col, Class) is wire-faithful, like getBigDecimal(col): it hands the codec a
+    // descriptor without the column modifier, so a numeric(p,s) value keeps its wire scale rather than
+    // the declared one. Only the untyped getObject(col)/getString/getArray apply the column scale (via
+    // getTypeDescriptor). Keeping typed access wire-faithful matches getBigDecimal and the released
+    // driver; a numeric(p,s)[] target likewise stays wire-faithful here.
     PgType pgType = field.getPgType();
     PgCodecContext ctx = getCodecContext();
 
