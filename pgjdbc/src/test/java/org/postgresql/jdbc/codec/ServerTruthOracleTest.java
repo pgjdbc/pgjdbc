@@ -92,6 +92,7 @@ class ServerTruthOracleTest {
   private static int addrArrayOid;
   private static boolean haveRanges;
   private static boolean haveNumericInfinity;
+  private static boolean haveXml;
   private static int int4rangeOid;
   private static int int8rangeOid;
   private static int numrangeOid;
@@ -121,6 +122,30 @@ class ServerTruthOracleTest {
     binaryCon = ParityHarness.openBinary(null);
     pinGucs(con);
     pinGucs(binaryCon);
+    // xml needs a server built --with-libxml (same gate as XmlTest). When present, pin xmloption to
+    // content so the bare-content and empty literals parse; the default is already content, this only
+    // guards a non-default environment.
+    haveXml = hasXml(con);
+    if (haveXml) {
+      pinXmlOption(con);
+      pinXmlOption(binaryCon);
+    }
+  }
+
+  /** Whether the server was built with XML support; a plain {@code ::xml} cast fails without it. */
+  private static boolean hasXml(Connection c) {
+    try (Statement st = c.createStatement()) {
+      st.executeQuery("SELECT '<a>b</a>'::xml").close();
+      return true;
+    } catch (SQLException unsupported) {
+      return false;
+    }
+  }
+
+  private static void pinXmlOption(Connection c) throws SQLException {
+    try (Statement st = c.createStatement()) {
+      st.execute("SET xmloption = 'content'");
+    }
   }
 
   /**
@@ -380,6 +405,44 @@ class ServerTruthOracleTest {
         ServerTruthOracle.assertEncodeTruth(con, numrangeOid, "numrange",
             new PGRange<>(new BigDecimal("1.50"), new BigDecimal("2.500"), true, false),
             "[1.50,2.500)")));
+    return t;
+  }
+
+  /**
+   * xml encode- and decode-truth. The server's {@code xml_send}/{@code xml_recv} transfer the value as
+   * its text in the client encoding, so the binary wire is exactly the charset text -- no version byte
+   * and, because the driver pins {@code client_encoding=UTF8}, no {@code encoding=} declaration. Both
+   * truths therefore reduce to the value's text surviving the server unchanged, and each literal below
+   * is idempotent under the server's {@code ::text}. Runs only where the server has XML support.
+   */
+  @TestFactory
+  List<DynamicTest> xml() {
+    List<DynamicTest> t = new ArrayList<>();
+    if (!haveXml) {
+      return t;
+    }
+    String[][] cases = {
+        {"element", "<a>b</a>"},
+        {"empty-element", "<a/>"},
+        {"open-close", "<a></a>"},
+        {"attribute", "<root><child attr=\"v\">t</child></root>"},
+        {"entity", "<a>b&amp;c</a>"},
+        {"unicode", "<a>üñî</a>"},
+        {"content-fragment", "abc"},
+        {"leading-trailing-space", "  <a/>  "},
+    };
+    for (String[] c : cases) {
+      String name = c[0];
+      String literal = c[1];
+      // The bind value is the XML string itself; the codec's binary encoder ships its charset bytes.
+      t.add(encode("xml/" + name, Oid.XML, "xml", literal, literal));
+      t.add(decodeTruth("xml/" + name, Oid.XML, "xml", literal));
+    }
+    // Empty XML is the regression corner for the codec's zero-length decode: a valid, non-null value
+    // whose wire form is zero bytes must read back through getString as "" (not null), in binary just
+    // as in text. Decode-only -- the encode path binds a zero-length PGBinaryObject as SQL NULL (see
+    // the empty bytea note in scalars()), so it cannot carry an empty value.
+    t.add(decodeTruth("xml/empty", Oid.XML, "xml", ""));
     return t;
   }
 

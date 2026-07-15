@@ -12,7 +12,6 @@ import org.postgresql.api.codec.TypeDescriptor;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 
 /**
@@ -20,6 +19,13 @@ import java.sql.SQLException;
  *
  * <p>Returns String for getObject(). SQLXML handling is done at the ResultSet level
  * using PgSQLXML wrapper.</p>
+ *
+ * <p>The server's {@code xml_send}/{@code xml_recv} transfer the value as its text
+ * representation in the client encoding, so both wire formats are the charset text bytes
+ * (via {@link CodecContext#getCharset()}) with no version byte or added declaration. An
+ * empty XML value ({@code xmlparse(content '')}) is a valid, non-null value whose wire form
+ * is zero bytes, so it decodes to {@code ""} rather than {@code null}; SQL {@code NULL} is
+ * filtered before the codec runs.</p>
  */
 public final class XmlCodec implements BinaryCodec, TextCodec {
 
@@ -44,16 +50,13 @@ public final class XmlCodec implements BinaryCodec, TextCodec {
   @Override
   public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
-    if (length == 0) {
-      return null;
-    }
-    return new String(data, offset, length, StandardCharsets.UTF_8);
+    return new String(data, offset, length, ctx.getCharset());
   }
 
   @Override
   public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     String str = value.toString();
-    return str.getBytes(StandardCharsets.UTF_8);
+    return str.getBytes(ctx.getCharset());
   }
 
   @Override
@@ -69,10 +72,7 @@ public final class XmlCodec implements BinaryCodec, TextCodec {
   @Override
   public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
-    if (length == 0) {
-      return null;
-    }
-    return new String(data, offset, length, StandardCharsets.UTF_8);
+    return new String(data, offset, length, ctx.getCharset());
   }
 
   @Override
@@ -84,12 +84,8 @@ public final class XmlCodec implements BinaryCodec, TextCodec {
   @SuppressWarnings("unchecked")
   public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
       Class<T> targetClass, CodecContext ctx) throws SQLException {
-    if (length == 0) {
-      return null;
-    }
-    String value = new String(data, offset, length, StandardCharsets.UTF_8);
     if (targetClass == String.class || targetClass == Object.class) {
-      return (T) value;
+      return (T) new String(data, offset, length, ctx.getCharset());
     }
     throw Exceptions.cannotDecode("xml", targetClass.getName());
   }
@@ -98,9 +94,6 @@ public final class XmlCodec implements BinaryCodec, TextCodec {
   @SuppressWarnings("unchecked")
   public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
-    if (data == null || data.isEmpty()) {
-      return null;
-    }
     if (targetClass == String.class || targetClass == Object.class) {
       return (T) data;
     }
