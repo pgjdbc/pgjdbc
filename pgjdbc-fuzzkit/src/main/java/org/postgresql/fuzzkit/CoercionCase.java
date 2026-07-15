@@ -31,14 +31,34 @@ public final class CoercionCase {
   final @Nullable Class<?> targetClass;
   /** The per-type {@code getObject} java.time preferences of the context. */
   final PrefersJavaTime prefersJavaTime;
+  /** The attribute modifier stamped on the field {@code f}, or {@code -1} for none. */
+  final int appliedTypmod;
 
   public CoercionCase(ScalarDescriptor kind, Object value, SqlInputReader reader,
       @Nullable Class<?> targetClass, PrefersJavaTime prefersJavaTime) {
+    this(kind, value, reader, targetClass, prefersJavaTime, -1);
+  }
+
+  /**
+   * A case whose field {@code f} carries the given applied modifier ({@code atttypmod}), so a
+   * modifier-sensitive type such as {@code numeric(10,2)} decodes to its declared scale through the
+   * reader. Pass {@code -1} for no modifier.
+   *
+   * @param kind the field type descriptor
+   * @param value a value of the field type on the canonical wire
+   * @param reader the SQLInput reader under test
+   * @param targetClass the {@code readObject(Class)} target, or {@code null} for any other reader
+   * @param prefersJavaTime the java.time preferences of the context
+   * @param appliedTypmod the field's applied modifier, or {@code -1} for none
+   */
+  public CoercionCase(ScalarDescriptor kind, Object value, SqlInputReader reader,
+      @Nullable Class<?> targetClass, PrefersJavaTime prefersJavaTime, int appliedTypmod) {
     this.kind = kind;
     this.value = value;
     this.reader = reader;
     this.targetClass = targetClass;
     this.prefersJavaTime = prefersJavaTime;
+    this.appliedTypmod = appliedTypmod;
   }
 
   /**
@@ -56,19 +76,37 @@ public final class CoercionCase {
    */
   public CoercionCase(ScalarDescriptor kind, Object value, SqlInputReader reader,
       @Nullable Class<?> targetClass, byte prefersJavaTime) {
+    this(kind, value, reader, targetClass, prefersJavaTime, -1);
+  }
+
+  /**
+   * The packed-{@code prefersJavaTime} constructor with an applied field modifier ({@code atttypmod}),
+   * so a generated {@code @FuzzTest} can draw the whole config axis as one byte and stamp a modifier
+   * on the field. Pass {@code -1} for no modifier.
+   *
+   * @param kind the field type descriptor
+   * @param value a value of the field type on the canonical wire
+   * @param reader the SQLInput reader under test
+   * @param targetClass the {@code readObject(Class)} target, or {@code null} for any other reader
+   * @param prefersJavaTime the packed {@code prefersJavaTime} flags (five low bits)
+   * @param appliedTypmod the field's applied modifier, or {@code -1} for none
+   */
+  public CoercionCase(ScalarDescriptor kind, Object value, SqlInputReader reader,
+      @Nullable Class<?> targetClass, byte prefersJavaTime, int appliedTypmod) {
     this(kind, value, reader, targetClass, PrefersJavaTime.builder()
         .date((prefersJavaTime & 0x01) != 0)
         .time((prefersJavaTime & 0x02) != 0)
         .timetz((prefersJavaTime & 0x04) != 0)
         .timestamp((prefersJavaTime & 0x08) != 0)
         .timestamptz((prefersJavaTime & 0x10) != 0)
-        .build());
+        .build(), appliedTypmod);
   }
 
   @Override
   public String toString() {
     return "CoercionCase{oid=" + kind.oid() + ", value=" + value + ", reader="
         + reader + ", targetClass=" + (targetClass == null ? "-" : targetClass.getSimpleName())
-        + ", prefersJavaTime=" + prefersJavaTime + '}';
+        + ", prefersJavaTime=" + prefersJavaTime
+        + (appliedTypmod == -1 ? "" : ", typmod=" + appliedTypmod) + '}';
   }
 }

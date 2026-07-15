@@ -25,7 +25,17 @@ public final class FuzzComposites {
 
   /** A single-field composite {@code public.ct} whose one attribute {@code f} has the given OID. */
   static PgType singleField(int fieldOid) {
+    return singleField(fieldOid, -1);
+  }
+
+  /**
+   * A single-field composite {@code public.ct} whose one attribute {@code f} has the given OID and
+   * applied modifier ({@code atttypmod}). The modifier reaches a codec through the reader's field
+   * resolution, so a modifier-sensitive attribute such as {@code numeric(10,2)} decodes to its
+   * declared scale; {@code -1} means no modifier.
+   */
+  static PgType singleField(int fieldOid, int fieldTypmod) {
     return new PgType(new ObjectName("public", "ct"), "public.ct", SINGLE_FIELD_COMPOSITE_OID, 'c',
-        'C', -1, 0, 0, 0, ',', Collections.singletonList(new PgField("f", fieldOid, 1, -1)));
+        'C', -1, 0, 0, 0, ',', Collections.singletonList(new PgField("f", fieldOid, 1, fieldTypmod)));
   }
 }

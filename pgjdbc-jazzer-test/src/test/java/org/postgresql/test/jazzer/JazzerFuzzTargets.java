@@ -181,6 +181,11 @@ final class JazzerFuzzTargets {
     targets.add(roundTrip(scalar, "float8RoundTrip", Oid.FLOAT8, JazzerFuzzTargets::noSeeds));
     targets.add(roundTrip(scalar, "boolRoundTrip", Oid.BOOL, JazzerFuzzTargets::noSeeds));
     targets.add(roundTrip(scalar, "numericRoundTrip", Oid.NUMERIC, JazzerFuzzTargets::noSeeds));
+    targets.add(roundTrip(scalar, "numericTypmodRoundTrip", Oid.NUMERIC, JazzerFuzzTargets::noSeeds));
+    targets.add(roundTrip(scalar, "numericArrayTypmodRoundTrip", Oid.NUMERIC,
+        JazzerFuzzTargets::noSeeds));
+    targets.add(roundTrip(scalar, "numericTypmodCoercionRead", Oid.NUMERIC,
+        JazzerFuzzTargets::noSeeds));
     targets.add(roundTrip(scalar, "jsonRoundTrip", Oid.JSON, JazzerFuzzTargets::noSeeds));
     targets.add(roundTrip(scalar, "jsonbRoundTrip", Oid.JSONB, JazzerFuzzTargets::noSeeds));
     targets.add(roundTrip(scalar, "bitRoundTrip", Oid.BIT, JazzerFuzzTargets::noSeeds));

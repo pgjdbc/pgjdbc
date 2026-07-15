@@ -7,7 +7,13 @@ package org.postgresql.test.jazzer;
 
 import org.postgresql.core.Oid;
 import org.postgresql.fuzzkit.CodecFuzzSupport;
+import org.postgresql.fuzzkit.CoercionCase;
+import org.postgresql.fuzzkit.CoercionFuzzSupport;
+import org.postgresql.fuzzkit.ReadOracle;
+import org.postgresql.fuzzkit.SqlInputReader;
+import org.postgresql.fuzzkit.coercion.NumericTypmod;
 import org.postgresql.fuzzkit.coercion.PgTypeDescriptors;
+import org.postgresql.fuzzkit.coercion.ScalarDescriptor;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGcircle;
 import org.postgresql.geometric.PGline;
@@ -117,6 +123,48 @@ class JazzerScalarCodecFuzzTest {
   void numericRoundTrip(@NotNull FuzzedDataProvider data) throws SQLException {
     BigDecimal value = BigDecimal.valueOf(data.consumeLong(), data.consumeInt(0, 12));
     CodecFuzzSupport.numericRoundTrip(value, CodecFuzzSupport.builtins());
+  }
+
+  // numeric under a column modifier numeric(p,s): decoding through a typmod-carrying descriptor
+  // rescales the value to the declared scale (NumericCodec.applyTypmodScale), including a negative
+  // scale on PG15+. The unscaled long and scale draw the value; the precision and scale draw the
+  // modifier -- the inline analogue of the jetCheck numericTypmodRoundTrip generator.
+  @FuzzTest
+  void numericTypmodRoundTrip(@NotNull FuzzedDataProvider data) throws SQLException {
+    BigDecimal value = BigDecimal.valueOf(data.consumeLong(), data.consumeInt(0, 12));
+    int precision = data.consumeInt(1, 1000);
+    int scale = data.consumeInt(-10, 20);
+    CodecFuzzSupport.numericTypmodRoundTrip(value, precision, scale, CodecFuzzSupport.builtins());
+  }
+
+  // numeric(p,s)[]: the array column modifier is the element modifier, so getArray() rescales every
+  // element to the declared scale. Two elements sharing a wire scale exercise the element walk.
+  @FuzzTest
+  void numericArrayTypmodRoundTrip(@NotNull FuzzedDataProvider data) throws SQLException {
+    int s = data.consumeInt(0, 12);
+    BigDecimal[] values = {
+        BigDecimal.valueOf(data.consumeLong(), s),
+        BigDecimal.valueOf(data.consumeLong(), s),
+    };
+    CodecFuzzSupport.numericArrayTypmodRoundTrip(values, data.consumeInt(1, 1000),
+        data.consumeInt(-10, 20), CodecFuzzSupport.builtins());
+  }
+
+  // The coercion-reader analogue of the JQF factory's numeric-typmod branch: a numeric field stamped
+  // with a column modifier numeric(p,s), read back through a drawn SQLInput reader. It drives the
+  // rescale path through the SQLData reader (PgSQLInput resolves the attribute modifier) under the
+  // no-unexpected-leak / outcome oracle, in both wire formats.
+  @FuzzTest
+  void numericTypmodCoercionRead(@NotNull FuzzedDataProvider data) throws SQLException {
+    ScalarDescriptor numeric = PgTypeDescriptors.scalar(Oid.NUMERIC);
+    BigDecimal value = BigDecimal.valueOf(data.consumeLong(), data.consumeInt(0, 12));
+    SqlInputReader reader =
+        SqlInputReader.values()[data.consumeInt(0, SqlInputReader.values().length - 1)];
+    Class<?> target = reader == SqlInputReader.READ_OBJECT_AS
+        ? ReadOracle.TARGET_CLASSES[data.consumeInt(0, ReadOracle.TARGET_CLASSES.length - 1)]
+        : null;
+    int typmod = NumericTypmod.of(data.consumeInt(1, 1000), data.consumeInt(-10, 20));
+    CoercionFuzzSupport.run(new CoercionCase(numeric, value, reader, target, (byte) 0, typmod));
   }
 
   @FuzzTest

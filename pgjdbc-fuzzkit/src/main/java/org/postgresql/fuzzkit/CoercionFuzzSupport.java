@@ -53,7 +53,9 @@ public final class CoercionFuzzSupport {
 
   public static void run(CoercionCase c) throws SQLException {
     int oid = c.kind.oid();
-    PgType comp = FuzzComposites.singleField(oid);
+    // The field carries the case's applied modifier, so the reader resolves a modifier-sensitive
+    // attribute (numeric(p,s)) to its declared scale; -1 leaves the field un-modified.
+    PgType comp = FuzzComposites.singleField(oid, c.appliedTypmod);
     PrefersJavaTime p = c.prefersJavaTime;
     Map<String, String> config = ReadOracle.configFor(p);
     PgCodecContext ctx = (PgCodecContext) OfflineCodecContexts.offlineBuilder()

@@ -21,6 +21,7 @@ import org.postgresql.fuzzkit.SqlOutputWriterBinding;
 import org.postgresql.fuzzkit.coercion.ArrayDescriptor;
 import org.postgresql.fuzzkit.coercion.CompositeDescriptor;
 import org.postgresql.fuzzkit.coercion.LeafRepr;
+import org.postgresql.fuzzkit.coercion.NumericTypmod;
 import org.postgresql.fuzzkit.coercion.PgTypeDescriptors;
 import org.postgresql.fuzzkit.coercion.ScalarDescriptor;
 import org.postgresql.geometric.PGbox;
@@ -416,7 +417,15 @@ public final class PgValueArgumentsFactory implements ArgumentsGeneratorFactory 
         .timestamp(env.generate(Generator.booleans()))
         .timestamptz(env.generate(Generator.booleans()))
         .build();
-    return new CoercionCase(descriptor, value, reader, targetClass, prefs);
+    // For numeric, half the cases stamp a column modifier numeric(p,s) on the field, so the reader
+    // drives the rescale path (NumericCodec.applyTypmodScale) -- including a negative scale on PG15+ --
+    // under the no-unexpected-leak / outcome oracle. Every other type takes no modifier.
+    int appliedTypmod = -1;
+    if (descriptor.oid() == Oid.NUMERIC && env.generate(Generator.booleans())) {
+      appliedTypmod = NumericTypmod.of(env.generate(Generator.integers(1, 1000)),
+          env.generate(Generator.integers(-10, 20)));
+    }
+    return new CoercionCase(descriptor, value, reader, targetClass, prefs, appliedTypmod);
   });
 
   // A value written through a random SQLOutput writer into a random built-in attribute type -- the

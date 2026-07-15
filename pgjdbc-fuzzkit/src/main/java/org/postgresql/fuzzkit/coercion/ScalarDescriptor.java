@@ -58,11 +58,23 @@ public final class ScalarDescriptor extends PgTypeDescriptor {
   private final ReadCoercions.@Nullable Accessor typedReader;
   private final Fidelity fidelity;
   private final Predicate<@Nullable Object> poison;
+  // The applied modifier this scalar stamps onto pgType() (a column's typmod, not pg_type.typtypmod);
+  // -1 unless set through withTypmod(). It reaches a codec via TypeDescriptor.getTypmod() and drives
+  // the modifier-sensitive decode path -- rescaling numeric(p,s) to its declared scale, for example.
+  private final int appliedTypmod;
 
   ScalarDescriptor(int oid, String pgTypeName, char typcategory, JDBCType jdbcType,
       Class<?> naturalClass, WriteCoercions.@Nullable Method typedWriter,
       ReadCoercions.@Nullable Accessor typedReader, Fidelity fidelity,
       Predicate<@Nullable Object> poison) {
+    this(oid, pgTypeName, typcategory, jdbcType, naturalClass, typedWriter, typedReader, fidelity,
+        poison, -1);
+  }
+
+  private ScalarDescriptor(int oid, String pgTypeName, char typcategory, JDBCType jdbcType,
+      Class<?> naturalClass, WriteCoercions.@Nullable Method typedWriter,
+      ReadCoercions.@Nullable Accessor typedReader, Fidelity fidelity,
+      Predicate<@Nullable Object> poison, int appliedTypmod) {
     super(oid);
     this.pgTypeName = pgTypeName;
     this.typcategory = typcategory;
@@ -72,17 +84,40 @@ public final class ScalarDescriptor extends PgTypeDescriptor {
     this.typedReader = typedReader;
     this.fidelity = fidelity;
     this.poison = poison;
+    this.appliedTypmod = appliedTypmod;
   }
 
   /**
    * The offline scalar {@link PgType} the codec context resolves, built the way the codec unit tests
    * build theirs: a base type ({@code typtype='b'}) in {@code pg_catalog} with this scalar's name and
-   * {@code typcategory} and no element, array, or base type.
+   * {@code typcategory} and no element, array, or base type. When this descriptor carries an applied
+   * modifier ({@link #withTypmod(int)}), the {@link PgType} reports it from {@link PgType#getTypmod()},
+   * so a modifier-sensitive codec such as {@code numeric} rescales to the declared scale.
    */
   @Override
   public PgType pgType() {
-    return new PgType(new ObjectName("pg_catalog", pgTypeName), pgTypeName, oid(), 'b', typcategory,
-        -1, 0, 0, 0);
+    PgType base = new PgType(new ObjectName("pg_catalog", pgTypeName), pgTypeName, oid(), 'b',
+        typcategory, -1, 0, 0, 0);
+    return appliedTypmod == -1 ? base : base.withTypmod(appliedTypmod);
+  }
+
+  /** The applied modifier this scalar stamps onto {@link #pgType()}, or {@code -1} when none applies. */
+  public int appliedTypmod() {
+    return appliedTypmod;
+  }
+
+  /**
+   * A copy of this scalar that stamps {@code typmod} as the applied modifier on {@link #pgType()}, so
+   * the codec decodes as the modified type -- for example {@code PgTypeDescriptors.scalar(Oid.NUMERIC)
+   * .withTypmod(NumericTypmod.of(10, 2))} decodes a {@code numeric(10,2)} value at scale 2. This is the
+   * applied modifier ({@link PgType#getTypmod()}), distinct from {@code pg_type.typtypmod}.
+   *
+   * @param typmod the applied type modifier, or {@code -1} for none
+   * @return a scalar equal to this one except for its applied modifier
+   */
+  public ScalarDescriptor withTypmod(int typmod) {
+    return new ScalarDescriptor(oid(), pgTypeName, typcategory, jdbcType, naturalClass, typedWriter,
+        typedReader, fidelity, poison, typmod);
   }
 
   /** The {@link JDBCType} the generic {@code writeObject(Object, SQLType)} / {@code setObject} paths use. */

@@ -112,6 +112,29 @@ class JqfScalarCodecFuzzTest {
     CodecFuzzSupport.numericRoundTrip(value, CodecFuzzSupport.builtins());
   }
 
+  // numeric under a column modifier numeric(p,s): decoding through a typmod-carrying descriptor
+  // rescales the value to the declared scale (NumericCodec.applyTypmodScale), including a negative
+  // scale on PG15+. The unscaled long and scale draw the value like the NUMERIC generator; the
+  // precision and scale draw the modifier. floorMod keeps the jetCheck ints in the valid ranges.
+  @FuzzTest
+  void numericTypmodRoundTrip(long unscaled, int valueScale, int precision, int scale)
+      throws SQLException {
+    BigDecimal value = BigDecimal.valueOf(unscaled, Math.floorMod(valueScale, 13));
+    CodecFuzzSupport.numericTypmodRoundTrip(value, 1 + Math.floorMod(precision, 1000),
+        Math.floorMod(scale + 10, 31) - 10, CodecFuzzSupport.builtins());
+  }
+
+  // numeric(p,s)[]: the array column modifier is the element modifier, so getArray() rescales every
+  // element to the declared scale. Two elements sharing a wire scale exercise the element walk.
+  @FuzzTest
+  void numericArrayTypmodRoundTrip(long a, long b, int valueScale, int precision, int scale)
+      throws SQLException {
+    int s = Math.floorMod(valueScale, 13);
+    BigDecimal[] values = {BigDecimal.valueOf(a, s), BigDecimal.valueOf(b, s)};
+    CodecFuzzSupport.numericArrayTypmodRoundTrip(values, 1 + Math.floorMod(precision, 1000),
+        Math.floorMod(scale + 10, 31) - 10, CodecFuzzSupport.builtins());
+  }
+
   @FuzzTest
   void regularStructRoundTrip(int x, int y, String label) throws SQLException {
     PgType point = PgTypeDescriptors.composite(PgTypeDescriptors.POINT_OID).pgType();

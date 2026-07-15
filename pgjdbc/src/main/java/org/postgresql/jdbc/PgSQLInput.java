@@ -106,8 +106,11 @@ public abstract class PgSQLInput implements SQLInput {
     if (!isNull) {
       // Resolved only for a non-null field: a null field is never decoded, so there is nothing to
       // resolve it for, and resolveType() can be non-trivial (it loads composite/range/multirange
-      // structure on first use).
-      currentType = ctx.resolveType(fields.get(fieldIndex - 1).getTypeOid());
+      // structure on first use). Stamp the attribute modifier (atttypmod) so a modifier-sensitive
+      // field such as numeric(10,2) decodes to its declared scale, matching CompositeCodec's own
+      // field walker; -1 leaves the resolved type unchanged.
+      PgField field = fields.get(fieldIndex - 1);
+      currentType = ctx.resolveType(field.getTypeOid(), field.getTypmod());
     }
     return isNull;
   }

@@ -33,6 +33,7 @@ import org.postgresql.core.Oid;
 import org.postgresql.fuzzkit.coercion.ArrayDescriptor;
 import org.postgresql.fuzzkit.coercion.Fidelity;
 import org.postgresql.fuzzkit.coercion.LeafRepr;
+import org.postgresql.fuzzkit.coercion.NumericTypmod;
 import org.postgresql.fuzzkit.coercion.PgTypeDescriptors;
 import org.postgresql.fuzzkit.coercion.ScalarDescriptor;
 import org.postgresql.jdbc.ObjectName;
@@ -1540,6 +1541,71 @@ public final class CodecFuzzSupport {
           "numeric round-trip decoded null for a non-null written value");
       assertEquals(0, value.compareTo(back),
           () -> "numeric " + format + ": " + value + " != " + back);
+    }
+  }
+
+  /**
+   * numeric round-trip under a stamped column modifier {@code numeric(precision, scale)}: the codec
+   * decodes through a descriptor carrying the applied typmod, so the value rescales to the modifier's
+   * declared scale (including a negative scale such as {@code numeric(2,-2)}). The oracle predicts the
+   * result independently -- {@code value} rescaled {@link RoundingMode#HALF_EVEN} to
+   * {@link NumericTypmod#scaleOf(int)} -- so it pins both the value and the exact scale, not only the
+   * numeric equality. Runs in both wire formats, since the rescale lives on the decode side and applies
+   * to a text and a binary numeric alike.
+   *
+   * @param value the value to write; a finite {@link BigDecimal}
+   * @param precision the modifier precision (1..1000)
+   * @param scale the modifier scale (digits after the point; may be negative on PG15+)
+   * @param ctx the offline codec context
+   */
+  public static void numericTypmodRoundTrip(BigDecimal value, int precision, int scale,
+      CodecContext ctx) throws SQLException {
+    int typmod = NumericTypmod.of(precision, scale);
+    PgType numeric = PgTypeDescriptors.scalar(Oid.NUMERIC).withTypmod(typmod).pgType();
+    BigDecimal expected = value.setScale(NumericTypmod.scaleOf(typmod), RoundingMode.HALF_EVEN);
+    for (Format format : Format.values()) {
+      RawValue raw = Codecs.encode(value, numeric, ctx, format);
+      BigDecimal back = Nullness.castNonNull(Codecs.decode(raw, numeric, ctx, BigDecimal.class),
+          "numeric(p,s) round-trip decoded null for a non-null written value");
+      assertEquals(expected, back,
+          () -> "numeric(" + precision + "," + scale + ") " + format + ": " + value
+              + " -> expected " + expected + " but decoded " + back);
+    }
+  }
+
+  /**
+   * {@code numeric(p,s)[]} round-trip: the array column modifier is the element modifier, so decoding
+   * through a modifier-carrying array descriptor rescales every element to the declared scale (the
+   * behaviour change {@code getArray()} makes over the wire-faithful typed {@code getObject(col,
+   * BigDecimal[].class)}). The oracle predicts each element independently -- the input element rescaled
+   * {@link RoundingMode#HALF_EVEN} to {@link NumericTypmod#scaleOf(int)} -- pinning both value and scale
+   * per element, in both wire formats. A {@code null} element stays {@code null}.
+   *
+   * @param values the element values; finite {@link BigDecimal}s or {@code null}
+   * @param precision the modifier precision (1..1000)
+   * @param scale the modifier scale (may be negative on PG15+)
+   * @param ctx the offline codec context
+   */
+  public static void numericArrayTypmodRoundTrip(@Nullable BigDecimal[] values, int precision,
+      int scale, CodecContext ctx) throws SQLException {
+    int typmod = NumericTypmod.of(precision, scale);
+    int declaredScale = NumericTypmod.scaleOf(typmod);
+    PgType numericArray = new PgType(new ObjectName("pg_catalog", "_numeric"), "numeric[]",
+        Oid.NUMERIC_ARRAY, 'b', 'A', -1, Oid.NUMERIC, 0, 0).withTypmod(typmod);
+    for (Format format : Format.values()) {
+      RawValue raw = Codecs.encode(values, numericArray, ctx, format);
+      BigDecimal[] back = Nullness.castNonNull(Codecs.decode(raw, numericArray, ctx, BigDecimal[].class),
+          "numeric(p,s)[] decoded null for a non-null written array");
+      assertEquals(values.length, back.length,
+          () -> "numeric(" + precision + "," + scale + ")[] " + format + " length");
+      for (int i = 0; i < values.length; i++) {
+        int idx = i;
+        BigDecimal expected = values[i] == null
+            ? null
+            : values[i].setScale(declaredScale, RoundingMode.HALF_EVEN);
+        assertEquals(expected, back[i],
+            () -> "numeric(" + precision + "," + scale + ")[" + idx + "] " + format);
+      }
     }
   }
 
