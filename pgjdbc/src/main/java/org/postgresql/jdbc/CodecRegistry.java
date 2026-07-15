@@ -153,10 +153,6 @@ public class CodecRegistry implements CodecLookup {
 
   // ---- Cross-layer maps ---------------------------------------------------
 
-  // Java class -> codec mapping (for encoding). Built-in entries are inserted
-  // first; user registrations override them, service-loaded ones fill gaps only.
-  private final Map<Class<?>, Codec> codecsByClass = new ConcurrentHashMap<>();
-
   // OID -> codec cache (Caffeine LRU cache).
   private final Cache<Integer, Codec> oidCache;
 
@@ -350,23 +346,6 @@ public class CodecRegistry implements CodecLookup {
     registerBuiltinAlias("tsmultirange", MultirangeCodec.INSTANCE);
     registerBuiltinAlias("tstzmultirange", MultirangeCodec.INSTANCE);
     registerBuiltinAlias("datemultirange", MultirangeCodec.INSTANCE);
-
-    // Register codecs by their default Java types
-    registerByClass(Short.class, Int2Codec.INSTANCE);
-    registerByClass(Integer.class, Int4Codec.INSTANCE);
-    registerByClass(Long.class, Int8Codec.INSTANCE);
-    registerByClass(Float.class, Float4Codec.INSTANCE);
-    registerByClass(Double.class, Float8Codec.INSTANCE);
-    registerByClass(java.math.BigDecimal.class, NumericCodec.INSTANCE);
-    registerByClass(String.class, TextCodecImpl.INSTANCE);
-    registerByClass(Boolean.class, BoolCodec.INSTANCE);
-    registerByClass(java.sql.Date.class, DateCodec.INSTANCE);
-    registerByClass(java.sql.Time.class, TimeCodec.INSTANCE);
-    registerByClass(java.sql.Timestamp.class, TimestamptzCodec.INSTANCE);
-    registerByClass(java.util.UUID.class, UuidCodec.INSTANCE);
-    registerByClass(byte[].class, ByteaCodec.INSTANCE);
-    registerByClass(org.postgresql.util.PGRange.class, RangeCodec.INSTANCE);
-    registerByClass(org.postgresql.util.PGmultirange.class, MultirangeCodec.INSTANCE);
   }
 
   /**
@@ -448,24 +427,16 @@ public class CodecRegistry implements CodecLookup {
   }
 
   /**
-   * Applies service-loaded codecs to this registry.
+   * Logs diagnostics for service-loaded codecs that collide with a built-in.
    *
    * <p>Service-loaded codecs are kept in their own layer (see the class-level
-   * resolution order); this only fills in their Java-class mappings for encoding,
-   * without overwriting a built-in class mapping. A service-loaded codec that
-   * shares a name with a built-in is logged: built-in types still resolve by OID,
-   * so the service-loaded codec applies only to non-built-in types of that name.</p>
+   * resolution order). A service-loaded codec that shares a name with a built-in
+   * is logged: built-in types still resolve by OID, so the service-loaded codec
+   * applies only to non-built-in types of that name.</p>
    */
   private void registerSpiCodecs() {
     for (Map.Entry<NameKey, Codec> entry : spiCodecsByName.entrySet()) {
       Codec codec = entry.getValue();
-      Class<?> javaType = codec.getDefaultJavaType();
-      Codec previous = codecsByClass.putIfAbsent(javaType, codec);
-      if (previous != null && previous != codec) {
-        LOGGER.log(Level.FINE,
-            "Service-loaded codec {0} not bound to Java class {1}; built-in codec {2} keeps it",
-            new Object[]{codec.getClass().getName(), javaType.getName(), previous.getClass().getName()});
-      }
       if (hasBuiltinName(codec.getTypeName())) {
         LOGGER.log(Level.FINE,
             "Service-loaded codec {0} shares type name {1} with a built-in codec; built-in types "
@@ -511,16 +482,6 @@ public class CodecRegistry implements CodecLookup {
     // A prior getByOid() may have cached a codec (or a typtype-resolved default) for an OID that
     // resolves to this name, so drop the OID cache to keep it coherent with the new mapping.
     oidCache.invalidateAll();
-  }
-
-  /**
-   * Registers a codec for a specific Java class.
-   *
-   * @param javaClass the Java class
-   * @param codec the codec to register
-   */
-  public void registerByClass(Class<?> javaClass, Codec codec) {
-    codecsByClass.put(javaClass, codec);
   }
 
   /**
@@ -703,56 +664,6 @@ public class CodecRegistry implements CodecLookup {
   }
 
   /**
-   * Gets the codec for a specific Java class.
-   *
-   * @param javaClass the Java class
-   * @return the codec, or null if not registered
-   */
-  @Override
-  public @Nullable Codec getByClass(Class<?> javaClass) {
-    return codecsByClass.get(javaClass);
-  }
-
-  /**
-   * Finds a codec that can handle the given Java class.
-   *
-   * <p>First checks for an exact match. If not found, checks superclasses
-   * and interfaces. This supports polymorphic encoding (e.g., any SQLData
-   * implementation).</p>
-   *
-   * @param javaClass the Java class to find a codec for
-   * @return a codec that can handle the class, or null if none found
-   */
-  @Override
-  public @Nullable Codec findCodecFor(Class<?> javaClass) {
-    // Exact match
-    Codec codec = codecsByClass.get(javaClass);
-    if (codec != null) {
-      return codec;
-    }
-
-    // Check superclass hierarchy
-    Class<?> current = javaClass.getSuperclass();
-    while (current != null && current != Object.class) {
-      codec = codecsByClass.get(current);
-      if (codec != null) {
-        return codec;
-      }
-      current = current.getSuperclass();
-    }
-
-    // Check interfaces
-    for (Class<?> iface : javaClass.getInterfaces()) {
-      codec = codecsByClass.get(iface);
-      if (codec != null) {
-        return codec;
-      }
-    }
-
-    return null;
-  }
-
-  /**
    * Resolves a codec based on the type's typtype and typcategory.
    * Used for user-defined types where no explicit name-based codec is registered.
    *
@@ -784,7 +695,7 @@ public class CodecRegistry implements CodecLookup {
       return RangeCodec.INSTANCE;
     }
     // Multirange types (typtype='m', PostgreSQL 14+)
-    if (pgType.getTyptype() == 'm') {
+    if (pgType.isMultirange()) {
       return MultirangeCodec.INSTANCE;
     }
     return null;
@@ -834,34 +745,6 @@ public class CodecRegistry implements CodecLookup {
   public @Nullable TextCodec getTextCodec(int oid, @Nullable TypeDescriptor pgType) {
     Codec codec = getByOid(oid, pgType);
     return codec instanceof TextCodec ? (TextCodec) codec : null;
-  }
-
-  /**
-   * Gets the binary codec for a specific OID.
-   *
-   * <p>Convenience method that returns FallbackCodec if no binary codec is found.</p>
-   *
-   * @param oid the PostgreSQL type OID
-   * @return the binary codec (never null)
-   */
-  @Override
-  public BinaryCodec getBinaryCodec(int oid) {
-    Codec codec = getByOid(oid, null);
-    return codec instanceof BinaryCodec ? (BinaryCodec) codec : FallbackCodec.INSTANCE;
-  }
-
-  /**
-   * Gets the text codec for a specific OID.
-   *
-   * <p>Convenience method that returns FallbackCodec if no text codec is found.</p>
-   *
-   * @param oid the PostgreSQL type OID
-   * @return the text codec (never null)
-   */
-  @Override
-  public TextCodec getTextCodec(int oid) {
-    Codec codec = getByOid(oid, null);
-    return codec instanceof TextCodec ? (TextCodec) codec : FallbackCodec.INSTANCE;
   }
 
   /**
@@ -917,32 +800,6 @@ public class CodecRegistry implements CodecLookup {
   public void invalidateOid(int oid) {
     oidCache.invalidate(oid);
     userOidCodecs.remove(oid);
-  }
-
-  /**
-   * Checks if a codec is registered for the given type name.
-   *
-   * @param typeName the PostgreSQL type name
-   * @return true if a codec is registered
-   */
-  @Override
-  public boolean hasCodecForName(String typeName) {
-    NameKey key = new NameKey(null, typeName);
-    return userCodecsByName.containsKey(key)
-        || spiCodecsByName.containsKey(key)
-        || builtinCodecsByName.containsKey(key)
-        || builtinCodecsByName.containsKey(new NameKey(PG_CATALOG, typeName));
-  }
-
-  /**
-   * Checks if a codec is registered for the given Java class.
-   *
-   * @param javaClass the Java class
-   * @return true if a codec is registered
-   */
-  @Override
-  public boolean hasCodecForClass(Class<?> javaClass) {
-    return codecsByClass.containsKey(javaClass);
   }
 
   /**

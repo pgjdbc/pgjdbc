@@ -195,32 +195,12 @@ class OfflineCodecApiRoundTripTest {
     }
 
     @Override
-    public Codec getByClass(Class<?> javaClass) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Codec findCodecFor(Class<?> javaClass) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
     public BinaryCodec getBinaryCodec(int oid, TypeDescriptor type) {
       throw new UnsupportedOperationException();
     }
 
     @Override
     public TextCodec getTextCodec(int oid, TypeDescriptor type) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public BinaryCodec getBinaryCodec(int oid) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public TextCodec getTextCodec(int oid) {
       throw new UnsupportedOperationException();
     }
 
@@ -236,16 +216,6 @@ class OfflineCodecApiRoundTripTest {
 
     @Override
     public Map<Integer, Codec> builtinCodecsByOid() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean hasCodecForName(String typeName) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean hasCodecForClass(Class<?> javaClass) {
       throw new UnsupportedOperationException();
     }
   }

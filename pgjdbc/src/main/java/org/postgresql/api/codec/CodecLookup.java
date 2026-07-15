@@ -45,23 +45,6 @@ public interface CodecLookup {
   Codec getByOid(int oid, @Nullable TypeDescriptor type);
 
   /**
-   * Resolves the codec registered for an exact Java class.
-   *
-   * @param javaClass the Java class
-   * @return the codec, or null if none is registered for that class
-   */
-  @Nullable Codec getByClass(Class<?> javaClass);
-
-  /**
-   * Finds a codec that can encode the given Java class, checking the exact class first and then its
-   * superclasses and interfaces.
-   *
-   * @param javaClass the Java class
-   * @return a codec that handles the class, or null if none is found
-   */
-  @Nullable Codec findCodecFor(Class<?> javaClass);
-
-  /**
    * Resolves the binary codec for a type by OID, or null when the resolved codec has no binary form.
    *
    * @param oid the PostgreSQL type OID
@@ -78,24 +61,6 @@ public interface CodecLookup {
    * @return the text codec, or null
    */
   @Nullable TextCodec getTextCodec(int oid, @Nullable TypeDescriptor type);
-
-  /**
-   * Resolves the binary codec for a type by OID, falling back to a codec that reads the value as raw
-   * bytes so the result is never null.
-   *
-   * @param oid the PostgreSQL type OID
-   * @return the binary codec, never null
-   */
-  BinaryCodec getBinaryCodec(int oid);
-
-  /**
-   * Resolves the text codec for a type by OID, falling back to a codec that reads the value as text
-   * so the result is never null.
-   *
-   * @param oid the PostgreSQL type OID
-   * @return the text codec, never null
-   */
-  TextCodec getTextCodec(int oid);
 
   /**
    * Reports whether the driver can decode this type from the binary wire format.
@@ -125,20 +90,4 @@ public interface CodecLookup {
    * @return an unmodifiable {@code OID -> codec} snapshot of the pinned built-in codecs
    */
   Map<Integer, Codec> builtinCodecsByOid();
-
-  /**
-   * Reports whether a codec is registered for the given type name.
-   *
-   * @param typeName the PostgreSQL type name
-   * @return true if a codec is registered
-   */
-  boolean hasCodecForName(String typeName);
-
-  /**
-   * Reports whether a codec is registered for the given Java class.
-   *
-   * @param javaClass the Java class
-   * @return true if a codec is registered
-   */
-  boolean hasCodecForClass(Class<?> javaClass);
 }
