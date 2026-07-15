@@ -5,8 +5,6 @@
 
 package org.postgresql.api.codec;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import org.postgresql.api.Experimental;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -137,7 +135,7 @@ public interface PrimitiveTextDecoder extends TextCodec {
    * @throws SQLException if decoding fails or the value overflows int range
    */
   default int decodeTextBytesAsInt(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsInt(new String(data, UTF_8), type, ctx);
+    return decodeAsInt(new String(data, ctx.getCharset()), type, ctx);
   }
 
   /**
@@ -150,6 +148,6 @@ public interface PrimitiveTextDecoder extends TextCodec {
    * @throws SQLException if decoding fails or the value overflows long range
    */
   default long decodeTextBytesAsLong(byte[] data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return decodeAsLong(new String(data, UTF_8), type, ctx);
+    return decodeAsLong(new String(data, ctx.getCharset()), type, ctx);
   }
 }

@@ -5,8 +5,6 @@
 
 package org.postgresql.api.codec;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import org.postgresql.api.Experimental;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -214,7 +212,7 @@ public final class PrimitiveDecoders {
     if (codec instanceof PrimitiveTextDecoder) {
       return ((PrimitiveTextDecoder) codec).decodeTextBytesAsInt(data, type, ctx);
     }
-    return asInt(codec, new String(data, UTF_8), type, ctx);
+    return asInt(codec, new String(data, ctx.getCharset()), type, ctx);
   }
 
   /** Decodes ASCII text bytes as a long; see {@link #asIntFromTextBytes}. */
@@ -223,7 +221,7 @@ public final class PrimitiveDecoders {
     if (codec instanceof PrimitiveTextDecoder) {
       return ((PrimitiveTextDecoder) codec).decodeTextBytesAsLong(data, type, ctx);
     }
-    return asLong(codec, new String(data, UTF_8), type, ctx);
+    return asLong(codec, new String(data, ctx.getCharset()), type, ctx);
   }
 
   // ===========================================================================
