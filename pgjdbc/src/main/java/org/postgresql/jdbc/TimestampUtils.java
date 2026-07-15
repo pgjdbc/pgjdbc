@@ -1994,6 +1994,18 @@ public class TimestampUtils {
   }
 
   /**
+   * Returns whether {@code tz} is a simple (non-DST) zone that the binary conversions handle with
+   * plain offset arithmetic, needing no {@link Calendar}. Lets a caller skip acquiring a scratch
+   * calendar on that fast path; the DST path still needs one.
+   *
+   * @param tz the zone to classify
+   * @return true if binary conversion in this zone needs no calendar
+   */
+  static boolean isSimpleTimeZone(TimeZone tz) {
+    return isSimpleTimeZone(tz.getID());
+  }
+
+  /**
    * Extracts the date part from a timestamp.
    *
    * @param millis The timestamp from which to extract the date.

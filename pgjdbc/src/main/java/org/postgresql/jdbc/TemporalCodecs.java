@@ -27,6 +27,7 @@ import java.time.OffsetTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
 /**
@@ -37,9 +38,36 @@ import java.util.TimeZone;
  * {@code usesDouble} flag, the decode timezone (the per-call {@link Calendar}'s zone set by
  * {@code getDate/getTime/getTimestamp(col, Calendar)}, else the JVM default) and the client timezone
  * all come from the context. The bodies forward to the stateless {@code static} conversions in
- * {@link TimestampUtils}, allocating fresh scratch per call so the codecs stay stateless.</p>
+ * {@link TimestampUtils}, reusing a thread-confined scratch {@link Calendar} (see
+ * {@link #SCRATCH_CALENDAR}) for the conversions that need one so the codecs stay stateless yet avoid
+ * a fresh calendar per decode.</p>
  */
 public final class TemporalCodecs {
+
+  /**
+   * Reusable scratch {@link Calendar}, one per thread, for the conversions that compose or split a
+   * value through a {@link Calendar}.
+   *
+   * <p>The {@link TimestampUtils} static conversions allocate a fresh {@link GregorianCalendar} when
+   * handed a {@code null} scratch, which dominates the per-call allocation of {@code getTimestamp} on
+   * a DST-zone {@code timestamp} column. Reusing one avoids that. It must not be the connection's
+   * shared {@code calendarWithUserTz}: {@link TemporalCodecs} is public and {@link CodecContext} is
+   * immutable, so borrowing the connection's mutable calendar would let two threads that decode with
+   * the same context race on it (the legacy path guards that calendar with the connection's lock; the
+   * codec path holds no such lock). A {@link ThreadLocal} keeps the scratch confined to the calling
+   * thread instead, so no lock is needed and the codecs stay stateless and thread-safe. Each
+   * conversion resets the calendar's time zone before use and reads it back within the same call, so
+   * it is consumed synchronously and never observed mid-mutation.</p>
+   *
+   * <p>Retrieval is lazy: the binary conversions take a plain-arithmetic shortcut for simple
+   * ({@code GMT}/{@code UTC}) zones and never touch a {@link Calendar} there, so {@link #dstScratch}
+   * skips the {@link ThreadLocal#get()} on that fast path. The text parser always composes fields
+   * through a calendar, so {@link #textScratch()} fetches it eagerly.</p>
+   */
+  // ThreadLocal.get() is @Nullable in general (a ThreadLocal with no initial value returns null), so
+  // the type argument must be nullable-bounded even though withInitial() never yields null here.
+  private static final ThreadLocal<@Nullable Calendar> SCRATCH_CALENDAR =
+      ThreadLocal.<@Nullable Calendar>withInitial(GregorianCalendar::new);
 
   private TemporalCodecs() {
     // Static utility
@@ -51,11 +79,30 @@ public final class TemporalCodecs {
     return cal != null ? cal.getTimeZone() : ctx.getDefaultTimeZone();
   }
 
+  /**
+   * The thread's scratch {@link Calendar} for a binary conversion in {@code tz}, or {@code null} for
+   * a simple {@code GMT}/{@code UTC} zone that the conversion handles with arithmetic and no calendar.
+   * Fetching the {@link ThreadLocal} only for the DST path keeps the simple-zone fast path free of it.
+   */
+  private static @Nullable Calendar dstScratch(TimeZone tz) {
+    return TimestampUtils.isSimpleTimeZone(tz) ? null : SCRATCH_CALENDAR.get();
+  }
+
+  /**
+   * The thread's scratch {@link Calendar} for the text parser, which always composes fields through a
+   * calendar regardless of zone. Typed {@code @Nullable} to match {@link ThreadLocal#get()}, but the
+   * {@code withInitial} supplier makes it non-null in practice.
+   */
+  private static @Nullable Calendar textScratch() {
+    return SCRATCH_CALENDAR.get();
+  }
+
   // ----------------------------- binary decode -----------------------------
 
   public static Date decodeDateBin(byte[] data, int off, int len, CodecContext ctx)
       throws SQLException {
-    return TimestampUtils.toDateBin(decodeTz(ctx), null, data, off, len);
+    TimeZone tz = decodeTz(ctx);
+    return TimestampUtils.toDateBin(tz, dstScratch(tz), data, off, len);
   }
 
   public static LocalDate decodeLocalDateBin(byte[] data, int off, int len, CodecContext ctx)
@@ -65,7 +112,8 @@ public final class TemporalCodecs {
 
   public static Time decodeTimeBin(byte[] data, int off, int len, CodecContext ctx)
       throws SQLException {
-    return TimestampUtils.toTimeBin(ctx.usesDoubleDateTime(), decodeTz(ctx), null, data, off, len);
+    TimeZone tz = decodeTz(ctx);
+    return TimestampUtils.toTimeBin(ctx.usesDoubleDateTime(), tz, dstScratch(tz), data, off, len);
   }
 
   public static LocalTime decodeLocalTimeBin(byte[] data, int off, int len, CodecContext ctx)
@@ -80,8 +128,12 @@ public final class TemporalCodecs {
 
   public static Timestamp decodeTimestampBin(byte[] data, int off, int len, boolean timestamptz,
       CodecContext ctx) throws SQLException {
-    return TimestampUtils.toTimestampBin(ctx.usesDoubleDateTime(), decodeTz(ctx), null, data, off,
-        len, timestamptz);
+    TimeZone tz = decodeTz(ctx);
+    // A timestamptz carries its own instant, so the guess-timestamp (calendar) path never runs and
+    // needs no scratch; a plain timestamp needs it only for a non-simple zone.
+    Calendar scratch = timestamptz ? null : dstScratch(tz);
+    return TimestampUtils.toTimestampBin(ctx.usesDoubleDateTime(), tz, scratch, data, off, len,
+        timestamptz);
   }
 
   public static LocalDateTime decodeLocalDateTimeBin(byte[] data, int off, int len, CodecContext ctx)
@@ -97,7 +149,7 @@ public final class TemporalCodecs {
   // ----------------------------- text decode -----------------------------
 
   public static Date decodeDateText(String data, CodecContext ctx) throws SQLException {
-    return TimestampUtils.toDate(data.getBytes(StandardCharsets.UTF_8), decodeTz(ctx), null);
+    return TimestampUtils.toDate(data.getBytes(StandardCharsets.UTF_8), decodeTz(ctx), textScratch());
   }
 
   public static LocalDate decodeLocalDateText(String data, CodecContext ctx) throws SQLException {
@@ -106,7 +158,7 @@ public final class TemporalCodecs {
   }
 
   public static Time decodeTimeText(String data, CodecContext ctx) throws SQLException {
-    return TimestampUtils.toTime(data.getBytes(StandardCharsets.UTF_8), decodeTz(ctx), null);
+    return TimestampUtils.toTime(data.getBytes(StandardCharsets.UTF_8), decodeTz(ctx), textScratch());
   }
 
   public static LocalTime decodeLocalTimeText(String data, CodecContext ctx) throws SQLException {
@@ -119,7 +171,8 @@ public final class TemporalCodecs {
   }
 
   public static Timestamp decodeTimestampText(String data, CodecContext ctx) throws SQLException {
-    return TimestampUtils.toTimestamp(data.getBytes(StandardCharsets.UTF_8), decodeTz(ctx), null);
+    return TimestampUtils.toTimestamp(data.getBytes(StandardCharsets.UTF_8), decodeTz(ctx),
+        textScratch());
   }
 
   public static LocalDateTime decodeLocalDateTimeText(String data, CodecContext ctx)
@@ -138,12 +191,14 @@ public final class TemporalCodecs {
 
   /** Truncates the instant {@code millis} to midnight in the context's timezone. */
   public static Date extractDate(long millis, CodecContext ctx) {
-    return TimestampUtils.convertToDate(millis, decodeTz(ctx), null);
+    TimeZone tz = decodeTz(ctx);
+    return TimestampUtils.convertToDate(millis, tz, dstScratch(tz));
   }
 
   /** Anchors the instant {@code millis} to 1970-01-01 in the context's timezone. */
   public static Time extractTime(long millis, CodecContext ctx) {
-    return TimestampUtils.convertToTime(millis, decodeTz(ctx), null);
+    TimeZone tz = decodeTz(ctx);
+    return TimestampUtils.convertToTime(millis, tz, dstScratch(tz));
   }
 
   // ----------------------------- text encode -----------------------------

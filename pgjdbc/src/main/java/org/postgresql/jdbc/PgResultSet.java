@@ -155,6 +155,15 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   // Codec support
   private @Nullable PgCodecContext codecContext;
 
+  // Memo for the no-Calendar temporal path: getDefaultCalendar() returns a stable shared
+  // Calendar, so the context derived from it (getCodecContext().withCalendar(cal)) can be reused
+  // instead of copied on every getDate/getTime/getTimestamp. Keyed on the base context too, so a
+  // setTypeMapOverride() that swaps codecContext invalidates the cached derived context. Only ever
+  // holds the internal shared Calendar, never a caller-supplied one.
+  private @Nullable Calendar lastDefaultCalendar;
+  private @Nullable PgCodecContext lastDefaultCalendarBase;
+  private @Nullable PgCodecContext lastDefaultCalendarContext;
+
   /**
    * Gets the codec context for this result set.
    * The context is lazily initialized on first access.
@@ -626,11 +635,18 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    * handling. The temporal codecs own all date/time cross-type conversions (for example
    * {@code getTimestamp} on a DATE column), so the {@code getDate}/{@code getTime}/{@code getTimestamp}
    * methods become a thin dispatch over them.
+   *
+   * <p>A {@code null} {@code cal} means "no caller Calendar": the method pins and reuses the
+   * result set's default-calendar context via {@link #defaultCalendarCodecContext()} (which also
+   * touches the per-result-set default-timezone cache). A non-null {@code cal} is an explicit
+   * caller Calendar and derives a one-shot context via {@link PgCodecContext#withCalendar}.</p>
    */
   private <T> @Nullable T decodeColumnViaCodec(int i, byte[] value, Class<T> targetClass,
-      Calendar cal) throws SQLException {
+      @Nullable Calendar cal) throws SQLException {
     Field field = getFieldWithCodec(i);
-    PgCodecContext ctx = getCodecContext().withCalendar(cal);
+    PgCodecContext ctx = cal == null
+        ? defaultCalendarCodecContext()
+        : getCodecContext().withCalendar(cal);
     if (isBinary(i)) {
       BinaryCodec codec = field.getBinaryCodec();
       if (codec != null) {
@@ -646,6 +662,31 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return null;
   }
 
+  /**
+   * Returns the codec context for the no-Calendar temporal path, decoding in this result set's
+   * default time zone. {@link #getDefaultCalendar()} pins that zone (the legacy
+   * {@code TimezoneCachingTest} contract) and returns a stable shared Calendar, so the derived
+   * context is memoized instead of copied on every {@code getDate}/{@code getTime}/{@code getTimestamp}.
+   * The memo is also keyed on the base context so a {@link #setTypeMapOverride} that swaps it
+   * invalidates the cached derived context.
+   *
+   * @return the memoized default-calendar context
+   * @throws SQLException if the context cannot be derived
+   */
+  @SuppressWarnings("ReferenceEquality")
+  private PgCodecContext defaultCalendarCodecContext() throws SQLException {
+    Calendar cal = getDefaultCalendar();
+    PgCodecContext base = getCodecContext();
+    if (cal == lastDefaultCalendar && base == lastDefaultCalendarBase) {
+      return castNonNull(lastDefaultCalendarContext);
+    }
+    PgCodecContext ctx = base.withCalendar(cal);
+    lastDefaultCalendar = cal;
+    lastDefaultCalendarBase = base;
+    lastDefaultCalendarContext = ctx;
+    return ctx;
+  }
+
   @Override
   public @Nullable Date getDate(
       int i, @Nullable Calendar cal) throws SQLException {
@@ -654,9 +695,6 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return null;
     }
 
-    if (cal == null) {
-      cal = getDefaultCalendar();
-    }
     Date d = decodeColumnViaCodec(i, value, Date.class, cal);
     if (d != null) {
       return d;
@@ -677,9 +715,6 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return null;
     }
 
-    if (cal == null) {
-      cal = getDefaultCalendar();
-    }
     Time t = decodeColumnViaCodec(i, value, Time.class, cal);
     if (t != null) {
       return t;
@@ -703,9 +738,6 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return null;
     }
 
-    if (cal == null) {
-      cal = getDefaultCalendar();
-    }
     Timestamp t = decodeColumnViaCodec(i, value, Timestamp.class, cal);
     if (t != null) {
       return t;
