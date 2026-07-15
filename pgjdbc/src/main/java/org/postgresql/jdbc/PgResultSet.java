@@ -3205,7 +3205,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     // compatibility. The bit count is the byte length in text but the leading int4 in binary, so it
     // must be read format-aware before deciding; bit(n>1) then falls through to the codec path.
     if (oid == Oid.BIT) {
-      int nbits = isBinary(columnIndex) ? ByteConverter.int4(value, 0) : value.length;
+      int nbits = isBinary(columnIndex) && value.length > 4 ? ByteConverter.int4(value, 0) : value.length;
       if (nbits == 1) {
         return getBoolean(columnIndex);
       }
