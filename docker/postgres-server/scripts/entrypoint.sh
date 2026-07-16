@@ -58,6 +58,20 @@ main () {
         pg_opts="${pg_opts} -c max_prepared_transactions=64"
     fi
 
+    if is_option_enabled "${DOMAIN_SOCKET:-no}"; then
+        # The socket directory is bind-mounted from the host so that tests running on the host can
+        # connect via a Unix domain socket. Make it writable by postgres and world-accessible so the
+        # host user (a different uid) can connect to the socket.
+        mkdir -p /var/run/postgresql
+        chown postgres:postgres /var/run/postgresql
+        chmod 0777 /var/run/postgresql
+        add_pg_opt "-c unix_socket_directories=/var/run/postgresql"
+        add_pg_opt "-c unix_socket_permissions=0777"
+        # Allow local (Unix socket) connections for the unprivileged test user. The default
+        # pg_hba.conf only grants local access to the postgres superuser.
+        echo "local   all             all                               trust" >> "${pg_hba}"
+    fi
+
     if is_pg_version_less_than "10"; then
         add_pg_opt "-c max_locks_per_transaction=256"
     fi

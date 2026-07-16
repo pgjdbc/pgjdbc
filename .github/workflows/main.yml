@@ -164,15 +164,23 @@ jobs:
         CREATE_REPLICAS: ${{ matrix.replication }}
         PG_IMAGE: ${{ matrix.pg_version == 'HEAD' && 'pgjdbc/postgres-devel:ci-head' || '' }}
         PG_PULL_POLICY: ${{ matrix.pg_version == 'HEAD' && 'build' || 'missing' }}
+        DOMAIN_SOCKET: ${{ matrix.domain_socket_backend }}
       # The below run command is long, however, it is intentional, and it makes the output nicer in GitHub UI
       # language=bash
       run: |
-        echo "Starting PostgreSQL via docker compose down; PGV=$PGV TZ=$TZ XA=$XA SSL=$SSL SCRAM=$SCRAM CREATE_REPLICAS=$CREATE_REPLICAS docker compose up"
+        echo "Starting PostgreSQL via docker compose down; PGV=$PGV TZ=$TZ XA=$XA SSL=$SSL SCRAM=$SCRAM CREATE_REPLICAS=$CREATE_REPLICAS DOMAIN_SOCKET=$DOMAIN_SOCKET docker compose up"
 
-        docker compose down -v --rmi local || true
+        # Expose the server's Unix domain socket to the host only for domain_socket_backend runs, via a
+        # compose override that bind-mounts a host directory outside the repository.
+        COMPOSE_FILES="-f docker-compose.yml"
+        if [ "$DOMAIN_SOCKET" = "yes" ]; then
+          COMPOSE_FILES="$COMPOSE_FILES -f docker-compose.domain-socket.yml"
+          mkdir -p /tmp/pgjdbc-postgresql-socket
+        fi
+        docker compose $COMPOSE_FILES down -v --rmi local || true
         sed -i -r '/- (543[3-4]):\1/d' docker-compose.yml
-        docker compose up -d --wait || { docker compose logs; exit 1; }
-        docker compose logs
+        docker compose $COMPOSE_FILES up -d --wait || { docker compose $COMPOSE_FILES logs; exit 1; }
+        docker compose $COMPOSE_FILES logs
     - name: Start PostgreSQL PGV=${{ matrix.pg_version }}
       if: ${{ runner.os != 'Linux' }}
       uses: ikalnytskyi/action-setup-postgres@c4dda34aae1c821e3a771b68b73b13af3198a7ee # v8
