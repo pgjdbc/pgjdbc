@@ -179,6 +179,54 @@ class CodecRegistryTest {
   }
 
   @Test
+  void resetCustomCodecs_clearsEveryUserLayerRegistration() {
+    CodecRegistry registry = new CodecRegistry();
+
+    Codec byName = new StubCodec("reset_byname");
+    registry.registerByName(byName);
+
+    Codec aliased = new StubCodec("reset_alias_target");
+    registry.registerAlias("reset_alias", aliased);
+
+    Codec custom = new StubCodec("reset_custom");
+    registry.registerCustomCodec(custom);
+
+    Codec byOid = new StubCodec("reset_byoid");
+    PgType byOidType = userType("reset_byoid", 999_010);
+    registry.registerByOid(byOidType.getOid(), byOid);
+
+    // All four user-layer registrations resolve before the reset.
+    assertSame(byName, registry.getByName("reset_byname"));
+    assertSame(aliased, registry.getByName("reset_alias"));
+    assertSame(custom, registry.getByName("reset_custom"));
+    assertSame(byOid, registry.getByOid(byOidType.getOid(), byOidType));
+
+    registry.resetCustomCodecs();
+
+    // None survive. The name registrations from registerByName/registerAlias, which the old
+    // customCodecNames tracking missed and thus leaked across pooled logical connections, are
+    // cleared along with the registerCustomCodec and registerByOid bindings.
+    assertNull(registry.getByName("reset_byname"));
+    assertNull(registry.getByName("reset_alias"));
+    assertNull(registry.getByName("reset_custom"));
+    assertNotSame(byOid, registry.getByOid(byOidType.getOid(), byOidType));
+  }
+
+  @Test
+  void unregisterCustomCodec_removesRegisterByNameRegistration() {
+    CodecRegistry registry = new CodecRegistry();
+
+    Codec byName = new StubCodec("unregister_byname");
+    registry.registerByName(byName);
+    assertSame(byName, registry.getByName("unregister_byname"));
+
+    // unregisterCustomCodec removes any user-layer codec of that name, not only those added
+    // through registerCustomCodec.
+    registry.unregisterCustomCodec("unregister_byname");
+    assertNull(registry.getByName("unregister_byname"));
+  }
+
+  @Test
   void canDecodeText_followsCodecCapability() {
     CodecRegistry registry = new CodecRegistry();
     // Every geometric codec, point and circle alike, can also read text.

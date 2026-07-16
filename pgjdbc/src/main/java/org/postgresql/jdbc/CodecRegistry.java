@@ -67,7 +67,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
@@ -154,9 +153,6 @@ public class CodecRegistry implements CodecLookup {
 
   // OID -> codec cache (Caffeine LRU cache).
   private final Cache<Integer, Codec> oidCache;
-
-  // Track custom codec names for reset functionality.
-  private final Set<NameKey> customCodecNames = ConcurrentHashMap.newKeySet();
 
   // ---- SPI layer (driver-scoped, shared across registries) ----------------
 
@@ -501,43 +497,44 @@ public class CodecRegistry implements CodecLookup {
   }
 
   /**
-   * Registers a custom codec for this connection.
+   * Registers a codec for this connection by its primary type name.
    *
-   * <p>Custom codecs are tracked separately and can be cleared via {@link #resetCustomCodecs()}.
-   * This is useful for connection pool reset scenarios.</p>
+   * <p>Convenience alias for {@link #registerByName(Codec)}: it registers into the same
+   * per-connection user layer. Like every user-layer registration, it can be cleared via
+   * {@link #resetCustomCodecs()}, which is useful for connection pool reset scenarios.</p>
    *
    * @param codec the codec to register
    */
   public void registerCustomCodec(Codec codec) {
-    NameKey key = new NameKey(null, codec.getPrimaryTypeName());
-    customCodecNames.add(key);
-    putUserName(key, codec);
+    putUserName(new NameKey(null, codec.getPrimaryTypeName()), codec);
   }
 
   /**
-   * Unregisters a custom codec by type name.
+   * Unregisters a user-layer codec by type name.
+   *
+   * <p>Removes any codec bound to the bare {@code typeName} in the user layer, regardless of
+   * whether it was added through {@link #registerByName(Codec)}, {@link #registerAlias(String, Codec)}
+   * or {@link #registerCustomCodec(Codec)}.</p>
    *
    * @param typeName the type name to unregister
    */
   public void unregisterCustomCodec(String typeName) {
-    NameKey key = new NameKey(null, typeName);
-    if (customCodecNames.remove(key)) {
-      userCodecsByName.remove(key);
+    if (userCodecsByName.remove(new NameKey(null, typeName)) != null) {
       oidCache.invalidateAll();
     }
   }
 
   /**
-   * Clears all custom codecs registered on this registry.
+   * Clears every per-connection user-layer registration on this registry.
    *
-   * <p>Built-in codecs are not affected. This is useful for connection pool
-   * reset scenarios.</p>
+   * <p>Removes all name registrations ({@link #registerByName(Codec)},
+   * {@link #registerAlias(String, Codec)}, {@link #registerCustomCodec(Codec)}) and all OID
+   * registrations ({@link #registerByOid(int, Codec)}). Service-loaded and built-in codecs are not
+   * affected. This is useful for connection pool reset scenarios, where a physical connection is
+   * handed to a new logical client and must not carry over the previous client's registrations.</p>
    */
   public void resetCustomCodecs() {
-    for (NameKey key : customCodecNames) {
-      userCodecsByName.remove(key);
-    }
-    customCodecNames.clear();
+    userCodecsByName.clear();
     userOidCodecs.clear();
     oidCache.invalidateAll();
   }

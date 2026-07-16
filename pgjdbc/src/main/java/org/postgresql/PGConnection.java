@@ -423,10 +423,13 @@ public interface PGConnection {
   void registerCodec(Codec codec) throws SQLException;
 
   /**
-   * Unregisters a custom codec from this connection.
+   * Unregisters a codec from this connection by type name.
    *
-   * <p>This is useful for connection pool reset scenarios where custom codecs
-   * registered by a previous user should be removed.</p>
+   * <p>Removes any codec bound to {@code typeName} in the connection's user layer, whether it was
+   * added through {@link #registerCodec(Codec)} or directly through
+   * {@link CodecRegistry#registerByName(Codec)} or {@link CodecRegistry#registerAlias(String, Codec)}.
+   * Service-loaded and built-in codecs are not affected. This is useful for connection pool reset
+   * scenarios where a codec registered by a previous user should be removed.</p>
    *
    * @param typeName the type name to unregister
    * @since 42.8.0
@@ -447,10 +450,14 @@ public interface PGConnection {
   CodecRegistry getCodecRegistry();
 
   /**
-   * Clears all custom codecs registered on this connection.
+   * Clears every codec registered on this connection.
    *
-   * <p>This is useful for connection pool reset scenarios. Built-in codecs
-   * are not affected.</p>
+   * <p>Removes all user-layer registrations, including those added through
+   * {@link #registerCodec(Codec)} and those added directly on the {@link CodecRegistry} through
+   * {@link CodecRegistry#registerByName(Codec)}, {@link CodecRegistry#registerAlias(String, Codec)},
+   * or {@link CodecRegistry#registerByOid(int, Codec)}. Service-loaded and built-in codecs are not
+   * affected. This is useful for connection pool reset scenarios, where a physical connection is
+   * handed to a new logical client and must not carry over the previous client's codecs.</p>
    *
    * @since 42.8.0
    */
