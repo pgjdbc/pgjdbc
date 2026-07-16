@@ -39,7 +39,7 @@ public final class TextLikeCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "textlike";
   }
 
@@ -93,7 +93,7 @@ public final class TextLikeCodec implements BinaryCodec, TextCodec {
     if (targetClass == byte[].class) {
       return (T) Arrays.copyOfRange(data, offset, offset + length);
     }
-    throw Exceptions.cannotDecode(getTypeName(), targetClass.getName());
+    throw Exceptions.cannotDecode(getPrimaryTypeName(), targetClass.getName());
   }
 
   @Override
@@ -110,7 +110,7 @@ public final class TextLikeCodec implements BinaryCodec, TextCodec {
       // The text form already is the value; its charset bytes mirror decodeBinaryAs(byte[]).
       return (T) data.getBytes(ctx.getCharset());
     }
-    throw Exceptions.cannotDecode(getTypeName(), targetClass.getName());
+    throw Exceptions.cannotDecode(getPrimaryTypeName(), targetClass.getName());
   }
 
   @Override

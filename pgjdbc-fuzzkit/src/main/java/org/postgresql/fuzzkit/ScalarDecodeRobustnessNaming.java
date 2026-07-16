@@ -20,7 +20,7 @@ import java.util.Locale;
  * format suffix: {@code _binary}, {@code _binaryOffset} (the {@code byte[] + off + len} sibling), or
  * {@code _text}. The type name comes from {@link Oid#toString(int)}, which is keyed by OID, so the two OIDs
  * that share {@code BitCodec} still get distinct names ({@code bit} for 1560, {@code varbit} for 1562) --
- * unlike {@link org.postgresql.api.codec.Codec#getTypeName()}, whose value is a single name-resolution key
+ * unlike {@link org.postgresql.api.codec.Codec#getPrimaryTypeName()}, whose value is a single name-resolution key
  * both OIDs report as {@code bit}. An OID with no {@code Oid} constant falls back to {@code oid<n>}.
  */
 public final class ScalarDecodeRobustnessNaming {

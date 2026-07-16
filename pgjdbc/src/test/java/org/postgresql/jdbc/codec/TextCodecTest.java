@@ -47,8 +47,8 @@ class TextCodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("text", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("text", codec.getPrimaryTypeName());
   }
 
   @Test

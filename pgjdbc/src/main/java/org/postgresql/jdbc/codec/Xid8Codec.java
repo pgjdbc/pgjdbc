@@ -46,7 +46,7 @@ public final class Xid8Codec implements StreamingBinaryCodec, PrimitiveBinaryDec
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "xid8";
   }
 

@@ -40,8 +40,8 @@ class JsonbCodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("jsonb", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("jsonb", codec.getPrimaryTypeName());
   }
 
   @Test

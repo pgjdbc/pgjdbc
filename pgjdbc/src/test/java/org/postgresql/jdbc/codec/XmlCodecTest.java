@@ -42,8 +42,8 @@ class XmlCodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("xml", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("xml", codec.getPrimaryTypeName());
   }
 
   @Test

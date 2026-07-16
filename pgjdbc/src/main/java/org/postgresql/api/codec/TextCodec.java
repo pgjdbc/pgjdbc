@@ -155,6 +155,6 @@ public interface TextCodec extends Codec {
     if (targetClass.isInstance(value)) {
       return targetClass.cast(value);
     }
-    throw Codecs.cannotDecode(getTypeName(), targetClass.getName());
+    throw Codecs.cannotDecode(getPrimaryTypeName(), targetClass.getName());
   }
 }

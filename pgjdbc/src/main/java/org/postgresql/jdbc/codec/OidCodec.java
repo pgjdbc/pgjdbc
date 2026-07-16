@@ -37,7 +37,7 @@ public final class OidCodec implements StreamingBinaryCodec, PrimitiveBinaryDeco
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "oid";
   }
 

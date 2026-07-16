@@ -777,7 +777,7 @@ public final class CodecFuzzSupport {
     for (Map.Entry<Integer, Codec> entry : OfflineCodecs.defaultRegistry().builtinCodecsByOid().entrySet()) {
       Codec codec = entry.getValue();
       if (codec instanceof PrimitiveBinaryDecoder || codec instanceof PrimitiveTextDecoder) {
-        types.add(scalar(entry.getKey(), codec.getTypeName(), 'X'));
+        types.add(scalar(entry.getKey(), codec.getPrimaryTypeName(), 'X'));
       }
     }
     // The synthetic unknown type must resolve to the unpinned FallbackCodec (not TextLikeCodec or a
@@ -811,7 +811,7 @@ public final class CodecFuzzSupport {
       return;
     }
     PrimitiveBinaryDecoder dec = (PrimitiveBinaryDecoder) codec;
-    String name = codec.getTypeName();
+    String name = codec.getPrimaryTypeName();
     int len = wire.length;
     Outcome oi = Outcome.capture(() -> dec.decodeAsInt(wire, 0, len, type, ctx));
     Outcome ol = Outcome.capture(() -> dec.decodeAsLong(wire, 0, len, type, ctx));
@@ -854,7 +854,7 @@ public final class CodecFuzzSupport {
       return;
     }
     PrimitiveTextDecoder dec = (PrimitiveTextDecoder) codec;
-    String name = codec.getTypeName();
+    String name = codec.getPrimaryTypeName();
     char[] chars = text.toCharArray();
     char[] pad = pad(chars);
     int clen = chars.length;
@@ -1397,8 +1397,8 @@ public final class CodecFuzzSupport {
     }
 
     @Override
-    public String getTypeName() {
-      return bin.getTypeName();
+    public String getPrimaryTypeName() {
+      return bin.getPrimaryTypeName();
     }
 
     @Override

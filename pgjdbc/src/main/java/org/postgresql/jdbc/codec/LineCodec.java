@@ -38,7 +38,7 @@ public final class LineCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "line";
   }
 

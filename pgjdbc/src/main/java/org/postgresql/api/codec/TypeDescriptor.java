@@ -169,7 +169,7 @@ public interface TypeDescriptor {
    *
    * @return the composite fields, or {@code null}
    */
-  @Nullable List<? extends PGField> getFields();
+  @Nullable List<? extends CompositeField> getFields();
 
   /**
    * Reports whether this is an array type ({@code typcategory='A'}).

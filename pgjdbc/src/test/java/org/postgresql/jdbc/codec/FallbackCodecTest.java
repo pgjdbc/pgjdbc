@@ -99,8 +99,8 @@ class FallbackCodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("unknown", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("unknown", codec.getPrimaryTypeName());
   }
 
   @Test

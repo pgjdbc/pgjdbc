@@ -36,7 +36,7 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "unknown";
   }
 

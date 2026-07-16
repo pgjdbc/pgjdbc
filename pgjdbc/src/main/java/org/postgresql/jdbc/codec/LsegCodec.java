@@ -33,7 +33,7 @@ public final class LsegCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "lseg";
   }
 

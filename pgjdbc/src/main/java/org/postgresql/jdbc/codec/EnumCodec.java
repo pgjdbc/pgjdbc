@@ -33,7 +33,7 @@ public final class EnumCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     // This codec handles all enum types (typtype='e')
     return "enum";
   }

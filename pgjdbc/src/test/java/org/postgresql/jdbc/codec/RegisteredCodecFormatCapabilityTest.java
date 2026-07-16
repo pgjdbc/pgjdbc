@@ -48,8 +48,8 @@ class RegisteredCodecFormatCapabilityTest {
     for (Map.Entry<Integer, Codec> entry : builtins.entrySet()) {
       Codec codec = entry.getValue();
       CodecContext ctx = new SingleCodecContext(codec);
-      TypeDescriptor type = builtinType(codec.getTypeName(), entry.getKey());
-      String name = codec.getTypeName();
+      TypeDescriptor type = builtinType(codec.getPrimaryTypeName(), entry.getKey());
+      String name = codec.getPrimaryTypeName();
 
       if (!CodecFormatSupport.canReadBinary(codec)) {
         RawValue binary = RawValue.binary(new byte[0]);

@@ -53,8 +53,8 @@ class TimetzCodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("timetz", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("timetz", codec.getPrimaryTypeName());
   }
 
   @Test

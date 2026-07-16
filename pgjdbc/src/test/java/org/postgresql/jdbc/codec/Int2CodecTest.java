@@ -201,8 +201,8 @@ class Int2CodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("int2", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("int2", codec.getPrimaryTypeName());
   }
 
   @Test

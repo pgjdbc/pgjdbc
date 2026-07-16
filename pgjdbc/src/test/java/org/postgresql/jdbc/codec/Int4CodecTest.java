@@ -433,8 +433,8 @@ class Int4CodecTest {
   // ==================== Codec Metadata ====================
 
   @Test
-  void getTypeName() {
-    assertEquals("int4", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("int4", codec.getPrimaryTypeName());
   }
 
   @Test

@@ -517,8 +517,8 @@ class NumericCodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("numeric", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("numeric", codec.getPrimaryTypeName());
   }
 
   @Test

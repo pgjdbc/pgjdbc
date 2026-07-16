@@ -56,8 +56,8 @@ class TimestamptzCodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("timestamptz", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("timestamptz", codec.getPrimaryTypeName());
   }
 
   @Test

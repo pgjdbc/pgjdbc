@@ -35,7 +35,7 @@ public final class BoolCodec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "bool";
   }
 

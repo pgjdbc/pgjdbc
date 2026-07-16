@@ -137,8 +137,8 @@ class Float4CodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("float4", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("float4", codec.getPrimaryTypeName());
   }
 
   @Test

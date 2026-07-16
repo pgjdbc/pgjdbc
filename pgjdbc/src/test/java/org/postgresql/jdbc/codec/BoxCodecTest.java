@@ -108,8 +108,8 @@ class BoxCodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("box", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("box", codec.getPrimaryTypeName());
   }
 
   @Test

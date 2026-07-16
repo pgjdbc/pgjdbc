@@ -25,7 +25,7 @@ import java.sql.Timestamp;
  * Shared decode/encode logic for the {@code String}-natural built-in types: {@code text}, {@code varchar},
  * {@code bpchar}, {@code name}, and {@code "char"}. Their {@code typsend}/{@code typreceive} pair leaves the
  * value as its charset text, so the wire is just the string in the connection charset in both formats; a
- * subclass supplies only the type name (see {@link #getTypeName()}).
+ * subclass supplies only the type name (see {@link #getPrimaryTypeName()}).
  *
  * <p>This base advertises only {@link PrimitiveBinaryDecoder} and {@link PrimitiveTextDecoder}. None of
  * these codecs stream: a {@code String} must be materialized into charset bytes before it is written
@@ -42,7 +42,7 @@ abstract class AbstractTextCodec implements PrimitiveBinaryDecoder, PrimitiveTex
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return typeName;
   }
 

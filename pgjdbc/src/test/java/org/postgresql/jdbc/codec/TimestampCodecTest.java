@@ -69,8 +69,8 @@ class TimestampCodecTest {
   // ==================== Codec Metadata ====================
 
   @Test
-  void getTypeName() {
-    assertEquals("timestamp", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("timestamp", codec.getPrimaryTypeName());
   }
 
   @Test

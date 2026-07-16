@@ -215,7 +215,7 @@ public class CodecRegistry implements CodecLookup {
           LOGGER.log(Level.WARNING, "Failed to load a codec via ServiceLoader; skipping it", e);
           continue;
         }
-        NameKey key = new NameKey(null, codec.getTypeName());
+        NameKey key = new NameKey(null, codec.getPrimaryTypeName());
         Codec previous = spiCodecsByName.putIfAbsent(key, codec);
         if (previous != null) {
           LOGGER.log(Level.WARNING,
@@ -439,12 +439,12 @@ public class CodecRegistry implements CodecLookup {
   private void registerSpiCodecs() {
     for (Map.Entry<NameKey, Codec> entry : spiCodecsByName.entrySet()) {
       Codec codec = entry.getValue();
-      if (hasBuiltinName(codec.getTypeName())) {
+      if (hasBuiltinName(codec.getPrimaryTypeName())) {
         LOGGER.log(Level.FINE,
             "Service-loaded codec {0} shares type name {1} with a built-in codec; built-in types "
                 + "resolve by OID, so the service-loaded codec applies only to non-built-in types "
                 + "of that name",
-            new Object[]{codec.getClass().getName(), codec.getTypeName()});
+            new Object[]{codec.getClass().getName(), codec.getPrimaryTypeName()});
       }
     }
   }
@@ -459,7 +459,7 @@ public class CodecRegistry implements CodecLookup {
    * @param codec the codec to register
    */
   public void registerByName(Codec codec) {
-    putUserName(new NameKey(null, codec.getTypeName()), codec);
+    putUserName(new NameKey(null, codec.getPrimaryTypeName()), codec);
   }
 
   /**
@@ -509,7 +509,7 @@ public class CodecRegistry implements CodecLookup {
    * @param codec the codec to register
    */
   public void registerCustomCodec(Codec codec) {
-    NameKey key = new NameKey(null, codec.getTypeName());
+    NameKey key = new NameKey(null, codec.getPrimaryTypeName());
     customCodecNames.add(key);
     putUserName(key, codec);
   }
@@ -808,7 +808,7 @@ public class CodecRegistry implements CodecLookup {
    * Registers a built-in {@code pg_catalog} codec by its type name.
    */
   private void registerBuiltin(Codec codec) {
-    builtinCodecsByName.put(new NameKey(PG_CATALOG, codec.getTypeName()), codec);
+    builtinCodecsByName.put(new NameKey(PG_CATALOG, codec.getPrimaryTypeName()), codec);
   }
 
   /**
@@ -824,7 +824,7 @@ public class CodecRegistry implements CodecLookup {
    * so it matches the type in whatever schema the extension was installed.
    */
   private void registerBuiltinExtension(Codec codec) {
-    builtinCodecsByName.put(new NameKey(null, codec.getTypeName()), codec);
+    builtinCodecsByName.put(new NameKey(null, codec.getPrimaryTypeName()), codec);
   }
 
   /**

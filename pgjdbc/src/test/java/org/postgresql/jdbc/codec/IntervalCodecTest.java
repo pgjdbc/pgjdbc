@@ -43,8 +43,8 @@ class IntervalCodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("interval", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("interval", codec.getPrimaryTypeName());
   }
 
   @Test

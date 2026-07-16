@@ -107,8 +107,8 @@ class UuidCodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("uuid", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("uuid", codec.getPrimaryTypeName());
   }
 
   @Test

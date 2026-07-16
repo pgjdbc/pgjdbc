@@ -16,7 +16,7 @@ public final class ServicePointCodec implements TextCodec {
   // not shadow the built-in geometric "point" type globally for
   // every test that touches PGpoint.
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "consumer_service_loader_service_point";
   }
 

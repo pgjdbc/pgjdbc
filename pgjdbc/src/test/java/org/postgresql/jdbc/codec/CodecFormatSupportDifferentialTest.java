@@ -239,7 +239,7 @@ class CodecFormatSupportDifferentialTest {
     }
 
     @Override
-    public String getTypeName() {
+    public String getPrimaryTypeName() {
       return typeName;
     }
 
@@ -263,7 +263,7 @@ class CodecFormatSupportDifferentialTest {
     }
 
     @Override
-    public String getTypeName() {
+    public String getPrimaryTypeName() {
       return typeName;
     }
 
@@ -309,7 +309,7 @@ class CodecFormatSupportDifferentialTest {
     }
 
     @Override
-    public String getTypeName() {
+    public String getPrimaryTypeName() {
       return typeName;
     }
 
@@ -348,7 +348,7 @@ class CodecFormatSupportDifferentialTest {
     }
 
     @Override
-    public String getTypeName() {
+    public String getPrimaryTypeName() {
       return typeName;
     }
 

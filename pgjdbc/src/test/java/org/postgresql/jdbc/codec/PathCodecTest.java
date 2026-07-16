@@ -123,8 +123,8 @@ class PathCodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("path", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("path", codec.getPrimaryTypeName());
   }
 
   @Test

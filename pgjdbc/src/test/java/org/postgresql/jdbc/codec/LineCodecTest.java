@@ -97,8 +97,8 @@ class LineCodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("line", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("line", codec.getPrimaryTypeName());
   }
 
   @Test

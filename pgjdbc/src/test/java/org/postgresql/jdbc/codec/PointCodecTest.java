@@ -108,8 +108,8 @@ class PointCodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("point", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("point", codec.getPrimaryTypeName());
   }
 
   @Test

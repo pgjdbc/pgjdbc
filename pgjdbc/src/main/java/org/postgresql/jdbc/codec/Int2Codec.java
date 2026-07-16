@@ -39,7 +39,7 @@ public final class Int2Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "int2";
   }
 

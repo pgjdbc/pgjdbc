@@ -39,7 +39,7 @@ class CodecRegistrationVisibilityTest {
   /** A codec that decodes every value of its type to {@link #MARKER}, so its use is observable. */
   private static final class MarkerCodec implements BinaryCodec, TextCodec {
     @Override
-    public String getTypeName() {
+    public String getPrimaryTypeName() {
       return "int4";
     }
 

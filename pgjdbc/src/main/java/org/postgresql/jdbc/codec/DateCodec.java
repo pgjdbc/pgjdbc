@@ -32,7 +32,7 @@ public final class DateCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "date";
   }
 

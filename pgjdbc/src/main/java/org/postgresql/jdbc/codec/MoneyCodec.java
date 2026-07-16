@@ -63,7 +63,7 @@ public final class MoneyCodec implements PrimitiveBinaryDecoder, PrimitiveTextDe
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "money";
   }
 

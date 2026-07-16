@@ -48,7 +48,7 @@ class TemporalSliceDecodeTest {
       CodecContext ctx) throws SQLException {
     Object whole = codec.decodeBinary(payload, 0, payload.length, type, ctx);
     Object slice = codec.decodeBinary(pad(payload), LEAD, payload.length, type, ctx);
-    assertEquals(whole, slice, codec.getTypeName() + " slice decode must match whole-buffer decode");
+    assertEquals(whole, slice, codec.getPrimaryTypeName() + " slice decode must match whole-buffer decode");
   }
 
   private static byte[] int8(long micros) {

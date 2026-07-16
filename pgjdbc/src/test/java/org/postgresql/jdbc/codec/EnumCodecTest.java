@@ -47,8 +47,8 @@ class EnumCodecTest {
   }
 
   @Test
-  void getTypeName_returnsEnum() {
-    assertEquals("enum", EnumCodec.INSTANCE.getTypeName());
+  void getPrimaryTypeName_returnsEnum() {
+    assertEquals("enum", EnumCodec.INSTANCE.getPrimaryTypeName());
   }
 
   @Test

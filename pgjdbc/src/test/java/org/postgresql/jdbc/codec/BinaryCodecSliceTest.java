@@ -150,7 +150,7 @@ class BinaryCodecSliceTest {
     // convenience default must delegate to it.
     BinaryCodec stub = new BinaryCodec() {
       @Override
-      public String getTypeName() {
+      public String getPrimaryTypeName() {
         return "stub";
       }
 

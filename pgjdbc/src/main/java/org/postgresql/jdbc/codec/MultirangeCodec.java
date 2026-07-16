@@ -52,7 +52,7 @@ public final class MultirangeCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "multirange";
   }
 

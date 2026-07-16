@@ -234,8 +234,8 @@ class BoolCodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("bool", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("bool", codec.getPrimaryTypeName());
   }
 
   @Test

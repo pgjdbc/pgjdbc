@@ -177,7 +177,7 @@ class OfflineCodecApiRoundTripTest {
     }
 
     @Override
-    public @Nullable List<? extends PGField> getFields() {
+    public @Nullable List<? extends CompositeField> getFields() {
       return null;
     }
   }

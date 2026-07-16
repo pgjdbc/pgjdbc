@@ -51,8 +51,8 @@ class ByteaCodecTest {
   }
 
   @Test
-  void getTypeName_returnsBytea() {
-    assertEquals("bytea", ByteaCodec.INSTANCE.getTypeName());
+  void getPrimaryTypeName_returnsBytea() {
+    assertEquals("bytea", ByteaCodec.INSTANCE.getPrimaryTypeName());
   }
 
   @Test

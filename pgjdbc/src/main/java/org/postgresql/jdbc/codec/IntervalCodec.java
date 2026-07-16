@@ -34,7 +34,7 @@ public final class IntervalCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "interval";
   }
 

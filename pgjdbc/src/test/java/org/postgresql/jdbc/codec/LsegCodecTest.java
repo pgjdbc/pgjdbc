@@ -98,8 +98,8 @@ class LsegCodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("lseg", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("lseg", codec.getPrimaryTypeName());
   }
 
   @Test

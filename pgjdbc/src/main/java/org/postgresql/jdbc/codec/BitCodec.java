@@ -46,7 +46,7 @@ public final class BitCodec implements PrimitiveBinaryDecoder, PrimitiveTextDeco
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "bit";
   }
 

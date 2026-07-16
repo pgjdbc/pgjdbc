@@ -40,8 +40,8 @@ class VarcharCodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("varchar", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("varchar", codec.getPrimaryTypeName());
   }
 
   @Test

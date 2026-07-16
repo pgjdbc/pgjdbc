@@ -97,8 +97,8 @@ class PolygonCodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("polygon", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("polygon", codec.getPrimaryTypeName());
   }
 
   @Test

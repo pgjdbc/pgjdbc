@@ -15,15 +15,12 @@ import java.io.IOException;
  * writers.
  *
  * <p>{@link StringBuilder} already offers {@code append(int)}/{@code append(long)} that write the
- * digits straight into its buffer; a wrapping text sink (such as the composite/array escaping sink)
- * implements this interface so it can forward those to the buffer underneath, and the static
- * {@link #appendInt}/{@link #appendLong} helpers pick that allocation-free path for any
- * {@link Appendable}, falling back to {@link Integer#toString(int)} only when the sink is neither a
- * {@code TextSink} nor a {@link StringBuilder}.</p>
- *
- * <p>An implementation's {@code append(int)}/{@code append(long)} must forward to a
- * <em>different</em> sink (not {@code this}) — for example a wrapper forwards to its delegate — so
- * routing back through {@link #appendInt} cannot recurse forever.</p>
+ * digits straight into its buffer. The static {@link #appendInt}/{@link #appendLong} helpers take
+ * that allocation-free path when the target is a {@link StringBuilder} and fall back to
+ * {@link Integer#toString(int)} otherwise. A wrapping text sink (such as the composite/array escaping
+ * sink) overrides {@code append(int)}/{@code append(long)} to forward to its {@link StringBuilder}
+ * delegate, so its digits reach the buffer without an intermediate {@code String}. A sink that leaves
+ * the defaults in place gets the correct but allocating fallback.</p>
  *
  * @since 42.8.0
  */
@@ -38,7 +35,10 @@ public interface TextSink extends Appendable {
    * @return this sink
    * @throws IOException if the underlying sink throws
    */
-  TextSink append(int value) throws IOException;
+  default TextSink append(int value) throws IOException {
+    appendInt(this, value);
+    return this;
+  }
 
   /**
    * Appends the decimal text of {@code value}, like {@link StringBuilder#append(long)}, without
@@ -48,7 +48,10 @@ public interface TextSink extends Appendable {
    * @return this sink
    * @throws IOException if the underlying sink throws
    */
-  TextSink append(long value) throws IOException;
+  default TextSink append(long value) throws IOException {
+    appendLong(this, value);
+    return this;
+  }
 
   /**
    * Appends the text of {@code value}, like {@link StringBuilder#append(float)}, without allocating
@@ -58,7 +61,10 @@ public interface TextSink extends Appendable {
    * @return this sink
    * @throws IOException if the underlying sink throws
    */
-  TextSink append(float value) throws IOException;
+  default TextSink append(float value) throws IOException {
+    appendFloat(this, value);
+    return this;
+  }
 
   /**
    * Appends the text of {@code value}, like {@link StringBuilder#append(double)}, without allocating
@@ -68,21 +74,22 @@ public interface TextSink extends Appendable {
    * @return this sink
    * @throws IOException if the underlying sink throws
    */
-  TextSink append(double value) throws IOException;
+  default TextSink append(double value) throws IOException {
+    appendDouble(this, value);
+    return this;
+  }
 
   /**
    * Appends {@code value}'s decimal text to {@code out}, avoiding an intermediate {@code String} when
-   * {@code out} is a {@link TextSink} or {@link StringBuilder} and falling back to
-   * {@link Integer#toString(int)} otherwise.
+   * {@code out} is a {@link StringBuilder} and falling back to {@link Integer#toString(int)}
+   * otherwise.
    *
    * @param out the sink to append to
    * @param value the value to append
    * @throws IOException if {@code out} throws
    */
   static void appendInt(Appendable out, int value) throws IOException {
-    if (out instanceof TextSink) {
-      ((TextSink) out).append(value);
-    } else if (out instanceof StringBuilder) {
+    if (out instanceof StringBuilder) {
       ((StringBuilder) out).append(value);
     } else {
       out.append(Integer.toString(value));
@@ -91,17 +98,15 @@ public interface TextSink extends Appendable {
 
   /**
    * Appends {@code value}'s decimal text to {@code out}, avoiding an intermediate {@code String} when
-   * {@code out} is a {@link TextSink} or {@link StringBuilder} and falling back to
-   * {@link Long#toString(long)} otherwise.
+   * {@code out} is a {@link StringBuilder} and falling back to {@link Long#toString(long)}
+   * otherwise.
    *
    * @param out the sink to append to
    * @param value the value to append
    * @throws IOException if {@code out} throws
    */
   static void appendLong(Appendable out, long value) throws IOException {
-    if (out instanceof TextSink) {
-      ((TextSink) out).append(value);
-    } else if (out instanceof StringBuilder) {
+    if (out instanceof StringBuilder) {
       ((StringBuilder) out).append(value);
     } else {
       out.append(Long.toString(value));
@@ -110,17 +115,15 @@ public interface TextSink extends Appendable {
 
   /**
    * Appends {@code value}'s text to {@code out}, avoiding an intermediate {@code String} when
-   * {@code out} is a {@link TextSink} or {@link StringBuilder} and falling back to
-   * {@link Float#toString(float)} otherwise.
+   * {@code out} is a {@link StringBuilder} and falling back to {@link Float#toString(float)}
+   * otherwise.
    *
    * @param out the sink to append to
    * @param value the value to append
    * @throws IOException if {@code out} throws
    */
   static void appendFloat(Appendable out, float value) throws IOException {
-    if (out instanceof TextSink) {
-      ((TextSink) out).append(value);
-    } else if (out instanceof StringBuilder) {
+    if (out instanceof StringBuilder) {
       ((StringBuilder) out).append(value);
     } else {
       out.append(Float.toString(value));
@@ -129,17 +132,15 @@ public interface TextSink extends Appendable {
 
   /**
    * Appends {@code value}'s text to {@code out}, avoiding an intermediate {@code String} when
-   * {@code out} is a {@link TextSink} or {@link StringBuilder} and falling back to
-   * {@link Double#toString(double)} otherwise.
+   * {@code out} is a {@link StringBuilder} and falling back to {@link Double#toString(double)}
+   * otherwise.
    *
    * @param out the sink to append to
    * @param value the value to append
    * @throws IOException if {@code out} throws
    */
   static void appendDouble(Appendable out, double value) throws IOException {
-    if (out instanceof TextSink) {
-      ((TextSink) out).append(value);
-    } else if (out instanceof StringBuilder) {
+    if (out instanceof StringBuilder) {
       ((StringBuilder) out).append(value);
     } else {
       out.append(Double.toString(value));

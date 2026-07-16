@@ -55,7 +55,7 @@ class DefaultDecodeInvariantTest {
     }
 
     @Override
-    public String getTypeName() {
+    public String getPrimaryTypeName() {
       return "synthetic_fixed";
     }
 

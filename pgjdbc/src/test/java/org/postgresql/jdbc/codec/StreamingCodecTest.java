@@ -204,9 +204,9 @@ class StreamingCodecTest {
     for (Codec codec : new Codec[]{TextCodec.INSTANCE, VarcharCodec.INSTANCE, BpcharCodec.INSTANCE,
         NameCodec.INSTANCE, CharCodec.INSTANCE}) {
       assertFalse(codec instanceof StreamingTextCodec,
-          () -> codec.getTypeName() + " must not stream text");
+          () -> codec.getPrimaryTypeName() + " must not stream text");
       assertFalse(codec instanceof StreamingBinaryCodec,
-          () -> codec.getTypeName() + " must not stream binary");
+          () -> codec.getPrimaryTypeName() + " must not stream binary");
     }
   }
 

@@ -41,8 +41,8 @@ class JsonCodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("json", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("json", codec.getPrimaryTypeName());
   }
 
   @Test

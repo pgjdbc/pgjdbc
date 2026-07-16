@@ -97,8 +97,8 @@ class CircleCodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("circle", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("circle", codec.getPrimaryTypeName());
   }
 
   @Test

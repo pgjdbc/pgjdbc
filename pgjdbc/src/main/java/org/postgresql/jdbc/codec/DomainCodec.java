@@ -97,7 +97,7 @@ public final class DomainCodec implements StreamingBinaryCodec, StreamingTextCod
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "domain";
   }
 

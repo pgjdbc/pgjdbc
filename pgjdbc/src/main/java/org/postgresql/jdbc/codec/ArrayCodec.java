@@ -53,7 +53,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "array";
   }
 

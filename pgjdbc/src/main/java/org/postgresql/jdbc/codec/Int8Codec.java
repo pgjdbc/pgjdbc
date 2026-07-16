@@ -36,7 +36,7 @@ public final class Int8Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "int8";
   }
 

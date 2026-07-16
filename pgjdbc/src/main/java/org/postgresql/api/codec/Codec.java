@@ -24,14 +24,15 @@ import org.postgresql.api.Experimental;
 public interface Codec {
 
   /**
-   * Returns the PostgreSQL type name this codec handles.
+   * Returns the primary PostgreSQL type name this codec registers under.
    *
-   * <p>This is the type name without schema qualification (e.g., "int4", "text", "geometry").
-   * The same codec may handle multiple type names via aliases.</p>
+   * <p>This is an unqualified name (for example {@code "int4"}, {@code "text"}, {@code "geometry"}),
+   * not the schema-qualified {@link TypeDescriptor#getTypeName() ObjectName} a descriptor reports. A
+   * codec may register under further names as aliases; this method returns the primary one.</p>
    *
-   * @return the PostgreSQL type name
+   * @return the primary, unqualified PostgreSQL type name
    */
-  String getTypeName();
+  String getPrimaryTypeName();
 
   /**
    * Returns the default Java class this codec produces when decoding.

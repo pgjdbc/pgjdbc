@@ -30,7 +30,7 @@ public final class PointCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "point";
   }
 

@@ -34,7 +34,7 @@ public final class Float4Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "float4";
   }
 

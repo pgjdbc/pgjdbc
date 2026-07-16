@@ -40,7 +40,7 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "numeric";
   }
 

@@ -63,8 +63,8 @@ class DateCodecTest {
   // ==================== Codec Metadata ====================
 
   @Test
-  void getTypeName() {
-    assertEquals("date", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("date", codec.getPrimaryTypeName());
   }
 
   @Test

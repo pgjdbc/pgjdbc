@@ -59,7 +59,7 @@ public final class RangeCodec implements StreamingBinaryCodec, TextCodec {
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "range";
   }
 

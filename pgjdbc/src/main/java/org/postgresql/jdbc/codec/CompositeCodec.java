@@ -8,7 +8,7 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.CodecContext;
-import org.postgresql.api.codec.PGField;
+import org.postgresql.api.codec.CompositeField;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TextCodec;
@@ -72,9 +72,9 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
    * does not already carry them. The anonymous RECORD pseudo-type has no catalog attributes, so its
    * fields resolve to an empty list.
    */
-  private static List<? extends PGField> resolveFields(
+  private static List<? extends CompositeField> resolveFields(
       TypeDescriptor type, CodecContext ctx) throws SQLException {
-    List<? extends PGField> fields = type.getFields();
+    List<? extends CompositeField> fields = type.getFields();
     if (fields != null) {
       return fields;
     }
@@ -354,7 +354,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "record";
   }
 
@@ -387,7 +387,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       // Catalog attributes carry the modifiers the binary wire does not (it self-describes only the
       // field OID). Read them positionally, guarded by an OID match below so a wire/catalog skew
       // (e.g. dropped columns, or the anonymous RECORD with no attributes) falls back to no modifier.
-      List<? extends PGField> catalogFields = type.getFields();
+      List<? extends CompositeField> catalogFields = type.getFields();
       @Nullable Object[] attributes = new @Nullable Object[binaryFields.size()];
       for (int i = 0; i < binaryFields.size(); i++) {
         DecodedField field = binaryFields.get(i);
@@ -530,7 +530,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       throws SQLException {
     CodecDepth.enter();
     try {
-      final List<? extends PGField> fieldList = resolveFields(type, ctx);
+      final List<? extends CompositeField> fieldList = resolveFields(type, ctx);
       final int expected = fieldList.size();
       final @Nullable Object[] attributes = new @Nullable Object[expected];
       final int[] seen = {0};
@@ -553,7 +553,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
           attributes[index] = null;
           return;
         }
-        PGField field = fieldList.get(index);
+        CompositeField field = fieldList.get(index);
         int fieldOid = field.getTypeOid();
         // Stamp the attribute modifier (atttypmod) so a modifier-sensitive field such as
         // numeric(10,2) decodes to its declared scale.
@@ -650,7 +650,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       TypeDescriptor compositeType,
       CodecContext ctx,
       Appendable out) throws SQLException {
-    List<? extends PGField> fields = resolveFields(compositeType, ctx);
+    List<? extends CompositeField> fields = resolveFields(compositeType, ctx);
     if (fields.size() != attributes.length) {
       throw Exceptions.compositeAttributeCountMismatch(compositeType.getTypeName().getName(), fields.size(), attributes.length);
     }
@@ -665,7 +665,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
         if (attr == null) {
           continue;
         }
-        PGField field = fields.get(i);
+        CompositeField field = fields.get(i);
         int fieldOid = field.getTypeOid();
         // For a nested anonymous record (OID 2249) fieldTypeFor swaps in the decoded PgStruct's own
         // synthesized-field type, so the composite codec streams the nested record recursively
@@ -709,7 +709,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       TypeDescriptor compositeType,
       CodecContext ctx,
       BackpatchingBinarySink out) throws SQLException {
-    List<? extends PGField> fields = resolveFields(compositeType, ctx);
+    List<? extends CompositeField> fields = resolveFields(compositeType, ctx);
     if (fields.size() != attributes.length) {
       throw Exceptions.compositeAttributeCountMismatch(compositeType.getTypeName().getName(), fields.size(), attributes.length);
     }
@@ -717,7 +717,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
     try {
       out.writeInt32(fields.size());
       for (int i = 0; i < attributes.length; i++) {
-        PGField field = fields.get(i);
+        CompositeField field = fields.get(i);
         int fieldOid = field.getTypeOid();
         // type oid
         out.writeInt32(fieldOid);

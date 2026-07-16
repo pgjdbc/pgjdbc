@@ -35,7 +35,7 @@ public final class JsonCodec implements BinaryCodec, TextCodec, ArrayElementCode
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "json";
   }
 

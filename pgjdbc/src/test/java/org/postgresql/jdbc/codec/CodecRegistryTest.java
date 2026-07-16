@@ -38,7 +38,7 @@ class CodecRegistryTest {
     }
 
     @Override
-    public String getTypeName() {
+    public String getPrimaryTypeName() {
       return typeName;
     }
 
@@ -51,7 +51,7 @@ class CodecRegistryTest {
   /** A binary codec that opts out of binary reads, exercising the read-side capability gate. */
   private static final class BinaryReadOptOutCodec implements BinaryCodec {
     @Override
-    public String getTypeName() {
+    public String getPrimaryTypeName() {
       return "binary_read_optout";
     }
 

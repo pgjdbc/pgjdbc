@@ -56,8 +56,8 @@ class Xid8CodecTest {
   }
 
   @Test
-  void getTypeName() {
-    assertEquals("xid8", codec.getTypeName());
+  void getPrimaryTypeName() {
+    assertEquals("xid8", codec.getPrimaryTypeName());
   }
 
   @Test

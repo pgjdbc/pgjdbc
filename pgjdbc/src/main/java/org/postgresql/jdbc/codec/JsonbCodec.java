@@ -40,7 +40,7 @@ public final class JsonbCodec implements BinaryCodec, TextCodec, ArrayElementCod
   }
 
   @Override
-  public String getTypeName() {
+  public String getPrimaryTypeName() {
     return "jsonb";
   }
 

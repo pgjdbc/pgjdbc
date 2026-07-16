@@ -59,8 +59,8 @@ public final class PGobjectCodec implements StreamingBinaryCodec, StreamingTextC
   }
 
   @Override
-  public String getTypeName() {
-    return delegate.getTypeName();
+  public String getPrimaryTypeName() {
+    return delegate.getPrimaryTypeName();
   }
 
   @Override
@@ -99,7 +99,7 @@ public final class PGobjectCodec implements StreamingBinaryCodec, StreamingTextC
     if (delegate instanceof TextCodec) {
       return ((TextCodec) delegate).decodeTextAs(data, type, targetClass, ctx);
     }
-    throw Exceptions.cannotDecode(getTypeName(), targetClass.getName());
+    throw Exceptions.cannotDecode(getPrimaryTypeName(), targetClass.getName());
   }
 
   @Override
@@ -112,7 +112,7 @@ public final class PGobjectCodec implements StreamingBinaryCodec, StreamingTextC
     if (delegate instanceof BinaryCodec) {
       return ((BinaryCodec) delegate).decodeBinaryAs(data, offset, length, type, targetClass, ctx);
     }
-    throw Exceptions.cannotDecode(getTypeName(), targetClass.getName());
+    throw Exceptions.cannotDecode(getPrimaryTypeName(), targetClass.getName());
   }
 
   // ---- Encode and coercions: forward to the delegate -----------------------
@@ -195,7 +195,7 @@ public final class PGobjectCodec implements StreamingBinaryCodec, StreamingTextC
     if (delegate instanceof BinaryCodec) {
       return ((BinaryCodec) delegate).decodeAsString(data, offset, length, type, ctx);
     }
-    throw Exceptions.cannotDecode(getTypeName(), "String");
+    throw Exceptions.cannotDecode(getPrimaryTypeName(), "String");
   }
 
   // ---- Materialization -----------------------------------------------------
