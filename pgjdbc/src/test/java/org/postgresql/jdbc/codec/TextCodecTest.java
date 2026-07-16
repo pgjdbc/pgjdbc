@@ -8,6 +8,7 @@ package org.postgresql.jdbc.codec;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -27,15 +28,15 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.SQLException;
 
-class TextCodecImplTest {
+class TextCodecTest {
 
-  private TextCodecImpl codec;
+  private TextCodec codec;
   private PgType textType;
   private CodecContext ctx;
 
   @BeforeEach
   void setUp() {
-    codec = TextCodecImpl.INSTANCE;
+    codec = TextCodec.INSTANCE;
     textType = new PgType(
         new ObjectName("pg_catalog", "text"),
         "text",
@@ -130,6 +131,31 @@ class TextCodecImplTest {
   @Test
   void decodeAsFloat_text() throws SQLException {
     assertEquals(3.14f, codec.decodeAsFloat("3.14", textType, ctx), 0.001f);
+  }
+
+  @Test
+  void decodeAsFloat_singleRoundsLikeFloatParse() throws SQLException {
+    // A value near a float rounding boundary is parsed differently by a single rounding to float
+    // (Float.parseFloat) than by rounding to double first and narrowing ((float) Double.parseDouble).
+    // The codec must match the single-rounding result. Build such a value from bit patterns rather
+    // than hard-coding a fragile literal.
+    //
+    // low and high are adjacent floats; high has an even trailing mantissa bit, so a value at their
+    // exact midpoint rounds (half-to-even) up to high, while a value just below the midpoint rounds
+    // down to low.
+    float low = Float.intBitsToFloat(Float.floatToIntBits(1.0f) + 1);   // 1 + 2^-23, odd mantissa
+    float high = Float.intBitsToFloat(Float.floatToIntBits(1.0f) + 2);  // 1 + 2^-22, even mantissa
+    double mid = ((double) low + (double) high) / 2.0;                  // exact float midpoint
+    // A hair below the midpoint, but within half a double-ULP, so the nearest double is the midpoint
+    // itself: Float.parseFloat sees a value below mid -> low, while (float) Double.parseDouble rounds
+    // the string to mid and then half-to-even up to high.
+    BigDecimal justBelowMid =
+        new BigDecimal(mid).subtract(new BigDecimal(Math.ulp(mid)).divide(BigDecimal.valueOf(4)));
+    String s = justBelowMid.toPlainString();
+
+    // The two rounding strategies really disagree for this input, so the assertion below is meaningful.
+    assertNotEquals((float) Double.parseDouble(s), Float.parseFloat(s));
+    assertEquals(Float.parseFloat(s), codec.decodeAsFloat(s, textType, ctx));
   }
 
   @Test

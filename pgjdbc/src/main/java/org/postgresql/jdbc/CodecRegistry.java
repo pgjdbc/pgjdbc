@@ -10,7 +10,6 @@ import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecFormatSupport;
 import org.postgresql.api.codec.CodecLookup;
-import org.postgresql.api.codec.TextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.codec.ArrayCodec;
@@ -46,7 +45,7 @@ import org.postgresql.jdbc.codec.PathCodec;
 import org.postgresql.jdbc.codec.PointCodec;
 import org.postgresql.jdbc.codec.PolygonCodec;
 import org.postgresql.jdbc.codec.RangeCodec;
-import org.postgresql.jdbc.codec.TextCodecImpl;
+import org.postgresql.jdbc.codec.TextCodec;
 import org.postgresql.jdbc.codec.TextLikeCodec;
 import org.postgresql.jdbc.codec.TimeCodec;
 import org.postgresql.jdbc.codec.TimestampCodec;
@@ -248,7 +247,7 @@ public class CodecRegistry implements CodecLookup {
     registerBuiltin(Xid8Codec.INSTANCE);
 
     // String types
-    registerBuiltin(TextCodecImpl.INSTANCE);
+    registerBuiltin(TextCodec.INSTANCE);
     registerBuiltin(VarcharCodec.INSTANCE);
     registerBuiltin(BpcharCodec.INSTANCE);
     registerBuiltin(NameCodec.INSTANCE);
@@ -371,7 +370,7 @@ public class CodecRegistry implements CodecLookup {
     pinBuiltinOid(Oid.XID8, Xid8Codec.INSTANCE);
 
     // String types
-    pinBuiltinOid(Oid.TEXT, TextCodecImpl.INSTANCE);
+    pinBuiltinOid(Oid.TEXT, TextCodec.INSTANCE);
     pinBuiltinOid(Oid.VARCHAR, VarcharCodec.INSTANCE);
     pinBuiltinOid(Oid.BPCHAR, BpcharCodec.INSTANCE);
     pinBuiltinOid(Oid.NAME, NameCodec.INSTANCE);
@@ -742,9 +741,9 @@ public class CodecRegistry implements CodecLookup {
    * @return the text codec, or null if the codec doesn't support text
    */
   @Override
-  public @Nullable TextCodec getTextCodec(int oid, @Nullable TypeDescriptor pgType) {
+  public org.postgresql.api.codec.@Nullable TextCodec getTextCodec(int oid, @Nullable TypeDescriptor pgType) {
     Codec codec = getByOid(oid, pgType);
-    return codec instanceof TextCodec ? (TextCodec) codec : null;
+    return codec instanceof org.postgresql.api.codec.TextCodec ? (org.postgresql.api.codec.TextCodec) codec : null;
   }
 
   /**
@@ -769,7 +768,7 @@ public class CodecRegistry implements CodecLookup {
    * Whether the driver can decode this type from the text wire format.
    *
    * <p>The text counterpart to {@link #canDecodeBinary(int, TypeDescriptor)}, consulting
-   * {@link TextCodec#decodesText()}. Text is the universal receive format, so this is
+   * {@link org.postgresql.api.codec.TextCodec#decodesText()}. Text is the universal receive format, so this is
    * true for almost every type; it is exposed for callers (offline and {@code COPY}) that
    * choose a format from codec capability rather than format negotiation.</p>
    *

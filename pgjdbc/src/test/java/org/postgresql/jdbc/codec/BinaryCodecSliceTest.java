@@ -117,8 +117,8 @@ class BinaryCodecSliceTest {
   @Test
   void text_sliceMatchesWhole() throws SQLException {
     byte[] v = "héllo".getBytes(StandardCharsets.UTF_8);
-    assertSliceMatches(TextCodecImpl.INSTANCE, v);
-    assertEquals("héllo", TextCodecImpl.INSTANCE.decodeBinary(embed(v), 5, v.length, ANY, CTX));
+    assertSliceMatches(TextCodec.INSTANCE, v);
+    assertEquals("héllo", TextCodec.INSTANCE.decodeBinary(embed(v), 5, v.length, ANY, CTX));
     // varchar/bpchar/name delegate to the same slice path
     assertEquals("héllo", VarcharCodec.INSTANCE.decodeBinary(embed(v), 5, v.length, ANY, CTX));
   }

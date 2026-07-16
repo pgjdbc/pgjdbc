@@ -1,23 +1,19 @@
 /*
- * Copyright (c) 2024, PostgreSQL Global Development Group
+ * Copyright (c) 2026, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
 
 package org.postgresql.jdbc.codec;
 
-import org.postgresql.api.codec.BackpatchingBinarySink;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveBinaryDecoder;
 import org.postgresql.api.codec.PrimitiveTextDecoder;
-import org.postgresql.api.codec.StreamingBinaryCodec;
-import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.BooleanTypeUtil;
 import org.postgresql.jdbc.TemporalCodecs;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.sql.Date;
@@ -26,21 +22,28 @@ import java.sql.Time;
 import java.sql.Timestamp;
 
 /**
- * Codec for PostgreSQL text type.
+ * Shared decode/encode logic for the {@code String}-natural built-in types: {@code text}, {@code varchar},
+ * {@code bpchar}, {@code name}, and {@code "char"}. Their {@code typsend}/{@code typreceive} pair leaves the
+ * value as its charset text, so the wire is just the string in the connection charset in both formats; a
+ * subclass supplies only the type name (see {@link #getTypeName()}).
+ *
+ * <p>This base advertises only {@link PrimitiveBinaryDecoder} and {@link PrimitiveTextDecoder}. None of
+ * these codecs stream: a {@code String} must be materialized into charset bytes before it is written
+ * either way, so a streaming encoder would save nothing over the {@code byte[]}/{@code String} form
+ * (unlike a fixed-width primitive such as {@code int4}). The format-negotiation layer sees them all as
+ * leaf codecs.</p>
  */
-public final class TextCodecImpl
-    implements StreamingBinaryCodec, PrimitiveBinaryDecoder, StreamingTextCodec,
-    PrimitiveTextDecoder {
+abstract class AbstractTextCodec implements PrimitiveBinaryDecoder, PrimitiveTextDecoder {
 
-  public static final TextCodecImpl INSTANCE = new TextCodecImpl();
+  private final String typeName;
 
-  private TextCodecImpl() {
-    // Singleton
+  AbstractTextCodec(String typeName) {
+    this.typeName = typeName;
   }
 
   @Override
   public String getTypeName() {
-    return "text";
+    return typeName;
   }
 
   @Override
@@ -69,20 +72,6 @@ public final class TextCodecImpl
   @Override
   public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
     return toString(value);
-  }
-
-  @Override
-  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx,
-      BackpatchingBinarySink out) throws SQLException, IOException {
-    String s = toString(value);
-    Charset encoding = ctx.getCharset();
-    out.write(s.getBytes(encoding));
-  }
-
-  @Override
-  public void encodeText(Object value, TypeDescriptor type, CodecContext ctx, Appendable out)
-      throws SQLException, IOException {
-    out.append(toString(value));
   }
 
   @Override
@@ -125,12 +114,12 @@ public final class TextCodecImpl
   public float decodeAsFloat(byte[] data, int offset, int length, TypeDescriptor type,
       CodecContext ctx) throws SQLException {
     String s = new String(data, offset, length, ctx.getCharset());
-    return (float) parseAsDouble(s);
+    return parseAsFloat(s);
   }
 
   @Override
   public float decodeAsFloat(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return (float) parseAsDouble(data.toString());
+    return parseAsFloat(data.toString());
   }
 
   @Override
@@ -174,7 +163,7 @@ public final class TextCodecImpl
       return (T) Double.valueOf(parseAsDouble(value));
     }
     if (targetClass == Float.class) {
-      return (T) Float.valueOf((float) parseAsDouble(value));
+      return (T) Float.valueOf(parseAsFloat(value));
     }
     if (targetClass == BigDecimal.class) {
       return (T) parseAsBigDecimal(value);
@@ -217,7 +206,8 @@ public final class TextCodecImpl
     return decodeBinaryAs(data1, 0, data1.length, type, targetClass, ctx);
   }
 
-  private static String toString(Object value) throws SQLException {
+  // Package-private so the subclass encoders (such as CharCodec) reuse the same value-to-string rule.
+  static String toString(Object value) throws SQLException {
     if (value instanceof String) {
       return (String) value;
     }
@@ -249,6 +239,20 @@ public final class TextCodecImpl
       return Long.parseLong(s.trim());
     } catch (NumberFormatException e) {
       throw Exceptions.cannotConvertValue("long", s, e);
+    }
+  }
+
+  private static float parseAsFloat(String s) throws SQLException {
+    if (s == null) {
+      return 0;
+    }
+    try {
+      // Round the decimal straight to float. Going through Double.parseDouble and narrowing would
+      // round twice, so a value near a float boundary could land one ULP off from the correctly
+      // rounded result (and from Float4Codec and the legacy getFloat path, which both use this).
+      return Float.parseFloat(s.trim());
+    } catch (NumberFormatException e) {
+      throw Exceptions.cannotConvertValue("float", s, e);
     }
   }
 

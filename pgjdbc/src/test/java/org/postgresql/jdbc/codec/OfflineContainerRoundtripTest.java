@@ -151,8 +151,9 @@ class OfflineContainerRoundtripTest {
         assertEquals(canonical, literal, "canonical literal " + format);
       }
     }
-    // The text codec quotes the string field unconditionally; the literal round-trips either way.
-    assertEquals("(10,20,\"hello\")", canonical, "literal form");
+    // The text field needs no quoting, so record_out renders it bare -- matching the server's own
+    // (10,20,hello), not an over-quoted (10,20,"hello").
+    assertEquals("(10,20,hello)", canonical, "literal form");
   }
 
   @Test

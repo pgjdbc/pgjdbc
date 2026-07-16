@@ -7,10 +7,12 @@ package org.postgresql.jdbc.codec;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.api.codec.BackpatchingBinarySink;
+import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.core.Oid;
@@ -187,14 +189,25 @@ class StreamingCodecTest {
         "Int4Codec should opt into StreamingTextCodec");
     assertTrue(Int4Codec.INSTANCE instanceof StreamingBinaryCodec,
         "Int4Codec should opt into StreamingBinaryCodec");
-    assertTrue(TextCodecImpl.INSTANCE instanceof StreamingTextCodec,
-        "TextCodecImpl should opt into StreamingTextCodec");
-    assertTrue(TextCodecImpl.INSTANCE instanceof StreamingBinaryCodec,
-        "TextCodecImpl should opt into StreamingBinaryCodec");
     assertTrue(CompositeCodec.INSTANCE instanceof StreamingTextCodec,
         "CompositeCodec should opt into StreamingTextCodec");
     assertTrue(CompositeCodec.INSTANCE instanceof StreamingBinaryCodec,
         "CompositeCodec should opt into StreamingBinaryCodec");
+  }
+
+  @Test
+  void textFamily_doesNotStream() {
+    // The String-natural leaves (text, varchar, bpchar, name, "char") deliberately do NOT stream: a String
+    // must be materialised into charset bytes before it is written either way, so a streaming encoder saves
+    // nothing over the byte[]/String form (unlike a fixed-width primitive). As a container element the whole
+    // family encodes through the non-streaming path. Locked in here so it is not re-added by reflex.
+    for (Codec codec : new Codec[]{TextCodec.INSTANCE, VarcharCodec.INSTANCE, BpcharCodec.INSTANCE,
+        NameCodec.INSTANCE, CharCodec.INSTANCE}) {
+      assertFalse(codec instanceof StreamingTextCodec,
+          () -> codec.getTypeName() + " must not stream text");
+      assertFalse(codec instanceof StreamingBinaryCodec,
+          () -> codec.getTypeName() + " must not stream binary");
+    }
   }
 
   @Test
@@ -205,14 +218,6 @@ class StreamingCodecTest {
         "ArrayCodec should opt into StreamingBinaryCodec");
     assertTrue(Int4Codec.INSTANCE instanceof ArrayElementCodec,
         "Int4Codec should advertise an array fast-leaf via ArrayElementCodec");
-  }
-
-  @Test
-  void textCodecImpl_streamingText_writesString() throws SQLException, IOException {
-    StringBuilder sb = new StringBuilder();
-    TextCodecImpl.INSTANCE.encodeText("hello \"world\"", null, null, sb);
-    // text codec itself does no escaping — the array/composite layer adds it.
-    assertEquals("hello \"world\"", sb.toString());
   }
 
   @Test
