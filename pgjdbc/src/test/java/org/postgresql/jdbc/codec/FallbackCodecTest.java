@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.Format;
 import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
@@ -129,6 +130,43 @@ class FallbackCodecTest {
     assertEquals(
         TemporalCodecs.decodeTimestampText("2024-01-02 12:34:56", ctx),
         codec.decodeTextAs("2024-01-02 12:34:56", unknownType, java.sql.Timestamp.class, ctx));
+  }
+
+  // A String has no known binary wire form for an arbitrary unmapped type: its charset bytes are the
+  // text wire, which differs from the type's binary recv format (e.g. ltree prefixes a version byte).
+  // So the fallback must refuse to binary-encode a String and must not label charset bytes as binary.
+  @Test
+  void canEncodeBinary_refusesString() throws SQLException {
+    assertFalse(codec.canEncodeBinary("a.b.c", unknownType, ctx));
+  }
+
+  // PGUnknownBinary carries a genuine binary payload read from the server's binary output for this
+  // OID, so re-sending it as binary is a faithful round-trip.
+  @Test
+  void canEncodeBinary_acceptsPGUnknownBinary() throws SQLException {
+    PGUnknownBinary value = new PGUnknownBinary("unknown_type", new byte[]{0x01, 0x02});
+    assertTrue(codec.canEncodeBinary(value, unknownType, ctx));
+    assertArrayEquals(new byte[]{0x01, 0x02}, codec.encodeBinary(value, unknownType, ctx));
+  }
+
+  @Test
+  void encodeBinary_refusesString() {
+    assertThrows(SQLException.class, () -> codec.encodeBinary("a.b.c", unknownType, ctx));
+  }
+
+  // Even when the backend accepts binary for this OID (binaryTransferEnable), a String parameter must
+  // negotiate to text, since the fallback cannot produce a correct binary wire for the unmapped type.
+  @Test
+  void chooseBindFormat_stringGoesTextEvenWhenBinaryAllowed() throws SQLException {
+    assertEquals(Format.TEXT,
+        CodecFormatPolicy.chooseBindFormat(codec, "a.b.c", unknownType, ctx, true));
+  }
+
+  @Test
+  void chooseBindFormat_unknownBinaryGoesBinaryWhenAllowed() throws SQLException {
+    PGUnknownBinary value = new PGUnknownBinary("unknown_type", new byte[]{0x01, 0x02});
+    assertEquals(Format.BINARY,
+        CodecFormatPolicy.chooseBindFormat(codec, value, unknownType, ctx, true));
   }
 
   @Test

@@ -67,7 +67,13 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
 
   @Override
   public boolean canEncodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return value instanceof PGUnknownBinary || value instanceof String;
+    // Only PGUnknownBinary carries a genuine binary payload -- its bytes were read from the server's
+    // binary output for this OID, so re-sending them as binary is a faithful round-trip. A String has
+    // no known binary wire form for an arbitrary unmapped type: its charset bytes are the text wire,
+    // which differs from the type's binary recv format (ltree, say, prefixes a version byte). Refusing
+    // String here makes the bind negotiation fall back to text, the format the driver can produce
+    // correctly, instead of mislabelling charset bytes as binary.
+    return value instanceof PGUnknownBinary;
   }
 
   @Override
@@ -76,9 +82,9 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
       byte[] bytes = ((PGUnknownBinary) value).getBytes();
       return bytes != null ? bytes : new byte[0];
     }
-    if (value instanceof String) {
-      return ((String) value).getBytes(ctx.getCharset());
-    }
+    // A String reaches here only if a caller bypasses canEncodeBinary/the format negotiation and forces
+    // binary. The fallback cannot produce the binary wire of an unmapped type, so refuse rather than
+    // emit charset (text) bytes under a binary label.
     throw Exceptions.cannotEncode(value, type.getTypeName().getName());
   }
 
