@@ -2518,7 +2518,10 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         // asymmetry where getString skipped the typmod rescale.
         PgType pgType = field.getTypeDescriptor();
         PgCodecContext ctx = getCodecContext();
-        return codec.decodeAsString(value, 0, value.length, pgType, ctx);
+        String decoded = codec.decodeAsString(value, 0, value.length, pgType, ctx);
+        // trimString honours maxFieldSize; it is a no-op for non-trimmable types (e.g. numeric,
+        // arrays), matching the text and fallback branches below.
+        return decoded == null ? null : trimString(columnIndex, decoded);
       }
       // Fallback for types without a binary codec
       castNonNull(thisRow, "thisRow");

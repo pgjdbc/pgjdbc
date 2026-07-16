@@ -28,6 +28,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.reflect.Field;
@@ -52,6 +54,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Stream;
 
 /**
  * ResultSet tests.
@@ -375,6 +378,60 @@ public class ResultSetTest extends BaseTest4 {
     rs.next();
     assertEquals("12", rs.getString(1));
     assertEquals("12", new String(rs.getBytes(1)));
+  }
+
+  /**
+   * getString cases for {@link #getStringHonorsMaxFieldSize}. Each row is
+   * {@code (label, sql, expected)}. The class is parameterized over {@link BinaryMode}, so every
+   * case runs once in text transfer (REGULAR) and once in binary transfer (FORCE); the expected
+   * value is the same for both formats.
+   */
+  static Stream<Arguments> maxFieldSizeStringCases() {
+    return Stream.of(
+        // Trimmable per the JDBC spec (getMaxFieldSize applies to CHAR/VARCHAR/LONGVARCHAR):
+        // the value is cut to maxFieldSize regardless of the transfer format.
+        Arguments.of("bpchar", "SELECT 'ABCDEFGHIJ'::char(10)", "AB"),
+        Arguments.of("varchar", "SELECT 'ABCDEFGHIJ'::varchar(10)", "AB"),
+        Arguments.of("text", "SELECT 'ABCDEFGHIJ'::text", "AB"),
+        // Not trimmable: the limit applies only to the char/binary field types the spec lists, so
+        // an integer keeps its full text.
+        Arguments.of("int4", "SELECT 12345::int4", "12345"));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("maxFieldSizeStringCases")
+  void getStringHonorsMaxFieldSize(String label, String sql, String expected) throws SQLException {
+    // A PreparedStatement is server-prepared under BinaryMode.FORCE (prepareThreshold=-1), so a
+    // binary-capable column is transferred in binary and getString goes through the codec path.
+    try (PreparedStatement ps = con.prepareStatement(sql)) {
+      ps.setMaxFieldSize(2);
+      try (ResultSet rs = ps.executeQuery()) {
+        assertTrue(rs.next());
+        assertEquals(expected, rs.getString(1),
+            () -> label + " getString must honor maxFieldSize=2 in " + binaryMode + " mode");
+      }
+    }
+  }
+
+  /**
+   * getMaxFieldSize is defined to apply only to CHAR/VARCHAR/LONGVARCHAR and the binary field
+   * types; an array column reports {@code Types.ARRAY}, which is not on that list. So getString on
+   * an array returns the whole literal even when the elements are long strings and maxFieldSize is
+   * small. The exact literal differs between text and binary transfer (binary quotes the elements),
+   * so we only assert that no truncation happened.
+   */
+  @Test
+  void getStringOnArrayIgnoresMaxFieldSize() throws SQLException {
+    try (PreparedStatement ps = con.prepareStatement("SELECT ARRAY['ABCDEFGHIJ','KLMNOP']::text[]")) {
+      ps.setMaxFieldSize(2);
+      try (ResultSet rs = ps.executeQuery()) {
+        assertTrue(rs.next());
+        String value = rs.getString(1);
+        assertTrue(value != null && value.contains("ABCDEFGHIJ") && value.contains("KLMNOP"),
+            () -> "array getString must not be trimmed by maxFieldSize in " + binaryMode
+                + " mode, but was: " + value);
+      }
+    }
   }
 
   @Test
