@@ -82,6 +82,45 @@ public final class KnownDifferences {
       return null;
     });
 
+    // F-13: an OUT parameter registered as Types.TIME_WITH_TIMEZONE / Types.TIMESTAMP_WITH_TIMEZONE.
+    // getSQLType() still reports the base TIME/TIMESTAMP code (for metadata/Hibernate compatibility),
+    // but the OUT gate now treats the WITH TIME ZONE code as naming the same column, so the current
+    // driver accepts the registration where 42.7.x rejected execution with a type mismatch (42821).
+    // Only the two expected current outcomes are accepted, so a future regression to some other
+    // exception is not masked: a value from an accessor that matches the value, or a specific
+    // type-mismatch (2200G, MOST_SPECIFIC_TYPE_DOES_NOT_MATCH) from an accessor that cannot coerce it.
+    RULES.add((label, current, baseline) -> {
+      boolean tzRow = label.startsWith("callable|")
+          && (label.contains("|timetz|") || label.contains("|timestamptz|"));
+      if (tzRow && "42821".equals(baseline.sqlState())) {
+        if (!current.threw()) {
+          return "OUT parameter registered as TIME_WITH_TIMEZONE/TIMESTAMP_WITH_TIMEZONE now returns a "
+              + "value (F-13); 42.7.x rejected execution with a type mismatch";
+        }
+        if ("2200G".equals(current.sqlState())) {
+          return "this accessor cannot coerce the WITH TIME ZONE OUT parameter, so the current driver "
+              + "reports a specific type mismatch (2200G) where 42.7.x rejected execution (42821)";
+        }
+      }
+      return null;
+    });
+
+    // F-13: getObject(index, <java.time class>) on an OUT parameter now decodes through the codec,
+    // independent of the connection's getObject default preference. The baseline refused the target
+    // type (22023). Additive and JDBC-aligned, mirroring the ResultSet-side getObject(Class)
+    // broadening above.
+    RULES.add((label, current, baseline) -> {
+      boolean javaTimeTarget = label.endsWith("|CS_GET_OBJECT_LOCAL_TIME")
+          || label.endsWith("|CS_GET_OBJECT_OFFSET_TIME")
+          || label.endsWith("|CS_GET_OBJECT_LOCAL_DATE_TIME")
+          || label.endsWith("|CS_GET_OBJECT_OFFSET_DATE_TIME");
+      if (label.startsWith("callable|") && javaTimeTarget && !current.threw() && baseline.threw()) {
+        return "getObject(index, java.time class) on an OUT parameter now decodes via the codec "
+            + "(F-13); 42.7.x refused the target type";
+      }
+      return null;
+    });
+
     // money: the baseline could not strip the locale's grouping separators from the server's money text
     // ("$92,233,720,368,547,758.07"), so every numeric getter threw on the int64-range values. The money
     // codec now decodes them, so the current driver returns a value where the baseline threw. getObject

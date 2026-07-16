@@ -826,6 +826,40 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return getObject(i, targetClass);
   }
 
+  /**
+   * Decodes column {@code i} as a composite into {@code sqlDataClass}, treating the value as the
+   * PostgreSQL type named {@code pgTypeName}. Unlike {@link #getObjectImpl(int, Map)} the type name
+   * is supplied by the caller rather than read from the column, so a {@code CallableStatement} OUT
+   * parameter registered with an explicit type name (including an anonymous {@code record}) decodes
+   * correctly. The value is read straight from the wire, so binary transfer is honoured instead of
+   * being routed through a text round-trip.
+   *
+   * @param i the 1-based column index
+   * @param sqlDataClass the {@link SQLData} implementation to populate
+   * @param pgTypeName the PostgreSQL type name to decode the value as
+   * @param typeMap an optional type map made available to nested attribute decoding
+   * @return the decoded object, or {@code null} when the column is SQL {@code NULL}
+   * @throws SQLException if decoding fails
+   */
+  <T extends SQLData> @Nullable T decodeSqlData(@Positive int i, Class<T> sqlDataClass,
+      String pgTypeName, @Nullable Map<String, Class<?>> typeMap) throws SQLException {
+    checkClosed();
+    byte[] value = getRawValue(i);
+    if (value == null) {
+      return null;
+    }
+    PgType pgType = connection.getTypeInfo().getPgTypeByPgName(pgTypeName);
+    PgCodecContext ctx = typeMap == null ? getCodecContext() : getCodecContext().withTypeMap(typeMap);
+    if (isBinary(i)) {
+      return CompositeCodec.INSTANCE.decodeBinaryAs(value, 0, value.length, pgType, sqlDataClass, ctx);
+    }
+    String textValue = getString(i);
+    if (textValue == null) {
+      return null;
+    }
+    return CompositeCodec.INSTANCE.decodeTextAs(textValue, pgType, sqlDataClass, ctx);
+  }
+
   @Override
   public @Nullable Ref getRef(String columnName) throws SQLException {
     return getRef(findColumn(columnName));

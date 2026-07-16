@@ -39,6 +39,7 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -56,6 +57,12 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   // returnTypeSet is true when a proper call to registerOutParameter has been made
   private boolean returnTypeSet;
   protected @Nullable Object @Nullable [] callResult;
+  // Detached single-row snapshot of the OUT parameters, kept positioned so the temporal and
+  // getObject getters can decode straight from the wire bytes via the ResultSet codec path instead
+  // of re-parsing callResult's already-decoded value. parameterColumn maps a 1-based parameter index
+  // to its 1-based column in that row.
+  private @Nullable PgResultSet outParameterRow;
+  private int @Nullable [] parameterColumn;
   private int lastIndex;
   // Original JDBC escape SQL ("{ ? = call f(...) }"), kept to resolve parameter names.
   private final String jdbcSql;
@@ -133,6 +140,10 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
       // allocate enough space for all possible parameters without regard to in/out
       @Nullable Object[] callResult = new Object[preparedParameters.getParameterCount() + 1];
       this.callResult = callResult;
+      // parameterColumn[j] is the 1-based column of parameter j in the result row, so the getters
+      // can decode straight from the snapshot below.
+      int[] parameterColumn = new int[callResult.length];
+      this.parameterColumn = parameterColumn;
 
       // move them into the result set
       for (int i = 0, j = 0; i < cols; i++, j++) {
@@ -144,6 +155,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
           j++;
         }
 
+        parameterColumn[j] = i + 1;
         callResult[j] = rs.getObject(i + 1);
         int columnType = rs.getMetaData().getColumnType(i + 1);
 
@@ -159,6 +171,16 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
             // For backwards compatibility reasons we support that ref cursors can be
             // registered with both Types.OTHER and Types.REF_CURSOR so we allow
             // this specific mismatch
+          } else if (isCompatibleTemporalPair(columnType, functionReturnType[j])) {
+            // TIME/TIMESTAMP and their WITH TIME ZONE codes (Types.TIME_WITH_TIMEZONE,
+            // Types.TIMESTAMP_WITH_TIMEZONE) name the same PostgreSQL column. getSQLType() reports
+            // the base code for metadata/Hibernate compatibility, but registerOutParameter accepts
+            // the WITH TIME ZONE code the JDBC type constant stands for, so accept either pairing.
+          } else if (columnType == Types.OTHER
+              && (functionReturnType[j] == Types.STRUCT || functionReturnType[j] == Types.DISTINCT)) {
+            // A function returning an anonymous `record` reports Types.OTHER. Registering the OUT as
+            // Types.STRUCT/DISTINCT with a type name (the JDBC way to name a composite OUT) supplies
+            // the concrete type used to decode it; see getObject's decodeSqlData path.
           } else {
             throw new PSQLException(GT.tr(
                 "A CallableStatement function was executed and the out parameter {0} was of type {1} however type {2} was registered.",
@@ -168,10 +190,29 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
         }
 
       }
+      // Keep a detached, positioned copy of the single row so the temporal and getObject getters can
+      // decode from the wire bytes via the ResultSet codec path instead of re-parsing callResult.
+      PgResultSet pgRs = (PgResultSet) rs;
+      PgResultSet snapshot = (PgResultSet) createDriverResultSet(
+          pgRs.fields, Collections.singletonList(castNonNull(pgRs.thisRow)));
+      snapshot.next();
+      this.outParameterRow = snapshot;
       rs.close();
       result = null;
     }
     return false;
+  }
+
+  /**
+   * Whether {@code columnType} (from {@code ResultSetMetaData.getColumnType}) and the registered OUT
+   * type name the same temporal type. {@code TIME}/{@code TIMESTAMP} and their {@code WITH TIME ZONE}
+   * variants are accepted in either direction.
+   */
+  private static boolean isCompatibleTemporalPair(int columnType, int registeredType) {
+    return (columnType == Types.TIME && registeredType == Types.TIME_WITH_TIMEZONE)
+        || (columnType == Types.TIME_WITH_TIMEZONE && registeredType == Types.TIME)
+        || (columnType == Types.TIMESTAMP && registeredType == Types.TIMESTAMP_WITH_TIMEZONE)
+        || (columnType == Types.TIMESTAMP_WITH_TIMEZONE && registeredType == Types.TIMESTAMP);
   }
 
   /**
@@ -348,19 +389,31 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   @Override
   public @Nullable Date getDate(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.DATE, "Date");
-    return (@Nullable Date) result;
+    if (result == null) {
+      return null;
+    }
+    // Decode from the snapshot rather than casting callResult: under getobjectDate=java.time the
+    // materialized value is a LocalDate, so the cast would throw ClassCastException.
+    return requireOutParameterRow().getDate(columnForParameter(parameterIndex));
   }
 
   @Override
   public @Nullable Time getTime(@Positive int parameterIndex) throws SQLException {
-    Object result = checkIndex(parameterIndex, Types.TIME, "Time");
-    return (@Nullable Time) result;
+    Object result = checkIndex(parameterIndex, Types.TIME, Types.TIME_WITH_TIMEZONE, "Time");
+    if (result == null) {
+      return null;
+    }
+    return requireOutParameterRow().getTime(columnForParameter(parameterIndex));
   }
 
   @Override
   public @Nullable Timestamp getTimestamp(@Positive int parameterIndex) throws SQLException {
-    Object result = checkIndex(parameterIndex, Types.TIMESTAMP, "Timestamp");
-    return (@Nullable Timestamp) result;
+    Object result =
+        checkIndex(parameterIndex, Types.TIMESTAMP, Types.TIMESTAMP_WITH_TIMEZONE, "Timestamp");
+    if (result == null) {
+      return null;
+    }
+    return requireOutParameterRow().getTimestamp(columnForParameter(parameterIndex));
   }
 
   @Override
@@ -438,6 +491,54 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
     lastIndex = parameterIndex;
     return callResult[parameterIndex - 1];
+  }
+
+  /**
+   * The detached OUT-parameter row, which the getters decode from. Non-null once {@link
+   * #getCallResult} has passed, since {@link #executeWithFlags} sets it together with {@code
+   * callResult}.
+   */
+  private PgResultSet requireOutParameterRow() throws SQLException {
+    PgResultSet row = outParameterRow;
+    if (row == null) {
+      throw new PSQLException(
+          GT.tr("Results cannot be retrieved from a CallableStatement before it is executed."),
+          PSQLState.NO_DATA);
+    }
+    return row;
+  }
+
+  /** The 1-based snapshot column backing the given 1-based parameter index. */
+  private int columnForParameter(@Positive int parameterIndex) {
+    return castNonNull(parameterColumn)[parameterIndex - 1];
+  }
+
+  /** The PostgreSQL type name registered for a STRUCT/DISTINCT OUT parameter, or {@code null}. */
+  private @Nullable String registeredTypeName(@Positive int parameterIndex) {
+    @Nullable String[] typeNames = this.outParameterTypeNames;
+    if (typeNames != null && parameterIndex <= typeNames.length) {
+      return typeNames[parameterIndex - 1];
+    }
+    return null;
+  }
+
+  /** Closes and forgets the detached OUT-parameter snapshot. */
+  private void releaseOutParameterRow() throws SQLException {
+    PgResultSet row = outParameterRow;
+    outParameterRow = null;
+    parameterColumn = null;
+    if (row != null) {
+      row.close();
+    }
+  }
+
+  @Override
+  protected void closeForNextExecution() throws SQLException {
+    try {
+      super.closeForNextExecution();
+    } finally {
+      releaseOutParameterRow();
+    }
   }
 
   /**
@@ -677,15 +778,9 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
       return null;
     }
 
-    // Determine the PostgreSQL type name
-    // First check if type name was registered via registerOutParameter
-    @Nullable String typeName = null;
-    @Nullable String[] typeNames = this.outParameterTypeNames;
-    if (typeNames != null && i <= typeNames.length) {
-      typeName = typeNames[i - 1];
-    }
-
-    // If no registered type name, try to get from result
+    // Determine the PostgreSQL type name: an explicit registerOutParameter type name wins, else the
+    // value's own type.
+    @Nullable String typeName = registeredTypeName(i);
     if (typeName == null) {
       if (result instanceof org.postgresql.util.PGobject) {
         typeName = ((org.postgresql.util.PGobject) result).getType();
@@ -706,27 +801,12 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
       return result;
     }
 
-    // If the target is an SQLData implementation, decode using CompositeCodec
+    // If the target is an SQLData implementation, decode straight from the snapshot's wire bytes
+    // (binary-safe), using the resolved type name so an explicit STRUCT/DISTINCT registration wins.
     if (java.sql.SQLData.class.isAssignableFrom(targetClass)) {
-      PgType pgType = connection.getTypeInfo().getPgTypeByPgName(typeName);
-      PgCodecContext ctx = connection.getCodecContext().withTypeMap(map);
       @SuppressWarnings("unchecked")
       Class<? extends java.sql.SQLData> sqlDataClass = (Class<? extends java.sql.SQLData>) targetClass;
-
-      if (result instanceof org.postgresql.util.PGobject) {
-        String textValue = ((org.postgresql.util.PGobject) result).getValue();
-        if (textValue == null) {
-          return null;
-        }
-        return org.postgresql.jdbc.codec.CompositeCodec.INSTANCE.decodeTextAs(
-            textValue, pgType, sqlDataClass, ctx);
-      } else if (result instanceof java.sql.Struct) {
-        // Encode struct attributes as text via per-field codecs, then decode to SQLData.
-        String textValue = org.postgresql.jdbc.codec.CompositeCodec.encodeAttributesAsText(
-            ((java.sql.Struct) result).getAttributes(), pgType, ctx);
-        return org.postgresql.jdbc.codec.CompositeCodec.INSTANCE.decodeTextAs(
-            textValue, pgType, sqlDataClass, ctx);
-      }
+      return requireOutParameterRow().decodeSqlData(columnForParameter(i), sqlDataClass, typeName, map);
     }
 
     // For non-SQLData targets, check if result is already the right type
@@ -751,29 +831,29 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
       return null;
     }
 
-    return getTimestampUtils().toDate(cal, result.toString());
+    return requireOutParameterRow().getDate(columnForParameter(i), cal);
   }
 
   @Override
   public @Nullable Time getTime(int i, @Nullable Calendar cal) throws SQLException {
-    Object result = checkIndex(i, Types.TIME, "Time");
+    Object result = checkIndex(i, Types.TIME, Types.TIME_WITH_TIMEZONE, "Time");
 
     if (result == null) {
       return null;
     }
 
-    return getTimestampUtils().toTime(cal, result.toString());
+    return requireOutParameterRow().getTime(columnForParameter(i), cal);
   }
 
   @Override
   public @Nullable Timestamp getTimestamp(int i, @Nullable Calendar cal) throws SQLException {
-    Object result = checkIndex(i, Types.TIMESTAMP, "Timestamp");
+    Object result = checkIndex(i, Types.TIMESTAMP, Types.TIMESTAMP_WITH_TIMEZONE, "Timestamp");
 
     if (result == null) {
       return null;
     }
 
-    return getTimestampUtils().toTimestamp(cal, result.toString());
+    return requireOutParameterRow().getTimestamp(columnForParameter(i), cal);
   }
 
   @Override
@@ -1051,50 +1131,30 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
       return type.cast(result);
     }
 
-    // Handle SQLData implementations
+    // Handle SQLData implementations: resolve the type name (an explicit STRUCT/DISTINCT
+    // registration wins, else the value's own type) and decode straight from the snapshot's wire
+    // bytes, so binary transfer is honoured instead of a text round-trip.
     if (java.sql.SQLData.class.isAssignableFrom(type)) {
-      // Get the type name from registerOutParameter if available
-      @Nullable String typeName = null;
-      @Nullable String[] typeNames = this.outParameterTypeNames;
-      if (typeNames != null && parameterIndex <= typeNames.length) {
-        typeName = typeNames[parameterIndex - 1];
+      String typeName = registeredTypeName(parameterIndex);
+      if (typeName == null) {
+        if (result instanceof org.postgresql.util.PGobject) {
+          typeName = ((org.postgresql.util.PGobject) result).getType();
+        } else if (result instanceof java.sql.Struct) {
+          typeName = ((java.sql.Struct) result).getSQLTypeName();
+        }
       }
-
-      // If result is a PGobject or String, decode it to SQLData
-      if (result instanceof org.postgresql.util.PGobject) {
-        org.postgresql.util.PGobject pgo = (org.postgresql.util.PGobject) result;
-        String textValue = pgo.getValue();
-        if (textValue == null) {
-          return null;
-        }
-        if (typeName == null) {
-          typeName = pgo.getType();
-        }
-        PgType pgType = connection.getTypeInfo().getPgTypeByPgName(typeName);
-        PgCodecContext ctx = connection.getCodecContext();
+      if (typeName != null) {
         @SuppressWarnings("unchecked")
         Class<? extends java.sql.SQLData> sqlDataClass = (Class<? extends java.sql.SQLData>) type;
-        return type.cast(org.postgresql.jdbc.codec.CompositeCodec.INSTANCE.decodeTextAs(
-            textValue, pgType, sqlDataClass, ctx));
-      } else if (result instanceof java.sql.Struct) {
-        java.sql.Struct struct = (java.sql.Struct) result;
-        if (typeName == null) {
-          typeName = struct.getSQLTypeName();
-        }
-        PgType pgType = connection.getTypeInfo().getPgTypeByPgName(typeName);
-        PgCodecContext ctx = connection.getCodecContext();
-        // Encode struct as text via per-field codecs, then decode to SQLData.
-        String textValue = org.postgresql.jdbc.codec.CompositeCodec.encodeAttributesAsText(
-            struct.getAttributes(), pgType, ctx);
-        @SuppressWarnings("unchecked")
-        Class<? extends java.sql.SQLData> sqlDataClass = (Class<? extends java.sql.SQLData>) type;
-        return type.cast(org.postgresql.jdbc.codec.CompositeCodec.INSTANCE.decodeTextAs(
-            textValue, pgType, sqlDataClass, ctx));
+        return type.cast(requireOutParameterRow().decodeSqlData(
+            columnForParameter(parameterIndex), sqlDataClass, typeName, null));
       }
     }
 
-    throw new PSQLException(GT.tr("Unsupported type conversion to {0}.", type),
-            PSQLState.INVALID_PARAMETER_VALUE);
+    // Anything else (e.g. a java.time target): decode straight from the wire bytes via the
+    // ResultSet codec path, which names the type explicitly and is independent of the connection's
+    // getObject default preference.
+    return requireOutParameterRow().getObject(columnForParameter(parameterIndex), type);
   }
 
   @Override

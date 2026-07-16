@@ -9,6 +9,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.CallableStatement;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
+import java.util.GregorianCalendar;
+import java.util.TimeZone;
 
 /**
  * The CallableStatement read axis: one {@link CallableStatement} out-parameter getter each. It mirrors
@@ -75,7 +81,58 @@ public enum CsAccessor {
     @Nullable Object get(CallableStatement cs, int index) throws SQLException {
       return cs.getObject(index);
     }
+  },
+  CS_GET_DATE_CAL {
+    @Override
+    @Nullable Object get(CallableStatement cs, int index) throws SQLException {
+      return cs.getDate(index, calendar());
+    }
+  },
+  CS_GET_TIME_CAL {
+    @Override
+    @Nullable Object get(CallableStatement cs, int index) throws SQLException {
+      return cs.getTime(index, calendar());
+    }
+  },
+  CS_GET_TIMESTAMP_CAL {
+    @Override
+    @Nullable Object get(CallableStatement cs, int index) throws SQLException {
+      return cs.getTimestamp(index, calendar());
+    }
+  },
+  CS_GET_OBJECT_LOCAL_TIME {
+    @Override
+    @Nullable Object get(CallableStatement cs, int index) throws SQLException {
+      return cs.getObject(index, LocalTime.class);
+    }
+  },
+  CS_GET_OBJECT_OFFSET_TIME {
+    @Override
+    @Nullable Object get(CallableStatement cs, int index) throws SQLException {
+      return cs.getObject(index, OffsetTime.class);
+    }
+  },
+  CS_GET_OBJECT_LOCAL_DATE_TIME {
+    @Override
+    @Nullable Object get(CallableStatement cs, int index) throws SQLException {
+      return cs.getObject(index, LocalDateTime.class);
+    }
+  },
+  CS_GET_OBJECT_OFFSET_DATE_TIME {
+    @Override
+    @Nullable Object get(CallableStatement cs, int index) throws SQLException {
+      return cs.getObject(index, OffsetDateTime.class);
+    }
   };
+
+  /**
+   * A calendar in a fixed non-UTC, non-JVM-default zone. The temporal-with-calendar getters must
+   * honour it, so a fresh instance is handed out per call: the JDBC drivers may mutate a calendar
+   * passed to a getter, and the current and baseline drivers must not share one.
+   */
+  private static GregorianCalendar calendar() {
+    return new GregorianCalendar(TimeZone.getTimeZone("GMT+05:00"));
+  }
 
   abstract @Nullable Object get(CallableStatement cs, int index) throws SQLException;
 }

@@ -221,7 +221,9 @@ class BackwardCompatMatrixTest {
       {"bytea", "'\\xdeadbeef'::bytea", Types.BINARY},
       {"date", "'2020-01-02'::date", Types.DATE},
       {"time", "'12:34:56'::time", Types.TIME},
+      {"timetz", "'12:34:56+03'::timetz", Types.TIME_WITH_TIMEZONE},
       {"timestamp", "'2020-01-02 12:34:56'::timestamp", Types.TIMESTAMP},
+      {"timestamptz", "'2020-01-02 12:34:56+03'::timestamptz", Types.TIMESTAMP_WITH_TIMEZONE},
   };
 
   /** setObject(PGobject) sub-axis: {@code {pgTypeName, value}}. The type name doubles as the cast target. */
