@@ -51,6 +51,12 @@ import java.util.TimeZone;
 @Experimental("Codec API is experimental and may change in future releases")
 public final class PgCodecContext implements CodecContext {
 
+  /**
+   * PostgreSQL's {@code FirstNormalObjectId}: OIDs below this are built-in catalog objects; at or
+   * above it are user- or extension-defined.
+   */
+  private static final int FIRST_NORMAL_OBJECT_ID = 16384;
+
   private final @Nullable BaseConnection connection;
   private final @Nullable TypeInfo typeInfo;
   private final @Nullable CodecRegistry codecs;
@@ -688,6 +694,42 @@ public final class PgCodecContext implements CodecContext {
     if (clazz != null) {
       return clazz;
     }
+    return getRegisteredClass(typeName);
+  }
+
+  /**
+   * Returns the class the JDBC connection type map ({@link java.sql.Connection#setTypeMap}) assigns
+   * to {@code type}, consulting the fully qualified name first and then the bare name.
+   *
+   * <p>Returns {@code null} when there is no entry, and always for a built-in type
+   * (oid &lt; {@code FirstNormalObjectId}): the JDBC type map customizes only user-defined types, so
+   * a stale or mistaken entry such as {@code {"varchar" -> Foo}} cannot hijack a built-in column.
+   * The pgjdbc {@code addDataType} registry is not consulted here; see
+   * {@link #getRegisteredClass(String)}.</p>
+   *
+   * @param type the type to look up
+   * @return the mapped class, or {@code null} for no entry or a built-in type
+   */
+  @Nullable Class<?> getTypeMapClass(TypeDescriptor type) {
+    if (type.getOid() < FIRST_NORMAL_OBJECT_ID) {
+      return null;
+    }
+    Class<?> mapped = typeMap.get(type.getFullName());
+    if (mapped == null) {
+      mapped = typeMap.get(type.getTypeName().getName());
+    }
+    return mapped;
+  }
+
+  /**
+   * Returns the class registered for {@code typeName} through {@code addDataType} (or the default
+   * {@link JavaTypeRegistry} mapping), independent of the JDBC connection type map. Applies to
+   * built-in and user-defined types alike.
+   *
+   * @param typeName the PostgreSQL type name
+   * @return the registered class, or {@code null} if none
+   */
+  @Nullable Class<?> getRegisteredClass(String typeName) {
     JavaTypeRegistry javaTypeReg = javaTypes;
     return javaTypeReg == null ? null : javaTypeReg.getPGobject(typeName);
   }

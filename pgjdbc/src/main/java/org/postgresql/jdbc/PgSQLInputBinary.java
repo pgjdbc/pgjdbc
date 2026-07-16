@@ -202,15 +202,12 @@ public final class PgSQLInputBinary extends PgSQLInput {
 
   @Override
   protected @Nullable Object decodeObject() throws SQLException {
-    // Honor only the explicit JDBC typeMap here. If no explicit mapping is
-    // present, return the codec's default Java type so SPI-provided codecs can
-    // surface their own Java objects instead of being forced through the
+    // Honor only the explicit JDBC typeMap here (built-in types are excluded by the OID guard in
+    // getTypeMapClass). If no explicit mapping is present, return the codec's default Java type so
+    // SPI-provided codecs can surface their own Java objects instead of being forced through the
     // legacy PGobject registry.
     TypeDescriptor currentType = getCurrentType();
-    Class<?> mapped = ctx.getTypeMap().get(currentType.getFullName());
-    if (mapped == null) {
-      mapped = ctx.getTypeMap().get(currentType.getTypeName().getName());
-    }
+    Class<?> mapped = ctx.getTypeMapClass(currentType);
     if (mapped != null) {
       return getCodec().decodeBinaryAs(source, curOffset, curLength, currentType, mapped, ctx);
     }

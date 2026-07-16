@@ -3300,12 +3300,20 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     PgType pgType = field.getTypeDescriptor();
     PgCodecContext ctx = getCodecContext();
 
-    // Honor the connection-level type map: if the user has registered a Java
-    // class for this PostgreSQL type, route through decodeBinaryAs/decodeTextAs
-    // so SQLData (and PGobject subclass) mappings take effect on plain getObject().
-    Class<?> mapped = ctx.getMappedClass(pgType.getFullName());
+    // Honor the connection-level type map: if the user has registered a Java class for this
+    // PostgreSQL type, route through decodeBinaryAs/decodeTextAs so SQLData (and PGobject subclass)
+    // mappings take effect on plain getObject(). The JDBC connection type map
+    // (Connection.setTypeMap) customizes only user-defined types; for a built-in type it is ignored
+    // (getTypeMapClass returns null), so a stale entry such as {"varchar" -> Foo} — matched by
+    // resolved OID in IdentifierNormalizingTypeMap — cannot hijack a built-in column. A pgjdbc
+    // addDataType() registration and the default JavaTypeRegistry mapping still apply, to built-in
+    // and user-defined types alike.
+    Class<?> mapped = ctx.getTypeMapClass(pgType);
     if (mapped == null) {
-      mapped = ctx.getMappedClass(pgType.getTypeName().getName());
+      mapped = ctx.getRegisteredClass(pgType.getFullName());
+      if (mapped == null) {
+        mapped = ctx.getRegisteredClass(pgType.getTypeName().getName());
+      }
     }
 
     if (isBinary(columnIndex)) {
