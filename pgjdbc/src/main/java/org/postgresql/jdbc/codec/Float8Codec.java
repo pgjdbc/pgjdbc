@@ -127,12 +127,12 @@ public final class Float8Codec implements PrimitiveBinaryEncoder, PrimitiveBinar
   @Override
   public float decodeAsFloat(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    return (float) decodeAsDouble(data, offset, length, type, ctx);
+    return NumberDecoders.doubleToFloat(decodeAsDouble(data, offset, length, type, ctx));
   }
 
   @Override
   public float decodeAsFloat(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return (float) decodeAsDouble(data, type, ctx);
+    return NumberDecoders.doubleToFloat(decodeAsDouble(data, type, ctx));
   }
 
   @Override

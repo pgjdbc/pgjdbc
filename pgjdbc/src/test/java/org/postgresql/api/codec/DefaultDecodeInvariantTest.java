@@ -19,6 +19,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.SQLException;
 
 /**
@@ -34,7 +35,9 @@ import java.sql.SQLException;
  * a checked {@link SQLException} carrying {@link PSQLState#NUMERIC_VALUE_OUT_OF_RANGE} -- never a silent
  * truncation, never an unchecked {@link NumberFormatException} or other {@link RuntimeException}. The
  * {@code float}/{@code double} accessors, whose target represents {@code NaN}/{@code Infinity}, return
- * them rather than refusing.
+ * them rather than refusing -- but {@code float} still refuses a <em>finite</em> value outside its
+ * range (overflow to {@code +/-Infinity}, or a nonzero value that underflows to zero), matching
+ * PostgreSQL's {@code float8->float4} cast.
  */
 class DefaultDecodeInvariantTest {
 
@@ -216,6 +219,71 @@ class DefaultDecodeInvariantTest {
     Fixture inf = fixture(Double.POSITIVE_INFINITY);
     assertEquals(Double.POSITIVE_INFINITY, PrimitiveDecoders.asDouble(inf.binary, wire, inf.type, inf.ctx));
     assertEquals(Float.POSITIVE_INFINITY, PrimitiveDecoders.asFloat(inf.binary, wire, inf.type, inf.ctx));
+  }
+
+  // ==================== float overflow / underflow -> refuse ====================
+
+  @Test
+  void overflowsFloatRange_getFloatRefuses_getDoubleExact() throws SQLException {
+    // A finite double past float's magnitude would saturate to +/-Infinity -- refuse instead, while
+    // the wider accessor still reads it exactly.
+    Fixture f = fixture(1e300);
+    assertRefusesOutOfRange("asFloat(1e300)", () -> PrimitiveDecoders.asFloat(f.binary, wire, f.type, f.ctx));
+    assertEquals(1e300, PrimitiveDecoders.asDouble(f.binary, wire, f.type, f.ctx));
+
+    Fixture negative = fixture(-1e300);
+    assertRefusesOutOfRange("asFloat(-1e300)",
+        () -> PrimitiveDecoders.asFloat(negative.binary, wire, negative.type, negative.ctx));
+  }
+
+  @Test
+  void overflowsFloatRange_viaBigDecimalAndBigInteger_getFloatRefuses() {
+    // BigDecimal.floatValue()/BigInteger.floatValue() saturate the same way, so the range check must
+    // catch them too -- these are the values numeric reaches getFloat through.
+    Fixture bd = fixture(new BigDecimal("1e300"));
+    assertRefusesOutOfRange("asFloat(BigDecimal 1e300)",
+        () -> PrimitiveDecoders.asFloat(bd.binary, wire, bd.type, bd.ctx));
+    Fixture bi = fixture(BigInteger.ONE.shiftLeft(200)); // ~1.6e60, past Float.MAX_VALUE
+    assertRefusesOutOfRange("asFloat(BigInteger 2^200)",
+        () -> PrimitiveDecoders.asFloat(bi.binary, wire, bi.type, bi.ctx));
+  }
+
+  @Test
+  void underflowsFloatRange_nonzeroToZero_getFloatRefuses() {
+    // A nonzero double that narrows to 0.0f must refuse, matching PG float8->float4 underflow.
+    Fixture d = fixture(1e-300);
+    assertRefusesOutOfRange("asFloat(1e-300)", () -> PrimitiveDecoders.asFloat(d.binary, wire, d.type, d.ctx));
+    Fixture bd = fixture(new BigDecimal("1e-300"));
+    assertRefusesOutOfRange("asFloat(BigDecimal 1e-300)",
+        () -> PrimitiveDecoders.asFloat(bd.binary, wire, bd.type, bd.ctx));
+  }
+
+  @Test
+  void atFloatRange_getFloatReturnsExact() throws SQLException {
+    // The float extremes and zero sit inside the range and must NOT refuse.
+    Fixture max = fixture((double) Float.MAX_VALUE);
+    assertEquals(Float.MAX_VALUE, PrimitiveDecoders.asFloat(max.binary, wire, max.type, max.ctx));
+    Fixture min = fixture((double) Float.MIN_VALUE); // smallest positive subnormal, still representable
+    assertEquals(Float.MIN_VALUE, PrimitiveDecoders.asFloat(min.binary, wire, min.type, min.ctx));
+    Fixture zero = fixture(0.0);
+    assertEquals(0.0f, PrimitiveDecoders.asFloat(zero.binary, wire, zero.type, zero.ctx));
+  }
+
+  // ==================== double overflow -> refuse ====================
+
+  @Test
+  void overflowsDoubleRange_getDoubleRefuses_getBigDecimalExact() throws SQLException {
+    // A finite BigDecimal past double's magnitude would saturate to +/-Infinity -- refuse instead,
+    // while getBigDecimal still reads it exactly. Mirrors the float overflow refusal.
+    BigDecimal huge = new BigDecimal("1e400"); // past Double.MAX_VALUE (~1.8e308)
+    Fixture f = fixture(huge);
+    assertRefusesOutOfRange("asDouble(1e400)",
+        () -> PrimitiveDecoders.asDouble(f.binary, wire, f.type, f.ctx));
+    assertEquals(huge, PrimitiveDecoders.asBigDecimal(f.binary, wire, 0, wire.length, f.type, f.ctx));
+
+    Fixture negative = fixture(new BigDecimal("-1e400"));
+    assertRefusesOutOfRange("asDouble(-1e400)",
+        () -> PrimitiveDecoders.asDouble(negative.binary, wire, negative.type, negative.ctx));
   }
 
   // ==================== truncation toward zero, in range ====================

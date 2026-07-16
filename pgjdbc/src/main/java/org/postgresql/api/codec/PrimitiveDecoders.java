@@ -287,14 +287,55 @@ public final class PrimitiveDecoders {
 
   static float boxToFloat(@Nullable Object value) throws SQLException {
     if (value instanceof Number) {
-      return ((Number) value).floatValue();
+      float result = ((Number) value).floatValue();
+      // A finite value that overflows to +/-Infinity, or a nonzero value that underflows to zero,
+      // does not fit float -- refuse rather than silently saturate, matching PostgreSQL's
+      // float8->float4 cast and {@link #boxToInt}'s range check. A genuine NaN/Infinity source (only a
+      // Double/Float can be one) passes through, since float represents it.
+      boolean overflow = Float.isInfinite(result) && isFiniteSource(value);
+      boolean underflow = result == 0.0f && isNonZero((Number) value);
+      if (overflow || underflow) {
+        throw Exceptions.valueOutOfRange(value, "float");
+      }
+      return result;
     }
     throw Codecs.cannotDecode(value, "float");
   }
 
+  /** Whether {@code value} is finite; only a {@link Double}/{@link Float} can be non-finite. */
+  private static boolean isFiniteSource(Object value) {
+    if (value instanceof Double) {
+      return Double.isFinite((Double) value);
+    }
+    if (value instanceof Float) {
+      return Float.isFinite((Float) value);
+    }
+    return true;
+  }
+
+  /** Whether {@code value} is a nonzero number, tested exactly for {@code BigDecimal}/{@code BigInteger}. */
+  private static boolean isNonZero(Number value) {
+    if (value instanceof BigDecimal) {
+      return ((BigDecimal) value).signum() != 0;
+    }
+    if (value instanceof BigInteger) {
+      return ((BigInteger) value).signum() != 0;
+    }
+    return value.doubleValue() != 0.0;
+  }
+
   static double boxToDouble(@Nullable Object value) throws SQLException {
     if (value instanceof Number) {
-      return ((Number) value).doubleValue();
+      double result = ((Number) value).doubleValue();
+      // A finite value (only a BigDecimal/BigInteger can be this large) that overflows to +/-Infinity
+      // does not fit double -- refuse rather than silently saturate, mirroring boxToFloat and the
+      // server's numeric->float8 cast. A genuine NaN/Infinity source passes through. Unlike float,
+      // underflow to zero is not checked: it needs a value below the smallest subnormal double
+      // (~5e-324), far outside anything a numeric round-trip produces.
+      if (Double.isInfinite(result) && isFiniteSource(value)) {
+        throw Exceptions.valueOutOfRange(value, "double");
+      }
+      return result;
     }
     throw Codecs.cannotDecode(value, "double");
   }

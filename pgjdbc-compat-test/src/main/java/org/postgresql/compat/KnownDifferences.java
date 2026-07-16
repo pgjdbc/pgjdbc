@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -44,6 +45,14 @@ public final class KnownDifferences {
 
   private static final Map<String, String> POINTS = new LinkedHashMap<>();
   private static final List<Rule> RULES = new ArrayList<>();
+
+  // The float8 edge cases whose value lies outside the float4 range, so the fixed getFloat refuses it
+  // (see the rule below). Enumerated explicitly, not by the "float8-edge|" prefix, so that a future
+  // float8 edge case that starts diverging on getFloat for some other reason surfaces as a regression
+  // instead of being silently absorbed by this rule.
+  private static final Set<String> FLOAT8_OUT_OF_FLOAT4_RANGE = new HashSet<>(Arrays.asList(
+      "overflows_float4", "negative_overflows_float4", "underflows_float4",
+      "largest", "smallest_subnormal"));
 
   // Which entries actually explained a difference during the run. An entry that never matched is
   // reported by unusedEntries() so a converged divergence does not rot in the registry unnoticed.
@@ -243,6 +252,23 @@ public final class KnownDifferences {
           && current.threw() && "22003".equals(current.sqlState()) && !baseline.threw()) {
         return "getInt on an over-range float4 refuses (server-parity); the baseline returned the "
             + "lossy 7-significant-digit widening that still fit int";
+      }
+      return null;
+    });
+
+    // Server-parity: getFloat on a float8 value outside the float4 range now refuses with 22003, as the
+    // server's float8->float4 cast does -- overflow to +/-Infinity, or a nonzero value that underflows to
+    // zero. The baseline narrowed with a bare (float) cast and returned the saturated +/-Infinity or 0.0,
+    // silently losing the value. Only getFloat is affected; the wide getters (getDouble/getBigDecimal)
+    // keep the exact value on both drivers and are compared normally.
+    RULES.add((label, current, baseline) -> {
+      if (label.startsWith("float8-edge|") && label.endsWith("|GET_FLOAT")
+          && current.threw() && "22003".equals(current.sqlState()) && !baseline.threw()) {
+        String[] parts = label.split("\\|");
+        if (parts.length == 4 && FLOAT8_OUT_OF_FLOAT4_RANGE.contains(parts[2])) {
+          return "getFloat on an out-of-float-range float8 refuses (server float8->float4 parity); the "
+              + "baseline saturated to +/-Infinity or underflowed to zero";
+        }
       }
       return null;
     });

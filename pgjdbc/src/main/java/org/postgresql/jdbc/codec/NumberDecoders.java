@@ -102,6 +102,26 @@ final class NumberDecoders {
   }
 
   /**
+   * Narrows a {@code double} to {@code float}, throwing if a finite value does not fit the {@code
+   * float} range: overflow to {@code +/-Infinity}, or a nonzero value that underflows to zero. This
+   * matches PostgreSQL's {@code float8->float4} cast (C {@code dtof}), which rejects both. A genuine
+   * {@code NaN}/{@code Infinity} passes through -- {@code float} represents them, so the accessor
+   * returns them rather than refusing (unlike the integer narrowings, whose target has no such value).
+   *
+   * @param value the double to narrow
+   * @return {@code value} as a {@code float}
+   * @throws SQLException if a finite {@code value} overflows or underflows the {@code float} range
+   */
+  static float doubleToFloat(double value) throws SQLException {
+    float result = (float) value;
+    if (Double.isFinite(value)
+        && (Float.isInfinite(result) || (result == 0.0f && value != 0.0))) {
+      throw Exceptions.outOfRange(value, "float");
+    }
+    return result;
+  }
+
+  /**
    * Boxes an integral {@code value} as {@code targetClass}; {@code typeName} names the source type in
    * the "cannot decode" error.
    */
@@ -158,7 +178,7 @@ final class NumberDecoders {
       return (T) Double.valueOf(value);
     }
     if (targetClass == Float.class) {
-      return (T) Float.valueOf((float) value);
+      return (T) Float.valueOf(doubleToFloat(value));
     }
     if (targetClass == Integer.class) {
       return (T) Integer.valueOf(floatingToInt(value));

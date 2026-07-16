@@ -121,6 +121,88 @@ class Float8CodecTest {
   }
 
   @Test
+  void decodeAsFloat_binary_overflow_refuses() {
+    // getFloat on a float8 value past the float range must refuse, not saturate to +/-Infinity,
+    // matching PostgreSQL's float8->float4 cast.
+    byte[] data = new byte[8];
+    ByteConverter.float8(data, 0, 1e300);
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> PrimitiveDecoders.asFloat(codec, data, float8Type, null));
+    assertEquals(PSQLState.NUMERIC_VALUE_OUT_OF_RANGE.getState(), e.getSQLState());
+  }
+
+  @Test
+  void decodeAsFloat_binary_underflow_refuses() {
+    // A nonzero float8 value that narrows to 0.0f underflows the float range and must refuse.
+    byte[] data = new byte[8];
+    ByteConverter.float8(data, 0, 1e-300);
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> PrimitiveDecoders.asFloat(codec, data, float8Type, null));
+    assertEquals(PSQLState.NUMERIC_VALUE_OUT_OF_RANGE.getState(), e.getSQLState());
+  }
+
+  @Test
+  void decodeAsFloat_text_overflow_refuses() {
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> codec.decodeAsFloat("1e300", float8Type, null));
+    assertEquals(PSQLState.NUMERIC_VALUE_OUT_OF_RANGE.getState(), e.getSQLState());
+  }
+
+  @Test
+  void decodeAsFloat_binary_atFloatMax_returnsExact() throws SQLException {
+    // Float.MAX_VALUE as a double casts back exactly -- inside range, must not refuse.
+    byte[] data = new byte[8];
+    ByteConverter.float8(data, 0, (double) Float.MAX_VALUE);
+    assertEquals(Float.MAX_VALUE, PrimitiveDecoders.asFloat(codec, data, float8Type, null));
+  }
+
+  @Test
+  void decodeAsFloat_nonFinite_returnsIt() throws SQLException {
+    // A genuine Infinity/NaN passes through -- float represents it, unlike a finite overflow.
+    assertEquals(Float.POSITIVE_INFINITY, codec.decodeAsFloat("Infinity", float8Type, null));
+    byte[] data = new byte[8];
+    ByteConverter.float8(data, 0, Double.NaN);
+    assertEquals(Float.floatToRawIntBits(Float.NaN),
+        Float.floatToRawIntBits(PrimitiveDecoders.asFloat(codec, data, float8Type, null)));
+  }
+
+  // The class-targeted decode (getObject(Float.class)) narrows through NumberDecoders.decodeFloatingAs,
+  // a separate path from decodeAsFloat/boxToFloat, so it gets its own overflow/underflow guard.
+  @Test
+  void decodeBinaryAs_float_overflow_refuses() {
+    byte[] data = new byte[8];
+    ByteConverter.float8(data, 0, 1e300);
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> codec.decodeBinaryAs(data, 0, data.length, float8Type, Float.class, null));
+    assertEquals(PSQLState.NUMERIC_VALUE_OUT_OF_RANGE.getState(), e.getSQLState());
+  }
+
+  @Test
+  void decodeBinaryAs_float_underflow_refuses() {
+    byte[] data = new byte[8];
+    ByteConverter.float8(data, 0, 1e-300);
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> codec.decodeBinaryAs(data, 0, data.length, float8Type, Float.class, null));
+    assertEquals(PSQLState.NUMERIC_VALUE_OUT_OF_RANGE.getState(), e.getSQLState());
+  }
+
+  @Test
+  void decodeTextAs_float_overflow_refuses() {
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> codec.decodeTextAs("1e300", float8Type, Float.class, null));
+    assertEquals(PSQLState.NUMERIC_VALUE_OUT_OF_RANGE.getState(), e.getSQLState());
+  }
+
+  @Test
+  void decodeBinaryAs_float_inRange_returnsExact() throws SQLException {
+    // The boundary still resolves through the class-targeted path -- the guard rejects only overflow.
+    byte[] data = new byte[8];
+    ByteConverter.float8(data, 0, (double) Float.MAX_VALUE);
+    assertEquals(Float.valueOf(Float.MAX_VALUE),
+        codec.decodeBinaryAs(data, 0, data.length, float8Type, Float.class, null));
+  }
+
+  @Test
   void binaryRoundtrip() throws SQLException {
     double original = 123456.789;
     byte[] encoded = codec.encodeBinary(original, float8Type, null);

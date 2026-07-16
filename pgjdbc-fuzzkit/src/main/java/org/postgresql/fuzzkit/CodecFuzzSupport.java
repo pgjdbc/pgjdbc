@@ -983,15 +983,16 @@ public final class CodecFuzzSupport {
    */
   private static void numericLattice(String label, NumericFamily family,
       Outcome oi, Outcome ol, Outcome of, Outcome od, Outcome obd) {
-    // Success-monotonicity, EVERY family (before the numeric-only lattice below): float and double are
-    // equi-permissive floating reads -- float saturates and never range-overflows, so a value readable
-    // as one is readable as the other -- and long is wider than int. A codec that reads a value as one
-    // of a pair must read it as the other, or its accessor set is half-overridden. This is the check
-    // that a decodeAsDouble override paired with a defaulting decodeAsFloat (which boxes a non-Number
-    // and refuses) fails -- the getDouble/getFloat gap FallbackCodec had.
-    assertTrue(od.threw == of.threw,
-        () -> label + " getDouble/getFloat success must agree (getDouble " + describe(od)
-            + ", getFloat " + describe(of) + ")");
+    // Success-monotonicity, EVERY family (before the numeric-only lattice below): double is wider than
+    // float, and long is wider than int, so a value readable as the narrower accessor is readable as the
+    // wider one. A getFloat that succeeds where getDouble refuses means the accessor set is
+    // half-overridden -- the getDouble/getFloat gap FallbackCodec had (a decodeAsDouble override paired
+    // with a defaulting decodeAsFloat that boxed a non-Number and refused). The reverse does NOT hold:
+    // getFloat now range-checks like getInt, so a finite double outside float range refuses rather than
+    // saturating to +/-Infinity (matching PG float8->float4); INV-3c below pins exactly when it refuses.
+    if (!of.threw) {
+      assertFalse(od.threw, () -> label + " getFloat read " + of.value + " but getDouble refused it");
+    }
     if (!oi.threw) {
       assertFalse(ol.threw, () -> label + " getInt read " + oi.value + " but getLong refused it");
     }
@@ -1032,12 +1033,25 @@ public final class CodecFuzzSupport {
     }
     if (!od.threw) {
       double d = doubleOf(od.value);
-      // INV-3c: reading as float is the narrowing cast of reading as double (integral, floating, money).
+      // INV-3c: reading as float is the narrowing cast of reading as double (integral, floating, money),
+      // EXCEPT that a finite double outside float range now refuses instead of saturating -- overflow to
+      // +/-Infinity, or a nonzero value that underflows to zero -- matching PG float8->float4 and
+      // getInt's range check (INV-2). So getFloat succeeds iff the narrowing is faithful, and then
+      // equals (float) d; when it overflows/underflows, getFloat must throw. (INTEGRAL/MONETARY values
+      // stay well inside float range, so only FLOATING actually exercises the refusal branch.)
       if (family == NumericFamily.INTEGRAL || family == NumericFamily.FLOATING
           || family == NumericFamily.MONETARY) {
-        assertFalse(of.threw, () -> label + " INV-3c: decodeAsDouble succeeded but decodeAsFloat threw");
-        assertFloatBits(label + " INV-3c: decodeAsFloat == (float) decodeAsDouble",
-            (float) d, floatOf(of.value));
+        float narrowed = (float) d;
+        boolean outOfFloatRange = Double.isFinite(d)
+            && (Float.isInfinite(narrowed) || (narrowed == 0.0f && d != 0.0));
+        if (outOfFloatRange) {
+          assertTrue(of.threw, () -> label + " INV-3c: double " + d
+              + " is out of float range but decodeAsFloat did not throw (returned " + of.value + ")");
+        } else {
+          assertFalse(of.threw, () -> label + " INV-3c: decodeAsDouble succeeded but decodeAsFloat threw");
+          assertFloatBits(label + " INV-3c: decodeAsFloat == (float) decodeAsDouble",
+              narrowed, floatOf(of.value));
+        }
       }
       // INV-4 (FLOATING only): the integer accessors are the range-checked rint (round-half-to-even) of
       // the double, matching PG float8->int (C rint). This pins the rounding DIRECTION, which INV-2's

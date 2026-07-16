@@ -36,6 +36,11 @@ public final class Float4EdgeCases {
     out.add(at("above_int_max", "2147483648"));
     out.add(at("largest", "3.4e38"));
     out.add(at("smallest_normal", "1.2e-38"));
+    // The exact float4 extremes: the largest finite value and the smallest positive subnormal. They
+    // sit just inside the range, so getFloat must accept them -- the boundary complement of the
+    // float8 overflows_float4/underflows_float4 cases that must refuse.
+    out.add(at("float4_max", "3.4028235e38"));
+    out.add(at("smallest_subnormal", "1.4e-45"));
     return out;
   }
 
