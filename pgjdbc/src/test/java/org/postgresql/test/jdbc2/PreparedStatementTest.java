@@ -1736,6 +1736,40 @@ public class PreparedStatementTest extends BaseTest4 {
   }
 
   @Test
+  public void testGetMetaDataWithPrepareThreshold0() throws SQLException {
+    assumeBinaryModeRegular();
+    assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE, "simple protocol only does not support prepared statement requests");
+
+    PreparedStatement pstmt = null;
+    try {
+      pstmt = con.prepareStatement("SELECT 43");
+      ((PgStatement) pstmt).setPrepareThreshold(0);
+      assertNotNull(pstmt.getMetaData(), "getMetaData() should describe the statement");
+    } finally {
+      TestUtil.closeQuietly(pstmt);
+    }
+
+    assertEquals(0, getNumberOfServerPreparedStatements("SELECT 43"), "prepareThreshold=0, so getMetaData() should not server-prepare the statement");
+  }
+
+  @Test
+  public void testGetMetaDataDoesNotBypassPrepareThreshold() throws SQLException {
+    assumeBinaryModeRegular();
+    assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE, "simple protocol only does not support prepared statement requests");
+
+    PreparedStatement pstmt = null;
+    try {
+      pstmt = con.prepareStatement("SELECT 44");
+      ((PgStatement) pstmt).setPrepareThreshold(5);
+      assertNotNull(pstmt.getMetaData(), "getMetaData() should describe the statement");
+    } finally {
+      TestUtil.closeQuietly(pstmt);
+    }
+
+    assertEquals(0, getNumberOfServerPreparedStatements("SELECT 44"), "prepareThreshold=5 and the statement was never executed, so describing it should not server-prepare it");
+  }
+
+  @Test
   public void testInappropriateStatementSharing() throws SQLException {
     PreparedStatement ps = con.prepareStatement("SELECT ?::timestamp");
     assertFirstParameterTypeName("after prepare ?::timestamp bind type should be timestamp", "timestamp", ps);
