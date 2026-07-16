@@ -130,6 +130,24 @@ public class BinaryTransferWildcardTest {
   }
 
   @Test
+  void enableWildcardLoadsUncachedComposite() throws SQLException {
+    // Regression: resolving an uncached composite under enable=* used to overflow the stack. The
+    // pg_type lookup runs under the same enable=*, so its regproc columns (typsend, typreceive — not
+    // built-in types) came back binary; decoding one re-entered the type cache for the same
+    // not-yet-loaded type and recursed. The lookup now casts those columns to text, a built-in type,
+    // so loading the composite completes.
+    Properties props = new Properties();
+    PGProperty.BINARY_TRANSFER_ENABLE.set(props, "*");
+    PGProperty.PREPARE_THRESHOLD.set(props, -1);
+    try (Connection con = openExtended(props);
+         PreparedStatement ps = con.prepareStatement("select row(3, 4)::" + COMPOSITE);
+         ResultSet rs = ps.executeQuery()) {
+      assertTrue(rs.next());
+      assertEquals("(3,4)", rs.getString(1));
+    }
+  }
+
+  @Test
   void enableWildcardForcesBinaryForTextOnlyType() throws SQLException {
     // txid_snapshot has txid_snapshot_send on the server but no binary codec in the driver, so it is
     // normally received as text. enable=* forces binary receive anyway (bypassing the capability

@@ -56,8 +56,15 @@ public class TypeInfoCache implements TypeInfo {
 
   private static final Logger LOGGER = Logger.getLogger(TypeInfoCache.class.getName());
 
+  // typsend/typreceive (regproc) are cast to text so their result column is a built-in type. regproc
+  // is not in BASE_TYPES, so under binaryTransferEnable=* the column comes back in binary and reading
+  // it via getString re-enters this cache to resolve regproc — which is not loaded yet — recursing
+  // until the stack overflows. The cast runs the same regproc output the driver already relies on
+  // (the send/receive function name, or "-" when absent), so the value is unchanged; only the wire
+  // type changes. The "char" columns (typcategory, typtype, typdelim) need no cast: "char" is a
+  // built-in type (CharCodec), so it resolves and decodes in binary without a catalog round-trip.
   public static final String PG_TYPE_FIELDS =
-      "t.oid as typoid, t.typname, t.typcategory, t.typtype, t.typtypmod, t.typelem, t.typarray, t.typbasetype, t.typdelim, t.typsend, t.typreceive, tn.nspname as typnspname, pg_catalog.format_type(t.oid, null) as typfullname";
+      "t.oid as typoid, t.typname, t.typcategory, t.typtype, t.typtypmod, t.typelem, t.typarray, t.typbasetype, t.typdelim, t.typsend::text as typsend, t.typreceive::text as typreceive, tn.nspname as typnspname, pg_catalog.format_type(t.oid, null) as typfullname";
 
   public static final String PG_TYPE_TABLE =
       "pg_catalog.pg_type t JOIN pg_catalog.pg_namespace tn ON (t.typnamespace = tn.oid)";

@@ -32,6 +32,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * refactor: derive `getPrimaryKeys` from `pg_constraint.conkey` [PR #4202](https://github.com/pgjdbc/pgjdbc/pull/4202)
 
 ### Fixed
+* fix: loading an uncached type (for example a user-defined composite) under `binaryTransferEnable=*` no longer throws a `StackOverflowError`. The `pg_type` lookup casts its `regproc` columns (`typsend`, `typreceive`) to `text`, so every result column is a built-in type and decoding a catalog row never re-enters the type cache for a type that is not loaded yet
 * fix: the published GitHub release now ships the released `postgresql-<version>.jar` and its detached PGP signature, taken from the same signed build that is uploaded to Maven Central, instead of a leftover SNAPSHOT jar [Issue #3812](https://github.com/pgjdbc/pgjdbc/issues/3812) [PR #3814](https://github.com/pgjdbc/pgjdbc/pull/3814)
 * fix: simplify the `Statement#cancel` state machine by dropping the redundant `CANCELLED` state. `killTimerTask` now waits for the state to return to `IDLE` directly, which removes a spin-forever case when more than one thread observes the cancel completing [PR #1827](https://github.com/pgjdbc/pgjdbc/pull/1827).
 * perf: defer simple-query flushes until the driver reads the response, allowing `BEGIN` and the following query to share a network flush [Issue #3894](https://github.com/pgjdbc/pgjdbc/issues/3894) [PR #4196](https://github.com/pgjdbc/pgjdbc/pull/4196)
