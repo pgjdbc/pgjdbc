@@ -170,7 +170,7 @@ dependencies {
     "testImplementation"("org.osgi:org.osgi.service.jdbc") {
         because("DataSourceFactory is needed for PGDataSourceFactoryTest")
     }
-    shaded("com.ongres.scram:scram-client:3.2")
+    shaded("com.ongres.scram:scram-client:3.3")
 
     implementation("org.checkerframework:checker-qual:3.55.1")
     java11.implementationConfigurationName("org.checkerframework:checker-qual:3.55.1")
@@ -277,8 +277,8 @@ tasks.compileJava {
 val getShadedDependencyLicenses = tasks.register<GatherLicenseTask>("getShadedDependencyLicenses") {
     configuration(shaded)
     listOf(
-        "com.ongres.scram:scram-client:3.2",
-        "com.ongres.scram:scram-common:3.2",
+        "com.ongres.scram:scram-client:3.3",
+        "com.ongres.scram:scram-common:3.3",
         "com.ongres.stringprep:saslprep:2.2",
         "com.ongres.stringprep:stringprep:2.2"
     ).forEach {
