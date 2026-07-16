@@ -211,7 +211,7 @@ public class TypeInfoCacheTest {
             //                     typsend, typreceive, typelem, arrayOid, typbasetype)
             "with pgjdbc_types(typname) as (\n"
                 + "    select * from (values\n"
-                + "        ('bit'), ('bool'), ('box'), ('bpchar'), ('bytea'), ('circle'), ('date'),\n"
+                + "        ('bit'), ('bool'), ('box'), ('bpchar'), ('bytea'), ('char'), ('circle'), ('date'),\n"
                 + "        ('float4'), ('float8'), ('int2'), ('int4'), ('int8'), ('interval'),\n"
                 + "        ('json'), ('jsonb'), ('line'), ('lseg'), ('money'), ('name'), ('numeric'),\n"
                 + "        ('oid'), ('path'), ('point'), ('polygon'), ('record'), ('refcursor'), ('text'),\n"

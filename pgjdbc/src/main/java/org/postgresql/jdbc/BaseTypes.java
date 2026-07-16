@@ -41,6 +41,8 @@ final class BaseTypes {
       new PgType(new ObjectName("pg_catalog", "_bpchar"), "character[]", Oid.BPCHAR_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.BPCHAR, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
       new PgType(new ObjectName("pg_catalog", "bytea"), "bytea", Oid.BYTEA, 'b', 'U', -1, "byteasend", "bytearecv", Oid.UNSPECIFIED, Oid.BYTEA_ARRAY, Oid.UNSPECIFIED),
       new PgType(new ObjectName("pg_catalog", "_bytea"), "bytea[]", Oid.BYTEA_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.BYTEA, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "char"), "\"char\"", Oid.CHAR, 'b', 'Z', -1, "charsend", "charrecv", Oid.UNSPECIFIED, Oid.CHAR_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_char"), "\"char\"[]", Oid.CHAR_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.CHAR, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
       new PgType(new ObjectName("pg_catalog", "circle"), "circle", Oid.CIRCLE, 'b', 'G', -1, "circle_send", "circle_recv", Oid.UNSPECIFIED, Oid.CIRCLE_ARRAY, Oid.UNSPECIFIED),
       new PgType(new ObjectName("pg_catalog", "_circle"), "circle[]", Oid.CIRCLE_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.CIRCLE, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
       new PgType(new ObjectName("pg_catalog", "date"), "date", Oid.DATE, 'b', 'D', -1, "date_send", "date_recv", Oid.UNSPECIFIED, Oid.DATE_ARRAY, Oid.UNSPECIFIED),

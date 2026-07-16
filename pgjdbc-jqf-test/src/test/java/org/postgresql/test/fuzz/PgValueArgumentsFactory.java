@@ -221,7 +221,10 @@ public final class PgValueArgumentsFactory implements ArgumentsGeneratorFactory 
   private static Generator<Object[]> recordFieldGenerator() {
     List<Generator<Object[]>> branches = new ArrayList<>();
     Set<Integer> members = new LinkedHashSet<>();
-    for (ScalarDescriptor scalar : PgTypeDescriptors.scalars()) {
+    // A record field must round-trip losslessly, so draw only from the write-populated (coercion) scalars,
+    // not every read-populated one: that excludes "char", whose write truncates to a single byte. The
+    // qualifiesAsRecordField filter then keeps the equals-stable, config-independent read classes.
+    for (ScalarDescriptor scalar : PgTypeDescriptors.coercionScalars()) {
       if (!qualifiesAsRecordField(scalar)) {
         continue;
       }
@@ -274,7 +277,8 @@ public final class PgValueArgumentsFactory implements ArgumentsGeneratorFactory 
       case Oid.BPCHAR:
       case Oid.NAME:
         // text, varchar, bpchar and name all delegate to the text codec, so a printable-ASCII String
-        // round-trips through the binary record wire unchanged (no padding or trimming offline).
+        // round-trips through the binary record wire unchanged (no padding or trimming offline). "char"
+        // is excluded: its write truncates to one byte, so it is not a lossless record field.
         return Generator.stringsOf(Generator.asciiPrintableChars());
       default:
         throw new ExceptionInInitializerError(

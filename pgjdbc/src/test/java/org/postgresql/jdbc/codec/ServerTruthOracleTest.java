@@ -306,6 +306,51 @@ class ServerTruthOracleTest {
   }
 
   /**
+   * {@code "char"} (OID 18) encode- and decode-truth. {@link org.postgresql.jdbc.codec.CharCodec}
+   * reproduces {@code charin}/{@code charout} for the one-byte wire, so a high byte round-trips through
+   * its backslash-octal escape ({@code 0x80 <-> "\200"}), the zero byte through {@code ""}, and a low
+   * byte through itself. The cast must be the quoted {@code "char"} -- an unquoted {@code char} is
+   * {@code bpchar} (OID 1042). Each literal is idempotent under the server's {@code ::text}, so one
+   * catalogue drives both truths: encode ships the codec's single {@code charin} byte and pins its
+   * {@code ::text} against the literal; decode receives that byte in binary and pins the codec's
+   * {@code charout}-faithful {@code getString} against the server {@code ::text}.
+   *
+   * <p>High bytes stay as octal escapes rather than raw characters: {@code charin} takes the first byte
+   * of the connection-charset encoding, and the escape's byte is exactly that under any ASCII-superset
+   * encoding, whereas a raw non-ASCII character would encode to a multi-byte sequence.</p>
+   */
+  @TestFactory
+  List<DynamicTest> chars() {
+    List<DynamicTest> t = new ArrayList<>();
+    String[][] cases = {
+        {"ascii-a", "a"},
+        {"digit", "5"},
+        {"space", " "},
+        {"backslash", "\\"}, // charout of 0x5C is a bare backslash, not an escape
+        {"tilde-0x7E", "~"}, // the last byte the server renders raw; 0x80 begins the octal escapes
+        {"zero-byte", ""}, // 0x00 <-> "" on both sides
+        {"truncates-to-first-byte", "abc"}, // charin keeps only the first byte; ::text of both sides is "a"
+    };
+    for (String[] c : cases) {
+      addCharTruth(t, c[0], c[1]);
+    }
+    // Exhaustive over the high half: every byte the server renders as a backslash-octal escape must
+    // round-trip through the codec's octalEscape/charByte table, in both directions. This is the
+    // codec's nontrivial surface, so it is swept in full rather than sampled.
+    for (int b = 0x80; b <= 0xFF; b++) {
+      addCharTruth(t, String.format(Locale.ROOT, "high-0x%02X", b),
+          String.format(Locale.ROOT, "\\%03o", b));
+    }
+    return t;
+  }
+
+  /** Adds the encode- and decode-truth pair for one {@code "char"} literal (idempotent under ::text). */
+  private void addCharTruth(List<DynamicTest> t, String name, String literal) {
+    t.add(encode("char/" + name, Oid.CHAR, "\"char\"", literal, literal));
+    t.add(decodeTruth("char/" + name, Oid.CHAR, "\"char\"", literal));
+  }
+
+  /**
    * Regression net for the geometric codecs. Their encode-truth holds even though their
    * {@code getString} rendering diverges from the server (see {@link #decodeKnownDivergences()}):
    * the server's ::text of the binary encoding is compared against the server's parse of the literal,

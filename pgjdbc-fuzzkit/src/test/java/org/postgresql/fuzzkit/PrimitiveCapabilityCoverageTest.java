@@ -50,6 +50,7 @@ class PrimitiveCapabilityCoverageTest {
       Oid.TEXT,     // String-natural
       Oid.BPCHAR,   // String-natural
       Oid.VARCHAR,  // String-natural
+      Oid.CHAR,     // String-natural: "char" (OID 18) delegates to the text codec
       Oid.NUMERIC,  // BigDecimal-natural: the primitive accessors narrow a BigDecimal
       Oid.MONEY,    // coercion-primitive, no coercion descriptor
       Oid.BIT,      // coercion-primitive (single-bit -> boolean), no coercion descriptor

@@ -18,6 +18,7 @@ import org.postgresql.jdbc.codec.BoolCodec;
 import org.postgresql.jdbc.codec.BoxCodec;
 import org.postgresql.jdbc.codec.BpcharCodec;
 import org.postgresql.jdbc.codec.ByteaCodec;
+import org.postgresql.jdbc.codec.CharCodec;
 import org.postgresql.jdbc.codec.CircleCodec;
 import org.postgresql.jdbc.codec.CompositeCodec;
 import org.postgresql.jdbc.codec.DateCodec;
@@ -250,6 +251,7 @@ public class CodecRegistry implements CodecLookup {
     registerBuiltin(TextCodec.INSTANCE);
     registerBuiltin(VarcharCodec.INSTANCE);
     registerBuiltin(BpcharCodec.INSTANCE);
+    registerBuiltin(CharCodec.INSTANCE);
     registerBuiltin(NameCodec.INSTANCE);
     registerBuiltin(BoolCodec.INSTANCE);
 
@@ -320,7 +322,8 @@ public class CodecRegistry implements CodecLookup {
     registerBuiltinAlias("character varying", VarcharCodec.INSTANCE);
     registerBuiltinAlias("bpchar", BpcharCodec.INSTANCE);
     registerBuiltinAlias("character", BpcharCodec.INSTANCE);
-    registerBuiltinAlias("char", BpcharCodec.INSTANCE);
+    // "char" is the internal single-byte type (OID 18), not character(n)/bpchar.
+    registerBuiltinAlias("char", CharCodec.INSTANCE);
     registerBuiltinAlias("bool", BoolCodec.INSTANCE);
     registerBuiltinAlias("boolean", BoolCodec.INSTANCE);
     registerBuiltinAlias("timetz", TimetzCodec.INSTANCE);
@@ -373,6 +376,7 @@ public class CodecRegistry implements CodecLookup {
     pinBuiltinOid(Oid.TEXT, TextCodec.INSTANCE);
     pinBuiltinOid(Oid.VARCHAR, VarcharCodec.INSTANCE);
     pinBuiltinOid(Oid.BPCHAR, BpcharCodec.INSTANCE);
+    pinBuiltinOid(Oid.CHAR, CharCodec.INSTANCE);
     pinBuiltinOid(Oid.NAME, NameCodec.INSTANCE);
     pinBuiltinOid(Oid.BOOL, BoolCodec.INSTANCE);
 

@@ -796,15 +796,15 @@ public final class ReadCoercions {
   }
 
   // ---------------------------------------------------------------------------------------------
-  // Text family: text, varchar, bpchar, name. varchar/bpchar/name delegate their readers to
-  // TextCodecImpl, so all four share one matrix. String readers succeed; every numeric, boolean and
+  // Text family: text, varchar, bpchar, name, char. varchar/bpchar/name/char delegate their readers to
+  // AbstractTextCodec, so all five share one matrix. String readers succeed; every numeric, boolean and
   // temporal reader parses the text, so it is value-dependent. The typed readObject(Date/Time/
   // Timestamp) parses cleanly via TemporalCodecs, while the fixed readDate/readTime/readTimestamp go
   // through java.sql.*.valueOf and leak an unchecked exception on malformed input (a known deviation).
   // ---------------------------------------------------------------------------------------------
 
   private static void defineTextFamily() {
-    for (int typeOid : new int[]{Oid.TEXT, Oid.VARCHAR, Oid.BPCHAR, Oid.NAME}) {
+    for (int typeOid : new int[]{Oid.TEXT, Oid.VARCHAR, Oid.BPCHAR, Oid.NAME, Oid.CHAR}) {
       textReaders(typeOid);
       textObjectAs(typeOid);
     }

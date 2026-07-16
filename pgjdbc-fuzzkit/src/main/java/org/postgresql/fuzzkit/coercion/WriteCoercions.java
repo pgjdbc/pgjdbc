@@ -322,7 +322,7 @@ public final class WriteCoercions {
   }
 
   // ---------------------------------------------------------------------------------------------
-  // text. Sourced from TextCodecImpl.toString: every scalar (Number, Boolean, String) stringifies;
+  // text. Sourced from AbstractTextCodec.toString: every scalar (Number, Boolean, String) stringifies;
   // byte[], temporal and UUID refuse with INVALID_PARAMETER_TYPE.
   // ---------------------------------------------------------------------------------------------
 
@@ -333,11 +333,17 @@ public final class WriteCoercions {
   }
 
   // ---------------------------------------------------------------------------------------------
-  // Text-like family: varchar, bpchar, name. Each delegates its encoder to TextCodecImpl (through
+  // Text-like family: varchar, bpchar, name. Each delegates its encoder to AbstractTextCodec (through
   // VarcharCodec/BpcharCodec/NameCodec), so the accepted-class set is identical to text: every Number,
   // Boolean and String stringifies; byte[], temporal and UUID refuse with INVALID_PARAMETER_TYPE. The
   // fixed-width blank padding of bpchar is a server-side effect; the offline single-field codec neither
   // pads nor trims, so it does not touch encode legality here.
+  //
+  // "char" (OID 18) shares this accepted-class set but is deliberately left out: its encoder mirrors
+  // charin -- a String is truncated to a single byte -- so it is a lossy write that cannot satisfy the
+  // value-fidelity round-trip (coercionScalars -> JqfCoercionRoundTripFuzzTest). It stays read-only: the
+  // decode-robustness and ReadCoercions surfaces still cover it, and its byte->String->byte decode is
+  // idempotent, but it is off the write/round-trip axis.
   // ---------------------------------------------------------------------------------------------
 
   private static void defineTextLikeFamily() {

@@ -64,11 +64,10 @@ public final class ScalarDecodeRobustnessFuzzTestGenerator {
   /** Renders the whole source file for {@code targets}. */
   private static String render(List<Target> targets) {
     boolean anyDisabled = false;
+    boolean anyEnumerated = false;
     for (Target target : targets) {
-      if (target.disabled()) {
-        anyDisabled = true;
-        break;
-      }
+      anyDisabled |= target.disabled();
+      anyEnumerated |= target.enumeratedByteDomain();
     }
 
     StringBuilder sb = new StringBuilder(8192);
@@ -82,6 +81,10 @@ public final class ScalarDecodeRobustnessFuzzTestGenerator {
         .append("import edu.berkeley.cs.jqf.junit5.FuzzTest;").append(NL);
     if (anyDisabled) {
       sb.append("import org.junit.jupiter.api.Disabled;").append(NL);
+    }
+    if (anyEnumerated) {
+      sb.append("import org.junit.jupiter.params.ParameterizedTest;").append(NL)
+          .append("import org.junit.jupiter.params.provider.MethodSource;").append(NL);
     }
     sb.append("import org.postgresql.fuzzkit.ScalarDecodeRobustnessModel;").append(NL);
     sb.append(NL);
@@ -115,10 +118,13 @@ public final class ScalarDecodeRobustnessFuzzTestGenerator {
             + " {@code byte[] + off + len}").append(NL)
         .append(" * path); a text-readable one gets a {@code _text} target that decodes the raw bytes,"
             + " reaching invalid-UTF-8").append(NL)
-        .append(" * wires. Every parameter is a {@code byte[]} drawn by {@link PgValueArgumentsFactory}. The"
-            + " targets, their").append(NL)
-        .append(" * names, and their disabled state come from"
-            + " {@link ScalarDecodeRobustnessModel}.").append(NL)
+        .append(" * wires. A guided parameter is a {@code byte[]} drawn by {@link PgValueArgumentsFactory}. A"
+            + " single-byte").append(NL)
+        .append(" * type ({@code \"char\"}) instead has a finite binary wire domain, so its binary targets are"
+            + " exhaustive").append(NL)
+        .append(" * {@code @ParameterizedTest}s over every wire. The targets, their names, and their disabled"
+            + " state come").append(NL)
+        .append(" * from {@link ScalarDecodeRobustnessModel}.").append(NL)
         .append(" */").append(NL);
   }
 
@@ -126,6 +132,10 @@ public final class ScalarDecodeRobustnessFuzzTestGenerator {
     appendMethodJavadoc(sb, target);
     if (target.disabled()) {
       sb.append("  @Disabled(\"").append(escape(target.disabledReason())).append("\")").append(NL);
+    }
+    if (target.enumeratedByteDomain()) {
+      appendEnumeratedMethod(sb, target);
+      return;
     }
     sb.append("  @FuzzTest(arguments = PgValueArgumentsFactory.class)").append(NL);
     if (target.format() == Format.TEXT) {
@@ -144,10 +154,28 @@ public final class ScalarDecodeRobustnessFuzzTestGenerator {
     sb.append("  }").append(NL);
   }
 
+  // An enumerated target: its wire domain is finite, so it is an exhaustive @ParameterizedTest over
+  // CodecFuzzSupport.singleByteBinaryDomain() rather than a guided @FuzzTest. Only binary targets are
+  // enumerated, so both engines' generated classes stay identical for these methods.
+  private static void appendEnumeratedMethod(StringBuilder sb, Target target) {
+    String helper = target.offsetVariant()
+        ? "decodeSingleByteBinarySlice" : "decodeSingleByteBinary";
+    sb.append("  @ParameterizedTest").append(NL)
+        .append("  @MethodSource(\"org.postgresql.fuzzkit.CodecFuzzSupport#singleByteBinaryDomain\")").append(NL)
+        .append("  void ").append(target.methodName()).append("(byte[] data) {").append(NL)
+        .append("    CodecFuzzSupport.").append(helper).append("(data, ")
+        .append(target.oid()).append(");").append(NL)
+        .append("  }").append(NL);
+  }
+
   private static void appendMethodJavadoc(StringBuilder sb, Target target) {
     String subject = "{@code " + target.typeName() + "} (OID " + target.oid() + ")";
     String summary;
-    if (target.format() == Format.TEXT) {
+    if (target.enumeratedByteDomain()) {
+      summary = "Exhaustive binary decode of " + subject
+          + " over its whole single-byte wire domain" + (target.offsetVariant() ? " at a non-zero offset" : "")
+          + "; every wire must decode without leaking, and the ASCII subset to its own character.";
+    } else if (target.format() == Format.TEXT) {
       summary = "Adversarial text decode of " + subject
           + " from raw bytes; must not leak an unchecked exception.";
     } else if (target.offsetVariant()) {

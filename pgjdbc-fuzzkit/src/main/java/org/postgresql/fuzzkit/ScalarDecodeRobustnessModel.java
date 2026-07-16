@@ -8,6 +8,7 @@ package org.postgresql.fuzzkit;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecFormatSupport;
 import org.postgresql.api.codec.Format;
+import org.postgresql.core.Oid;
 import org.postgresql.jdbc.OfflineCodecs;
 
 import java.util.ArrayList;
@@ -35,6 +36,13 @@ import java.util.TreeSet;
  * absent from that map and stay hand-enumerated in each module's other fuzz classes; this model is exactly
  * the uniform scalar surface.
  *
+ * <p>A binary target of a single-byte type (only {@code "char"}, OID 18) is marked
+ * {@link Target#enumeratedByteDomain() enumerated}: its wire domain is finite (the empty wire plus every
+ * byte {@code 0x00..0xFF}), so each engine's generator emits it as an exhaustive {@code @ParameterizedTest}
+ * over that domain rather than a sampling {@code @FuzzTest}. The {@code (oid, format)} coverage is unchanged
+ * -- the target still exists for {@code (char, binary)} and its offset sibling -- only its generated shape
+ * differs.
+ *
  * <p>An override marks a target {@link Target#disabled() disabled} with a reason the generator turns into a
  * JUnit {@code @Disabled}. The table is empty today: every generated target runs. It is the hook for a
  * scalar decode target that must be held out (an unfixed heap or recursion finding that a guided campaign
@@ -48,20 +56,26 @@ public final class ScalarDecodeRobustnessModel {
   private ScalarDecodeRobustnessModel() {
   }
 
-  /** One generated {@code @FuzzTest} target: its OID, wire format, offset variant, name, and disabled state. */
+  /**
+   * One generated target: its OID, wire format, offset variant, name, disabled state, and whether its wire
+   * domain is finite and enumerable ({@link #enumeratedByteDomain()}).
+   */
   public static final class Target {
     private final int oid;
     private final String typeName;
     private final Format format;
     private final boolean offsetVariant;
+    private final boolean enumeratedByteDomain;
     private final String methodName;
     private final String disabledReason;
 
-    Target(int oid, String typeName, Format format, boolean offsetVariant, String disabledReason) {
+    Target(int oid, String typeName, Format format, boolean offsetVariant, boolean enumeratedByteDomain,
+        String disabledReason) {
       this.oid = oid;
       this.typeName = typeName;
       this.format = format;
       this.offsetVariant = offsetVariant;
+      this.enumeratedByteDomain = enumeratedByteDomain;
       this.methodName = ScalarDecodeRobustnessNaming.methodName(oid, format, offsetVariant);
       this.disabledReason = disabledReason;
     }
@@ -80,6 +94,17 @@ public final class ScalarDecodeRobustnessModel {
 
     public boolean offsetVariant() {
       return offsetVariant;
+    }
+
+    /**
+     * Whether this target's wire domain is finite and enumerable, so the generator emits an exhaustive
+     * {@code @ParameterizedTest} over every wire rather than a sampling {@code @FuzzTest}. Only a binary
+     * target of a single-byte type ({@code "char"}) qualifies; see {@link #enumerableBinaryDomain(int)}.
+     *
+     * @return true when the target is generated as an exhaustive parameterized test
+     */
+    public boolean enumeratedByteDomain() {
+      return enumeratedByteDomain;
     }
 
     public String methodName() {
@@ -106,11 +131,13 @@ public final class ScalarDecodeRobustnessModel {
       Codec codec = entry.getValue();
       String typeName = ScalarDecodeRobustnessNaming.typeName(oid);
       if (CodecFormatSupport.canReadBinary(codec)) {
-        targets.add(new Target(oid, typeName, Format.BINARY, false, disabledReason(oid, Format.BINARY)));
-        targets.add(new Target(oid, typeName, Format.BINARY, true, disabledReason(oid, Format.BINARY)));
+        boolean enumerable = enumerableBinaryDomain(oid);
+        targets.add(new Target(oid, typeName, Format.BINARY, false, enumerable, disabledReason(oid, Format.BINARY)));
+        targets.add(new Target(oid, typeName, Format.BINARY, true, enumerable, disabledReason(oid, Format.BINARY)));
       }
       if (CodecFormatSupport.canReadText(codec)) {
-        targets.add(new Target(oid, typeName, Format.TEXT, false, disabledReason(oid, Format.TEXT)));
+        // The text wire is an arbitrary-length literal, so it is never a finite enumerable domain.
+        targets.add(new Target(oid, typeName, Format.TEXT, false, false, disabledReason(oid, Format.TEXT)));
       }
     }
     requireUniqueMethodNames(targets);
@@ -134,6 +161,16 @@ public final class ScalarDecodeRobustnessModel {
           + "fail to compile. Disambiguate the colliding built-in type names in ScalarDecodeRobustnessNaming: "
           + duplicates);
     }
+  }
+
+  // A scalar whose binary wire is a single byte, so its whole binary domain is finite and enumerable:
+  // the empty wire (the '\0' value) plus every one-byte value 0x00..0xFF. "char" (OID 18) is the sole
+  // built-in scalar with this property -- charsend emits the one byte, or nothing for '\0'. Its binary
+  // targets are generated as an exhaustive @ParameterizedTest over that 257-input domain rather than a
+  // sampling @FuzzTest, giving deterministic full-domain coverage; the arbitrary-length text wire is not
+  // enumerable and stays a fuzz target.
+  private static boolean enumerableBinaryDomain(int oid) {
+    return oid == Oid.CHAR;
   }
 
   // The override table: quirks that hold a generated target out. Keyed by (oid, format) so both the

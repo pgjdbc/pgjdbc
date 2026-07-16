@@ -57,11 +57,10 @@ public final class ScalarDecodeRobustnessFuzzTestGenerator {
   /** Renders the whole source file for {@code targets}. */
   private static String render(List<Target> targets) {
     boolean anyDisabled = false;
+    boolean anyEnumerated = false;
     for (Target target : targets) {
-      if (target.disabled()) {
-        anyDisabled = true;
-        break;
-      }
+      anyDisabled |= target.disabled();
+      anyEnumerated |= target.enumeratedByteDomain();
     }
 
     StringBuilder sb = new StringBuilder(8192);
@@ -76,6 +75,10 @@ public final class ScalarDecodeRobustnessFuzzTestGenerator {
         .append("import com.code_intelligence.jazzer.mutation.annotation.NotNull;").append(NL);
     if (anyDisabled) {
       sb.append("import org.junit.jupiter.api.Disabled;").append(NL);
+    }
+    if (anyEnumerated) {
+      sb.append("import org.junit.jupiter.params.ParameterizedTest;").append(NL)
+          .append("import org.junit.jupiter.params.provider.MethodSource;").append(NL);
     }
     sb.append("import org.postgresql.fuzzkit.ScalarDecodeRobustnessModel;").append(NL);
     sb.append(NL);
@@ -107,7 +110,11 @@ public final class ScalarDecodeRobustnessFuzzTestGenerator {
             + " offset-aware").append(NL)
         .append(" * {@code _binaryOffset} sibling (the {@code byte[] + off + len} path); a text-readable one"
             + " gets a").append(NL)
-        .append(" * {@code _text} target. The targets, their names, and their disabled state come from"
+        .append(" * {@code _text} target. A single-byte type ({@code \"char\"}) has a finite binary wire"
+            + " domain, so its").append(NL)
+        .append(" * binary targets are exhaustive {@code @ParameterizedTest}s over every wire instead of"
+            + " {@code @FuzzTest}s.").append(NL)
+        .append(" * The targets, their names, and their disabled state come from"
             + " {@link ScalarDecodeRobustnessModel}.").append(NL)
         .append(" */").append(NL);
   }
@@ -116,6 +123,10 @@ public final class ScalarDecodeRobustnessFuzzTestGenerator {
     appendMethodJavadoc(sb, target);
     if (target.disabled()) {
       sb.append("  @Disabled(\"").append(escape(target.disabledReason())).append("\")").append(NL);
+    }
+    if (target.enumeratedByteDomain()) {
+      appendEnumeratedMethod(sb, target);
+      return;
     }
     sb.append("  @FuzzTest").append(NL);
     if (target.format() == Format.TEXT) {
@@ -134,10 +145,27 @@ public final class ScalarDecodeRobustnessFuzzTestGenerator {
     sb.append("  }").append(NL);
   }
 
+  // An enumerated target: its wire domain is finite, so it is an exhaustive @ParameterizedTest over
+  // CodecFuzzSupport.singleByteBinaryDomain() rather than a @FuzzTest. Only binary targets are enumerated.
+  private static void appendEnumeratedMethod(StringBuilder sb, Target target) {
+    String helper = target.offsetVariant()
+        ? "decodeSingleByteBinarySlice" : "decodeSingleByteBinary";
+    sb.append("  @ParameterizedTest").append(NL)
+        .append("  @MethodSource(\"org.postgresql.fuzzkit.CodecFuzzSupport#singleByteBinaryDomain\")").append(NL)
+        .append("  void ").append(target.methodName()).append("(byte[] data) {").append(NL)
+        .append("    CodecFuzzSupport.").append(helper).append("(data, ")
+        .append(target.oid()).append(");").append(NL)
+        .append("  }").append(NL);
+  }
+
   private static void appendMethodJavadoc(StringBuilder sb, Target target) {
     String subject = "{@code " + target.typeName() + "} (OID " + target.oid() + ")";
     String summary;
-    if (target.format() == Format.TEXT) {
+    if (target.enumeratedByteDomain()) {
+      summary = "Exhaustive binary decode of " + subject
+          + " over its whole single-byte wire domain" + (target.offsetVariant() ? " at a non-zero offset" : "")
+          + "; every wire must decode without leaking, and the ASCII subset to its own character.";
+    } else if (target.format() == Format.TEXT) {
       summary = "Adversarial text decode of " + subject + "; must not leak an unchecked exception.";
     } else if (target.offsetVariant()) {
       summary = "Adversarial binary decode of " + subject

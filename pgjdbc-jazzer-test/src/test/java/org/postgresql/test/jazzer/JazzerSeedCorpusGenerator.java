@@ -143,6 +143,11 @@ public final class JazzerSeedCorpusGenerator {
       if (target.disabled()) {
         continue;
       }
+      // An enumerated target is a @ParameterizedTest that supplies its own exhaustive inputs, not a
+      // @FuzzTest, so it has no seed corpus to write.
+      if (target.enumeratedByteDomain()) {
+        continue;
+      }
       List<EdgeCase> cases = catalogues.get(target.oid());
       if (cases == null) {
         continue;

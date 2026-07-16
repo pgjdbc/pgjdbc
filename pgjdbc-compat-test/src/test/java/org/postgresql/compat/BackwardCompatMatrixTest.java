@@ -91,6 +91,7 @@ class BackwardCompatMatrixTest {
       {"text", "'hello'::text"},
       {"varchar", "'hi'::varchar"},
       {"bpchar", "'ab'::char(4)"},
+      {"char", "'a'::\"char\""},
       {"bytea", "'\\xdeadbeef'::bytea"},
       {"date", "'2020-01-02'::date"},
       {"time", "'12:34:56'::time"},

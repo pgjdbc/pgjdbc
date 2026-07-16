@@ -140,16 +140,21 @@ public final class PgTypeDescriptors {
         Fidelity.BYTES_EQUAL, ScalarDescriptor.NO_POISON);
     add(map, bytea);
 
-    // Four more read-populated scalars, read-only for now (oid, varchar, bpchar, name): each already
-    // carries a ReadCoercions row -- oid in the integer family, the three text types in the text family --
-    // but no WriteCoercions row, so, like the codec-only scalars above, they gain a descriptor for the
-    // reader axis yet stay out of the write-populated coercion round-trip. oid decodes to Long; varchar,
-    // bpchar and name all delegate to the text codec and decode to String. They reach identity through the
-    // object axis (typedWriter/typedReader both null, guard G5), the same shape timetz/timestamptz use.
+    // Four more read-populated scalars (oid, varchar, bpchar, name): each carries a ReadCoercions and a
+    // WriteCoercions row but no typed writer pair, so, like the codec-only scalars above, they gain a
+    // descriptor for the reader axis and reach identity through the object axis (typedWriter/typedReader
+    // both null, guard G5), the same shape timetz/timestamptz use -- but stay off the typed-pair set.
+    // oid decodes to Long; varchar, bpchar and name delegate to the text codec and decode to String.
     // Keeping them off the typed-pair set is deliberate: the SQLData composite schema
     // (CodecFuzzSupport.SQL_DATA_FIELD_OIDS) is derived from the typed-pair scalars and pinned to the
     // twelve FuzzSqlData fields, so a new typed pair would break that pinned wire layout. The reader axis
     // draws every SQLInput reader against the naturalClass regardless, so these types are still fully read.
+    //
+    // "char" (OID 18) is read-only: unlike the four above it has NO WriteCoercions row, because its encoder
+    // mirrors charin -- a String is truncated to a single byte -- so it cannot satisfy the value-fidelity
+    // round-trip (coercionScalars / record fields). It still gets a descriptor for the reader axis, and its
+    // byte->String->byte decode is idempotent, but it is off every write/round-trip axis. It decodes to a
+    // String via the charout form (0x80 -> "\200").
     ScalarDescriptor oid = new ScalarDescriptor(Oid.OID, "oid", 'N', JDBCType.BIGINT, Long.class,
         null, null, Fidelity.EQUALS, ScalarDescriptor.NO_POISON);
     add(map, oid);
@@ -158,6 +163,8 @@ public final class PgTypeDescriptors {
     add(map, new ScalarDescriptor(Oid.BPCHAR, "bpchar", 'S', JDBCType.CHAR, String.class,
         null, null, Fidelity.EQUALS, ScalarDescriptor.NO_POISON));
     add(map, new ScalarDescriptor(Oid.NAME, "name", 'S', JDBCType.VARCHAR, String.class,
+        null, null, Fidelity.EQUALS, ScalarDescriptor.NO_POISON));
+    add(map, new ScalarDescriptor(Oid.CHAR, "char", 'Z', JDBCType.CHAR, String.class,
         null, null, Fidelity.EQUALS, ScalarDescriptor.NO_POISON));
 
     // The nine codec arrays, over their scalar elements. One descriptor per element covers every
@@ -327,8 +334,8 @@ public final class PgTypeDescriptors {
    * this returns the same set as {@link #scalars()}. It is the reader axis: the reader and read-side
    * round-trip fuzzers drive every read-populated scalar, not just the write-populated
    * {@link #coercionScalars()} subset, so the read-only scalars ({@code int2}, {@code float4},
-   * {@code float8}, {@code bytea}, {@code oid}, {@code varchar}, {@code bpchar}, {@code name}) all
-   * reach the reader oracle.
+   * {@code float8}, {@code bytea}, {@code oid}, {@code varchar}, {@code bpchar}, {@code name},
+   * {@code char}) all reach the reader oracle.
    *
    * @return the read-populated scalar descriptors
    */

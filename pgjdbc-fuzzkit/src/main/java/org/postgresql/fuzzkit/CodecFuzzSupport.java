@@ -65,6 +65,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.stream.Stream;
 
 /**
  * Offline building blocks shared by the codec fuzz targets: the connectionless
@@ -2147,7 +2148,7 @@ public final class CodecFuzzSupport {
   // (Jazzer and JQF) so their raw-bytes decode fuzzers agree on which types carry the stronger invariant.
   private static final Set<Integer> IDEMPOTENT_SCALAR_OIDS = Collections.unmodifiableSet(
       new LinkedHashSet<>(Arrays.asList(Oid.INT2, Oid.INT4, Oid.INT8, Oid.OID, Oid.OID8, Oid.XID8,
-          Oid.BOOL, Oid.BYTEA, Oid.TEXT, Oid.VARCHAR, Oid.BPCHAR, Oid.NAME, Oid.UUID)));
+          Oid.BOOL, Oid.BYTEA, Oid.TEXT, Oid.VARCHAR, Oid.BPCHAR, Oid.NAME, Oid.CHAR, Oid.UUID)));
 
   // Scalar OIDs swept under the no-leak invariant only: decode is bounded and safe, but re-encode may
   // normalise the value (floats to their shortest form, temporal drops sub-second precision, numeric
@@ -2335,5 +2336,78 @@ public final class CodecFuzzSupport {
       sb.append("... (").append(data.length).append(" bytes)");
     }
     return sb.toString();
+  }
+
+  // --- Single-byte binary domain: "char" (OID 18) ------------------------------------------------
+
+  /**
+   * The exhaustive binary wire domain of a single-byte type: every one-byte value {@code 0x00..0xFF}, 256
+   * inputs in all. A {@code @ParameterizedTest} sourced from this method covers the type's whole realistic
+   * binary domain deterministically where a fuzz campaign only samples it. {@code charsend} always emits
+   * exactly one byte (the {@code '\0'} value included, as {@code 0x00}), so the domain has no empty wire.
+   * {@code "char"} is the sole built-in scalar with a single-byte wire; see {@link ScalarDecodeRobustnessModel}.
+   *
+   * @return every single-byte wire, in ascending byte order
+   */
+  public static Stream<byte[]> singleByteBinaryDomain() {
+    List<byte[]> inputs = new ArrayList<>(256);
+    for (int b = 0; b <= 0xFF; b++) {
+      inputs.add(new byte[]{(byte) b});
+    }
+    return inputs.stream();
+  }
+
+  /**
+   * Decodes one input from a single-byte type's finite binary domain ({@link #singleByteBinaryDomain}) and
+   * asserts the full {@code charout} contract: {@code 0x00} decodes to the empty string, {@code 0x01..0x7F}
+   * to that one character, and {@code 0x80..0xFF} to its backslash-octal escape ({@code 0x80 -> "\200"}). A
+   * decoded value is put through {@link #reencodeExpectingNoLeak} like the fuzz targets. The decode never
+   * refuses, so an {@link SQLException} is itself a failure.
+   *
+   * @param data the one-byte wire to decode
+   * @param oid the pinned single-byte built-in scalar OID ({@code Oid.CHAR})
+   */
+  public static void decodeSingleByteBinary(byte[] data, int oid) {
+    assertSingleByteDecode(RawValue.binary(data), data, oid, "");
+  }
+
+  /**
+   * The offset-aware sibling of {@link #decodeSingleByteBinary}: places the wire after a non-zero canary
+   * prefix and decodes the {@code byte[] + off + len} slice, so a decoder that ignores the offset is caught.
+   *
+   * @param data the wire bytes (empty or one byte) to decode
+   * @param oid the pinned single-byte built-in scalar OID ({@code Oid.CHAR})
+   */
+  public static void decodeSingleByteBinarySlice(byte[] data, int oid) {
+    byte[] buffer = new byte[BINARY_CANARY.length + data.length];
+    System.arraycopy(BINARY_CANARY, 0, buffer, 0, BINARY_CANARY.length);
+    System.arraycopy(data, 0, buffer, BINARY_CANARY.length, data.length);
+    assertSingleByteDecode(RawValue.of(Format.BINARY, buffer, BINARY_CANARY.length, data.length),
+        data, oid, "slice ");
+  }
+
+  private static void assertSingleByteDecode(RawValue raw, byte[] wire, int oid, String pathLabel) {
+    PgType type = scalar(oid, "t" + oid, 'X');
+    CodecContext ctx = builtins();
+    @Nullable Object decoded;
+    try {
+      decoded = Codecs.decode(raw, type, ctx, Object.class);
+    } catch (SQLException refused) {
+      throw new AssertionError("char binary " + pathLabel + "decode refused on wire " + hexPrefix(wire)
+          + " (char decode never refuses)", refused);
+    } catch (RuntimeException leak) {
+      throw new AssertionError("char binary " + pathLabel + "decode leaked " + leak.getClass().getName()
+          + " on wire " + hexPrefix(wire), leak);
+    }
+    // Full charout correctness: 0x00 is the empty string, 0x01..0x7F is that one character, and a high byte
+    // is its backslash-octal escape (0x80 -> "\200").
+    int b = wire[0] & 0xFF;
+    String expected = b == 0 ? "" : b <= 0x7F ? String.valueOf((char) b)
+        : "\\" + (char) ('0' + ((b >> 6) & 7)) + (char) ('0' + ((b >> 3) & 7)) + (char) ('0' + (b & 7));
+    if (!expected.equals(decoded)) {
+      throw new AssertionError("char binary " + pathLabel + "decode of wire " + hexPrefix(wire)
+          + " expected " + quoteLiteral(expected) + " but got " + describeValue(decoded));
+    }
+    reencodeExpectingNoLeak(decoded, type, ctx, Format.BINARY);
   }
 }

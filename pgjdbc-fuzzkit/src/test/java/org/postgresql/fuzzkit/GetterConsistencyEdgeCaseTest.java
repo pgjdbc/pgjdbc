@@ -84,12 +84,13 @@ class GetterConsistencyEdgeCaseTest {
   /**
    * Primitive-decoder types the fuzzer drives that have no deterministic boundary catalogue here, on
    * purpose. {@code oid8}/{@code xid8} are 64-bit identifier types with no rounding edges worth pinning;
-   * {@code varchar}/{@code bpchar}/{@code name} decode identically to {@code text} (already covered) and
-   * carry no distinct boundary literals; the Fallback probe is a synthetic unknown type, not a real
-   * catalogued type. All stay exercised by {@code JqfGetterConsistencyFuzzTest}.
+   * {@code varchar}/{@code bpchar}/{@code name}/{@code char} decode identically to {@code text} (already
+   * covered) and carry no distinct boundary literals; the Fallback probe is a synthetic unknown type, not
+   * a real catalogued type. All stay exercised by {@code JqfGetterConsistencyFuzzTest}.
    */
   private static final Set<Integer> FUZZER_ONLY = new TreeSet<>(Arrays.asList(
-      Oid.OID8, Oid.XID8, Oid.VARCHAR, Oid.BPCHAR, Oid.NAME, CodecFuzzSupport.FALLBACK_PROBE_OID));
+      Oid.OID8, Oid.XID8, Oid.VARCHAR, Oid.BPCHAR, Oid.NAME, Oid.CHAR,
+      CodecFuzzSupport.FALLBACK_PROBE_OID));
 
   static Stream<Arguments> edgeCases() {
     return CATALOGUES.stream()
