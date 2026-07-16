@@ -42,7 +42,8 @@ import java.util.TreeSet;
  *
  * <p>Codec implementations in {@code org.postgresql.jdbc.codec} are exempt: they define their own
  * capability, forward a delegate's, or compose an element's. The codec-resolution factories in
- * {@link org.postgresql.jdbc.CodecRegistry} are exempt from the {@code instanceof} rule alone: they
+ * {@link org.postgresql.jdbc.CodecRegistry} and the per-result-set codec accessors in
+ * {@code org.postgresql.jdbc.PgResultSet} are exempt from the {@code instanceof} rule alone: they
  * narrow a {@link Codec} to {@link BinaryCodec}/{@link TextCodec} to hand the typed codec back
  * (method-fetch), not to decide a format. The scan is bytecode-level, so it catches a fully qualified
  * call or an {@code instanceof} a grep over source would miss.
@@ -62,9 +63,11 @@ class CodecCapabilityCallSiteArchTest {
   /**
    * Consumer classes allowed to {@code instanceof BinaryCodec}/{@code TextCodec}: the resolution
    * factories that narrow a codec to hand it back typed, which is method-fetch, not a decision.
+   * {@code CodecRegistry} narrows a freshly resolved codec; {@code PgResultSet} narrows the codec it
+   * caches per result column, both to return the typed codec rather than to decide a format.
    */
   private static final Set<String> INSTANCEOF_ALLOWLIST =
-      new LinkedHashSet<>(Arrays.asList("CodecRegistry"));
+      new LinkedHashSet<>(Arrays.asList("CodecRegistry", "PgResultSet"));
 
   @Test
   void consumerLayerDecidesFormatThroughCodecFormatSupport() {

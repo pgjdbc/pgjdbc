@@ -7,10 +7,6 @@ package org.postgresql.core;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
-import org.postgresql.api.codec.BinaryCodec;
-import org.postgresql.api.codec.Codec;
-import org.postgresql.api.codec.TextCodec;
-import org.postgresql.jdbc.CodecRegistry;
 import org.postgresql.jdbc.FieldMetadata;
 import org.postgresql.jdbc.PgType;
 
@@ -45,9 +41,8 @@ public class Field {
 
   private @Nullable PgType pgType;
   // pgType stamped with this column's mod (getMod), so a codec can decode a modifier-sensitive type
-  // such as numeric(10,2); equals pgType itself when mod is -1. Lazily built, mirroring pgType/codec.
+  // such as numeric(10,2); equals pgType itself when mod is -1. Lazily built, mirroring pgType.
   private @Nullable PgType typeDescriptor;
-  private @Nullable Codec codec;
 
   /**
    * Construct a field based on the information fed to it.
@@ -212,52 +207,6 @@ public class Field {
     typeInfo.backendCanSendBinary(resolved);
     typeInfo.driverCanReceiveBinary(resolved);
     typeInfo.isBinaryReceiveDisabled(resolved);
-  }
-
-  /**
-   * Initializes the codec for this field.
-   *
-   * <p>This should be called after {@link #initializePgType(TypeInfo)} to ensure
-   * the PgType is available for codec resolution.</p>
-   *
-   * @param codecRegistry the codec registry to use for lookup
-   */
-  public void initializeCodec(CodecRegistry codecRegistry) {
-    if (codec != null) {
-      return;
-    }
-    codec = codecRegistry.getByOid(oid, pgType);
-  }
-
-  /**
-   * Returns the cached codec for this field.
-   *
-   * <p>Requires {@link #initializeCodec(CodecRegistry)} to have been called first.</p>
-   *
-   * @return the codec for this field
-   */
-  public Codec getCodec() {
-    return castNonNull(codec);
-  }
-
-  /**
-   * Returns the binary codec for this field, or null if binary encoding is not supported.
-   *
-   * @return the binary codec, or null
-   */
-  public @Nullable BinaryCodec getBinaryCodec() {
-    Codec c = castNonNull(codec);
-    return c instanceof BinaryCodec ? (BinaryCodec) c : null;
-  }
-
-  /**
-   * Returns the text codec for this field, or null if text encoding is not supported.
-   *
-   * @return the text codec, or null
-   */
-  public @Nullable TextCodec getTextCodec() {
-    Codec c = castNonNull(codec);
-    return c instanceof TextCodec ? (TextCodec) c : null;
   }
 
   public void upperCaseLabel() {

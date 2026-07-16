@@ -11,6 +11,7 @@ import org.postgresql.Driver;
 import org.postgresql.PGRefCursorResultSet;
 import org.postgresql.PGResultSetMetaData;
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.CodecContext;
 import org.postgresql.api.codec.PrimitiveDecoders;
 import org.postgresql.api.codec.TextCodec;
@@ -121,6 +122,11 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   protected final BaseConnection connection; // the connection we belong to
   protected final BaseStatement statement; // the statement we belong to
   protected final Field[] fields; // Field metadata for this resultset.
+  // Codec per result column, resolved lazily on first read of the column and cached for this result
+  // set only. Held here (not on the shared Field, which lives in the prepared-statement cache) so a
+  // codec registration between two executions of the same prepared statement is honored: each
+  // execution produces a fresh result set that resolves its codecs anew.
+  private @Nullable Codec @Nullable [] codecs;
   protected final @Nullable Query originalQuery; // Query we originated from
 
   protected final int maxRows; // Maximum rows in this resultset (might be 0).
@@ -209,9 +215,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    * @throws SQLException if an error occurs
    */
   protected @Nullable BinaryCodec getBinaryCodec(int columnIndex) throws SQLException {
-    int oid = fields[columnIndex - 1].getOID();
-    PgType pgType = connection.getTypeInfo().getPgTypeByOid(oid);
-    return connection.getTypeInfo().getCodecRegistry().getBinaryCodec(oid, pgType);
+    Codec codec = codecFor(columnIndex);
+    return codec instanceof BinaryCodec ? (BinaryCodec) codec : null;
   }
 
   /**
@@ -222,9 +227,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    * @throws SQLException if an error occurs
    */
   protected @Nullable TextCodec getTextCodec(int columnIndex) throws SQLException {
-    int oid = fields[columnIndex - 1].getOID();
-    PgType pgType = connection.getTypeInfo().getPgTypeByOid(oid);
-    return connection.getTypeInfo().getCodecRegistry().getTextCodec(oid, pgType);
+    Codec codec = codecFor(columnIndex);
+    return codec instanceof TextCodec ? (TextCodec) codec : null;
   }
 
   /**
@@ -643,19 +647,19 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    */
   private <T> @Nullable T decodeColumnViaCodec(int i, byte[] value, Class<T> targetClass,
       @Nullable Calendar cal) throws SQLException {
-    Field field = getFieldWithCodec(i);
+    Field field = getFieldWithType(i);
     PgCodecContext ctx = cal == null
         ? defaultCalendarCodecContext()
         : getCodecContext().withCalendar(cal);
     if (isBinary(i)) {
-      BinaryCodec codec = field.getBinaryCodec();
+      BinaryCodec codec = getBinaryCodec(i);
       if (codec != null) {
         TypeDescriptor type = field.getPgType();
         return codec.decodeBinaryAs(value, 0, value.length, type, targetClass, ctx);
       }
       return null;
     }
-    TextCodec codec = field.getTextCodec();
+    TextCodec codec = getTextCodec(i);
     if (codec != null) {
       return codec.decodeTextAs(castNonNull(getString(i)), field.getPgType(), targetClass, ctx);
     }
@@ -806,7 +810,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     // If the target is an SQLData implementation, use CompositeCodec
     if (SQLData.class.isAssignableFrom(targetClass)) {
-      Field field = getFieldWithCodec(i);
+      Field field = getFieldWithType(i);
       PgType pgType = field.getPgType();
       @SuppressWarnings("unchecked")
       Class<? extends SQLData> sqlDataClass = (Class<? extends SQLData>) targetClass;
@@ -2506,8 +2510,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     // varchar in binary is same as text, other binary fields are converted to their text format
     if (isBinary(columnIndex) && getSQLType(columnIndex) != Types.VARCHAR) {
-      Field field = getFieldWithCodec(columnIndex);
-      BinaryCodec codec = field.getBinaryCodec();
+      Field field = getFieldWithType(columnIndex);
+      BinaryCodec codec = getBinaryCodec(columnIndex);
       if (codec != null) {
         // The descriptor carries the column modifier so binary getString of a modifier-sensitive
         // type (e.g. numeric) renders through the same path as getObject, closing the earlier
@@ -2571,12 +2575,12 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return false;
     }
 
-    Field field = getFieldWithCodec(columnIndex);
+    Field field = getFieldWithType(columnIndex);
     PgType pgType = field.getPgType();
     PgCodecContext ctx = getCodecContext();
 
     if (isBinary(columnIndex)) {
-      BinaryCodec codec = field.getBinaryCodec();
+      BinaryCodec codec = getBinaryCodec(columnIndex);
       if (codec == null) {
         throw cannotConvert(field, "boolean");
       }
@@ -2584,7 +2588,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
 
     // Text format
-    TextCodec codec = field.getTextCodec();
+    TextCodec codec = getTextCodec(columnIndex);
     if (codec == null) {
       throw cannotConvert(field, "boolean");
     }
@@ -2600,12 +2604,12 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return 0; // SQL NULL
     }
 
-    Field field = getFieldWithCodec(columnIndex);
+    Field field = getFieldWithType(columnIndex);
     PgType pgType = field.getPgType();
     PgCodecContext ctx = getCodecContext();
 
     if (isBinary(columnIndex)) {
-      BinaryCodec codec = field.getBinaryCodec();
+      BinaryCodec codec = getBinaryCodec(columnIndex);
       if (codec == null) {
         throw cannotConvert(field, "byte");
       }
@@ -2619,7 +2623,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     // Text format - delegate to codec. BOOL→numeric is handled by BoolCodec
     // which gates on the convertBooleanToNumeric connection property.
-    TextCodec codec = field.getTextCodec();
+    TextCodec codec = getTextCodec(columnIndex);
     if (codec == null) {
       throw cannotConvert(field, "byte");
     }
@@ -2639,12 +2643,12 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return 0; // SQL NULL
     }
 
-    Field field = getFieldWithCodec(columnIndex);
+    Field field = getFieldWithType(columnIndex);
     PgType pgType = field.getPgType();
     PgCodecContext ctx = getCodecContext();
 
     if (isBinary(columnIndex)) {
-      BinaryCodec codec = field.getBinaryCodec();
+      BinaryCodec codec = getBinaryCodec(columnIndex);
       if (codec == null) {
         throw cannotConvert(field, "short");
       }
@@ -2658,7 +2662,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     // Text format - delegate to codec. BOOL→numeric is handled by BoolCodec
     // which gates on the convertBooleanToNumeric connection property.
-    TextCodec codec = field.getTextCodec();
+    TextCodec codec = getTextCodec(columnIndex);
     if (codec == null) {
       throw cannotConvert(field, "short");
     }
@@ -2679,12 +2683,12 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return 0; // SQL NULL
     }
 
-    Field field = getFieldWithCodec(columnIndex);
+    Field field = getFieldWithType(columnIndex);
     PgType pgType = field.getPgType();
     PgCodecContext ctx = getCodecContext();
 
     if (isBinary(columnIndex)) {
-      BinaryCodec codec = field.getBinaryCodec();
+      BinaryCodec codec = getBinaryCodec(columnIndex);
       if (codec == null) {
         throw cannotConvert(field, "int");
       }
@@ -2693,7 +2697,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     // Text format - delegate to codec. BOOL→numeric is handled by BoolCodec
     // which gates on the convertBooleanToNumeric connection property.
-    TextCodec codec = field.getTextCodec();
+    TextCodec codec = getTextCodec(columnIndex);
     if (codec == null) {
       throw cannotConvert(field, "int");
     }
@@ -2709,12 +2713,12 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return 0; // SQL NULL
     }
 
-    Field field = getFieldWithCodec(columnIndex);
+    Field field = getFieldWithType(columnIndex);
     PgType pgType = field.getPgType();
     PgCodecContext ctx = getCodecContext();
 
     if (isBinary(columnIndex)) {
-      BinaryCodec codec = field.getBinaryCodec();
+      BinaryCodec codec = getBinaryCodec(columnIndex);
       if (codec == null) {
         throw cannotConvert(field, "long");
       }
@@ -2723,7 +2727,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     // Text format - delegate to codec. BOOL→numeric is handled by BoolCodec
     // which gates on the convertBooleanToNumeric connection property.
-    TextCodec codec = field.getTextCodec();
+    TextCodec codec = getTextCodec(columnIndex);
     if (codec == null) {
       throw cannotConvert(field, "long");
     }
@@ -2818,12 +2822,12 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return 0; // SQL NULL
     }
 
-    Field field = getFieldWithCodec(columnIndex);
+    Field field = getFieldWithType(columnIndex);
     PgType pgType = field.getPgType();
     PgCodecContext ctx = getCodecContext();
 
     if (isBinary(columnIndex)) {
-      BinaryCodec codec = field.getBinaryCodec();
+      BinaryCodec codec = getBinaryCodec(columnIndex);
       if (codec == null) {
         throw cannotConvert(field, "float");
       }
@@ -2832,7 +2836,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     // Text format - delegate to codec. BOOL→numeric is handled by BoolCodec
     // which gates on the convertBooleanToNumeric connection property.
-    TextCodec codec = field.getTextCodec();
+    TextCodec codec = getTextCodec(columnIndex);
     if (codec == null) {
       throw cannotConvert(field, "float");
     }
@@ -2848,12 +2852,12 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return 0; // SQL NULL
     }
 
-    Field field = getFieldWithCodec(columnIndex);
+    Field field = getFieldWithType(columnIndex);
     PgType pgType = field.getPgType();
     PgCodecContext ctx = getCodecContext();
 
     if (isBinary(columnIndex)) {
-      BinaryCodec codec = field.getBinaryCodec();
+      BinaryCodec codec = getBinaryCodec(columnIndex);
       if (codec == null) {
         throw cannotConvert(field, "double");
       }
@@ -2862,7 +2866,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     // Text format - delegate to codec. BOOL→numeric is handled by BoolCodec
     // which gates on the convertBooleanToNumeric connection property.
-    TextCodec codec = field.getTextCodec();
+    TextCodec codec = getTextCodec(columnIndex);
     if (codec == null) {
       throw cannotConvert(field, "double");
     }
@@ -2897,8 +2901,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
 
     if (isBinary(columnIndex)) {
-      Field field = getFieldWithCodec(columnIndex);
-      BinaryCodec codec = field.getBinaryCodec();
+      Field field = getFieldWithType(columnIndex);
+      BinaryCodec codec = getBinaryCodec(columnIndex);
       if (codec != null) {
         if (allowSpecial) {
           // For getNumeric with allowSpecial (called from internalGetObject with NUMERIC type),
@@ -2931,8 +2935,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     // money codec parse the raw server literal rather than getFastBigDecimal/getFixedString, which
     // assume a '$'-prefixed, '.'-decimal form.
     if (fields[columnIndex - 1].getOID() == Oid.MONEY) {
-      Field moneyField = getFieldWithCodec(columnIndex);
-      TextCodec moneyCodec = moneyField.getTextCodec();
+      Field moneyField = getFieldWithType(columnIndex);
+      TextCodec moneyCodec = getTextCodec(columnIndex);
       if (moneyCodec != null) {
         BigDecimal bd = PrimitiveDecoders.asBigDecimal(moneyCodec, castNonNull(getString(columnIndex)),
             moneyField.getPgType(), getCodecContext());
@@ -2956,8 +2960,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     // BOOL→numeric conversion is handled by BoolCodec, which gates on the
     // convertBooleanToNumeric connection property and throws otherwise.
     if (fields[columnIndex - 1].getOID() == Oid.BOOL) {
-      Field field = getFieldWithCodec(columnIndex);
-      TextCodec codec = field.getTextCodec();
+      Field field = getFieldWithType(columnIndex);
+      TextCodec codec = getTextCodec(columnIndex);
       if (codec != null) {
         BigDecimal bd = PrimitiveDecoders.asBigDecimal(codec, stringValue, field.getPgType(), getCodecContext());
         if (bd != null) {
@@ -3289,7 +3293,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     // Use codec for all other types. The descriptor carries the column modifier (field.getMod()),
     // so a modifier-sensitive codec — numeric rescaling to the column's declared scale, for
     // instance — sees it; this is what lets numeric go through the codec instead of a legacy path.
-    field = getFieldWithCodec(columnIndex);
+    field = getFieldWithType(columnIndex);
     PgType pgType = field.getTypeDescriptor();
     PgCodecContext ctx = getCodecContext();
 
@@ -3302,7 +3306,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
 
     if (isBinary(columnIndex)) {
-      BinaryCodec codec = field.getBinaryCodec();
+      BinaryCodec codec = getBinaryCodec(columnIndex);
       if (codec != null) {
         if (mapped != null) {
           return codec.decodeBinaryAs(value, 0, value.length, pgType, mapped, ctx);
@@ -3316,7 +3320,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
 
     // Text format
-    TextCodec codec = field.getTextCodec();
+    TextCodec codec = getTextCodec(columnIndex);
     if (codec != null) {
       String stringValue = castNonNull(getString(columnIndex));
       if (mapped != null) {
@@ -3471,19 +3475,33 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   }
 
   /**
-   * Gets the field with both PgType and Codec initialized.
-   * This method should be used when codec access is needed.
+   * Resolves the codec for a column, caching it for this result set only.
+   *
+   * <p>The codec is resolved through the connection's {@link CodecRegistry} on first read of the
+   * column and reused for the rest of this result set's life. Because the cache lives on the result
+   * set rather than the shared {@link Field}, a codec registered between two executions of the same
+   * prepared statement takes effect on the next execution (a fresh result set), while a result set
+   * that is already open keeps the codecs it has resolved.</p>
    *
    * @param column the 1-based column index
-   * @return the field with initialized type and codec
+   * @return the resolved codec (never null; {@code FallbackCodec} for unknown types)
    * @throws SQLException if an error occurs
    */
-  private Field getFieldWithCodec(@Positive int column) throws SQLException {
+  private Codec codecFor(@Positive int column) throws SQLException {
     Field field = fields[column - 1];
     TypeInfo typeInfo = connection.getTypeInfo();
     field.initializePgType(typeInfo);
-    field.initializeCodec(typeInfo.getCodecRegistry());
-    return field;
+    @Nullable Codec[] codecs = this.codecs;
+    if (codecs == null) {
+      this.codecs = codecs = new Codec[fields.length];
+    }
+    Codec codec = codecs[column - 1];
+    if (codec == null) {
+      // Resolve by the base pgType (no column modifier), matching the former Field.initializeCodec.
+      codec = typeInfo.getCodecRegistry().getByOid(field.getOID(), field.getPgType());
+      codecs[column - 1] = codec;
+    }
+    return codec;
   }
 
   /**
@@ -3496,16 +3514,16 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (value == null) {
       return null;
     }
-    Field field = getFieldWithCodec(columnIndex);
+    Field field = getFieldWithType(columnIndex);
     PgType pgType = field.getTypeDescriptor();
     PgCodecContext ctx = getCodecContext();
     if (isBinary(columnIndex)) {
-      BinaryCodec codec = field.getBinaryCodec();
+      BinaryCodec codec = getBinaryCodec(columnIndex);
       if (codec != null) {
         return codec.decodeBinary(value, 0, value.length, pgType, ctx);
       }
     } else {
-      TextCodec codec = field.getTextCodec();
+      TextCodec codec = getTextCodec(columnIndex);
       if (codec != null) {
         return codec.decodeText(castNonNull(getString(columnIndex)), pgType, ctx);
       }
@@ -4045,7 +4063,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return null;
     }
 
-    Field field = getFieldWithCodec(columnIndex);
+    Field field = getFieldWithType(columnIndex);
     // Typed getObject(col, Class) is wire-faithful, like getBigDecimal(col): it hands the codec a
     // descriptor without the column modifier, so a numeric(p,s) value keeps its wire scale rather than
     // the declared one. Only the untyped getObject(col)/getString/getArray apply the column scale (via
@@ -4055,12 +4073,12 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     PgCodecContext ctx = getCodecContext();
 
     if (isBinary(columnIndex)) {
-      BinaryCodec codec = field.getBinaryCodec();
+      BinaryCodec codec = getBinaryCodec(columnIndex);
       if (codec != null) {
         return codec.decodeBinaryAs(value, 0, value.length, pgType, type, ctx);
       }
     } else {
-      TextCodec codec = field.getTextCodec();
+      TextCodec codec = getTextCodec(columnIndex);
       if (codec != null) {
         String stringValue = castNonNull(getString(columnIndex));
         return codec.decodeTextAs(stringValue, pgType, type, ctx);

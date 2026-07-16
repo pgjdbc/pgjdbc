@@ -114,11 +114,10 @@ import java.util.logging.Logger;
  *
  * <h2>Registration Timing</h2>
  *
- * <p>A codec is bound to a result column when the column's {@link org.postgresql.core.Field}
- * is first initialized ({@code Field.initializeCodec}). Registering a codec invalidates the
- * OID cache but does not rebind fields that are already initialized, so a registration affects
- * only queries and result sets started afterwards; a {@link java.sql.ResultSet} that is already
- * open keeps the codecs it resolved when it was created.</p>
+ * <p>A column's codec is resolved on first read and cached for that result set only;
+ * {@link PgResultSet} resolves it through this registry. Registering a codec updates the registry's
+ * cached resolution, so the next execution -- a fresh result set -- sees the new codec, while a
+ * {@link java.sql.ResultSet} that is already open keeps the codecs it has resolved.</p>
  *
  * @since 42.8.0
  */
@@ -454,8 +453,8 @@ public class CodecRegistry implements CodecLookup {
    * Registers a codec by its type name.
    *
    * <p>This is a per-connection (user-layer) registration: it takes precedence
-   * over service-loaded and built-in codecs of the same name. It does not affect
-   * fields that were already initialized; see {@link #getByOid(int, TypeDescriptor)}.</p>
+   * over service-loaded and built-in codecs of the same name. It does not affect a result set that
+   * has already resolved its codecs; see {@link #getByOid(int, TypeDescriptor)}.</p>
    *
    * @param codec the codec to register
    */
