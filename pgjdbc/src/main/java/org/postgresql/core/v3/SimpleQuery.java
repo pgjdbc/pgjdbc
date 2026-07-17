@@ -6,6 +6,8 @@
 
 package org.postgresql.core.v3;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.core.Field;
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Oid;
@@ -127,6 +129,117 @@ class SimpleQuery implements Query {
   }
 
   /**
+   * Returns the one-shot statement state if any one-shot execution created it, without
+   * allocating. For read-only probes such as the pre-describe gate.
+   *
+   * @return the one-shot statement state, or null if no one-shot execution needed it yet
+   */
+  @Nullable ServerHandle peekUnnamedHandle() {
+    return unnamedHandle;
+  }
+
+  /**
+   * Scans the extra named statements (beyond {@link #getHandle()}, which the caller has already
+   * probed) for one prepared for the given parameter types, promoting a hit to the
+   * most-recently-used position so it becomes the fast path of the next execution. Statements
+   * from an older epoch are dropped on the way: they can never match again, and after
+   * {@code DEALLOCATE ALL} the whole table drains lazily through this scan.
+   *
+   * @param paramTypes parameter type OIDs of the upcoming execution
+   * @param deallocateEpoch the connection's current deallocate epoch
+   * @return the promoted statement, or null if no extra statement matches
+   */
+  @Nullable ServerHandle findPreparedFor(int[] paramTypes, short deallocateEpoch) {
+    @Nullable ServerHandle[] extras = this.extraHandles;
+    if (extras == null) {
+      return null;
+    }
+    for (int i = 0; i < extras.length; i++) {
+      ServerHandle candidate = extras[i];
+      if (candidate == null) {
+        break;
+      }
+      if (candidate.isStale(deallocateEpoch)) {
+        // Never matches again; close (or defer to the last unpin) and compact the tail.
+        candidate.closeWhenUnpinned();
+        System.arraycopy(extras, i + 1, extras, i, extras.length - i - 1);
+        extras[extras.length - 1] = null;
+        i--;
+        continue;
+      }
+      if (candidate.isPreparedFor(paramTypes, deallocateEpoch, false)) {
+        // Promote to most-recently-used: the previous head shifts into the extras.
+        System.arraycopy(extras, 0, extras, 1, i);
+        extras[0] = this.handle;
+        this.handle = candidate;
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Returns the named-statement slot the upcoming re-prepare should use, promoted to the
+   * most-recently-used position. With {@code maxVariants <= 1} this is always the current
+   * statement, re-prepared in place exactly as before the variant table existed. With a larger
+   * budget the current statement is kept and the returned slot is, in order of preference: an
+   * unused one, the least recently used unpinned one (its old server statement is closed by the
+   * re-prepare), or a brand-new slot while the least recently used pinned statement leaves the
+   * table to be closed at its last unpin.
+   *
+   * @param maxVariants {@code preparedStatementCacheTypeVariants}: named statements this query
+   *        may keep
+   * @return the statement slot to re-prepare
+   */
+  ServerHandle takeHandleForPrepare(int maxVariants) {
+    ServerHandle head = this.handle;
+    if (maxVariants <= 1 || head.getStatementName() == null) {
+      // Single-variant mode, or the head slot is free anyway: reuse it in place.
+      return head;
+    }
+    @Nullable ServerHandle[] extras = this.extraHandles;
+    if (extras == null) {
+      extras = this.extraHandles = new ServerHandle[maxVariants - 1];
+    }
+    // Take the first free slot, else evict the least recently used unpinned statement by
+    // reusing its slot object: the re-prepare closes its old server statement.
+    int lastUnpinned = -1;
+    for (int i = 0; i < extras.length; i++) {
+      ServerHandle candidate = extras[i];
+      if (candidate == null || candidate.getStatementName() == null) {
+        ServerHandle taken = candidate == null ? new ServerHandle() : candidate;
+        System.arraycopy(extras, 0, extras, 1, i);
+        extras[0] = head;
+        this.handle = taken;
+        return taken;
+      }
+      if (!candidate.isPinned()) {
+        lastUnpinned = i;
+      }
+    }
+    if (lastUnpinned >= 0) {
+      ServerHandle victim = extras[lastUnpinned];
+      System.arraycopy(extras, 0, extras, 1, lastUnpinned);
+      extras[0] = head;
+      this.handle = castNonNull(victim);
+      return castNonNull(victim);
+    }
+    if (!head.isPinned()) {
+      // Every extra statement is pinned by an open portal; the head is the only evictable one.
+      return head;
+    }
+    // Everything is pinned: the least recently used statement leaves the table and closes at
+    // its last unpin, and the execution gets a fresh slot.
+    ServerHandle deferred = castNonNull(extras[extras.length - 1]);
+    deferred.closeWhenUnpinned();
+    System.arraycopy(extras, 0, extras, 1, extras.length - 1);
+    extras[0] = head;
+    ServerHandle taken = new ServerHandle();
+    this.handle = taken;
+    return taken;
+  }
+
+  /**
    * Returns true if some execution of this query has seen a row description, on the named or the
    * unnamed statement. Used as a "this query returns rows" heuristic by the automatic-savepoint
    * logic; the union over both statements preserves the pre-split behavior, where any execution
@@ -135,9 +248,25 @@ class SimpleQuery implements Query {
    * @return true if some execution of this query has seen a row description
    */
   boolean hasResultFields() {
+    if (handle.getFields() != null) {
+      return true;
+    }
     ServerHandle unnamedHandle = this.unnamedHandle;
-    return handle.getFields() != null
-        || (unnamedHandle != null && unnamedHandle.getFields() != null);
+    if (unnamedHandle != null && unnamedHandle.getFields() != null) {
+      return true;
+    }
+    @Nullable ServerHandle[] extras = this.extraHandles;
+    if (extras != null) {
+      for (ServerHandle extra : extras) {
+        if (extra == null) {
+          break;
+        }
+        if (extra.getFields() != null) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   void setStatementName(String statementName, short deallocateEpoch) {
@@ -358,9 +487,25 @@ class SimpleQuery implements Query {
   // parameter-aware check; this method is the parameter-agnostic approximation.
   @Override
   public boolean isStatementDescribed() {
+    if (handle.isStatementDescribed()) {
+      return true;
+    }
     ServerHandle unnamedHandle = this.unnamedHandle;
-    return handle.isStatementDescribed()
-        || (unnamedHandle != null && unnamedHandle.isStatementDescribed());
+    if (unnamedHandle != null && unnamedHandle.isStatementDescribed()) {
+      return true;
+    }
+    @Nullable ServerHandle[] extras = this.extraHandles;
+    if (extras != null) {
+      for (ServerHandle extra : extras) {
+        if (extra == null) {
+          break;
+        }
+        if (extra.isStatementDescribed()) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   @Override
@@ -373,7 +518,21 @@ class SimpleQuery implements Query {
   }
 
   void unprepare() {
+    // Unconditional: query.close() must leave no statement reusable, pinned or not — the
+    // heal-on-retry path (PgStatement.execute) closes the query precisely so the retry
+    // re-prepares from scratch. Deferred close is for table eviction only.
     handle.unprepare();
+    @Nullable ServerHandle[] extras = this.extraHandles;
+    if (extras != null) {
+      for (int i = 0; i < extras.length; i++) {
+        ServerHandle extra = extras[i];
+        if (extra == null) {
+          break;
+        }
+        extra.unprepare();
+        extras[i] = null;
+      }
+    }
   }
 
   @Override
@@ -405,13 +564,21 @@ class SimpleQuery implements Query {
   private final boolean sanitiserDisabled;
 
   /**
-   * The server-side prepared statement backing this query, including its describe results. The
-   * handle instance is permanent for now; {@link ServerHandle#unprepare()} resets its state.
+   * The most recently used named statement of this query: the fast path of
+   * {@code QueryExecutorImpl.resolveHandle}. {@link #findPreparedFor} and
+   * {@link #takeHandleForPrepare} rotate it with {@link #extraHandles}.
    */
-  private final ServerHandle handle = new ServerHandle();
+  private ServerHandle handle = new ServerHandle();
 
   /**
-   * Statement state for one-shot executions that cannot reuse the named statement. Lazily
+   * Named statements beyond {@link #handle}, most recently used first, {@code null}-padded at
+   * the tail. Lazily allocated with {@code preparedStatementCacheTypeVariants - 1} slots once a
+   * second parameter-type signature shows up. Mutated only under the executor's connection lock.
+   */
+  private @Nullable ServerHandle @Nullable [] extraHandles;
+
+  /**
+   * Statement state for one-shot executions that cannot reuse a named statement. Lazily
    * allocated; see {@link #getUnnamedHandle()}.
    */
   private @Nullable ServerHandle unnamedHandle;

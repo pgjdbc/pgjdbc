@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import org.postgresql.PGProperty;
 import org.postgresql.PGStatement;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgConnection;
@@ -54,6 +55,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -1818,9 +1820,34 @@ public class PreparedStatementTest extends BaseTest4 {
     assertEquals(expected, pmd.getParameterTypeName(1), () -> "getParameterMetaData().getParameterTypeName(1) " + msg);
   }
 
+  /**
+   * With {@code preparedStatementCacheTypeVariants=1} one SQL text keeps a single server-prepared
+   * statement, so every change of the bind type re-parses it. This is the behavior of releases
+   * before 42.7.14, and the property still selects it.
+   */
+  @Test
+  public void testAlternatingBindTypeSingleVariant() throws Exception {
+    assumeBinaryModeForce();
+    Properties props = new Properties();
+    updateProperties(props);
+    PGProperty.PREPARED_STATEMENT_CACHE_TYPE_VARIANTS.set(props, "1");
+    try (Connection singleVariant = TestUtil.openDB(props)) {
+      assertAlternatingBindType(singleVariant, true);
+    }
+  }
+
+  /**
+   * The default keeps a server-prepared statement per parameter-type signature, so alternating
+   * bind types reuses them instead of re-parsing on every switch.
+   */
   @Test
   public void testAlternatingBindType() throws SQLException {
     assumeBinaryModeForce();
+    assertAlternatingBindType(con, false);
+  }
+
+  private void assertAlternatingBindType(Connection con, boolean reParseExpected)
+      throws SQLException {
     PreparedStatement ps = con.prepareStatement("SELECT /*testAlternatingBindType*/ ?");
     ResultSet rs;
     Logger log = Logger.getLogger("org.postgresql.core.v3.ServerHandle");
@@ -1853,20 +1880,22 @@ public class PreparedStatementTest extends BaseTest4 {
       assertEquals("42", rs.getObject(1), "setString(1, \"42\") -> \"42\" expected");
       rs.close();
 
-      // The bind type is flipped from VARCHAR to INTEGER, and it causes the driver to prepare statement again
+      // The bind type is flipped from VARCHAR to INTEGER, which needs a statement prepared for int4
       ps.setNull(1, Types.INTEGER);
       rs = ps.executeQuery();
       rs.next();
       assertNull(rs.getObject(1), "setNull(1, Types.INTEGER) -> null expected");
-      assertEquals(1, numOfReParses.get(), "A re-parse was expected, so the number of parses should be 1");
+      assertEquals(reParseExpected ? 1 : 0, numOfReParses.get(),
+          "number of re-parses after flipping the bind type to INTEGER");
       rs.close();
 
-      // The bind type is flipped from INTEGER to VARCHAR, and it causes the driver to prepare statement again
+      // The bind type is flipped from INTEGER back to VARCHAR
       ps.setString(1, "42");
       rs = ps.executeQuery();
       rs.next();
       assertEquals("42", rs.getObject(1), "setString(1, \"42\") -> \"42\" expected");
-      assertEquals(2, numOfReParses.get(), "One more re-parse is expected, so the number of parses should be 2");
+      assertEquals(reParseExpected ? 2 : 0, numOfReParses.get(),
+          "number of re-parses after flipping the bind type back to VARCHAR");
       rs.close();
 
       // Types.OTHER null is sent as UNSPECIFIED, and pgjdbc does not re-parse on UNSPECIFIED nulls
@@ -1875,14 +1904,16 @@ public class PreparedStatementTest extends BaseTest4 {
       rs = ps.executeQuery();
       rs.next();
       assertNull(rs.getObject(1), "setNull(1, Types.OTHER) -> null expected");
-      assertEquals(2, numOfReParses.get(), "setNull(, Types.OTHER) should not cause re-parse");
+      assertEquals(reParseExpected ? 2 : 0, numOfReParses.get(),
+          "setNull(, Types.OTHER) should not cause re-parse");
 
-      // Types.INTEGER null is sent as int4 null, and it leads to re-parse
+      // Types.INTEGER null is sent as int4 null
       ps.setNull(1, Types.INTEGER);
       rs = ps.executeQuery();
       rs.next();
       assertNull(rs.getObject(1), "setNull(1, Types.INTEGER) -> null expected");
-      assertEquals(3, numOfReParses.get(), "setNull(, Types.INTEGER) causes re-parse");
+      assertEquals(reParseExpected ? 3 : 0, numOfReParses.get(),
+          "number of re-parses after setNull(, Types.INTEGER)");
       rs.close();
     } finally {
       TestUtil.closeQuietly(ps);

@@ -564,6 +564,20 @@ public enum PGProperty {
       "Specifies the maximum size (in megabytes) of a per-connection prepared statement cache. A value of {@code 0} disables the cache."),
 
   /**
+   * Specifies how many server-prepared statements one SQL text may keep, one per distinct
+   * parameter-type signature, evicting the least recently used one beyond that. An application
+   * that binds the same types on every execution never allocates more than one, so the default of
+   * {@code 4} costs it nothing; one that alternates types keeps a statement (and its server-side
+   * plan) per signature instead of re-preparing on every switch. A value of {@code 1} restores the
+   * behavior of releases before 42.7.14. Each kept statement consumes backend memory for its
+   * lifetime, and {@code maxServerPreparedStatements} bounds their total per connection.
+   */
+  PREPARED_STATEMENT_CACHE_TYPE_VARIANTS(
+      "preparedStatementCacheTypeVariants",
+      "4",
+      "Specifies how many server-prepared statements one SQL text may keep, one per distinct parameter-type signature. A value of {@code 1} keeps a single statement per SQL text and re-prepares it when the parameter types change."),
+
+  /**
    * Sets the default threshold for enabling server-side prepare. A value of {@code -1} stands for
    * forceBinary
    */

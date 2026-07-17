@@ -235,6 +235,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private boolean inExtendedProtocol;
 
+  /**
+   * How many named statements one query may keep, one per parameter-type signature. See
+   * {@link PGProperty#PREPARED_STATEMENT_CACHE_TYPE_VARIANTS}.
+   */
+  private final int maxTypeVariants;
+
   @SuppressWarnings({"assignment", "argument",
       "method.invocation"})
   public QueryExecutorImpl(PGStream pgStream,
@@ -246,6 +252,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
     this.cleanupSavePoints = PGProperty.CLEANUP_SAVEPOINTS.getBoolean(info);
+    this.maxTypeVariants =
+        Math.max(1, PGProperty.PREPARED_STATEMENT_CACHE_TYPE_VARIANTS.getInt(info));
     // assignment, argument
     this.replicationProtocol = new V3ReplicationProtocol(this, pgStream);
     readStartupMessages();
@@ -435,7 +443,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           handler = sendQueryPreamble(handler, flags);
           autosave = sendAutomaticSavepoint(query, flags);
           sendQuery(query, (V3ParameterList) parameters, maxRows, fetchSize, flags,
-              handler, null, adaptiveFetch);
+              handler, null, adaptiveFetch, null);
           if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
             // Sync message is not required for 'Q' execution as 'Q' ends with ReadyForQuery message
             // on its own
@@ -692,7 +700,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             flushIfDeadlockRisk(handle, handler, batchHandler, flags);
           }
 
-          sendQuery(query, parameters, maxRows, fetchSize, flags, handler, batchHandler, adaptiveFetch);
+          sendQuery(query, parameters, maxRows, fetchSize, flags, handler, batchHandler,
+              adaptiveFetch, handle);
 
           if (handler.getException() != null) {
             break;
@@ -1701,7 +1710,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private void sendQuery(Query query, V3ParameterList parameters, int maxRows, int fetchSize,
       int flags, ResultHandler resultHandler,
-      @Nullable BatchResultHandler batchHandler, boolean adaptiveFetch) throws IOException, SQLException {
+      @Nullable BatchResultHandler batchHandler, boolean adaptiveFetch,
+      @Nullable ServerHandle resolvedHandle) throws IOException, SQLException {
     // Now the query itself.
     Query[] subqueries = query.getSubqueries();
     SimpleParameterList[] subparams = parameters.getSubparams();
@@ -1714,8 +1724,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         }
         SimpleQuery simpleQuery = (SimpleQuery) query;
         SimpleParameterList simpleParams = (SimpleParameterList) parameters;
-        sendOneQuery(simpleQuery, resolveHandle(simpleQuery, simpleParams, flags), simpleParams,
-            maxRows, fetchSize, flags);
+        // Resolving can claim a re-prepare slot, so it must happen exactly once per execution:
+        // the batch path resolves for its response-size estimate and passes the result here.
+        ServerHandle handle = resolvedHandle != null
+            ? resolvedHandle : resolveHandle(simpleQuery, simpleParams, flags);
+        sendOneQuery(simpleQuery, handle, simpleParams, maxRows, fetchSize, flags);
       }
     } else {
       for (int i = 0; i < subqueries.length; i++) {
@@ -2142,10 +2155,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * consume server responses and update pending queues.</p>
    */
   /**
-   * Picks the server statement an execution with the given parameters will use. A regular
-   * execution always uses the named statement (re-preparing it on a type mismatch). A one-shot
-   * execution reuses the named statement when it matches the parameter types, and otherwise falls
-   * back to the query's unnamed statement, leaving the named statement (and its plan) intact.
+   * Picks the server statement an execution with the given parameters will use: the most
+   * recently used named statement when it matches the parameter types (the common, allocation
+   * free case), else any other named statement of the query (promoted to most recently used).
+   * On a miss, a one-shot execution falls back to the query's unnamed statement, leaving the
+   * named statements (and their plans) intact, while a regular execution claims a slot for the
+   * upcoming re-prepare, evicting the least recently used unpinned statement once the query has
+   * {@code preparedStatementCacheTypeVariants} of them.
+   *
+   * <p>Claiming a slot rotates the query's statement table, so a regular execution must resolve
+   * exactly once and pass the result along; speculative callers (estimates, describe gates) are
+   * fine because a repeated resolve of the same types hits the promoted statement.</p>
    *
    * @param query the query being executed
    * @param params parameters of this execution
@@ -2153,12 +2173,19 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * @return the statement this execution will use
    */
   private ServerHandle resolveHandle(SimpleQuery query, SimpleParameterList params, int flags) {
-    ServerHandle named = query.getHandle();
-    if ((flags & QueryExecutor.QUERY_ONESHOT) == 0
-        || named.isPreparedFor(params.getTypeOIDs(), deallocateEpoch)) {
-      return named;
+    ServerHandle mru = query.getHandle();
+    int[] typeOIDs = params.getTypeOIDs();
+    if (mru.isPreparedFor(typeOIDs, deallocateEpoch, false)) {
+      return mru;
     }
-    return query.getUnnamedHandle();
+    ServerHandle variant = query.findPreparedFor(typeOIDs, deallocateEpoch);
+    if (variant != null) {
+      return variant;
+    }
+    if ((flags & QueryExecutor.QUERY_ONESHOT) != 0) {
+      return query.getUnnamedHandle();
+    }
+    return query.takeHandleForPrepare(maxTypeVariants);
   }
 
   @Override
@@ -2184,16 +2211,24 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private boolean isStatementDescribed(SimpleQuery query, SimpleParameterList params, int flags) {
-    ServerHandle handle = resolveHandle(query, params, flags);
-    if (handle == query.getHandle()) {
-      // The named statement: its describe results are valid only while the upcoming execution
-      // can reuse the statement as-is; a re-prepare (type mismatch or epoch bump) resets them.
-      return handle.isStatementDescribed()
-          && handle.isPreparedFor(params.getTypeOIDs(), deallocateEpoch);
+    // Read-only probe: unlike resolveHandle, never claim a re-prepare slot here.
+    ServerHandle mru = query.getHandle();
+    int[] typeOIDs = params.getTypeOIDs();
+    ServerHandle named = mru.isPreparedFor(typeOIDs, deallocateEpoch, false)
+        ? mru : query.findPreparedFor(typeOIDs, deallocateEpoch);
+    if (named != null) {
+      // A named statement the execution can reuse as-is (isPreparedFor covers the epoch):
+      // its describe results are valid.
+      return named.isStatementDescribed();
     }
-    // The unnamed statement: re-parsed on every execution with the same SQL, so its describe
-    // results stay valid until the server may resolve the query differently (epoch bump).
-    return handle.isStatementDescribedAt(deallocateEpoch);
+    if ((flags & QueryExecutor.QUERY_ONESHOT) != 0) {
+      // The unnamed statement: re-parsed on every execution with the same SQL, so its describe
+      // results stay valid until the server may resolve the query differently (epoch bump).
+      ServerHandle unnamed = query.peekUnnamedHandle();
+      return unnamed != null && unnamed.isStatementDescribedAt(deallocateEpoch);
+    }
+    // A regular execution would re-prepare, resetting the describe results.
+    return false;
   }
 
   private void sendOneQuery(SimpleQuery query, ServerHandle handle, SimpleParameterList params,

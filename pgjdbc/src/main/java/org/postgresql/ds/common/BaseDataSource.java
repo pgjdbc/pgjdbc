@@ -523,6 +523,23 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return server-prepared statements one SQL text may keep, one per parameter-type signature
+   * @see PGProperty#PREPARED_STATEMENT_CACHE_TYPE_VARIANTS
+   */
+  public int getPreparedStatementCacheTypeVariants() {
+    return PGProperty.PREPARED_STATEMENT_CACHE_TYPE_VARIANTS.getIntNoCheck(properties);
+  }
+
+  /**
+   * @param typeVariants server-prepared statements one SQL text may keep, one per parameter-type
+   *        signature
+   * @see PGProperty#PREPARED_STATEMENT_CACHE_TYPE_VARIANTS
+   */
+  public void setPreparedStatementCacheTypeVariants(int typeVariants) {
+    PGProperty.PREPARED_STATEMENT_CACHE_TYPE_VARIANTS.set(properties, typeVariants);
+  }
+
+  /**
    * @return database metadata cache fields size (number of fields cached per connection)
    * @see PGProperty#DATABASE_METADATA_CACHE_FIELDS
    */

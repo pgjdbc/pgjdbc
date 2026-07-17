@@ -142,10 +142,10 @@ tightens the error paths that today leak until GC.
 
 ### 2.5 Limits, eviction, accounting
 
-- Per-query capacity K, new connection property `preparedStatementCacheTypeVariants`. Default `1`
-  reproduces today's behavior exactly and ships first; raising the default (likely to `4`) is a
-  follow-up decision after benchmarks. `K > 1` consumes server memory only for workloads that
-  alternate signatures — exactly the workloads that currently thrash.
+- Per-query capacity K, new connection property `preparedStatementCacheTypeVariants`. Default `4`;
+  `K = 1` reproduces today's behavior exactly. `K > 1` consumes server memory only for workloads
+  that alternate signatures — exactly the workloads that currently thrash — since a statement with
+  a stable signature allocates one handle at any K.
 - A connection-wide cap on live named handles (counting `DEFERRED`), since per-query LRU does not
   bound the sum. Pinned handles may exceed the soft cap; the server has to keep them anyway while
   their cursors are open.
@@ -220,9 +220,10 @@ connection lock, and its borrow-with-removal ownership semantics are load-bearin
 
 ## 4. Compatibility
 
-- A ships with `preparedStatementCacheTypeVariants=1`: bit-for-bit current behavior. Raising K only
-  changes behavior for workloads that alternate signatures, where today's behavior is a
-  re-parse-per-call pathology.
+- A ships with `preparedStatementCacheTypeVariants=4`. That changes behavior only for workloads
+  that alternate signatures, where today's behavior is a re-parse-per-call pathology; a workload
+  with stable signatures keeps one handle per SQL text as before, and `K=1` restores the old
+  behavior exactly for anyone who needs it.
 - B ships with `sharedParseCache=false`. Enabling it changes memory behavior, not semantics.
 - No public API changes; `Query`/`QueryExecutor` additions are internal interfaces.
 
@@ -254,18 +255,15 @@ connection lock, and its borrow-with-removal ownership semantics are load-bearin
 2. **Protocol routing:** handle snapshots in all pending queues, `ReadyForQuery`/error cleanup per
    handle, `resolveHandle` ownership in the executor, the `unnamedHandle` split (a behavior change,
    see 2.3), portal pin/deferred-close machinery; the test plan above.
-3. **Variant table and limits:** per-query K, connection-wide cap, property with default `1`;
-   JMH benchmarks (fast-path parity, alternating signatures, server memory); then the default-K
-   decision.
+3. **Variant table and limits:** per-query K, connection-wide cap, property with default `4`;
+   JMH benchmarks (fast-path parity, alternating signatures, server memory).
 4. **B groundwork:** immutable parse DTO, canonical shared key, fingerprint derivation.
 5. **B:** `SharedParseCache` on Caffeine, driver-level registry, properties, concurrency and memory
    tests.
-6. Later, separately: revisiting the default of `preparedStatementCacheTypeVariants`, and whether
-   `sharedParseCache` can default to on.
+6. Later, separately: whether `sharedParseCache` can default to on.
 
 ## 7. Open questions for maintainers
 
 1. `prepareThreshold`: keep per SQL text (proposed) or count per signature?
-2. Default for `preparedStatementCacheTypeVariants` after benchmarks: stay at `1` or raise to `4`?
-3. Is a Caffeine dependency in the core driver acceptable (plain or shaded), given it is already
+2. Is a Caffeine dependency in the core driver acceptable (plain or shaded), given it is already
    under consideration for the codec API?

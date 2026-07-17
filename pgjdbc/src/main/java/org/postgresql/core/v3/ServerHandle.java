@@ -56,6 +56,8 @@ class ServerHandle {
    * Mutated only under the executor's connection lock.
    */
   private int pinCount;
+  /** See {@link #closeWhenUnpinned()}. */
+  private boolean closeWhenUnpinned;
 
   void setStatementName(String statementName, short deallocateEpoch) {
     assert statementName != null : "statement name should not be null";
@@ -99,6 +101,21 @@ class ServerHandle {
   }
 
   boolean isPreparedFor(int[] paramTypes, short deallocateEpoch) {
+    return isPreparedFor(paramTypes, deallocateEpoch, true);
+  }
+
+  /**
+   * Returns true if this statement can be reused as-is for the given parameter types at the given
+   * epoch. Pass {@code logMismatch = false} for speculative probes (handle resolution, variant
+   * scans, pre-describe gates), so the "will have to un-prepare" diagnostics fire once per
+   * execution, from the send path that acts on the mismatch.
+   *
+   * @param paramTypes parameter type OIDs of the upcoming execution
+   * @param deallocateEpoch the connection's current deallocate epoch
+   * @param logMismatch whether a type mismatch is worth a FINER diagnostic
+   * @return true if this statement can be reused as-is
+   */
+  boolean isPreparedFor(int[] paramTypes, short deallocateEpoch, boolean logMismatch) {
     if (statementName == null || preparedTypes == null) {
       return false; // Not prepared.
     }
@@ -130,7 +147,7 @@ class ServerHandle {
           && (paramType != Oid.UNSPECIFIED
           || unspecified == null
           || !unspecified.get(i))) {
-        if (LOGGER.isLoggable(Level.FINER)) {
+        if (logMismatch && LOGGER.isLoggable(Level.FINER)) {
           LOGGER.log(Level.FINER,
               "Statement {0} does not match new parameter types. Will have to un-prepare it and parse once again."
                   + " To avoid performance issues, use the same data type for the same bind position. Bind index (1-based) is {1},"
@@ -279,10 +296,40 @@ class ServerHandle {
   void unpin() {
     assert pinCount > 0 : "unpin() without a matching pin() on " + this;
     pinCount--;
+    if (pinCount == 0 && closeWhenUnpinned) {
+      closeWhenUnpinned = false;
+      unprepare();
+    }
   }
 
   boolean isPinned() {
     return pinCount > 0;
+  }
+
+  /**
+   * Returns true if this statement was prepared at an older deallocate epoch and can no longer be
+   * reused; its describe results and plan are suspect after DDL, {@code SET search_path}, or
+   * {@code DEALLOCATE ALL}.
+   *
+   * @param deallocateEpoch the connection's current deallocate epoch
+   * @return true if this statement is named and outdated
+   */
+  boolean isStale(short deallocateEpoch) {
+    return statementName != null && this.deallocateEpoch != deallocateEpoch;
+  }
+
+  /**
+   * Closes the server statement as soon as no portal depends on it: immediately when unpinned,
+   * otherwise at the {@link #unpin()} that releases the last portal. The backend closes all
+   * dependent portals when a statement is closed, so an evicted-but-pinned statement must outlive
+   * its cursors ("deferred close").
+   */
+  void closeWhenUnpinned() {
+    if (pinCount == 0) {
+      unprepare();
+    } else {
+      closeWhenUnpinned = true;
+    }
   }
 
   void setCleanupRef(PhantomReference<?> cleanupRef) {
@@ -304,6 +351,9 @@ class ServerHandle {
     if (this.unspecifiedParams != null) {
       this.unspecifiedParams.clear();
     }
+    // The close just happened (or is queued); nothing is pending for the last unpin anymore,
+    // and a later re-prepare of this slot must not be closed by an old portal's unpin.
+    closeWhenUnpinned = false;
 
     statementName = null;
     encodedStatementName = null;

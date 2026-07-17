@@ -284,6 +284,12 @@ Determine the maximum size (in mebibytes) of the prepared queries cache (see `pr
 The default is 5, meaning if you happen to cache more than 5 MiB of queries the least recently used ones will be discarded.
 The main aim of this setting is to prevent `OutOfMemoryError` . The value of 0 disables the cache.
 
+* **`preparedStatementCacheTypeVariants (`*int*`)`** *Default `4`*\
+Determine how many server-prepared statements one SQL text may keep, one per distinct parameter-type signature, evicting the least recently used one beyond that.
+A statement that binds the same types on every execution keeps a single server-prepared statement whatever this value is, so the default costs such an application nothing.
+A statement executed with alternating parameter types (say, `setInt` on one call and `setString` on the next) keeps one server-prepared statement per signature instead of re-preparing on every switch, which would lose the server-side plan each time.
+Each kept statement consumes backend memory for its lifetime; set this to 1 to restore the behavior of releases before 42.7.14, and see `maxServerPreparedStatements` to bound the total per connection.
+
 * **`preferQueryMode (`*String*`)`** *Default `extended`*\
 Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only),
 extended means always use bind/execute messages, extendedForPrepared means extended for prepared statements only, endedCacheEverything means use extended protocol and try cache every statement (including Statement.execute(String sql)) 
