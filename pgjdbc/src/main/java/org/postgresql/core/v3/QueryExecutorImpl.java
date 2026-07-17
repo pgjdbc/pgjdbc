@@ -126,6 +126,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -241,6 +243,20 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private final int maxTypeVariants;
 
+  /**
+   * Soft cap on named statements kept per connection across all queries, 0 for no limit. See
+   * {@link PGProperty#MAX_SERVER_PREPARED_STATEMENTS}.
+   */
+  private final int maxServerPreparedStatements;
+
+  /**
+   * Named statements in least recently used order, maintained only when
+   * {@link #maxServerPreparedStatements} is set, so the default configuration pays nothing.
+   * Entries are added on Parse and touched on handle resolution; stale entries (statements
+   * closed through other paths) are dropped by the enforcement walk.
+   */
+  private final @Nullable LinkedHashMap<ServerHandle, Boolean> liveServerStatements;
+
   @SuppressWarnings({"assignment", "argument",
       "method.invocation"})
   public QueryExecutorImpl(PGStream pgStream,
@@ -254,6 +270,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     this.cleanupSavePoints = PGProperty.CLEANUP_SAVEPOINTS.getBoolean(info);
     this.maxTypeVariants =
         Math.max(1, PGProperty.PREPARED_STATEMENT_CACHE_TYPE_VARIANTS.getInt(info));
+    this.maxServerPreparedStatements =
+        Math.max(0, PGProperty.MAX_SERVER_PREPARED_STATEMENTS.getInt(info));
+    this.liveServerStatements = maxServerPreparedStatements == 0
+        ? null : new LinkedHashMap<ServerHandle, Boolean>(16, 0.75f, true);
     // assignment, argument
     this.replicationProtocol = new V3ReplicationProtocol(this, pgStream);
     readStartupMessages();
@@ -738,9 +758,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private ResultHandler sendQueryPreamble(final ResultHandler delegateHandler, int flags)
       throws IOException {
-    // First, send CloseStatements for finalized SimpleQueries that had statement names assigned.
-    processDeadParsedQueries();
+    // First, send Close for finalized portals and statements. Portals go first: their unpins may
+    // queue statement Closes, and a statement Close must never overtake its portal's Close. The
+    // statement cap is enforced here as well — the pending queues are empty at this point, so an
+    // evicted statement cannot have messages in flight.
     processDeadPortals();
+    enforceServerStatementCap();
+    processDeadParsedQueries();
 
     // Send BEGIN on first statement in transaction.
     if ((flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) != 0
@@ -2176,16 +2200,58 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     ServerHandle mru = query.getHandle();
     int[] typeOIDs = params.getTypeOIDs();
     if (mru.isPreparedFor(typeOIDs, deallocateEpoch, false)) {
+      touchServerStatement(mru);
       return mru;
     }
     ServerHandle variant = query.findPreparedFor(typeOIDs, deallocateEpoch);
     if (variant != null) {
+      touchServerStatement(variant);
       return variant;
     }
     if ((flags & QueryExecutor.QUERY_ONESHOT) != 0) {
       return query.getUnnamedHandle();
     }
     return query.takeHandleForPrepare(maxTypeVariants);
+  }
+
+  /**
+   * Marks a named statement as most recently used for {@link #maxServerPreparedStatements}
+   * enforcement. No-op (and no cost) when no limit is configured.
+   */
+  private void touchServerStatement(ServerHandle handle) {
+    LinkedHashMap<ServerHandle, Boolean> live = liveServerStatements;
+    if (live != null) {
+      live.get(handle); // access-order map: the lookup itself is the touch
+    }
+  }
+
+  /**
+   * Closes the least recently used named statements down to
+   * {@link #maxServerPreparedStatements}. Runs only at execution boundaries, when the pending
+   * queues are empty, so a victim can never have messages in flight. Statements pinned by an
+   * open portal are exempt: the backend keeps them alive for the cursor anyway, so the cap is a
+   * soft one. The queued Close messages go out with the caller's
+   * {@code processDeadParsedQueries()}.
+   */
+  private void enforceServerStatementCap() {
+    LinkedHashMap<ServerHandle, Boolean> live = liveServerStatements;
+    if (live == null || live.size() <= maxServerPreparedStatements) {
+      return;
+    }
+    Iterator<ServerHandle> it = live.keySet().iterator();
+    while (it.hasNext() && live.size() > maxServerPreparedStatements) {
+      ServerHandle handle = it.next();
+      if (handle.getStatementName() == null) {
+        // Closed through another path (re-prepare, error cleanup, query eviction).
+        it.remove();
+        continue;
+      }
+      if (handle.isPinned()) {
+        continue;
+      }
+      handle.unprepare();
+      it.remove();
+    }
   }
 
   @Override
@@ -2472,6 +2538,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         new PhantomReference<>(query, parsedQueryCleanupQueue);
     parsedQueryMap.put(cleanupRef, statementName);
     handle.setCleanupRef(cleanupRef);
+    LinkedHashMap<ServerHandle, Boolean> live = liveServerStatements;
+    if (live != null) {
+      live.put(handle, Boolean.TRUE);
+    }
   }
 
   private void processDeadParsedQueries() throws IOException {

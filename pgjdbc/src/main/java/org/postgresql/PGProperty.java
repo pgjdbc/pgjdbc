@@ -482,6 +482,19 @@ public enum PGProperty {
       "Maximum amount of bytes buffered before sending to the backend"),
 
   /**
+   * Specifies the maximum number of server-prepared statements kept per connection, across all
+   * SQL texts. The default of {@code 0} means no limit. When the limit is exceeded, the least
+   * recently used statements are closed at the start of a later execution; statements backing an
+   * open cursor are exempt until the cursor closes, so the limit is a soft one. Bounds the
+   * backend memory spent on prepared statements when {@code preparedStatementCacheTypeVariants}
+   * multiplies statements per SQL text.
+   */
+  MAX_SERVER_PREPARED_STATEMENTS(
+      "maxServerPreparedStatements",
+      "0",
+      "Specifies the maximum number of server-prepared statements kept per connection, across all SQL texts. A value of {@code 0}, the default, means no limit. The least recently used statements above the limit are closed at the start of a later execution; statements backing an open cursor are exempt until the cursor closes."),
+
+  /**
    * Specify 'options' connection initialization parameter.
    * The value of this parameter may contain spaces and other special characters or their URL representation.
    */

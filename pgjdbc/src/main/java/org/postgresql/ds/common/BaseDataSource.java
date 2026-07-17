@@ -540,6 +540,23 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return maximum number of server-prepared statements kept per connection, 0 for no limit
+   * @see PGProperty#MAX_SERVER_PREPARED_STATEMENTS
+   */
+  public int getMaxServerPreparedStatements() {
+    return PGProperty.MAX_SERVER_PREPARED_STATEMENTS.getIntNoCheck(properties);
+  }
+
+  /**
+   * @param maxStatements maximum number of server-prepared statements kept per connection, 0 for
+   *        no limit
+   * @see PGProperty#MAX_SERVER_PREPARED_STATEMENTS
+   */
+  public void setMaxServerPreparedStatements(int maxStatements) {
+    PGProperty.MAX_SERVER_PREPARED_STATEMENTS.set(properties, maxStatements);
+  }
+
+  /**
    * @return database metadata cache fields size (number of fields cached per connection)
    * @see PGProperty#DATABASE_METADATA_CACHE_FIELDS
    */
