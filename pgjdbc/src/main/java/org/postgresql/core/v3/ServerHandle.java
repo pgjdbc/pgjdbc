@@ -48,6 +48,12 @@ class ServerHandle {
   private short deallocateEpoch;
   private @Nullable Integer cachedMaxResultRowSize;
   private @Nullable Map<String, Integer> resultSetColumnNameIndexMap;
+  /**
+   * Number of open portals bound from this statement. The backend closes all dependent portals
+   * when a statement is closed, so the statement must not be evicted and closed while pinned.
+   * Mutated only under the executor's connection lock.
+   */
+  private int pinCount;
 
   void setStatementName(String statementName, short deallocateEpoch) {
     assert statementName != null : "statement name should not be null";
@@ -244,6 +250,19 @@ class ServerHandle {
       }
     }
     return columnPositions;
+  }
+
+  void pin() {
+    pinCount++;
+  }
+
+  void unpin() {
+    assert pinCount > 0 : "unpin() without a matching pin() on " + this;
+    pinCount--;
+  }
+
+  boolean isPinned() {
+    return pinCount > 0;
   }
 
   void setCleanupRef(PhantomReference<?> cleanupRef) {

@@ -2182,11 +2182,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
     }
 
-    // Construct a new portal if needed.
+    // Construct a new portal if needed. The portal pins the statement right away, before Bind is
+    // even sent: in a pipeline, a later query could otherwise evict the statement a pending Bind
+    // depends on.
     Portal portal = null;
     if (usePortal) {
       String portalName = "C_" + (nextUniqueID++);
-      portal = new Portal(query, portalName);
+      portal = new Portal(query, handle, portalName);
     }
 
     // STATE: Send Bind message to bind parameters to statement
@@ -2383,29 +2385,31 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   // are also closed.
   //
 
-  private final HashMap<PhantomReference<Portal>, String> openPortalMap =
+  private final HashMap<PhantomReference<Portal>, Portal.Cleanup> openPortalMap =
       new HashMap<>();
   private final ReferenceQueue<Portal> openPortalCleanupQueue = new ReferenceQueue<>();
 
-  private static final Portal UNNAMED_PORTAL = new Portal(null, "unnamed");
+  private static final Portal UNNAMED_PORTAL = new Portal(null, null, "unnamed");
 
   private void registerOpenPortal(Portal portal) {
     if (portal == UNNAMED_PORTAL) {
       return; // Using the unnamed portal.
     }
 
-    String portalName = portal.getPortalName();
     PhantomReference<Portal> cleanupRef =
         new PhantomReference<>(portal, openPortalCleanupQueue);
-    openPortalMap.put(cleanupRef, portalName);
+    openPortalMap.put(cleanupRef, portal.getCleanup());
     portal.setCleanupRef(cleanupRef);
   }
 
   private void processDeadPortals() throws IOException {
     Reference<? extends Portal> deadPortal;
     while ((deadPortal = openPortalCleanupQueue.poll()) != null) {
-      String portalName = castNonNull(openPortalMap.remove(deadPortal));
-      sendClosePortal(portalName);
+      Portal.Cleanup cleanup = castNonNull(openPortalMap.remove(deadPortal));
+      sendClosePortal(cleanup.portalName);
+      // Close(portal) is queued before the pin release, so once the pin release lets the
+      // statement be closed, that Close cannot outrun the portal's own Close.
+      cleanup.releaseHandlePin();
       deadPortal.clear();
     }
   }
@@ -2815,8 +2819,22 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             LOGGER.log(Level.FINEST, " FE marking setPortalDescribed(false) for statement {0}", undescribedHandle);
             undescribedHandle.setPortalDescribed(false);
           }
-          pendingBindQueue.clear(); // No more BindComplete messages expected.
-          pendingExecuteQueue.clear(); // No more query executions expected.
+          // No more BindComplete messages expected. A portal still here never reached
+          // BindComplete, so no server-side portal exists: just release the statement pin.
+          while (!pendingBindQueue.isEmpty()) {
+            pendingBindQueue.removeFirst().releaseHandlePin();
+          }
+          // No more query executions expected. A portal still here may have been bound and its
+          // Execute failed: queue its Close and release the pin deterministically rather than
+          // waiting for the portal to be garbage collected. The server has already destroyed the
+          // portal with the failed (sub)transaction, so the Close is a no-op there.
+          while (!pendingExecuteQueue.isEmpty()) {
+            Portal failedPortal = pendingExecuteQueue.removeFirst().portal;
+            if (failedPortal != null) {
+              failedPortal.close();
+              failedPortal.releaseHandlePin();
+            }
+          }
           break;
 
         case PgMessageType.COPY_IN_RESPONSE:
@@ -2923,7 +2941,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         processDeadParsedQueries();
         processDeadPortals();
 
-        sendExecute(query, query.getHandle(), portal, fetchSize);
+        // The portal was bound from a specific statement; fetch on that statement even if the
+        // query has been re-prepared since.
+        sendExecute(query, castNonNull(portal.getHandle()), portal, fetchSize);
         sendSync();
         pgStream.flush();
 

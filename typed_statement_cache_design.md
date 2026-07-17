@@ -114,10 +114,13 @@ out of scope.
 The backend closes all dependent portals when a statement is closed, so evicting a handle that an
 open cursor depends on must not send `Close` yet. Today's only protection is GC reachability
 (`Portal` holds the `SimpleQuery`, `Portal.java:60-64`), which does not cover the explicit
-`unprepare()` on a signature switch — as far as we can tell, switching parameter types while a
-`fetchSize` cursor is open already kills the cursor on master. That needs a confirming test before
-this work starts; if confirmed, the pin machinery below fixes an existing bug rather than defending
-a new design.
+`unprepare()` on a signature switch. Testing shows that gap is not reachable through the public
+API on master: re-executing a statement closes its previous `ResultSet` first (JDBC allows one
+open result set per statement), so the portal is abandoned client-side before its statement is
+closed (`PortalErrorCleanupTest.typeSwitchWhileCursorOpen`). The pin machinery below therefore
+defends the *new* eviction paths — the per-query variant table and especially the connection-wide
+handle cap, which can close a statement belonging to an idle cursor of another statement — and
+tightens the error paths that today leak until GC.
 
 - `ServerHandle.pinCount`, mutated only under the executor lock.
 - `Portal` gains a `handle` field next to `query`; pin++ happens at portal creation in
@@ -229,9 +232,10 @@ connection lock, and its borrow-with-removal ownership semantics are load-bearin
    responses (exercises the `ReadyForQuery` cleanup routing to snapshot handles).
 2. `DEALLOCATE ALL` / DDL / `SET search_path` immediately before `forceBinaryTransfers` describe and
    batch pre-describe (stale-epoch rejection through `resolveHandle`).
-3. Named portal with `fetchSize`: (a) on master, switch signatures mid-cursor and confirm the
-   suspected existing breakage; (b) with the new design, cursor on variant A survives pressure from
-   variants B..K+1, and no `Close` for A's statement is sent before the portal closes.
+3. Named portal with `fetchSize`: (a) switching signatures mid-cursor closes the previous
+   `ResultSet` per JDBC and stays clean (done: `PortalErrorCleanupTest`); (b) with the variant
+   table, a cursor on variant A survives pressure from variants B..K+1, and no `Close` for A's
+   statement is sent before the portal closes.
 4. `BindComplete` then Execute error, then immediate variant pressure to the limit: portal `Close`
    and unpin happen at the next safe point without forced GC; no double `Close` when the portal
    object is later collected.
@@ -263,7 +267,5 @@ connection lock, and its borrow-with-removal ownership semantics are load-bearin
 
 1. `prepareThreshold`: keep per SQL text (proposed) or count per signature?
 2. Default for `preparedStatementCacheTypeVariants` after benchmarks: stay at `1` or raise to `4`?
-3. The suspected existing cursor-vs-signature-switch bug: fix on master first (small, targeted) or
-   fold into stage 2?
-4. Is a Caffeine dependency in the core driver acceptable (plain or shaded), given it is already
+3. Is a Caffeine dependency in the core driver acceptable (plain or shaded), given it is already
    under consideration for the codec API?
