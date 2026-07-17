@@ -2,6 +2,18 @@
 Notable changes since version 42.0.0, read the complete [History of Changes](https://jdbc.postgresql.org/documentation/changelog.html).
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
+## [42.7.14] (2026-xx-xx)
+
+### Security
+### Added
+### Changed
+* chore: `PreparedStatement.getParameterMetaData()` no longer describes a statement that binds no parameters, as the server has nothing to resolve for one. Such a statement reports its empty parameter list without a network round trip, and no longer throws when the server would reject its SQL, since the describe that used to surface that error is gone [PR #4299](https://github.com/pgjdbc/pgjdbc/pull/4299)
+* chore: the `preparedStatementCacheSizeMiB` budget now counts the parameter type arrays a cached query retains instead of estimating an entry from the length of its SQL text alone. A query with many parameters is charged closer to what it actually holds, so such a query may now be evicted, or skipped by the cache entirely when it would take more than half of it [PR #4299](https://github.com/pgjdbc/pgjdbc/pull/4299)
+
+### Fixed
+* fix: `PreparedStatement.getParameterMetaData()` no longer fails with `prepared statement "S_1" does not exist` when the server-side statement was dropped without the driver noticing, which is what a connection pooler resetting the session between checkouts does. The driver re-parses and describes again instead [Issue #621](https://github.com/pgjdbc/pgjdbc/issues/621) [PR #4299](https://github.com/pgjdbc/pgjdbc/pull/4299)
+* perf: `PreparedStatement.getParameterMetaData()` no longer costs a `Describe` round trip on every call. The driver remembers up to four describe results per query and reuses one when the parameter types are compatible, which removes a round trip per row for frameworks that read parameter metadata while binding, such as Spring's `setNull` path. Changing a parameter type, DDL, and `SET search_path` all force a fresh describe, so a reused result never reports a type the server would resolve differently [Issue #621](https://github.com/pgjdbc/pgjdbc/issues/621) [PR #4299](https://github.com/pgjdbc/pgjdbc/pull/4299). Supersedes [PR #3429](https://github.com/pgjdbc/pgjdbc/pull/3429).
+
 ## [42.7.13] (2026-07-06)
 
 ### Added
