@@ -61,6 +61,7 @@ public class CachedQuery implements CanEstimateSize {
       queryLength = ((CanEstimateSize) key).getSize();
     }
     return queryLength * 2 /* original query and native sql */
+        + query.getRetainedSizeExcludingSql()
         + 100L /* entry in hash map, CachedQuery wrapper, etc */;
   }
 

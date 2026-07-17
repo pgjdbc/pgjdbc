@@ -222,6 +222,29 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   void fetch(ResultCursor cursor, ResultHandler handler, int fetchSize, boolean adaptiveFetch) throws SQLException;
 
   /**
+   * Attempts to resolve the parameter types of the given query from the results of previous
+   * "describe statement" requests, avoiding a network round trip.
+   *
+   * <p>On success, the unspecified types in {@code parameters} are updated to the server-resolved
+   * ones, exactly as an actual describe would update them. The cached results are reused only for
+   * a compatible set of parameter types: the server infers unspecified types from the specified
+   * ones, so a type change invalidates the resolution (see
+   * {@code SimpleQuery#getCachedDescribeResult(int[], short)}). Events after which the server may
+   * resolve the types differently, such as DDL or {@code SET search_path}, discard the cached
+   * results as well.</p>
+   *
+   * <p>A query that binds no parameters leaves the server nothing to resolve, so it succeeds
+   * without ever describing.</p>
+   *
+   * @param query a query created by this executor
+   * @param parameters parameters of the query, created by {@link Query#createParameterList()}
+   * @return true if all parameter types are known without a network round trip
+   */
+  default boolean tryResolveParameterTypes(Query query, ParameterList parameters) {
+    return false;
+  }
+
+  /**
    * Create an unparameterized Query object suitable for execution by this QueryExecutor. The
    * provided query string is not parsed for parameter placeholders ('?' characters), and the
    * {@link Query#createParameterList} of the returned object will always return an empty
