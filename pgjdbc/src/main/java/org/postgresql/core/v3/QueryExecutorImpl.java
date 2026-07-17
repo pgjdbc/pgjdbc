@@ -204,6 +204,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private final SimpleQuery sync = (SimpleQuery) createQuery("SYNC", false, true).query;
 
   private short deallocateEpoch;
+  private int typeCacheEpoch;
 
   /**
    * Number of leading characters of a {@code SET}/{@code RESET} statement that are scanned for the
@@ -254,6 +255,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   @Override
   public ProtocolVersion getProtocolVersion() {
     return protocolVersion;
+  }
+
+  @Override
+  public int getTypeCacheEpoch() {
+    return typeCacheEpoch;
   }
 
   /**
@@ -2507,16 +2513,21 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               && (status.startsWith("DEALLOCATE ALL") || status.startsWith("DISCARD ALL"))) {
             deallocateEpoch++;
           }
-          if (isFlushCacheOnDdl()
-              && (status.startsWith("CREATE ")
-                  || status.startsWith("DROP ")
-                  || status.startsWith("ALTER "))) {
-            // DDL invalidates any server-side prepared plan that references
-            // the affected relation. Bump the epoch so the driver
-            // re-prepares matching statements on next use, instead of
-            // surfacing PostgreSQL's "cached plan must not change result
-            // type" to callers that don't opt into autosave=ALWAYS.
-            deallocateEpoch++;
+          if (status.startsWith("CREATE ")
+              || status.startsWith("DROP ")
+              || status.startsWith("ALTER ")) {
+            // DDL may redefine types (e.g. DROP TYPE / ALTER TYPE), so invalidate the
+            // driver's type cache regardless of flushCacheOnDdl, which only governs
+            // server-side prepared plans.
+            typeCacheEpoch++;
+            if (isFlushCacheOnDdl()) {
+              // DDL invalidates any server-side prepared plan that references
+              // the affected relation. Bump the epoch so the driver
+              // re-prepares matching statements on next use, instead of
+              // surfacing PostgreSQL's "cached plan must not change result
+              // type" to callers that don't opt into autosave=ALWAYS.
+              deallocateEpoch++;
+            }
           }
 
           doneAfterRowDescNoData = false;
@@ -2559,8 +2570,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             if (changesSearchPath
                 && !nativeSql.equals(lastSetSearchPathQuery)) {
               // Search path was changed, invalidate prepared statement cache
+              // *and* the per-connection type cache: name-keyed lookups
+              // (TypeInfoCache.getPgTypeByPgName) resolve against the
+              // current search_path, so a previously-cached "foo" might
+              // now refer to a different type.
               lastSetSearchPathQuery = nativeSql;
               deallocateEpoch++;
+              typeCacheEpoch++;
             }
           }
 
