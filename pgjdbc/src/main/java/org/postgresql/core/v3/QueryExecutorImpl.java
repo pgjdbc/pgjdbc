@@ -488,7 +488,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private boolean sendAutomaticSavepoint(Query query, int flags) throws IOException {
     if (shouldCreateAutomaticSavepoint(query, flags)) {
-      sendOneQuery(autoSaveQuery, SimpleQuery.NO_PARAMETERS, 1, 0,
+      sendOneQuery(autoSaveQuery,
+          resolveHandle(autoSaveQuery, SimpleQuery.NO_PARAMETERS,
+              QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE),
+          SimpleQuery.NO_PARAMETERS, 1, 0,
           QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
       return true;
     }
@@ -543,7 +546,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   // thus no need to set a savepoint before such query
   private static boolean queryMightFail(Query query) {
     return !(query instanceof SimpleQuery)
-        || ((SimpleQuery) query).getFields() != null;
+        || ((SimpleQuery) query).hasResultFields();
   }
 
   private void releaseSavePoint(boolean autosave) throws SQLException {
@@ -551,7 +554,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       return;
     }
     try {
-      sendOneQuery(releaseAutoSave, SimpleQuery.NO_PARAMETERS, 1, 0,
+      sendOneQuery(releaseAutoSave,
+          resolveHandle(releaseAutoSave, SimpleQuery.NO_PARAMETERS,
+              QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE),
+          SimpleQuery.NO_PARAMETERS, 1, 0,
           QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
       // No response processing follows, so flush the deferred cleanup before returning.
       pgStream.flush();
@@ -674,15 +680,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         for (int i = 0; i < queries.length; i++) {
           SimpleQuery query = (SimpleQuery) queries[i];
-          if (i == 0) {
-            estimatedReceiveBufferBytes += estimateQueryResponseBytes(query, flags);
-          } else {
-            flushIfDeadlockRisk(query, handler, batchHandler, flags);
-          }
-
           V3ParameterList parameters = (V3ParameterList) parameterLists[i];
           if (parameters == null) {
             parameters = SimpleQuery.NO_PARAMETERS;
+          }
+
+          ServerHandle handle = resolveHandle(query, (SimpleParameterList) parameters, flags);
+          if (i == 0) {
+            estimatedReceiveBufferBytes += estimateQueryResponseBytes(handle, flags);
+          } else {
+            flushIfDeadlockRisk(handle, handler, batchHandler, flags);
           }
 
           sendQuery(query, parameters, maxRows, fetchSize, flags, handler, batchHandler, adaptiveFetch);
@@ -743,7 +750,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     final SimpleQuery beginQuery = (flags & QueryExecutor.QUERY_READ_ONLY_HINT) == 0 ? beginTransactionQuery : beginReadOnlyTransactionQuery;
 
-    sendOneQuery(beginQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
+    sendOneQuery(beginQuery, resolveHandle(beginQuery, SimpleQuery.NO_PARAMETERS, beginFlags),
+        SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
 
     // Insert a handler that intercepts the BEGIN.
     return new ResultHandlerDelegate(delegateHandler) {
@@ -842,7 +850,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
                          | QueryExecutor.QUERY_ONESHOT
                          | QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
         beginFlags = updateQueryMode(beginFlags);
-        sendOneQuery(beginTransactionQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
+        sendOneQuery(beginTransactionQuery,
+            resolveHandle(beginTransactionQuery, SimpleQuery.NO_PARAMETERS, beginFlags),
+            SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
         sendSync();
         pgStream.flush();
         processResults(handler, 0);
@@ -1618,7 +1628,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * @param flags query execution flags
    * @return estimated number of bytes produced by a single query execution or MAX_BUFFERED_RECV_BYTES
    */
-  private static int estimateQueryResponseBytes(SimpleQuery query, int flags) {
+  private static int estimateQueryResponseBytes(ServerHandle handle, int flags) {
     // Assume all statements need at least this much reply buffer space,
     // plus params
     int resultBytes = NODATA_QUERY_RESPONSE_SIZE_BYTES;
@@ -1631,7 +1641,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       return MAX_BUFFERED_RECV_BYTES;
     }
 
-    if (query.isStatementDescribed()) {
+    if (handle.isStatementDescribed()) {
       /*
        * Estimate the response size of the fields and add it to the expected response size.
        *
@@ -1639,7 +1649,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
        * case for batches and we're leaving plenty of breathing room in this approach. It's still
        * not deadlock-proof though; see pgjdbc github issues #194 and #195.
        */
-      int maxResultRowSize = query.getMaxResultRowSize();
+      int maxResultRowSize = handle.getMaxResultRowSize();
       if (maxResultRowSize >= 0) {
         resultBytes += maxResultRowSize;
       } else {
@@ -1664,11 +1674,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    *
    * See the comments above MAX_BUFFERED_RECV_BYTES's declaration for details.
    */
-  private void flushIfDeadlockRisk(SimpleQuery query,
+  private void flushIfDeadlockRisk(ServerHandle handle,
       ResultHandler resultHandler,
       @Nullable BatchResultHandler batchHandler,
       final int flags) throws IOException {
-    int resultBytes = estimateQueryResponseBytes(query, flags);
+    int resultBytes = estimateQueryResponseBytes(handle, flags);
 
     int estimatedReceiveBufferBytesTotal = estimatedReceiveBufferBytes + resultBytes;
     if (estimatedReceiveBufferBytesTotal < MAX_BUFFERED_RECV_BYTES) {
@@ -1702,21 +1712,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         if (fetchSize != 0) {
           adaptiveFetchCache.addNewQuery(adaptiveFetch, query);
         }
-        sendOneQuery((SimpleQuery) query, (SimpleParameterList) parameters, maxRows, fetchSize,
-            flags);
+        SimpleQuery simpleQuery = (SimpleQuery) query;
+        SimpleParameterList simpleParams = (SimpleParameterList) parameters;
+        sendOneQuery(simpleQuery, resolveHandle(simpleQuery, simpleParams, flags), simpleParams,
+            maxRows, fetchSize, flags);
       }
     } else {
       for (int i = 0; i < subqueries.length; i++) {
         final SimpleQuery subquery = (SimpleQuery) subqueries[i];
-        if (i == 0) {
-          estimatedReceiveBufferBytes += estimateQueryResponseBytes(subquery, flags);
-        } else {
-          flushIfDeadlockRisk(subquery, resultHandler, batchHandler, flags);
-          // If we saw errors, don't send anything more.
-          if (resultHandler.getException() != null) {
-            break;
-          }
-        }
 
         // In the situation where parameters is already
         // NO_PARAMETERS it cannot know the correct
@@ -1728,10 +1731,25 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         if (subparams != null) {
           subparam = subparams[i];
         }
+
+        // The response-size estimate must look at the statement this execution will actually
+        // use: a one-shot describe leaves its row description on the unnamed statement, and
+        // reading the named one would underestimate the receive buffer.
+        ServerHandle subqueryHandle = resolveHandle(subquery, subparam, flags);
+        if (i == 0) {
+          estimatedReceiveBufferBytes += estimateQueryResponseBytes(subqueryHandle, flags);
+        } else {
+          flushIfDeadlockRisk(subqueryHandle, resultHandler, batchHandler, flags);
+          // If we saw errors, don't send anything more.
+          if (resultHandler.getException() != null) {
+            break;
+          }
+        }
+
         if (fetchSize != 0) {
           adaptiveFetchCache.addNewQuery(adaptiveFetch, subquery);
         }
-        sendOneQuery((SimpleQuery) subquery, subparam, maxRows, fetchSize, flags);
+        sendOneQuery(subquery, subqueryHandle, subparam, maxRows, fetchSize, flags);
       }
     }
   }
@@ -2123,14 +2141,34 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * processResults() which enters the Message Processing State Machine (State #3) to
    * consume server responses and update pending queues.</p>
    */
-  private void sendOneQuery(SimpleQuery query, SimpleParameterList params, int maxRows,
-      int fetchSize, int flags) throws IOException {
+  /**
+   * Picks the server statement an execution with the given parameters will use. A regular
+   * execution always uses the named statement (re-preparing it on a type mismatch). A one-shot
+   * execution reuses the named statement when it matches the parameter types, and otherwise falls
+   * back to the query's unnamed statement, leaving the named statement (and its plan) intact.
+   *
+   * @param query the query being executed
+   * @param params parameters of this execution
+   * @param flags execution flags, {@link QueryExecutor#QUERY_ONESHOT} is honored
+   * @return the statement this execution will use
+   */
+  private ServerHandle resolveHandle(SimpleQuery query, SimpleParameterList params, int flags) {
+    ServerHandle named = query.getHandle();
+    if ((flags & QueryExecutor.QUERY_ONESHOT) == 0
+        || named.isPreparedFor(params.getTypeOIDs(), deallocateEpoch)) {
+      return named;
+    }
+    return query.getUnnamedHandle();
+  }
+
+  private void sendOneQuery(SimpleQuery query, ServerHandle handle, SimpleParameterList params,
+      int maxRows, int fetchSize, int flags) throws IOException {
     boolean asSimple = (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0;
     if (asSimple) {
       assert (flags & QueryExecutor.QUERY_DESCRIBE_ONLY) == 0
           : "Simple mode does not support describe requests. sql = " + query.getNativeSql()
           + ", flags = " + flags;
-      sendSimpleQuery(query, params);
+      sendSimpleQuery(query, handle, params);
       return;
     }
 
@@ -2156,8 +2194,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     boolean forceDescribePortal = (flags & QUERY_FORCE_DESCRIBE_PORTAL) != 0;
 
     int rows = calculateRowsToFetch(noResults, usePortal, maxRows, fetchSize);
-
-    ServerHandle handle = query.getHandle();
 
     // STATE: Send Parse message (or skip if already parsed)
     // NEXT: Server will respond with ParseComplete (or skip if cached)
@@ -2302,7 +2338,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
-  private void sendSimpleQuery(SimpleQuery query, SimpleParameterList params) throws IOException {
+  private void sendSimpleQuery(SimpleQuery query, ServerHandle handle, SimpleParameterList params)
+      throws IOException {
     if (inExtendedProtocol) {
       // A sync message is required when switching from extended protocol to a simple query protocol
       // See https://github.com/pgjdbc/pgjdbc/issues/3107
@@ -2321,8 +2358,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.sendInteger4(encoded.length + 4 + 1);
     pgStream.send(encoded);
     pgStream.sendChar(0);
-    pendingExecuteQueue.add(new ExecuteRequest(query, query.getHandle(), null, true));
-    pendingDescribePortalQueue.add(query.getHandle());
+    pendingExecuteQueue.add(new ExecuteRequest(query, handle, null, true));
+    pendingDescribePortalQueue.add(handle);
   }
 
   //

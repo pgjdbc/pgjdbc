@@ -108,6 +108,38 @@ class SimpleQuery implements Query {
     return handle;
   }
 
+  /**
+   * Returns the statement state used by one-shot executions whenever the named statement does not
+   * match the current parameter types. It never gets a statement name or a cleanup reference, and
+   * every one-shot parse overwrites it. Keeping it separate means a one-shot execution with
+   * different parameter types (for example {@code getParameterMetaData()}) no longer destroys the
+   * named server-prepared statement, and one-shot describe results no longer masquerade as the
+   * named statement's metadata.
+   *
+   * @return the statement state for one-shot executions
+   */
+  ServerHandle getUnnamedHandle() {
+    ServerHandle unnamedHandle = this.unnamedHandle;
+    if (unnamedHandle == null) {
+      this.unnamedHandle = unnamedHandle = new ServerHandle();
+    }
+    return unnamedHandle;
+  }
+
+  /**
+   * Returns true if some execution of this query has seen a row description, on the named or the
+   * unnamed statement. Used as a "this query returns rows" heuristic by the automatic-savepoint
+   * logic; the union over both statements preserves the pre-split behavior, where any execution
+   * marked the shared state.
+   *
+   * @return true if some execution of this query has seen a row description
+   */
+  boolean hasResultFields() {
+    ServerHandle unnamedHandle = this.unnamedHandle;
+    return handle.getFields() != null
+        || (unnamedHandle != null && unnamedHandle.getFields() != null);
+  }
+
   void setStatementName(String statementName, short deallocateEpoch) {
     handle.setStatementName(statementName, deallocateEpoch);
   }
@@ -329,11 +361,15 @@ class SimpleQuery implements Query {
     handle.setPortalDescribed(portalDescribed);
   }
 
-  // Have we sent a Describe Statement message for this query yet?
-  // Note that we might not have need to, so this may always be false.
+  // Have we sent a Describe Statement message for this query yet, on either the named or the
+  // unnamed statement? Note that we might not have need to, so this may always be false.
+  // This is a pre-describe gate for the JDBC layer (batch response-size estimation and forced
+  // binary transfers); the protocol layer consults the specific statement instead.
   @Override
   public boolean isStatementDescribed() {
-    return handle.isStatementDescribed();
+    ServerHandle unnamedHandle = this.unnamedHandle;
+    return handle.isStatementDescribed()
+        || (unnamedHandle != null && unnamedHandle.isStatementDescribed());
   }
 
   void setStatementDescribed(boolean statementDescribed) {
@@ -386,6 +422,12 @@ class SimpleQuery implements Query {
    * handle instance is permanent for now; {@link ServerHandle#unprepare()} resets its state.
    */
   private final ServerHandle handle = new ServerHandle();
+
+  /**
+   * Statement state for one-shot executions that cannot reuse the named statement. Lazily
+   * allocated; see {@link #getUnnamedHandle()}.
+   */
+  private @Nullable ServerHandle unnamedHandle;
 
   /**
    * Maximum number of cached "describe statement" results per query. Real workloads use one or
