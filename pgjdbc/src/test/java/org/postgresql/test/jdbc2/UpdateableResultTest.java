@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -17,6 +18,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import org.postgresql.PGConnection;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.GT;
+import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -1011,6 +1013,40 @@ public class UpdateableResultTest extends BaseTest4 {
       assertEquals(ts, rs.getObject(3, LocalDateTime.class));
       assertEquals(d, rs.getObject(4, LocalDate.class));
       assertEquals(t, rs.getObject(5, LocalTime.class));
+    }
+  }
+
+  @Test
+  public void testUpdateRowRejectsOffsetDateTimeForTimestampColumn() throws SQLException {
+    // ts is timestamp without time zone, so an OffsetDateTime cannot be stored without silently
+    // dropping its offset. updateRow() binds it as timestamptz, which the server would shift into
+    // the session zone (and mangle for BC dates), so reject it instead. Both AD and BC fail the
+    // same way; the BC case used to surface as a confusing NumberFormatException (#3428).
+    for (OffsetDateTime value : new OffsetDateTime[]{
+        OffsetDateTime.of(LocalDateTime.of(2024, 1, 31, 12, 34, 56, 123_456_000), ZoneOffset.ofHours(5)),
+        OffsetDateTime.of(LocalDateTime.of(-2, 1, 1, 0, 0, 0), ZoneOffset.ofHours(5))}) {
+      try (Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+           ResultSet rs = st.executeQuery("SELECT id, ts FROM datetimetable WHERE id = 1")) {
+        assertTrue(rs.next());
+        SQLException e = assertThrows(SQLException.class, () -> rs.updateObject("ts", value));
+        assertEquals(PSQLState.INVALID_PARAMETER_TYPE.getState(), e.getSQLState(),
+            () -> "updateObject(ts, " + value + ") must be rejected for a no-zone column");
+      }
+    }
+  }
+
+  @Test
+  public void testUpdateRowRejectsOffsetDateTimeForDateColumn() throws SQLException {
+    // d is a date column: it has neither time nor offset, so an OffsetDateTime cannot be stored
+    // without silently discarding both. Reject it (the JDBC spec pairs OffsetDateTime with
+    // TIMESTAMP_WITH_TIMEZONE; pass a LocalDate to store the date part).
+    OffsetDateTime value = OffsetDateTime.of(LocalDateTime.of(2024, 1, 31, 12, 34, 56), ZoneOffset.ofHours(5));
+    try (Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+         ResultSet rs = st.executeQuery("SELECT id, d FROM datetimetable WHERE id = 1")) {
+      assertTrue(rs.next());
+      SQLException e = assertThrows(SQLException.class, () -> rs.updateObject("d", value));
+      assertEquals(PSQLState.INVALID_PARAMETER_TYPE.getState(), e.getSQLState(),
+          "updateObject(d, OffsetDateTime) must be rejected for a date column");
     }
   }
 
