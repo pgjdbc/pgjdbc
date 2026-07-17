@@ -102,8 +102,12 @@ out of scope.
   ParameterList)`, which takes the lock and resolves; the conservative fallback is issuing the
   describe-only execute unconditionally.
 - Oneshot executions use `unnamedHandle`: no name, no phantom ref, no LRU participation, overwritten
-  by each oneshot run. `resolveHandle` never mixes it with named variants. This preserves the
-  current semantics of `getMetaData()`/`getParameterMetaData()` below `prepareThreshold`.
+  by each oneshot run. `resolveHandle` never mixes it with named variants. Note this split is a
+  (deliberate) behavior change, not a pure refactoring: today a oneshot describe-only execution
+  (`getParameterMetaData()` below `prepareThreshold`) leaves `statementDescribed` and `fields` on
+  the shared query state, and a later *named* execution skips its Describe because of it — exactly
+  the unnamed/named state mixing this design removes. The cost is one extra Describe on the first
+  named execution after a oneshot describe; the tests in stage 2 pin this down.
 
 ### 2.4 Portals: pin, deferred close, and error paths
 
@@ -241,10 +245,11 @@ connection lock, and its borrow-with-removal ownership semantics are load-bearin
 
 ## 6. Staged plan
 
-1. **Extract `ServerHandle`** with all result state; single named slot plus `unnamedHandle`;
-   `resolveHandle` as the only reader; behavior bit-for-bit (pure refactoring PR).
+1. **Extract `ServerHandle`** with all result state; a single permanent handle that `SimpleQuery`
+   delegates to; behavior bit-for-bit (pure refactoring PR).
 2. **Protocol routing:** handle snapshots in all pending queues, `ReadyForQuery`/error cleanup per
-   handle, portal pin/deferred-close machinery; the test plan above.
+   handle, `resolveHandle` ownership in the executor, the `unnamedHandle` split (a behavior change,
+   see 2.3), portal pin/deferred-close machinery; the test plan above.
 3. **Variant table and limits:** per-query K, connection-wide cap, property with default `1`;
    JMH benchmarks (fast-path parity, alternating signatures, server memory); then the default-K
    decision.
