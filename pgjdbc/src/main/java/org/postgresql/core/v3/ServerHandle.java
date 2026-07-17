@@ -274,4 +274,9 @@ class ServerHandle {
     statementDescribed = false;
     cachedMaxResultRowSize = null;
   }
+
+  @Override
+  public String toString() {
+    return "ServerHandle{" + statementName + '}';
+  }
 }

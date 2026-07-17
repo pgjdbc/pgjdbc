@@ -96,6 +96,18 @@ class SimpleQuery implements Query {
     return nativeQuery.nativeSql;
   }
 
+  /**
+   * Returns the server-side statement backing this query. The protocol layer resolves the handle
+   * once per execution and threads it through the outgoing messages and pending queues, so server
+   * responses update the statement they were requested for even if the query moves on to another
+   * handle in the meantime.
+   *
+   * @return the server-side statement backing this query
+   */
+  ServerHandle getHandle() {
+    return handle;
+  }
+
   void setStatementName(String statementName, short deallocateEpoch) {
     handle.setStatementName(statementName, deallocateEpoch);
   }
