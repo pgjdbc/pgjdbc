@@ -8,6 +8,7 @@ package org.postgresql.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
@@ -17,6 +18,7 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TransactionState;
 import org.postgresql.core.Version;
+import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.ResourceLock;
 import org.postgresql.util.PSQLException;
@@ -52,6 +54,13 @@ public class TestUtil {
    * All the properties starting with this prefix would be passed to the JDBC URL.
    */
   public static final String TEST_URL_PROPERTY_PREFIX = "test.url.";
+
+  public static final String TOKEN_PROVIDER_CLASS = "org.postgresql.test.OAuthTestTokenProvider";
+  public static final String OAUTH_ISSUER = "http://localhost:8080/realms/pgjdbc/protocol/openid-connect/token";
+  public static final String OAUTH_CLIENT_ID = "pgjdbc-test";
+  public static final String OAUTH_CLIENT_SECRET = "testoidc-password";
+  public static final String OAUTH_SCOPE = "pgjdbc";
+  public static final String OAUTH_USERNAME = "testoauth";
 
   private static final ResourceLock lock = new ResourceLock();
 
@@ -211,6 +220,31 @@ public class TestUtil {
     return System.getProperty("privilegedPassword");
   }
 
+  public static String getTokenProviderClassName() {
+    return System.getProperty(
+        PGProperty.OAUTH_TOKEN_PROVIDER_CLASS_NAME.getName(), TOKEN_PROVIDER_CLASS);
+  }
+
+  public static String getOAuthIssuer() {
+    return System.getProperty(PGProperty.OAUTH_ISSUER.getName(), OAUTH_ISSUER);
+  }
+
+  public static String getOAuthClientId() {
+    return System.getProperty(PGProperty.OAUTH_CLIENT_ID.getName(), OAUTH_CLIENT_ID);
+  }
+
+  public static String getOAuthClientSecret() {
+    return System.getProperty(PGProperty.OAUTH_CLIENT_SECRET.getName(), OAUTH_CLIENT_SECRET);
+  }
+
+  public static String getOAuthScope() {
+    return System.getProperty(PGProperty.OAUTH_SCOPE.getName(), OAUTH_SCOPE);
+  }
+
+  public static String getOAuthUsername() {
+    return System.getProperty(PGProperty.OAUTH_USERNAME.getName(), OAUTH_USERNAME);
+  }
+
   static {
     try {
       initDriver();
@@ -273,6 +307,18 @@ public class TestUtil {
     }
     File certdir = TestUtil.getFile(certdirProp);
     return new File(certdir, name).getAbsolutePath();
+  }
+
+  public static void assumeOAuthTestsEnabled() {
+    assumeTrue(Boolean.parseBoolean(System.getProperty("enable_oauth_tests")));
+  }
+
+  public static boolean isOAuthMode() {
+    return System.getProperty("authMode", "default").equals("oauth");
+  }
+
+  public static void assumeNotOAuthMode() {
+    assumeFalse(isOAuthMode(), "Test is incompatible with OAuth");
   }
 
   public static void initDriver() {
@@ -355,7 +401,73 @@ public class TestUtil {
    */
   public static Connection openDB(Properties props) throws SQLException {
     Properties propsWithDefaults = mergeDefaultProperties(props);
-    return DriverManager.getConnection(getURL(propsWithDefaults), propsWithDefaults);
+    // Build the URL before any OAuth redirection so getURL() still matches PgConnection.getURL():
+    // the token provider is passed as a connection property, not appended to the URL.
+    String url = getURL(propsWithDefaults);
+
+    if (isOAuthMode()) {
+      propsWithDefaults = addOAuthProperties(propsWithDefaults);
+    }
+    return DriverManager.getConnection(url, propsWithDefaults);
+  }
+
+  /**
+   * Helper - configures a DataSource to use OAuth authentication.
+   */
+  public static void configureOAuthIfNeeded(BaseDataSource bds) {
+    if (!isOAuthMode()) {
+      return;
+    }
+    // If datasource already has OAuth configured leave it as is.
+    if (bds.getOAuthToken() != null || bds.getOAuthTokenProviderClassName() != null) {
+      return;
+    }
+    // If datasource uses a non-default user leave it as is.
+    String defaultUser = getUser();
+    if (defaultUser == null || !defaultUser.equals(bds.getUser())) {
+      return;
+    }
+    bds.setOAuthTokenProviderClassName(getTokenProviderClassName());
+    bds.setOAuthIssuer(getOAuthIssuer());
+    bds.setOAuthClientId(getOAuthClientId());
+    bds.setOAuthClientSecret(getOAuthClientSecret());
+    bds.setOAuthUsername(getOAuthUsername());
+    bds.setOAuthScope(getOAuthScope());
+    // Most tests connect without TLS, so allow OAuth over an unencrypted connections.
+    bds.setOAuthAllowUnencryptedConnection(true);
+    bds.setOAuthAllowInsecureIssuer(true);
+  }
+
+  /**
+   * Helper - adds OAuth properties.
+   */
+  private static Properties addOAuthProperties(Properties props) {
+    // If the caller already has configured OAuth leave it as is.
+    if (PGProperty.OAUTH_TOKEN.getOrDefault(props) != null
+        || PGProperty.OAUTH_TOKEN_PROVIDER_CLASS_NAME.getOrDefault(props) != null) {
+      return props;
+    }
+    // If the caller uses a non-default user leave it as is.
+    String defaultUser = getUser();
+    String user = PGProperty.USER.getOrDefault(props);
+    if (defaultUser == null || !defaultUser.equals(user)) {
+      return props;
+    }
+    Properties resultProps = new Properties(props);
+    resultProps.setProperty(
+        PGProperty.OAUTH_TOKEN_PROVIDER_CLASS_NAME.getName(), getTokenProviderClassName());
+    resultProps.setProperty(PGProperty.OAUTH_ISSUER.getName(), getOAuthIssuer());
+    resultProps.setProperty(PGProperty.OAUTH_ALLOW_INSECURE_ISSUER.getName(), "true");
+    resultProps.setProperty(PGProperty.OAUTH_CLIENT_ID.getName(), getOAuthClientId());
+    resultProps.setProperty(PGProperty.OAUTH_CLIENT_SECRET.getName(), getOAuthClientSecret());
+    resultProps.setProperty(PGProperty.OAUTH_USERNAME.getName(), getOAuthUsername());
+    resultProps.setProperty(PGProperty.OAUTH_SCOPE.getName(), getOAuthScope());
+    // Most tests connect without TLS, so let OAuth work without TLS.
+    // Some tests use their own props and are excluded with TLS.
+    if (resultProps.getProperty(PGProperty.OAUTH_ALLOW_UNENCRYPTED_CONNECTION.getName()) == null) {
+      resultProps.setProperty(PGProperty.OAUTH_ALLOW_UNENCRYPTED_CONNECTION.getName(), "true");
+    }
+    return resultProps;
   }
 
   /**
