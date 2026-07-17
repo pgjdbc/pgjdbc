@@ -2049,7 +2049,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         new DescribeRequest(query, handle, params, describeOnly, handle.getStatementName(),
             params.getTypeOIDs().clone()));
     pendingDescribePortalQueue.add(handle);
-    handle.setStatementDescribed(true);
+    handle.markStatementDescribed(deallocateEpoch);
     handle.setPortalDescribed(true);
   }
 
@@ -2159,6 +2159,41 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       return named;
     }
     return query.getUnnamedHandle();
+  }
+
+  @Override
+  public boolean isStatementDescribed(Query query, @Nullable ParameterList parameters, int flags) {
+    try (ResourceLock ignore = lock.obtain()) {
+      Query[] subqueries = query.getSubqueries();
+      if (subqueries == null) {
+        SimpleParameterList params = parameters == null
+            ? SimpleQuery.NO_PARAMETERS : (SimpleParameterList) parameters;
+        return isStatementDescribed((SimpleQuery) query, params, flags);
+      }
+      SimpleParameterList[] subparams = parameters == null
+          ? null : ((V3ParameterList) parameters).getSubparams();
+      for (int i = 0; i < subqueries.length; i++) {
+        SimpleParameterList subparam = subparams == null
+            ? SimpleQuery.NO_PARAMETERS : subparams[i];
+        if (!isStatementDescribed((SimpleQuery) subqueries[i], subparam, flags)) {
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+
+  private boolean isStatementDescribed(SimpleQuery query, SimpleParameterList params, int flags) {
+    ServerHandle handle = resolveHandle(query, params, flags);
+    if (handle == query.getHandle()) {
+      // The named statement: its describe results are valid only while the upcoming execution
+      // can reuse the statement as-is; a re-prepare (type mismatch or epoch bump) resets them.
+      return handle.isStatementDescribed()
+          && handle.isPreparedFor(params.getTypeOIDs(), deallocateEpoch);
+    }
+    // The unnamed statement: re-parsed on every execution with the same SQL, so its describe
+    // results stay valid until the server may resolve the query differently (epoch bump).
+    return handle.isStatementDescribedAt(deallocateEpoch);
   }
 
   private void sendOneQuery(SimpleQuery query, ServerHandle handle, SimpleParameterList params,

@@ -516,8 +516,10 @@ public class PgStatement implements Statement, BaseStatement {
       flags |= QueryExecutor.QUERY_SUPPRESS_BEGIN;
     }
 
-    if (!queryToExecute.isStatementDescribed() && forceBinaryTransfers
-        && (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
+    if (forceBinaryTransfers
+        && (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0
+        && !connection.getQueryExecutor().isStatementDescribed(queryToExecute, queryParameters,
+            flags)) {
       // Simple 'Q' execution does not need to know parameter types
       // When binaryTransfer is forced, then we need to know resulting parameter and column types,
       // thus sending a describe request.
@@ -919,8 +921,9 @@ public class PgStatement implements Statement, BaseStatement {
     boolean queryReturnsRows = wantsGeneratedKeysAlways
         || (sqlCommand != null && sqlCommand.isReturningKeywordPresent());
     if (queryReturnsRows
-        && !queries[0].isStatementDescribed()
-        && (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
+        && (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0
+        && !connection.getQueryExecutor().isStatementDescribed(queries[0], parameterLists[0],
+            flags)) {
       int describeFlags = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
       try {
         connection.getQueryExecutor().execute(

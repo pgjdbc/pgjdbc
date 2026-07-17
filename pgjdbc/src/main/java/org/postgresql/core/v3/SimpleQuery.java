@@ -352,28 +352,15 @@ class SimpleQuery implements Query {
     handle.setHasBinaryFields(hasBinaryFields);
   }
 
-  // Have we sent a Describe Portal message for this query yet?
-  boolean isPortalDescribed() {
-    return handle.isPortalDescribed();
-  }
-
-  void setPortalDescribed(boolean portalDescribed) {
-    handle.setPortalDescribed(portalDescribed);
-  }
-
   // Have we sent a Describe Statement message for this query yet, on either the named or the
   // unnamed statement? Note that we might not have need to, so this may always be false.
-  // This is a pre-describe gate for the JDBC layer (batch response-size estimation and forced
-  // binary transfers); the protocol layer consults the specific statement instead.
+  // QueryExecutor.isStatementDescribed(Query, ParameterList, int) is the epoch- and
+  // parameter-aware check; this method is the parameter-agnostic approximation.
   @Override
   public boolean isStatementDescribed() {
     ServerHandle unnamedHandle = this.unnamedHandle;
     return handle.isStatementDescribed()
         || (unnamedHandle != null && unnamedHandle.isStatementDescribed());
-  }
-
-  void setStatementDescribed(boolean statementDescribed) {
-    handle.setStatementDescribed(statementDescribed);
   }
 
   @Override

@@ -245,6 +245,24 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   }
 
   /**
+   * Returns true if the statement that an execution of {@code query} with the given parameters
+   * would use has already been described, so a describe-only round trip before executing it would
+   * add nothing. Unlike {@link Query#isStatementDescribed()}, the check accounts for the
+   * parameter types and for invalidation events: a statement the execution would have to
+   * re-prepare (type mismatch, {@code DEALLOCATE ALL}, DDL, or a {@code search_path} change)
+   * reports false even if its previous describe results are still around.
+   *
+   * @param query the query about to be executed
+   * @param parameters parameters of the upcoming execution, or null for no parameters
+   * @param flags execution flags of the upcoming execution; {@link #QUERY_ONESHOT} is honored
+   * @return true if the upcoming execution's statement is described and the describe is current
+   */
+  default boolean isStatementDescribed(Query query, @Nullable ParameterList parameters,
+      int flags) {
+    return query.isStatementDescribed();
+  }
+
+  /**
    * Create an unparameterized Query object suitable for execution by this QueryExecutor. The
    * provided query string is not parsed for parameter placeholders ('?' characters), and the
    * {@link Query#createParameterList} of the returned object will always return an empty

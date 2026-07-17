@@ -46,6 +46,8 @@ class ServerHandle {
   private int @Nullable [] preparedTypes;
   private @Nullable BitSet unspecifiedParams;
   private short deallocateEpoch;
+  /** The epoch {@link #markStatementDescribed(short)} last ran at; see {@link #isStatementDescribedAt(short)}. */
+  private short describedEpoch;
   private @Nullable Integer cachedMaxResultRowSize;
   private @Nullable Map<String, Integer> resultSetColumnNameIndexMap;
   /**
@@ -195,6 +197,24 @@ class ServerHandle {
 
   boolean isStatementDescribed() {
     return statementDescribed;
+  }
+
+  /**
+   * Returns true if the statement is described and the describe happened at the given epoch.
+   * After an epoch bump (DDL, {@code SET search_path}, {@code DEALLOCATE ALL}) the server may
+   * resolve the query differently, so older describe results must not gate away a re-describe.
+   *
+   * @param deallocateEpoch the connection's current deallocate epoch
+   * @return true if the statement is described and the describe is current
+   */
+  boolean isStatementDescribedAt(short deallocateEpoch) {
+    return statementDescribed && describedEpoch == deallocateEpoch;
+  }
+
+  void markStatementDescribed(short deallocateEpoch) {
+    this.statementDescribed = true;
+    this.describedEpoch = deallocateEpoch;
+    this.cachedMaxResultRowSize = null;
   }
 
   void setStatementDescribed(boolean statementDescribed) {
