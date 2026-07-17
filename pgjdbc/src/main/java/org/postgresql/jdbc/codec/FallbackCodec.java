@@ -207,36 +207,56 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
   @Override
   public double decodeAsDouble(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    String s = new String(data, offset, length, ctx.getCharset());
-    try {
-      return Double.parseDouble(s.trim());
-    } catch (NumberFormatException e) {
-      throw Exceptions.cannotConvertValue("double", s, e);
-    }
+    return parseDouble(new String(data, offset, length, ctx.getCharset()));
   }
 
   @Override
   public double decodeAsDouble(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    String text = data.toString();
+    return parseDouble(data.toString());
+  }
+
+  /**
+   * Parses {@code text} as a {@code double}, refusing an overflow the way the server's
+   * {@code numeric->float8} cast does. {@link Double#parseDouble} maps a finite literal beyond the
+   * double range to {@code +/-Infinity}; only a literal that actually spells {@code Infinity} (or
+   * {@code NaN}) is legitimately non-finite. Refusing the former keeps a numeric value read through
+   * the fallback consistent with the dedicated numeric codec and the server.
+   */
+  private static double parseDouble(String text) throws SQLException {
+    String trimmed = text.trim();
+    double d;
     try {
-      return Double.parseDouble(text.trim());
+      d = Double.parseDouble(trimmed);
     } catch (NumberFormatException e) {
       throw Exceptions.cannotConvertValue("double", text, e);
     }
+    if (Double.isInfinite(d) && !isInfinityLiteral(trimmed)) {
+      throw Exceptions.outOfRange(text, "double");
+    }
+    return d;
   }
 
-  // float mirrors decodeAsDouble: the raw text is parsed as a number and narrowed. Without these the
-  // default decodeAsFloat would box decodeBinary's PGUnknownBinary (not a Number) and refuse, so
-  // getFloat would fail on a numeric-text value that getDouble reads -- an inconsistency.
+  /** The spellings {@link Double#parseDouble} accepts as an infinity, with an optional sign. */
+  private static boolean isInfinityLiteral(String trimmed) {
+    return "Infinity".equalsIgnoreCase(trimmed)
+        || "+Infinity".equalsIgnoreCase(trimmed)
+        || "-Infinity".equalsIgnoreCase(trimmed);
+  }
+
+  // float mirrors decodeAsDouble: the raw text is parsed as a number and narrowed through
+  // NumberDecoders.doubleToFloat, which refuses an overflow to +/-Infinity or a nonzero underflow to 0
+  // (matching numeric->float4). Without these the default decodeAsFloat would box decodeBinary's
+  // PGUnknownBinary (not a Number) and refuse, so getFloat would fail on a numeric-text value that
+  // getDouble reads -- an inconsistency.
   @Override
   public float decodeAsFloat(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    return (float) decodeAsDouble(data, offset, length, type, ctx);
+    return NumberDecoders.doubleToFloat(decodeAsDouble(data, offset, length, type, ctx));
   }
 
   @Override
   public float decodeAsFloat(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return (float) decodeAsDouble(data, type, ctx);
+    return NumberDecoders.doubleToFloat(decodeAsDouble(data, type, ctx));
   }
 
 }

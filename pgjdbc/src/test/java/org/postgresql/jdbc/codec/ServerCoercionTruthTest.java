@@ -7,6 +7,11 @@ package org.postgresql.jdbc.codec;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.TypeDescriptor;
+import org.postgresql.jdbc.ObjectName;
+import org.postgresql.jdbc.PgType;
+import org.postgresql.jdbc.TestCodecContext;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.data.EdgeCase;
 import org.postgresql.test.data.Float4EdgeCases;
@@ -133,6 +138,62 @@ class ServerCoercionTruthTest {
       assertEquals(server.value, client.value, () ->
           source + " '" + literal + "' get" + c + " must equal the server " + source + "->"
               + c.castType + " cast");
+    }
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // FallbackCodec is the last-resort codec for a type with no dedicated decoder. It reads a value from
+  // its text form, so a numeric value read through it must narrow to float/double the same way the
+  // server's numeric->float4/float8 cast does. There is no live column that resolves to it and still
+  // casts to float on the server, so this pins the fallback directly: the value's canonical numeric
+  // text is fed to FallbackCodec offline and compared with the server's own cast of the same literal.
+  // Only the float/double narrowings are checked -- the fallback's int accessors parse the text and so
+  // refuse a fractional value the server would round, a divergence outside this narrowing oracle.
+  // ---------------------------------------------------------------------------------------------
+
+  private static final TypeDescriptor UNKNOWN_TYPE = new PgType(
+      new ObjectName("pg_catalog", "unknown_type"), "unknown_type", 99999, 'b', 'X', -1, 0, 0, 0);
+  private static final CodecContext OFFLINE_CTX = TestCodecContext.create();
+
+  static List<Arguments> fallbackFloatingCases() {
+    List<Arguments> out = new ArrayList<>();
+    for (EdgeCase e : NumericEdgeCases.ALL) {
+      // Skip the numeric specials (NaN / +/-Infinity), consistent with cases() above.
+      if (e.value() == null) {
+        continue;
+      }
+      out.add(Arguments.of(e.name(), e.literal(), Coercion.FLOAT));
+      out.add(Arguments.of(e.name(), e.literal(), Coercion.DOUBLE));
+    }
+    return out;
+  }
+
+  @ParameterizedTest(name = "fallback/{2}/{0}")
+  @MethodSource("fallbackFloatingCases")
+  void fallbackNumericFloatingMatchesServerCast(String caseName, String literal, Coercion c) {
+    Outcome server = read(c.reader, "SELECT '" + literal + "'::numeric::" + c.castType);
+    Outcome client = readFallback(literal, c);
+    assertEquals(server.refused, client.refused, () ->
+        "fallback numeric '" + literal + "' get" + c + ": client refusal must match the server "
+            + "numeric->" + c.castType + " cast (client=" + client + ", server=" + server + ")");
+    if (!server.refused) {
+      assertEquals(server.value, client.value, () ->
+          "fallback numeric '" + literal + "' get" + c + " must equal the server numeric->"
+              + c.castType + " cast");
+    }
+  }
+
+  /** Reads {@code literal} through {@link FallbackCodec}'s float/double accessor, offline. */
+  private static Outcome readFallback(String literal, Coercion c) {
+    try {
+      String value = c == Coercion.FLOAT
+          ? Integer.toString(Float.floatToIntBits(
+              FallbackCodec.INSTANCE.decodeAsFloat(literal, UNKNOWN_TYPE, OFFLINE_CTX)))
+          : Long.toString(Double.doubleToLongBits(
+              FallbackCodec.INSTANCE.decodeAsDouble(literal, UNKNOWN_TYPE, OFFLINE_CTX)));
+      return new Outcome(false, value);
+    } catch (SQLException refused) {
+      return new Outcome(true, null);
     }
   }
 

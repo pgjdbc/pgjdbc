@@ -54,6 +54,11 @@ public final class KnownDifferences {
       "overflows_float4", "negative_overflows_float4", "underflows_float4",
       "largest", "smallest_subnormal"));
 
+  // The numeric edge cases whose magnitude exceeds the float8 range, so the fixed getDouble refuses them
+  // (see the rule below). Enumerated explicitly for the same reason as FLOAT8_OUT_OF_FLOAT4_RANGE.
+  private static final Set<String> NUMERIC_OUT_OF_FLOAT8_RANGE = new HashSet<>(Arrays.asList(
+      "float8_overflow_positive", "float8_overflow_negative"));
+
   // Which entries actually explained a difference during the run. An entry that never matched is
   // reported by unusedEntries() so a converged divergence does not rot in the registry unnoticed.
   private static final Set<String> USED_POINTS = new HashSet<>();
@@ -273,6 +278,24 @@ public final class KnownDifferences {
       return null;
     });
 
+    // Server-parity: getDouble on a numeric whose magnitude exceeds the float8 range now refuses with
+    // 22003, as the server's numeric->float8 cast does. The baseline narrowed with BigDecimal.doubleValue
+    // and returned the saturated +/-Infinity, silently losing the value. The named cases are the numeric
+    // edge values that overflow float8; enumerated explicitly (not by the "numeric-edge|" prefix) so a
+    // future numeric edge case that starts diverging on getDouble for another reason surfaces instead of
+    // being absorbed here.
+    RULES.add((label, current, baseline) -> {
+      if (label.startsWith("numeric-edge|") && label.endsWith("|GET_DOUBLE")
+          && current.threw() && "22003".equals(current.sqlState()) && !baseline.threw()) {
+        String[] parts = label.split("\\|");
+        if (parts.length == 4 && NUMERIC_OUT_OF_FLOAT8_RANGE.contains(parts[2])) {
+          return "getDouble on an out-of-double-range numeric refuses (server numeric->float8 parity); "
+              + "the baseline saturated to +/-Infinity";
+        }
+      }
+      return null;
+    });
+
     // Intended new type: range getObject returns a typed org.postgresql.util.PGRange where the baseline
     // returned a generic PGobject. Accept only when the rendered value is otherwise identical, so a value
     // change (for example a tsrange bound formatted differently) is still reported.
@@ -394,8 +417,14 @@ public final class KnownDifferences {
     }
 
     // Server-parity: getString on a small binary numeric now uses the plain form, matching the server's
-    // ::text, where the baseline used BigDecimal's scientific notation (1E-20).
+    // ::text, where the baseline used BigDecimal's scientific notation (1E-20). The float4-underflow edge
+    // values (1e-46) are fractional enough to render in scientific notation on the baseline too; the
+    // overflow values decode from the wire as scale-0 integers, so both drivers already render them plain.
     point(numericEdgeLabel("binary", "tiny", Accessor.GET_STRING),
+        "getString on a small binary numeric now uses the plain form instead of scientific notation");
+    point(numericEdgeLabel("binary", "float4_underflow_positive", Accessor.GET_STRING),
+        "getString on a small binary numeric now uses the plain form instead of scientific notation");
+    point(numericEdgeLabel("binary", "float4_underflow_negative", Accessor.GET_STRING),
         "getString on a small binary numeric now uses the plain form instead of scientific notation");
 
     // 24:00:00 policy (issues #1385 / #3224): PostgreSQL accepts time/timetz 24:00:00 (its documented

@@ -166,6 +166,69 @@ class NumericCodecTest {
     assertEquals(3.14f, result, 0.001f);
   }
 
+  private double decodeAsDoubleTextAndBinary(String literal) throws SQLException {
+    double fromText = codec.decodeAsDouble(literal, numericType, null);
+    byte[] binary = ByteConverter.numeric(new BigDecimal(literal));
+    double fromBinary = codec.decodeAsDouble(binary, 0, binary.length, numericType, null);
+    assertEquals(Double.doubleToRawLongBits(fromText), Double.doubleToRawLongBits(fromBinary), literal);
+    return fromText;
+  }
+
+  private float decodeAsFloatTextAndBinary(String literal) throws SQLException {
+    float fromText = codec.decodeAsFloat(literal, numericType, null);
+    byte[] binary = ByteConverter.numeric(new BigDecimal(literal));
+    float fromBinary = codec.decodeAsFloat(binary, 0, binary.length, numericType, null);
+    assertEquals(Float.floatToRawIntBits(fromText), Float.floatToRawIntBits(fromBinary), literal);
+    return fromText;
+  }
+
+  private void assertDoubleOutOfRange(String literal) {
+    assertThrows(SQLException.class, () -> codec.decodeAsDouble(literal, numericType, null), literal);
+    byte[] binary = ByteConverter.numeric(new BigDecimal(literal));
+    assertThrows(SQLException.class,
+        () -> codec.decodeAsDouble(binary, 0, binary.length, numericType, null), literal);
+  }
+
+  private void assertFloatOutOfRange(String literal) {
+    assertThrows(SQLException.class, () -> codec.decodeAsFloat(literal, numericType, null), literal);
+    byte[] binary = ByteConverter.numeric(new BigDecimal(literal));
+    assertThrows(SQLException.class,
+        () -> codec.decodeAsFloat(binary, 0, binary.length, numericType, null), literal);
+  }
+
+  // Regression: getFloat on a numeric outside float4's range must refuse, matching PostgreSQL's
+  // numeric->float4 cast, rather than saturate a finite value to +/-Infinity (overflow) or a nonzero
+  // value to 0 (underflow). A value inside the range still reads.
+  @Test
+  void decodeAsFloat_outOfRange_refuses() throws SQLException {
+    assertFloatOutOfRange("1e39");
+    assertFloatOutOfRange("-1e39");
+    assertFloatOutOfRange("1e-46");
+    assertFloatOutOfRange("-1e-46");
+    assertEquals(1.5f, decodeAsFloatTextAndBinary("1.5"));
+  }
+
+  // Regression: getDouble on a numeric outside float8's range must refuse (overflow), matching
+  // numeric->float8, rather than saturate to +/-Infinity. A value inside the range still reads.
+  @Test
+  void decodeAsDouble_outOfRange_refuses() throws SQLException {
+    assertDoubleOutOfRange("1e309");
+    assertDoubleOutOfRange("-1e309");
+    assertEquals(1.5, decodeAsDoubleTextAndBinary("1.5"));
+  }
+
+  // A genuine numeric NaN / +/-Infinity is not an overflow: float and double represent it, so the
+  // accessors return it rather than refusing.
+  @Test
+  void decodeAsFloatAndDouble_specialValues_passThrough() throws SQLException {
+    assertEquals(Double.NaN, codec.decodeAsDouble("NaN", numericType, null));
+    assertEquals(Double.POSITIVE_INFINITY, codec.decodeAsDouble("Infinity", numericType, null));
+    assertEquals(Double.NEGATIVE_INFINITY, codec.decodeAsDouble("-Infinity", numericType, null));
+    assertEquals(Float.NaN, codec.decodeAsFloat("NaN", numericType, null));
+    assertEquals(Float.POSITIVE_INFINITY, codec.decodeAsFloat("Infinity", numericType, null));
+    assertEquals(Float.NEGATIVE_INFINITY, codec.decodeAsFloat("-Infinity", numericType, null));
+  }
+
   // Regression: the float/double text accessors go through Double.parseDouble, which keeps a signed
   // zero; the char[] overloads must agree with the String form rather than fall through to the
   // BigDecimal path, which has no signed zero and would read "-0.0" as +0.0.

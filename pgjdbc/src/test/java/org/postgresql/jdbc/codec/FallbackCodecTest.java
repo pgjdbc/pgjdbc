@@ -194,4 +194,24 @@ class FallbackCodecTest {
     assertThrows(SQLException.class, () -> codec.decodeAsDouble(wire, 0, wire.length, unknownType, ctx));
     assertThrows(SQLException.class, () -> codec.decodeAsFloat(wire, 0, wire.length, unknownType, ctx));
   }
+
+  // A finite value beyond the float range must refuse, matching the server's numeric->float4 cast,
+  // rather than saturate to +/-Infinity (overflow) or a nonzero underflow to 0.
+  @Test
+  void decodeAsFloat_refusesOverflowAndUnderflow() {
+    assertThrows(SQLException.class, () -> codec.decodeAsFloat("1e39", unknownType, ctx));
+    assertThrows(SQLException.class, () -> codec.decodeAsFloat("-1e39", unknownType, ctx));
+    assertThrows(SQLException.class, () -> codec.decodeAsFloat("1e-46", unknownType, ctx));
+    assertThrows(SQLException.class, () -> codec.decodeAsFloat("-1e-46", unknownType, ctx));
+  }
+
+  // A finite value beyond the double range overflows and must refuse, but a literal that actually
+  // spells infinity keeps its value.
+  @Test
+  void decodeAsDouble_refusesOverflowButKeepsInfinityLiteral() throws SQLException {
+    assertThrows(SQLException.class, () -> codec.decodeAsDouble("1e309", unknownType, ctx));
+    assertThrows(SQLException.class, () -> codec.decodeAsDouble("-1e309", unknownType, ctx));
+    assertEquals(Double.POSITIVE_INFINITY, codec.decodeAsDouble("Infinity", unknownType, ctx));
+    assertEquals(Double.NEGATIVE_INFINITY, codec.decodeAsDouble("-Infinity", unknownType, ctx));
+  }
 }

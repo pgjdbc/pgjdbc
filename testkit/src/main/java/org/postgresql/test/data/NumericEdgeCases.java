@@ -36,7 +36,10 @@ public final class NumericEdgeCases {
   /** Zero variants, sign, trailing zeros: the everyday shapes that still catch scale bugs. */
   public static final List<EdgeCase> BASIC = Collections.unmodifiableList(basics());
 
-  /** Precision and scale extremes plus binary-format (base-10000) group boundaries. */
+  /**
+   * Precision and scale extremes, binary-format (base-10000) group boundaries, and values just
+   * outside the {@code float4} / {@code float8} range that a narrowing read must refuse.
+   */
   public static final List<EdgeCase> PRECISION = Collections.unmodifiableList(precision());
 
   /** Values on and around each integer type's min/max, including {@code x.5} rounding points. */
@@ -79,6 +82,17 @@ public final class NumericEdgeCases {
     out.add(at("group_boundary_fraction", new BigDecimal("0.0001")));
     out.add(at("group_boundary_10000", new BigDecimal("10000")));
     out.add(at("just_below_group", new BigDecimal("9999.9999")));
+    // Floating-point range boundaries: values just outside float4's range (both signs), so a
+    // numeric->float4 read must refuse -- overflow past Float.MAX_VALUE (~3.4e38) to +/-Infinity, and a
+    // nonzero value below the smallest subnormal float (~1.4e-45) that underflows to 0 -- and just
+    // outside float8's range, so a numeric->float8 read overflows past Double.MAX_VALUE (~1.8e308).
+    // All stay comfortably within numeric's own precision.
+    out.add(at("float4_overflow_positive", new BigDecimal("1e39")));
+    out.add(at("float4_overflow_negative", new BigDecimal("-1e39")));
+    out.add(at("float4_underflow_positive", new BigDecimal("1e-46")));
+    out.add(at("float4_underflow_negative", new BigDecimal("-1e-46")));
+    out.add(at("float8_overflow_positive", new BigDecimal("1e309")));
+    out.add(at("float8_overflow_negative", new BigDecimal("-1e309")));
     return out;
   }
 

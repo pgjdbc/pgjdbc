@@ -170,7 +170,12 @@ class JqfDifferentialWriteValueFuzzTest {
    * getString now renders the plain form where the baseline used scientific notation ({@code 1E-20}).
    */
   private static boolean isKnownParityDifference(String castType, String caseName) {
-    return "numeric".equals(castType) && "tiny".equals(caseName);
+    // A small numeric binds in the plain form (server ::text parity) where the baseline used
+    // BigDecimal's scientific notation (1E-20 / 1E-46). Same server value, different rendering.
+    return "numeric".equals(castType)
+        && ("tiny".equals(caseName)
+            || "float4_underflow_positive".equals(caseName)
+            || "float4_underflow_negative".equals(caseName));
   }
 
   private static <T> T castNonNull(@Nullable T value) {

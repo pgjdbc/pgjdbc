@@ -219,7 +219,14 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
   public double decodeAsDouble(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
     Number result = numericFromWire(data, offset, length);
-    return result.doubleValue();
+    double d = result.doubleValue();
+    // A finite numeric whose magnitude exceeds the double range overflows to +/-Infinity; refuse it
+    // rather than saturate, matching PostgreSQL's numeric->float8 cast. A genuine NaN / +/-Infinity is
+    // a Double sentinel (numericFromWire never returns a BigDecimal for those), so it passes through.
+    if (result instanceof BigDecimal && Double.isInfinite(d)) {
+      throw Exceptions.outOfRange(result, "double");
+    }
+    return d;
   }
 
   @Override
@@ -234,22 +241,33 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
     if ("-Infinity".equalsIgnoreCase(trimmed)) {
       return Double.NEGATIVE_INFINITY;
     }
+    double d;
     try {
-      return Double.parseDouble(trimmed);
+      d = Double.parseDouble(trimmed);
     } catch (NumberFormatException e) {
       throw Exceptions.cannotConvertValue("double", trimmed, e);
     }
+    // The special spellings are handled above, so an infinite result here is a finite value that
+    // overflowed the double range; refuse it, matching numeric->float8.
+    if (Double.isInfinite(d)) {
+      throw Exceptions.outOfRange(trimmed, "double");
+    }
+    return d;
   }
+
+  // float narrows through decodeAsDouble and NumberDecoders.doubleToFloat, which refuses a finite
+  // value that overflows to +/-Infinity or a nonzero value that underflows to 0 (matching
+  // numeric->float4) while letting a genuine NaN / +/-Infinity through.
 
   @Override
   public float decodeAsFloat(byte[] data, int offset, int length, TypeDescriptor type, CodecContext ctx)
       throws SQLException {
-    return (float) decodeAsDouble(data, offset, length, type, ctx);
+    return NumberDecoders.doubleToFloat(decodeAsDouble(data, offset, length, type, ctx));
   }
 
   @Override
   public float decodeAsFloat(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
-    return (float) decodeAsDouble(data, type, ctx);
+    return NumberDecoders.doubleToFloat(decodeAsDouble(data, type, ctx));
   }
 
   @Override
