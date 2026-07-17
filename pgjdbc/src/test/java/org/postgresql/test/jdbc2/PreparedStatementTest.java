@@ -1823,7 +1823,7 @@ public class PreparedStatementTest extends BaseTest4 {
     assumeBinaryModeForce();
     PreparedStatement ps = con.prepareStatement("SELECT /*testAlternatingBindType*/ ?");
     ResultSet rs;
-    Logger log = Logger.getLogger("org.postgresql.core.v3.SimpleQuery");
+    Logger log = Logger.getLogger("org.postgresql.core.v3.ServerHandle");
     Level prevLevel = log.getLevel();
     if (prevLevel == null || prevLevel.intValue() > Level.FINER.intValue()) {
       log.setLevel(Level.FINER);

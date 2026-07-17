@@ -12,28 +12,21 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.SqlCommand;
-import org.postgresql.jdbc.PgResultSet;
-import org.postgresql.jdbc.TypeInfoCache;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.ref.PhantomReference;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
- * V3 Query implementation for a single-statement query. This also holds the state of any associated
- * server-side named statement. We use a PhantomReference managed by the QueryExecutor to handle
- * statement cleanup.
+ * V3 Query implementation for a single-statement query. The state of the associated server-side
+ * named statement lives in a {@link ServerHandle}; a PhantomReference managed by the QueryExecutor
+ * handles statement cleanup.
  *
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 class SimpleQuery implements Query {
-  private static final Logger LOGGER = Logger.getLogger(SimpleQuery.class.getName());
 
   SimpleQuery(SimpleQuery src) {
     this(src.nativeQuery, src.transferModeRegistry, src.sanitiserDisabled);
@@ -91,30 +84,7 @@ class SimpleQuery implements Query {
    * @throws IllegalStateException if the query is not described
    */
   public int getMaxResultRowSize() {
-    if (cachedMaxResultRowSize != null) {
-      return cachedMaxResultRowSize;
-    }
-    if (!this.statementDescribed) {
-      throw new IllegalStateException(
-          "Cannot estimate result row size on a statement that is not described");
-    }
-    int maxResultRowSize = 0;
-    if (fields != null) {
-      for (Field f : fields) {
-        final int fieldLength = TypeInfoCache.estimateMaxLength(f.getOID(), f.getLength(), f.getMod());
-        if (fieldLength < 0) {
-          /*
-           * Field length unknown or large; we can't make any safe estimates about the result size,
-           * so we have to fall back to sending queries individually.
-           */
-          maxResultRowSize = -1;
-          break;
-        }
-        maxResultRowSize += fieldLength;
-      }
-    }
-    cachedMaxResultRowSize = maxResultRowSize;
-    return maxResultRowSize;
+    return handle.getMaxResultRowSize();
   }
 
   //
@@ -127,96 +97,27 @@ class SimpleQuery implements Query {
   }
 
   void setStatementName(String statementName, short deallocateEpoch) {
-    assert statementName != null : "statement name should not be null";
-    this.statementName = statementName;
-    this.encodedStatementName = statementName.getBytes(StandardCharsets.UTF_8);
-    this.deallocateEpoch = deallocateEpoch;
+    handle.setStatementName(statementName, deallocateEpoch);
   }
 
   void setPrepareTypes(int[] paramTypes) {
-    // Remember which parameters were unspecified since the parameters will be overridden later by
-    // ParameterDescription message
-    for (int i = 0; i < paramTypes.length; i++) {
-      int paramType = paramTypes[i];
-      if (paramType == Oid.UNSPECIFIED) {
-        if (this.unspecifiedParams == null) {
-          this.unspecifiedParams = new BitSet();
-        }
-        this.unspecifiedParams.set(i);
-      }
-    }
-
-    // paramTypes is changed by "describe statement" response, so we clone the array
-    // However, we can reuse array if there is one
-    if (this.preparedTypes == null) {
-      this.preparedTypes = paramTypes.clone();
-      return;
-    }
-    System.arraycopy(paramTypes, 0, this.preparedTypes, 0, paramTypes.length);
+    handle.setPrepareTypes(paramTypes);
   }
 
   int @Nullable [] getPrepareTypes() {
-    return preparedTypes;
+    return handle.getPrepareTypes();
   }
 
   @Nullable String getStatementName() {
-    return statementName;
+    return handle.getStatementName();
   }
 
   boolean isPreparedFor(int[] paramTypes, short deallocateEpoch) {
-    if (statementName == null || preparedTypes == null) {
-      return false; // Not prepared.
-    }
-    if (this.deallocateEpoch != deallocateEpoch) {
-      return false;
-    }
-
-    assert paramTypes.length == preparedTypes.length
-        : String.format("paramTypes:%1$d preparedTypes:%2$d", paramTypes.length,
-        preparedTypes.length);
-    // Check for compatible types.
-    BitSet unspecified = this.unspecifiedParams;
-    for (int i = 0; i < paramTypes.length; i++) {
-      int paramType = paramTypes[i];
-      // Either paramType should match prepared type
-      // Or paramType==UNSPECIFIED and the prepare type was UNSPECIFIED
-
-      // Note: preparedTypes can be updated by "statement describe"
-      // 1) parse(name="S_01", sql="select ?::timestamp", types={UNSPECIFIED})
-      // 2) statement describe: bind 1 type is TIMESTAMP
-      // 3) SimpleQuery.preparedTypes is updated to TIMESTAMP
-      // ...
-      // 4.1) bind(name="S_01", ..., types={TIMESTAMP}) -> OK (since preparedTypes is equal to TIMESTAMP)
-      // 4.2) bind(name="S_01", ..., types={UNSPECIFIED}) -> OK (since the query was initially parsed with UNSPECIFIED)
-      // 4.3) bind(name="S_01", ..., types={DATE}) -> KO, unprepare and parse required
-
-      int preparedType = preparedTypes[i];
-      if (paramType != preparedType
-          && (paramType != Oid.UNSPECIFIED
-          || unspecified == null
-          || !unspecified.get(i))) {
-        if (LOGGER.isLoggable(Level.FINER)) {
-          LOGGER.log(Level.FINER,
-              "Statement {0} does not match new parameter types. Will have to un-prepare it and parse once again."
-                  + " To avoid performance issues, use the same data type for the same bind position. Bind index (1-based) is {1},"
-                  + " preparedType was {2} (after describe {3}), current bind type is {4}",
-              new Object[]{statementName, i + 1,
-                  Oid.toString(unspecified != null && unspecified.get(i) ? 0 : preparedType),
-                  Oid.toString(preparedType), Oid.toString(paramType)});
-        }
-        return false;
-      }
-    }
-
-    return true;
+    return handle.isPreparedFor(paramTypes, deallocateEpoch);
   }
 
   boolean hasUnresolvedTypes() {
-    if (preparedTypes == null) {
-      return true;
-    }
-
-    return this.unspecifiedParams != null && !this.unspecifiedParams.isEmpty();
+    return handle.hasUnresolvedTypes();
   }
 
   /**
@@ -343,7 +244,7 @@ class SimpleQuery implements Query {
   @Override
   public long getRetainedSizeExcludingSql() {
     long size = 0;
-    int[] preparedTypes = this.preparedTypes;
+    int @Nullable [] preparedTypes = handle.getPrepareTypes();
     if (preparedTypes != null) {
       size += 4L * preparedTypes.length;
     }
@@ -361,7 +262,7 @@ class SimpleQuery implements Query {
   }
 
   byte @Nullable [] getEncodedStatementName() {
-    return encodedStatementName;
+    return handle.getEncodedStatementName();
   }
 
   /**
@@ -370,11 +271,7 @@ class SimpleQuery implements Query {
    * @param fields The fields that this query will return.
    */
   void setFields(Field @Nullable [] fields) {
-    this.fields = fields;
-    this.resultSetColumnNameIndexMap = null;
-    this.cachedMaxResultRowSize = null;
-    this.needUpdateFieldFormats = fields != null;
-    this.hasBinaryFields = false; // just in case
+    handle.setFields(fields);
   }
 
   /**
@@ -384,7 +281,7 @@ class SimpleQuery implements Query {
    * @return the fields that this query will return.
    */
   Field @Nullable [] getFields() {
-    return fields;
+    return handle.getFields();
   }
 
   /**
@@ -396,45 +293,39 @@ class SimpleQuery implements Query {
    * @return true if current query needs field formats be adjusted as per connection configuration
    */
   boolean needUpdateFieldFormats() {
-    if (needUpdateFieldFormats) {
-      needUpdateFieldFormats = false;
-      return true;
-    }
-    return false;
+    return handle.needUpdateFieldFormats();
   }
 
   public void resetNeedUpdateFieldFormats() {
-    needUpdateFieldFormats = fields != null;
+    handle.resetNeedUpdateFieldFormats();
   }
 
   public boolean hasBinaryFields() {
-    return hasBinaryFields;
+    return handle.hasBinaryFields();
   }
 
   public void setHasBinaryFields(boolean hasBinaryFields) {
-    this.hasBinaryFields = hasBinaryFields;
+    handle.setHasBinaryFields(hasBinaryFields);
   }
 
   // Have we sent a Describe Portal message for this query yet?
   boolean isPortalDescribed() {
-    return portalDescribed;
+    return handle.isPortalDescribed();
   }
 
   void setPortalDescribed(boolean portalDescribed) {
-    this.portalDescribed = portalDescribed;
-    this.cachedMaxResultRowSize = null;
+    handle.setPortalDescribed(portalDescribed);
   }
 
   // Have we sent a Describe Statement message for this query yet?
   // Note that we might not have need to, so this may always be false.
   @Override
   public boolean isStatementDescribed() {
-    return statementDescribed;
+    return handle.isStatementDescribed();
   }
 
   void setStatementDescribed(boolean statementDescribed) {
-    this.statementDescribed = statementDescribed;
-    this.cachedMaxResultRowSize = null;
+    handle.setStatementDescribed(statementDescribed);
   }
 
   @Override
@@ -443,32 +334,11 @@ class SimpleQuery implements Query {
   }
 
   void setCleanupRef(PhantomReference<?> cleanupRef) {
-    PhantomReference<?> oldCleanupRef = this.cleanupRef;
-    if (oldCleanupRef != null) {
-      oldCleanupRef.clear();
-      oldCleanupRef.enqueue();
-    }
-    this.cleanupRef = cleanupRef;
+    handle.setCleanupRef(cleanupRef);
   }
 
   void unprepare() {
-    PhantomReference<?> cleanupRef = this.cleanupRef;
-    if (cleanupRef != null) {
-      cleanupRef.clear();
-      cleanupRef.enqueue();
-      this.cleanupRef = null;
-    }
-    if (this.unspecifiedParams != null) {
-      this.unspecifiedParams.clear();
-    }
-
-    statementName = null;
-    encodedStatementName = null;
-    fields = null;
-    this.resultSetColumnNameIndexMap = null;
-    portalDescribed = false;
-    statementDescribed = false;
-    cachedMaxResultRowSize = null;
+    handle.unprepare();
   }
 
   @Override
@@ -484,20 +354,9 @@ class SimpleQuery implements Query {
     return nativeQuery.bindPositions.length * getBatchSize();
   }
 
-  private @Nullable Map<String, Integer> resultSetColumnNameIndexMap;
-
   @Override
   public @Nullable Map<String, Integer> getResultSetColumnNameIndexMap() {
-    Map<String, Integer> columnPositions = this.resultSetColumnNameIndexMap;
-    if (columnPositions == null && fields != null) {
-      columnPositions =
-          PgResultSet.createColumnNameIndexMap(fields, sanitiserDisabled);
-      if (statementName != null) {
-        // Cache column positions for server-prepared statements only
-        this.resultSetColumnNameIndexMap = columnPositions;
-      }
-    }
-    return columnPositions;
+    return handle.getResultSetColumnNameIndexMap(sanitiserDisabled);
   }
 
   @Override
@@ -508,22 +367,13 @@ class SimpleQuery implements Query {
   private final NativeQuery nativeQuery;
 
   private final @Nullable TypeTransferModeRegistry transferModeRegistry;
-  private @Nullable String statementName;
-  private byte @Nullable [] encodedStatementName;
-  /**
-   * The stored fields from previous execution or describe of a prepared statement. Always null for
-   * non-prepared statements.
-   */
-  private Field @Nullable [] fields;
-  private boolean needUpdateFieldFormats;
-  private boolean hasBinaryFields;
-  private boolean portalDescribed;
-  private boolean statementDescribed;
   private final boolean sanitiserDisabled;
-  private @Nullable PhantomReference<?> cleanupRef;
-  private int @Nullable [] preparedTypes;
-  private @Nullable BitSet unspecifiedParams;
-  private short deallocateEpoch;
+
+  /**
+   * The server-side prepared statement backing this query, including its describe results. The
+   * handle instance is permanent for now; {@link ServerHandle#unprepare()} resets its state.
+   */
+  private final ServerHandle handle = new ServerHandle();
 
   /**
    * Maximum number of cached "describe statement" results per query. Real workloads use one or
@@ -543,8 +393,6 @@ class SimpleQuery implements Query {
    * cached results share it, since a bump discards them all at once.
    */
   private short describeResultsEpoch;
-
-  private @Nullable Integer cachedMaxResultRowSize;
 
   static final SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null);
 }
