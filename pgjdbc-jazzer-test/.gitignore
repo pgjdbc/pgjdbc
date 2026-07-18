@@ -1,0 +1,6 @@
+# Jazzer fuzzing outputs land in the module directory
+/.cifuzz-corpus/
+/crash-*
+/timeout-*
+/slow-unit-*
+/oom-*

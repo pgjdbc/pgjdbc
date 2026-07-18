@@ -5,19 +5,25 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGConnection;
+import org.postgresql.api.codec.CodecContext;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.PgArray;
+import org.postgresql.jdbc.PgType;
 import org.postgresql.jdbc.PreferQueryMode;
+import org.postgresql.jdbc.codec.ArrayCodec;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 
@@ -40,6 +46,8 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 @ParameterizedClass
 @MethodSource("data")
@@ -98,6 +106,153 @@ public class ArrayTest extends BaseTest4 {
     pstmt.executeUpdate();
 
     pstmt.close();
+  }
+
+  @Test
+  public void testSetForeignArray() throws SQLException {
+    // A non-PgArray java.sql.Array must bind via its backing array, not via Array.toString().
+    Array foreign = new ForeignArray("int4", Types.INTEGER, new Integer[]{1, 2, 3});
+    try (PreparedStatement ps = conn.prepareStatement("SELECT ?::int[]")) {
+      ps.setArray(1, foreign);
+      try (ResultSet rs = ps.executeQuery()) {
+        assertTrue(rs.next());
+        Array result = rs.getArray(1);
+        assertArrayEquals(new Integer[]{1, 2, 3}, (Integer[]) result.getArray());
+      }
+    }
+  }
+
+  @Test
+  public void testForeignArrayEncodeText() throws SQLException {
+    // ArrayCodec.encodeText must unwrap a foreign java.sql.Array (mirroring encodeBinary) rather
+    // than emitting its toString(); a PgArray still renders itself verbatim.
+    BaseConnection bc = conn.unwrap(BaseConnection.class);
+    CodecContext ctx = bc.getCodecContext();
+    PgType intArrayType = bc.getTypeInfo().getPgTypeByOid(Oid.INT4_ARRAY);
+    Array foreign = new ForeignArray("int4", Types.INTEGER, new Integer[]{1, 2, 3});
+    assertEquals("{1,2,3}", ArrayCodec.INSTANCE.encodeText(foreign, intArrayType, ctx));
+  }
+
+  /**
+   * A {@code numeric} array whose element is NaN / ±Infinity must refuse with a checked
+   * {@link SQLException} ({@code SQLState 22003}) when materialized as its default
+   * {@code BigDecimal[]}, never leak an unchecked exception. The scalar numeric NaN {@code getObject}
+   * surfaces a {@link Double} sentinel, but {@code BigDecimal[]} cannot hold it, so the element decode
+   * refuses — matching {@code getBigDecimal} and the 42.7.13 baseline. Runs under both wire formats
+   * (the class is parameterized over {@link BinaryMode}); {@code Infinity} needs PostgreSQL 14+.
+   */
+  @Test
+  public void testNumericArrayNonFiniteElementRefused() throws SQLException {
+    List<String> literals = new ArrayList<>();
+    literals.add("NaN");
+    if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v14)) {
+      literals.add("Infinity");
+      literals.add("-Infinity");
+    }
+    for (String literal : literals) {
+      for (String sql : new String[]{
+          "SELECT ARRAY['" + literal + "'::numeric]",
+          "SELECT ARRAY[ARRAY['" + literal + "'::numeric]]"}) {
+        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+          assertTrue(rs.next(), sql);
+          Array arr = (Array) rs.getObject(1);
+          SQLException ex = assertThrows(SQLException.class, arr::getArray, sql);
+          assertEquals("22003", ex.getSQLState(), sql + " must report SQLState 22003");
+        }
+      }
+    }
+  }
+
+  /**
+   * {@code Double} can represent NaN / ±Infinity, so requesting a {@code Double[]} from a
+   * non-finite {@code numeric} array returns the sentinel rather than refusing — each element decodes
+   * through the numeric codec's {@code decodeAsDouble}. Both wire formats; {@code Infinity} needs
+   * PostgreSQL 14+.
+   */
+  @Test
+  public void testNumericArrayNonFiniteToDoubleArray() throws SQLException {
+    boolean pg14 = TestUtil.haveMinimumServerVersion(conn, ServerVersion.v14);
+    String select = pg14
+        ? "SELECT ARRAY['NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric, '1.5'::numeric]"
+        : "SELECT ARRAY['NaN'::numeric, '1.5'::numeric]";
+    Double[] expected = pg14
+        ? new Double[]{Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, 1.5}
+        : new Double[]{Double.NaN, 1.5};
+    try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(select)) {
+      assertTrue(rs.next());
+      assertArrayEquals(expected, rs.getObject(1, Double[].class), "numeric[] as Double[]");
+    }
+  }
+
+  /**
+   * Minimal foreign {@link Array} (not a {@link PgArray}) used to verify that
+   * {@link PreparedStatement#setArray} and {@link ArrayCodec} bind any JDBC array, not only
+   * pgjdbc's own. Only {@link #getBaseTypeName()} and {@link #getArray()} are exercised.
+   */
+  private static final class ForeignArray implements Array {
+    private final String baseTypeName;
+    private final int baseType;
+    private final Object array;
+
+    ForeignArray(String baseTypeName, int baseType, Object array) {
+      this.baseTypeName = baseTypeName;
+      this.baseType = baseType;
+      this.array = array;
+    }
+
+    @Override
+    public String getBaseTypeName() {
+      return baseTypeName;
+    }
+
+    @Override
+    public int getBaseType() {
+      return baseType;
+    }
+
+    @Override
+    public Object getArray() {
+      return array;
+    }
+
+    @Override
+    public Object getArray(Map<String, Class<?>> map) {
+      return array;
+    }
+
+    @Override
+    public Object getArray(long index, int count) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getArray(long index, int count, Map<String, Class<?>> map) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ResultSet getResultSet() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ResultSet getResultSet(Map<String, Class<?>> map) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ResultSet getResultSet(long index, int count) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ResultSet getResultSet(long index, int count, Map<String, Class<?>> map) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void free() {
+    }
   }
 
   @Test
@@ -517,6 +672,33 @@ public class ArrayTest extends BaseTest4 {
   }
 
   @Test
+  public void testUseAfterFreeThrows() throws SQLException {
+    Statement stmt = conn.createStatement();
+    stmt.executeUpdate("INSERT INTO arrtest VALUES ('{1,2,3}', '{3.1,1.4}', '{a,b}')");
+    ResultSet rs = stmt.executeQuery("SELECT intarr FROM arrtest");
+    assertTrue(rs.next());
+
+    Array arr = rs.getArray(1);
+    // Type resolution and decoding run off the codec context captured at construction, so they
+    // work the same in both binary modes before the array is freed.
+    assertEquals(Types.INTEGER, arr.getBaseType());
+    assertArrayEquals(new Integer[]{1, 2, 3}, (Integer[]) arr.getArray());
+
+    arr.free();
+
+    // After free() every java.sql.Array accessor must report a clear SQLException, not an NPE.
+    assertThrows(SQLException.class, arr::getArray);
+    assertThrows(SQLException.class, arr::getBaseType);
+    assertThrows(SQLException.class, arr::getBaseTypeName);
+    assertThrows(SQLException.class, arr::getResultSet);
+    // free() stays idempotent.
+    arr.free();
+
+    rs.close();
+    stmt.close();
+  }
+
+  @Test
   public void testRetrieveResultSets() throws SQLException {
     Statement stmt = conn.createStatement();
 
@@ -803,8 +985,10 @@ public class ArrayTest extends BaseTest4 {
     assertEquals(" \fnew \n ", array[2]);
     assertEquals(" ", array[3]);
 
-    // PostgreSQL drops leading and trailing whitespace, so does the driver
-    assertEquals("unquot\u2001", array[1]);
+    // PostgreSQL trims only leading and trailing whitespace from an unquoted element,
+    // keeping inner whitespace, and so does the driver. The vertical tab and the space
+    // before U+2001 are inner, so they stay; U+2001 is not ASCII whitespace and is kept.
+    assertEquals("unquot\u000B \u2001", array[1]);
   }
 
   @Test
@@ -843,11 +1027,11 @@ public class ArrayTest extends BaseTest4 {
     assertEquals("def", actual[2]);
     assertEquals("someString", actual[4]);
 
-    // the driver strips out ascii white spaces from an unescaped string, even in
-    // the middle of the value. while this does not exactly match the behavior of
-    // the backend, it will always quote values where ascii white spaces are
-    // present, making this difference not worth the complexity involved addressing.
-    assertEquals("unquot\u2001", actual[3]);
+    // The driver trims only leading and trailing ASCII whitespace from an unquoted
+    // element, like the backend's array_in, so this matches strarr[3] from the server
+    // round-trip above. Inner whitespace (the double space, the vertical tab, the
+    // space before U+2001) is kept; U+2001 is not ASCII whitespace, so it survives too.
+    assertEquals("un  quot\u000B \u2001", actual[3]);
   }
 
   @Test

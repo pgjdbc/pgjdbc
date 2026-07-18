@@ -1,0 +1,188 @@
+/*
+ * Copyright (c) 2024, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
+package org.postgresql.jdbc.codec;
+
+import org.postgresql.api.codec.BackpatchingBinarySink;
+import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.StreamingBinaryCodec;
+import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
+import org.postgresql.jdbc.TemporalCodecs;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.io.IOException;
+import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
+
+/**
+ * Codec for PostgreSQL timetz (time with time zone) type.
+ */
+public final class TimetzCodec implements StreamingBinaryCodec, TextCodec {
+
+  public static final TimetzCodec INSTANCE = new TimetzCodec();
+
+  private TimetzCodec() {
+    // Singleton
+  }
+
+  @Override
+  public String getPrimaryTypeName() {
+    return "timetz";
+  }
+
+  @Override
+  public Class<?> getDefaultJavaType() {
+    return Time.class;
+  }
+
+  @Override
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    if (ctx.prefersJavaTimeForTimetz()) {
+      return TemporalCodecs.decodeOffsetTimeBin(data, offset, length, ctx);
+    }
+    // timetz binary format is 12 bytes: 8 bytes for time + 4 bytes for timezone
+    return TemporalCodecs.decodeTimeBin(data, offset, length, ctx);
+  }
+
+  @Override
+  public byte[] encodeBinary(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return TemporalCodecs.encodeTimetzBin(value, ctx);
+  }
+
+  @Override
+  public void encodeBinary(Object value, TypeDescriptor type, CodecContext ctx,
+      BackpatchingBinarySink out) throws SQLException, IOException {
+    TemporalCodecs.writeTimetzBin(value, out, ctx);
+  }
+
+  @Override
+  public @Nullable Object decodeText(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    if (ctx.prefersJavaTimeForTimetz()) {
+      return TemporalCodecs.decodeOffsetTimeText(data, ctx);
+    }
+    return TemporalCodecs.decodeTimeText(data, ctx);
+  }
+
+  @Override
+  public String encodeText(Object value, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    if (value instanceof Time) {
+      return TemporalCodecs.formatTimetz((Time) value, ctx);
+    }
+    if (value instanceof OffsetTime) {
+      return TemporalCodecs.formatOffsetTime((OffsetTime) value, ctx);
+    }
+    if (value instanceof LocalTime) {
+      return TemporalCodecs.formatLocalTime((LocalTime) value, ctx);
+    }
+    if (value instanceof java.util.Date) {
+      @SuppressWarnings("JavaUtilDate")
+      long time = ((java.util.Date) value).getTime();
+      return TemporalCodecs.formatTimetz(new Time(time), ctx);
+    }
+    if (value instanceof String) {
+      return TemporalCodecs.formatTimetz(TemporalCodecs.decodeTimeText((String) value, ctx), ctx);
+    }
+    throw Exceptions.cannotEncode(value, "timetz");
+  }
+
+  @Override
+  public <T> @Nullable T decodeBinaryAs(byte[] data, int offset, int length, TypeDescriptor type,
+      Class<T> targetClass, CodecContext ctx) throws SQLException {
+    if (targetClass == Time.class || targetClass == Object.class) {
+      return targetClass.cast(TemporalCodecs.decodeTimeBin(data, offset, length, ctx));
+    }
+    if (targetClass == OffsetTime.class) {
+      return targetClass.cast(TemporalCodecs.decodeOffsetTimeBin(data, offset, length, ctx));
+    }
+    if (targetClass == OffsetDateTime.class) {
+      // JDBC spec: timetz can be retrieved as OffsetDateTime with epoch date
+      return targetClass.cast(
+          TemporalCodecs.decodeOffsetTimeBin(data, offset, length, ctx).atDate(LocalDate.ofEpochDay(0)));
+    }
+    if (targetClass == Timestamp.class) {
+      // JDBC: getTimestamp on a TIMETZ column anchors the time to 1970-01-01;
+      // sub-second nanos come from the time-without-tz portion (first 8 bytes).
+      Time t = TemporalCodecs.decodeTimeBin(data, offset, length, ctx);
+      if (t == null) {
+        return null;
+      }
+      Timestamp r = new Timestamp(t.getTime());
+      r.setNanos(TemporalCodecs.decodeTimestampBin(data, 0, 8, false, ctx).getNanos());
+      return targetClass.cast(r);
+    }
+    // LocalTime / LocalDateTime / LocalDate are explicitly rejected per the
+    // JDBC contract — they discard the time zone information that this column
+    // carries. Fall through to the throw below.
+    if (targetClass == java.util.Date.class) {
+      return targetClass.cast(TemporalCodecs.decodeTimeBin(data, offset, length, ctx));
+    }
+    if (targetClass == Long.class) {
+      Time t = TemporalCodecs.decodeTimeBin(data, offset, length, ctx);
+      return t == null ? null : targetClass.cast(t.getTime());
+    }
+    if (targetClass == String.class) {
+      return targetClass.cast(TemporalCodecs.formatOffsetTimeBin(data, offset, length, ctx));
+    }
+    throw Exceptions.cannotDecode("timetz", targetClass.getName());
+  }
+
+  @Override
+  public <T> @Nullable T decodeTextAs(String data, TypeDescriptor type, Class<T> targetClass, CodecContext ctx)
+      throws SQLException {
+    if (targetClass == Time.class || targetClass == Object.class) {
+      return targetClass.cast(TemporalCodecs.decodeTimeText(data, ctx));
+    }
+    if (targetClass == OffsetTime.class) {
+      return targetClass.cast(TemporalCodecs.decodeOffsetTimeText(data, ctx));
+    }
+    if (targetClass == OffsetDateTime.class) {
+      // JDBC spec: timetz can be retrieved as OffsetDateTime with epoch date
+      OffsetTime ot = TemporalCodecs.decodeOffsetTimeText(data, ctx);
+      return ot == null ? null : targetClass.cast(ot.atDate(LocalDate.ofEpochDay(0)));
+    }
+    if (targetClass == Timestamp.class) {
+      Time t = TemporalCodecs.decodeTimeText(data, ctx);
+      if (t == null) {
+        return null;
+      }
+      Timestamp r = new Timestamp(t.getTime());
+      r.setNanos(TemporalCodecs.decodeTimestampText(data, ctx).getNanos());
+      return targetClass.cast(r);
+    }
+    // LocalTime / LocalDateTime / LocalDate are rejected — they drop the
+    // time zone information that this column carries.
+    if (targetClass == java.util.Date.class) {
+      return targetClass.cast(TemporalCodecs.decodeTimeText(data, ctx));
+    }
+    if (targetClass == Long.class) {
+      Time t = TemporalCodecs.decodeTimeText(data, ctx);
+      return t == null ? null : targetClass.cast(t.getTime());
+    }
+    if (targetClass == String.class) {
+      return targetClass.cast(data);
+    }
+    throw Exceptions.cannotDecode("timetz", targetClass.getName());
+  }
+
+  @Override
+  public @Nullable String decodeAsString(byte[] data, int offset, int length, TypeDescriptor type,
+      CodecContext ctx) throws SQLException {
+    return TemporalCodecs.formatOffsetTimeBin(data, offset, length, ctx);
+  }
+
+  @Override
+  public @Nullable String decodeAsString(String data, TypeDescriptor type, CodecContext ctx) throws SQLException {
+    return data;
+  }
+
+}

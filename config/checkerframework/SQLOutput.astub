@@ -1,0 +1,32 @@
+package java.sql;
+
+import org.checkerframework.checker.nullness.qual.*;
+
+import java.io.InputStream;
+import java.io.Reader;
+import java.math.BigDecimal;
+import java.net.URL;
+
+interface SQLOutput {
+  void writeString(@Nullable String x);
+  void writeBigDecimal(@Nullable BigDecimal x);
+  void writeBytes(byte @Nullable [] x);
+  void writeDate(java.sql.@Nullable Date x);
+  void writeTime(@Nullable Time x);
+  void writeTimestamp(@Nullable Timestamp x);
+  void writeCharacterStream(@Nullable Reader x);
+  void writeAsciiStream(@Nullable InputStream x);
+  void writeBinaryStream(@Nullable InputStream x);
+  void writeObject(@Nullable SQLData x);
+  void writeRef(@Nullable Ref x);
+  void writeBlob(@Nullable Blob x);
+  void writeClob(@Nullable Clob x);
+  void writeStruct(@Nullable Struct x);
+  void writeArray(@Nullable Array x);
+  void writeURL(@Nullable URL x);
+  void writeNString(@Nullable String x);
+  void writeNClob(@Nullable NClob x);
+  void writeRowId(@Nullable RowId x);
+  void writeSQLXML(@Nullable SQLXML x);
+  void writeObject(@Nullable Object x, SQLType targetSqlType);
+}

@@ -10,12 +10,17 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 import org.postgresql.Driver;
 import org.postgresql.PGRefCursorResultSet;
 import org.postgresql.PGResultSetMetaData;
+import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.Codec;
+import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.PrimitiveDecoders;
+import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.TypeDescriptor;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
-import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
@@ -23,11 +28,11 @@ import org.postgresql.core.TransactionState;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
+import org.postgresql.jdbc.codec.CompositeCodec;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
-import org.postgresql.util.HStoreConverter;
 import org.postgresql.util.JdbcBlackHole;
-import org.postgresql.util.NumberParser;
+import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGbytea;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
@@ -37,7 +42,6 @@ import org.postgresql.util.PSQLState;
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.index.qual.Positive;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
@@ -68,6 +72,7 @@ import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
+import java.sql.SQLData;
 import java.sql.SQLException;
 import java.sql.SQLType;
 import java.sql.SQLWarning;
@@ -81,9 +86,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -92,9 +95,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.StringTokenizer;
-import java.util.TimeZone;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 public class PgResultSet implements ResultSet, PGRefCursorResultSet {
@@ -102,7 +103,12 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   // needed for updateable result set support
   private boolean updateable;
   private boolean doingUpdates;
-  private @Nullable HashMap<String, Object> updateValues;
+  private @Nullable HashMap<String, @Nullable Object> updateValues;
+  // target SQLType for a subset of updateValues, keyed the same way; populated only by the
+  // updateObject(..., SQLType, ...) overloads, and consulted at bind time in insertRow/updateRow
+  // so a caller-supplied PostgreSQL type (e.g. PGSQLType.XID8) routes through the codec registry
+  // exactly like PgPreparedStatement#setObject(int, Object, SQLType, int) does.
+  private @Nullable HashMap<String, SQLType> updateSqlTypes;
   private boolean usingOID; // are we using the OID for the primary key?
   private @Nullable List<PrimaryKey> primaryKeys; // list of primary keys
   private boolean singleTable;
@@ -112,12 +118,16 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   private final int resultsettype;
   private final int resultsetconcurrency;
   private int fetchdirection = ResultSet.FETCH_UNKNOWN;
-  private @Nullable TimeZone defaultTimeZone;
+  private final DateTimeHelper dateTimeHelper;
   protected final BaseConnection connection; // the connection we belong to
   protected final BaseStatement statement; // the statement we belong to
   protected final Field[] fields; // Field metadata for this resultset.
+  // Codec per result column, resolved lazily on first read of the column and cached for this result
+  // set only. Held here (not on the shared Field, which lives in the prepared-statement cache) so a
+  // codec registration between two executions of the same prepared statement is honored: each
+  // execution produces a fresh result set that resolves its codecs anew.
+  private @Nullable Codec @Nullable [] codecs;
   protected final @Nullable Query originalQuery; // Query we originated from
-  private @Nullable TimestampUtils timestampUtils; // our own Object because it's not thread safe
 
   protected final int maxRows; // Maximum rows in this resultset (might be 0).
   protected final int maxFieldSize; // Maximum field size in this resultset (might be 0).
@@ -148,6 +158,91 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   private @Nullable ResultSetMetaData rsMetaData;
   private final ResourceLock lock = new ResourceLock();
 
+  // Codec support
+  private @Nullable PgCodecContext codecContext;
+
+  // Memo for the no-Calendar temporal path: getDefaultCalendar() returns a stable shared
+  // Calendar, so the context derived from it (getCodecContext().withCalendar(cal)) can be reused
+  // instead of copied on every getDate/getTime/getTimestamp. Keyed on the base context too, so a
+  // setTypeMapOverride() that swaps codecContext invalidates the cached derived context. Only ever
+  // holds the internal shared Calendar, never a caller-supplied one.
+  private @Nullable Calendar lastDefaultCalendar;
+  private @Nullable PgCodecContext lastDefaultCalendarBase;
+  private @Nullable PgCodecContext lastDefaultCalendarContext;
+
+  /**
+   * Gets the codec context for this result set.
+   * The context is lazily initialized on first access.
+   *
+   * @return the codec context
+   * @throws SQLException if the context cannot be created
+   */
+  protected PgCodecContext getCodecContext() throws SQLException {
+    PgCodecContext ctx = codecContext;
+    if (ctx == null) {
+      // Defer to the connection so the codec context picks up the current
+      // typeMap and java.time / convertBooleanToNumeric preferences. Then
+      // bind the per-resultset TimestampUtils so timezone caching is scoped
+      // to this ResultSet (TimezoneCachingTest's contract: each codec call
+      // populates the result set's own dateTimeHelper.defaultTimeZone).
+      ctx = connection.getCodecContext()
+          .withTimestampUtils(dateTimeHelper.getTimestampUtils());
+      codecContext = ctx;
+    }
+    return ctx;
+  }
+
+  /**
+   * Overrides the type map used by this ResultSet's getters. Used by
+   * {@link PgArray#getResultSet(java.util.Map)} so that composite array
+   * elements are decoded through the caller-supplied {@code SQLData} mapping
+   * when {@code getObject} is called on the returned rows. The connection's
+   * java.time / boolean preferences and the per-ResultSet TimestampUtils are
+   * preserved.
+   *
+   * @param typeMap the type map to apply for this ResultSet
+   * @throws SQLException if the context cannot be derived
+   */
+  void setTypeMapOverride(Map<String, Class<?>> typeMap) throws SQLException {
+    this.codecContext = getCodecContext().withTypeMap(typeMap);
+  }
+
+  /**
+   * Gets the binary codec for the specified column.
+   *
+   * @param columnIndex the 1-based column index
+   * @return the binary codec, or null if not available
+   * @throws SQLException if an error occurs
+   */
+  protected @Nullable BinaryCodec getBinaryCodec(int columnIndex) throws SQLException {
+    Codec codec = codecFor(columnIndex);
+    return codec instanceof BinaryCodec ? (BinaryCodec) codec : null;
+  }
+
+  /**
+   * Gets the text codec for the specified column.
+   *
+   * @param columnIndex the 1-based column index
+   * @return the text codec, or null if not available
+   * @throws SQLException if an error occurs
+   */
+  protected @Nullable TextCodec getTextCodec(int columnIndex) throws SQLException {
+    Codec codec = codecFor(columnIndex);
+    return codec instanceof TextCodec ? (TextCodec) codec : null;
+  }
+
+  /**
+   * Gets the PgType for the specified column.
+   *
+   * @param columnIndex the 1-based column index
+   * @return the PgType
+   * @throws SQLException if an error occurs
+   */
+  protected PgType getPgType(int columnIndex) throws SQLException {
+    int oid = fields[columnIndex - 1].getOID();
+    return connection.getTypeInfo().getPgTypeByOid(oid);
+  }
+
   protected ResultSetMetaData createMetaData() throws SQLException {
     return new PgResultSetMetaData(connection, fields);
   }
@@ -176,6 +271,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     this.originalQuery = originalQuery;
     this.connection = (BaseConnection) statement.getConnection();
     this.statement = statement;
+    this.dateTimeHelper = new DateTimeHelper(connection.getQueryExecutor());
     this.fields = fields;
     this.rows = tuples;
     this.cursor = cursor;
@@ -212,12 +308,11 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         }
 
         if (field.getOID() == Oid.BIT) {
-          // Let's peek at the data - I tried to use the field.getLength() but it returns 65535 and
-          // it doesn't reflect the real length of the field, which is odd.
-          // If we have 1 byte, it's a bit(1) and return a boolean to preserve the backwards
-          // compatibility. If the value is null, it doesn't really matter
+          // bit(1) returns a Boolean to preserve backwards compatibility. The bit count is the byte
+          // length in text but the leading int4 in binary, so read it format-aware. (field.getLength()
+          // is unreliable here — it returns 65535.) A null value doesn't matter.
           byte[] data = getRawValue(columnIndex);
-          if (data == null || data.length == 1) {
+          if (data == null || (isBinary(columnIndex) ? ByteConverter.int4(data, 0) : data.length) == 1) {
             return getBoolean(columnIndex);
           }
         }
@@ -234,8 +329,9 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         return getLong(columnIndex);
       case Types.NUMERIC:
       case Types.DECIMAL:
-        return getNumeric(columnIndex,
-            field.getMod() == -1 ? null : (Integer) decodeNumericScale(field.getMod()), true);
+        // NumericCodec rescales to the column's typmod from the field descriptor (getTypeDescriptor),
+        // so this dispatch no longer extracts the scale itself.
+        return decodeViaCodec(columnIndex);
       case Types.REAL:
         return getFloat(columnIndex);
       case Types.FLOAT:
@@ -246,10 +342,29 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       case Types.LONGVARCHAR:
         return getString(columnIndex);
       case Types.DATE:
+        if (connection.getCodecContext().prefersJavaTimeForDate()) {
+          return decodeViaCodec(columnIndex);
+        }
         return getDate(columnIndex);
       case Types.TIME:
+        if (connection.getCodecContext().prefersJavaTimeForTime()) {
+          return decodeViaCodec(columnIndex);
+        }
+        return getTime(columnIndex);
+      case Types.TIME_WITH_TIMEZONE:
+        if (connection.getCodecContext().prefersJavaTimeForTimetz()) {
+          return decodeViaCodec(columnIndex);
+        }
         return getTime(columnIndex);
       case Types.TIMESTAMP:
+        if (connection.getCodecContext().prefersJavaTimeForTimestamp()) {
+          return decodeViaCodec(columnIndex);
+        }
+        return getTimestamp(columnIndex, null);
+      case Types.TIMESTAMP_WITH_TIMEZONE:
+        if (connection.getCodecContext().prefersJavaTimeForTimestamptz()) {
+          return decodeViaCodec(columnIndex);
+        }
         return getTimestamp(columnIndex, null);
       case Types.BINARY:
       case Types.VARBINARY:
@@ -268,13 +383,6 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         // if the backend doesn't know the type then coerce to String
         if ("unknown".equals(type)) {
           return getString(columnIndex);
-        }
-
-        if ("uuid".equals(type)) {
-          if (isBinary(columnIndex)) {
-            return getUUID(castNonNull(thisRow.get(columnIndex - 1)));
-          }
-          return getUUID(castNonNull(getString(columnIndex)));
         }
 
         // Specialized support for ref cursors is neater.
@@ -305,14 +413,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
           ((PgResultSet) rs).closeRefCursor();
           return rs;
         }
-        if ("hstore".equals(type)) {
-          if (isBinary(columnIndex)) {
-            return HStoreConverter.fromBytes(castNonNull(thisRow.get(columnIndex - 1)),
-                connection.getEncoding());
-          }
-          return HStoreConverter.fromString(castNonNull(getString(columnIndex)));
-        }
 
+        // UUID and HStore are now handled by codecs via getObject(int).
         // Caller determines what to do (JDBC3 overrides in this case)
         return null;
     }
@@ -419,11 +521,19 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   }
 
   protected Array makeArray(int oid, byte[] value) throws SQLException {
-    return new PgArray(connection, oid, value);
+    return makeArray(oid, -1, value);
   }
 
   protected Array makeArray(int oid, String value) throws SQLException {
-    return new PgArray(connection, oid, value);
+    return makeArray(oid, -1, value);
+  }
+
+  protected Array makeArray(int oid, int typmod, byte[] value) throws SQLException {
+    return new PgArray(connection, oid, typmod, value);
+  }
+
+  protected Array makeArray(int oid, int typmod, String value) throws SQLException {
+    return new PgArray(connection, oid, typmod, value);
   }
 
   @Pure
@@ -434,11 +544,15 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return null;
     }
 
-    int oid = fields[i - 1].getOID();
+    // The column modifier is the element modifier for an array (numeric(p,s)[]), so pass it to the
+    // PgArray for the element decode.
+    Field field = fields[i - 1];
+    int oid = field.getOID();
+    int typmod = field.getMod();
     if (isBinary(i)) {
-      return makeArray(oid, value);
+      return makeArray(oid, typmod, value);
     }
-    return makeArray(oid, castNonNull(getFixedString(i)));
+    return makeArray(oid, typmod, castNonNull(getFixedString(i)));
   }
 
   @Override
@@ -518,6 +632,65 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return resultsetconcurrency;
   }
 
+  /**
+   * Decodes the (already non-null) raw value of column {@code i} to {@code targetClass} through the
+   * column's registered codec, threading {@code cal} so the codec honors the requested time zone.
+   * Returns {@code null} when the column has no codec, so the caller can fall back to legacy
+   * handling. The temporal codecs own all date/time cross-type conversions (for example
+   * {@code getTimestamp} on a DATE column), so the {@code getDate}/{@code getTime}/{@code getTimestamp}
+   * methods become a thin dispatch over them.
+   *
+   * <p>A {@code null} {@code cal} means "no caller Calendar": the method pins and reuses the
+   * result set's default-calendar context via {@link #defaultCalendarCodecContext()} (which also
+   * touches the per-result-set default-timezone cache). A non-null {@code cal} is an explicit
+   * caller Calendar and derives a one-shot context via {@link PgCodecContext#withCalendar}.</p>
+   */
+  private <T> @Nullable T decodeColumnViaCodec(int i, byte[] value, Class<T> targetClass,
+      @Nullable Calendar cal) throws SQLException {
+    Field field = getFieldWithType(i);
+    PgCodecContext ctx = cal == null
+        ? defaultCalendarCodecContext()
+        : getCodecContext().withCalendar(cal);
+    if (isBinary(i)) {
+      BinaryCodec codec = getBinaryCodec(i);
+      if (codec != null) {
+        TypeDescriptor type = field.getPgType();
+        return codec.decodeBinaryAs(value, 0, value.length, type, targetClass, ctx);
+      }
+      return null;
+    }
+    TextCodec codec = getTextCodec(i);
+    if (codec != null) {
+      return codec.decodeTextAs(castNonNull(getString(i)), field.getPgType(), targetClass, ctx);
+    }
+    return null;
+  }
+
+  /**
+   * Returns the codec context for the no-Calendar temporal path, decoding in this result set's
+   * default time zone. {@link #getDefaultCalendar()} pins that zone (the legacy
+   * {@code TimezoneCachingTest} contract) and returns a stable shared Calendar, so the derived
+   * context is memoized instead of copied on every {@code getDate}/{@code getTime}/{@code getTimestamp}.
+   * The memo is also keyed on the base context so a {@link #setTypeMapOverride} that swaps it
+   * invalidates the cached derived context.
+   *
+   * @return the memoized default-calendar context
+   * @throws SQLException if the context cannot be derived
+   */
+  @SuppressWarnings("ReferenceEquality")
+  private PgCodecContext defaultCalendarCodecContext() throws SQLException {
+    Calendar cal = getDefaultCalendar();
+    PgCodecContext base = getCodecContext();
+    if (cal == lastDefaultCalendar && base == lastDefaultCalendarBase) {
+      return castNonNull(lastDefaultCalendarContext);
+    }
+    PgCodecContext ctx = base.withCalendar(cal);
+    lastDefaultCalendar = cal;
+    lastDefaultCalendarBase = base;
+    lastDefaultCalendarContext = ctx;
+    return ctx;
+  }
+
   @Override
   public @Nullable Date getDate(
       int i, @Nullable Calendar cal) throws SQLException {
@@ -526,30 +699,16 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return null;
     }
 
-    if (cal == null) {
-      cal = getDefaultCalendar();
+    Date d = decodeColumnViaCodec(i, value, Date.class, cal);
+    if (d != null) {
+      return d;
     }
-    if (isBinary(i)) {
-      int col = i - 1;
-      int oid = fields[col].getOID();
-      TimeZone tz = cal.getTimeZone();
-      if (oid == Oid.DATE) {
-        return getTimestampUtils().toDateBin(tz, value);
-      } else if (oid == Oid.TIMESTAMP || oid == Oid.TIMESTAMPTZ) {
-        // If backend provides just TIMESTAMP, we use "cal" timezone
-        // If backend provides TIMESTAMPTZ, we ignore "cal" as we know true instant value
-        Timestamp timestamp = castNonNull(getTimestamp(i, cal));
-        // Here we just truncate date to 00:00 in a given time zone
-        return getTimestampUtils().convertToDate(timestamp.getTime(), tz);
-      } else {
-        throw new PSQLException(
-            GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-                Oid.toString(oid), "date"),
-            PSQLState.DATA_TYPE_MISMATCH);
-      }
-    }
-
-    return getTimestampUtils().toDate(cal, value);
+    int col = i - 1;
+    int oid = fields[col].getOID();
+    throw new PSQLException(
+        GT.tr("Cannot convert the column of type {0} to requested type {1}.",
+            Oid.toString(oid), "date"),
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
@@ -560,39 +719,17 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return null;
     }
 
-    if (cal == null) {
-      cal = getDefaultCalendar();
-    }
-    if (isBinary(i)) {
-      int col = i - 1;
-      int oid = fields[col].getOID();
-      TimeZone tz = cal.getTimeZone();
-      if (oid == Oid.TIME || oid == Oid.TIMETZ) {
-        return getTimestampUtils().toTimeBin(tz, value);
-      } else if (oid == Oid.TIMESTAMP || oid == Oid.TIMESTAMPTZ) {
-        // If backend provides just TIMESTAMP, we use "cal" timezone
-        // If backend provides TIMESTAMPTZ, we ignore "cal" as we know true instant value
-        Timestamp timestamp = getTimestamp(i, cal);
-        if (timestamp == null) {
-          return null;
-        }
-        long timeMillis = timestamp.getTime();
-        if (oid == Oid.TIMESTAMPTZ) {
-          // time zone == UTC since BINARY "timestamp with time zone" is always sent in UTC
-          // So we truncate days
-          return new Time(timeMillis % TimeUnit.DAYS.toMillis(1));
-        }
-        // Here we just truncate date part
-        return getTimestampUtils().convertToTime(timeMillis, tz);
-      } else {
-        throw new PSQLException(
-            GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-                Oid.toString(oid), "time"),
-            PSQLState.DATA_TYPE_MISMATCH);
-      }
+    Time t = decodeColumnViaCodec(i, value, Time.class, cal);
+    if (t != null) {
+      return t;
     }
 
-    return getTimestampUtils().toTime(cal, value);
+    int col = i - 1;
+    int oid = fields[col].getOID();
+    throw new PSQLException(
+        GT.tr("Cannot convert the column of type {0} to requested type {1}.",
+            Oid.toString(oid), "time"),
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Pure
@@ -605,199 +742,15 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return null;
     }
 
-    if (cal == null) {
-      cal = getDefaultCalendar();
+    Timestamp t = decodeColumnViaCodec(i, value, Timestamp.class, cal);
+    if (t != null) {
+      return t;
     }
     int col = i - 1;
     int oid = fields[col].getOID();
-
-    if (isBinary(i)) {
-      byte [] row = castNonNull(thisRow).get(col);
-      if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP) {
-        boolean hasTimeZone = oid == Oid.TIMESTAMPTZ;
-        TimeZone tz = cal.getTimeZone();
-        return getTimestampUtils().toTimestampBin(tz, castNonNull(row), hasTimeZone);
-      } else if (oid == Oid.TIME) {
-        // JDBC spec says getTimestamp of Time and Date must be supported
-        Timestamp tsWithMicros = getTimestampUtils().toTimestampBin(cal.getTimeZone(), castNonNull(row), false);
-        // If server sends us a TIME, we ensure java counterpart has date of 1970-01-01
-        Timestamp tsUnixEpochDate = new Timestamp(castNonNull(getTime(i, cal)).getTime());
-        tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
-        return tsUnixEpochDate;
-      } else if (oid == Oid.TIMETZ) {
-        TimeZone tz = cal.getTimeZone();
-        byte[] timeBytesWithoutTimeZone = Arrays.copyOfRange(castNonNull(row), 0, 8);
-        Timestamp tsWithMicros = getTimestampUtils().toTimestampBin(tz, timeBytesWithoutTimeZone, false);
-        // If server sends us a TIMETZ, we ensure java counterpart has date of 1970-01-01
-        Timestamp tsUnixEpochDate = new Timestamp(castNonNull(getTime(i, cal)).getTime());
-        tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
-        return tsUnixEpochDate;
-      } else if (oid == Oid.DATE) {
-        return new Timestamp(castNonNull(getDate(i, cal)).getTime());
-      } else {
-        throw new PSQLException(
-            GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-                Oid.toString(oid), "timestamp"),
-            PSQLState.DATA_TYPE_MISMATCH);
-      }
-    }
-
-    // If this is actually a timestamptz, the server-provided timezone will override
-    // the one we pass in, which is the desired behaviour. Otherwise, we'll
-    // interpret the timezone-less value in the provided timezone.
-    if (oid == Oid.TIME || oid == Oid.TIMETZ) {
-      // If server sends us a TIME, we ensure java counterpart has date of 1970-01-01
-      Timestamp tsWithMicros = getTimestampUtils().toTimestamp(cal, value);
-      Timestamp tsUnixEpochDate = new Timestamp(getTimestampUtils().toTime(cal, value).getTime());
-      tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
-      return tsUnixEpochDate;
-    }
-
-    return getTimestampUtils().toTimestamp(cal, value);
-
-  }
-
-  // TODO: In Java 8 this constant is missing, later versions (at least 11) have LocalDate#EPOCH:
-  private static final LocalDate LOCAL_DATE_EPOCH = LocalDate.of(1970, 1, 1);
-
-  private @Nullable OffsetDateTime getOffsetDateTime(int i) throws SQLException {
-    byte[] value = getRawValue(i);
-    if (value == null) {
-      return null;
-    }
-
-    int col = i - 1;
-    int oid = fields[col].getOID();
-
-    // TODO: Disallow getting OffsetDateTime from a non-TZ field
-    if (isBinary(i)) {
-      if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP) {
-        return getTimestampUtils().toOffsetDateTimeBin(value);
-      } else if (oid == Oid.TIMETZ) {
-        // JDBC spec says timetz must be supported
-        return getTimestampUtils().toOffsetTimeBin(value).atDate(LOCAL_DATE_EPOCH);
-      }
-    } else {
-      // string
-
-      if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP )  {
-
-        OffsetDateTime offsetDateTime = getTimestampUtils().toOffsetDateTime(value);
-        if (!offsetDateTime.equals(OffsetDateTime.MAX) && !offsetDateTime.equals(OffsetDateTime.MIN)) {
-          return offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC);
-        } else {
-          return offsetDateTime;
-        }
-
-      }
-      if ( oid == Oid.TIMETZ ) {
-        return getTimestampUtils().toOffsetDateTime(value);
-      }
-    }
-
     throw new PSQLException(
         GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-            Oid.toString(oid), "java.time.OffsetDateTime"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  private @Nullable OffsetTime getOffsetTime(int i) throws SQLException {
-    byte[] value = getRawValue(i);
-    if (value == null) {
-      return null;
-    }
-
-    int col = i - 1;
-    int oid = fields[col].getOID();
-
-    if (oid == Oid.TIMETZ) {
-      if (isBinary(i)) {
-        return getTimestampUtils().toOffsetTimeBin(value);
-      } else {
-        return getTimestampUtils().toOffsetTime(castNonNull(getRawValue(i)));
-      }
-    }
-
-    throw new PSQLException(
-        GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-            Oid.toString(oid), "java.time.OffsetTime"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  private @Nullable LocalDateTime getLocalDateTime(int i) throws SQLException {
-    byte[] value = getRawValue(i);
-    if (value == null) {
-      return null;
-    }
-
-    int col = i - 1;
-    int oid = fields[col].getOID();
-
-    if (oid == Oid.TIMESTAMP) {
-      if (isBinary(i)) {
-        return getTimestampUtils().toLocalDateTimeBin(value);
-      } else {
-        return getTimestampUtils().toLocalDateTime(castNonNull(getString(i)));
-      }
-    }
-
-    throw new PSQLException(
-        GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-            Oid.toString(oid), "java.time.LocalDateTime"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  private @Nullable LocalDate getLocalDate(int i) throws SQLException {
-    byte[] value = getRawValue(i);
-    if (value == null) {
-      return null;
-    }
-
-    int col = i - 1;
-    int oid = fields[col].getOID();
-
-    if (isBinary(i)) {
-      if (oid == Oid.DATE) {
-        return getTimestampUtils().toLocalDateBin(value);
-      } else if (oid == Oid.TIMESTAMP) {
-        return getTimestampUtils().toLocalDateTimeBin(value).toLocalDate();
-      }
-    } else {
-      // string
-      if (oid == Oid.DATE ) {
-        return getTimestampUtils().toLocalDate(value);
-      }
-      if (oid == Oid.TIMESTAMP) {
-        return getTimestampUtils().toLocalDateTime(castNonNull(getRawValue(i))).toLocalDate();
-      }
-    }
-
-    throw new PSQLException(
-        GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-            Oid.toString(oid), "java.time.LocalDate"),
-        PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  private @Nullable LocalTime getLocalTime(int i) throws SQLException {
-    byte[] value = getRawValue(i);
-    if (value == null) {
-      return null;
-    }
-
-    int col = i - 1;
-    int oid = fields[col].getOID();
-
-    if (oid == Oid.TIME) {
-      if (isBinary(i)) {
-        return getTimestampUtils().toLocalTimeBin(value);
-      } else {
-        return getTimestampUtils().toLocalTime(getString(i));
-      }
-    }
-
-    throw new PSQLException(
-        GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-            Oid.toString(oid), "java.time.LocalTime"),
+            Oid.toString(oid), "timestamp"),
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
@@ -840,7 +793,75 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (map == null || map.isEmpty()) {
       return getObject(i);
     }
-    throw Driver.notImplemented(this.getClass(), "getObjectImpl(int,Map)");
+    map = IdentifierNormalizingTypeMap.of(map, connection.getTypeInfo());
+
+    byte[] value = getRawValue(i);
+    if (value == null) {
+      return null;
+    }
+
+    // Look up the PostgreSQL type name and check if it's in the map
+    String pgTypeName = getPGType(i);
+    Class<?> targetClass = map.get(pgTypeName);
+    if (targetClass == null) {
+      // Type not in map, fall back to default getObject
+      return getObject(i);
+    }
+
+    // If the target is an SQLData implementation, use CompositeCodec
+    if (SQLData.class.isAssignableFrom(targetClass)) {
+      Field field = getFieldWithType(i);
+      PgType pgType = field.getPgType();
+      @SuppressWarnings("unchecked")
+      Class<? extends SQLData> sqlDataClass = (Class<? extends SQLData>) targetClass;
+      PgCodecContext ctx = getCodecContext().withTypeMap(map);
+      if (isBinary(i)) {
+        return CompositeCodec.INSTANCE.decodeBinaryAs(value, 0, value.length, pgType, sqlDataClass, ctx);
+      } else {
+        String textValue = getString(i);
+        if (textValue == null) {
+          return null;
+        }
+        return CompositeCodec.INSTANCE.decodeTextAs(textValue, pgType, sqlDataClass, ctx);
+      }
+    }
+
+    // For other mapped types, delegate to getObject(int, Class)
+    return getObject(i, targetClass);
+  }
+
+  /**
+   * Decodes column {@code i} as a composite into {@code sqlDataClass}, treating the value as the
+   * PostgreSQL type named {@code pgTypeName}. Unlike {@link #getObjectImpl(int, Map)} the type name
+   * is supplied by the caller rather than read from the column, so a {@code CallableStatement} OUT
+   * parameter registered with an explicit type name (including an anonymous {@code record}) decodes
+   * correctly. The value is read straight from the wire, so binary transfer is honoured instead of
+   * being routed through a text round-trip.
+   *
+   * @param i the 1-based column index
+   * @param sqlDataClass the {@link SQLData} implementation to populate
+   * @param pgTypeName the PostgreSQL type name to decode the value as
+   * @param typeMap an optional type map made available to nested attribute decoding
+   * @return the decoded object, or {@code null} when the column is SQL {@code NULL}
+   * @throws SQLException if decoding fails
+   */
+  <T extends SQLData> @Nullable T decodeSqlData(@Positive int i, Class<T> sqlDataClass,
+      String pgTypeName, @Nullable Map<String, Class<?>> typeMap) throws SQLException {
+    checkClosed();
+    byte[] value = getRawValue(i);
+    if (value == null) {
+      return null;
+    }
+    PgType pgType = connection.getTypeInfo().getPgTypeByPgName(pgTypeName);
+    PgCodecContext ctx = typeMap == null ? getCodecContext() : getCodecContext().withTypeMap(typeMap);
+    if (isBinary(i)) {
+      return CompositeCodec.INSTANCE.decodeBinaryAs(value, 0, value.length, pgType, sqlDataClass, ctx);
+    }
+    String textValue = getString(i);
+    if (textValue == null) {
+      return null;
+    }
+    return CompositeCodec.INSTANCE.decodeTextAs(textValue, pgType, sqlDataClass, ctx);
   }
 
   @Override
@@ -1158,7 +1179,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (!onInsertRow) {
         throw new PSQLException(GT.tr("Not on the insert row."), PSQLState.INVALID_CURSOR_STATE);
       }
-      HashMap<String, Object> updateValues = this.updateValues;
+      HashMap<String, @Nullable Object> updateValues = this.updateValues;
       if (updateValues == null || updateValues.isEmpty()) {
         throw new PSQLException(GT.tr("You must specify at least one column value to insert a row."),
             PSQLState.INVALID_PARAMETER_VALUE);
@@ -1194,10 +1215,11 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       try {
         insertStatement = connection.prepareStatement(insertSQL.toString(), Statement.RETURN_GENERATED_KEYS);
 
-        Iterator<Object> values = updateValues.values().iterator();
+        Iterator<Map.Entry<String, @Nullable Object>> values = updateValues.entrySet().iterator();
 
         for (int i = 1; values.hasNext(); i++) {
-          insertStatement.setObject(i, values.next());
+          Map.Entry<String, @Nullable Object> entry = values.next();
+          bindUpdateValue(insertStatement, i, entry.getKey(), entry.getValue());
         }
 
         insertStatement.executeUpdate();
@@ -1270,9 +1292,13 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       }
 
       // clear the updateValues hash map for the next set of updates
-      HashMap<String, Object> updateValues = this.updateValues;
+      HashMap<String, @Nullable Object> updateValues = this.updateValues;
       if (updateValues != null) {
         updateValues.clear();
+      }
+      HashMap<String, SQLType> updateSqlTypes = this.updateSqlTypes;
+      if (updateSqlTypes != null) {
+        updateSqlTypes.clear();
       }
     }
   }
@@ -1589,7 +1615,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
       StringBuilder updateSQL = new StringBuilder("UPDATE " + onlyTable + tableName + " SET  ");
 
-      HashMap<String, Object> updateValues = castNonNull(this.updateValues);
+      HashMap<String, @Nullable Object> updateValues = castNonNull(this.updateValues);
       int numColumns = updateValues.size();
       Iterator<String> columns = updateValues.keySet().iterator();
 
@@ -1627,10 +1653,10 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         updateStatement = connection.prepareStatement(sqlText);
 
         int i = 0;
-        Iterator<Object> iterator = updateValues.values().iterator();
+        Iterator<Map.Entry<String, @Nullable Object>> iterator = updateValues.entrySet().iterator();
         for (; iterator.hasNext(); i++) {
-          Object o = iterator.next();
-          updateStatement.setObject(i + 1, o);
+          Map.Entry<String, @Nullable Object> entry = iterator.next();
+          bindUpdateValue(updateStatement, i + 1, entry.getKey(), entry.getValue());
         }
 
         for (int j = 0; j < numKeys; j++, i++) {
@@ -1651,6 +1677,9 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
       connection.getLogger().log(Level.FINE, "done updates");
       updateValues.clear();
+      if (updateSqlTypes != null) {
+        updateSqlTypes.clear();
+      }
       doingUpdates = false;
     }
   }
@@ -2091,27 +2120,36 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
   private void setRowBufferColumn(Tuple rowBuffer,
       int columnIndex, @Nullable Object valueObject) throws SQLException {
-    if (valueObject instanceof PGobject) {
+    if (valueObject == null) {
+      rowBuffer.set(columnIndex, null);
+      return;
+    }
+    boolean binary = isBinary(columnIndex + 1);
+    if (valueObject instanceof PGobject && !binary) {
+      // PGobject already carries its own text representation
+      // (PgStruct.getValue() also lazily encodes its attributes).
       String value = ((PGobject) valueObject).getValue();
       rowBuffer.set(columnIndex, value == null ? null : connection.encodeString(value));
-    } else {
-      if (valueObject == null) {
-        rowBuffer.set(columnIndex, null);
-        return;
-      }
-      switch (getSQLType(columnIndex + 1)) {
+      return;
+    }
+    switch (getSQLType(columnIndex + 1)) {
 
-        // boolean needs to be formatted as t or f instead of true or false
-        case Types.BIT:
-        case Types.BOOLEAN:
+      // boolean needs to be formatted as t or f instead of true or false
+      case Types.BIT:
+      case Types.BOOLEAN:
+        if (!binary) {
           rowBuffer.set(columnIndex, connection
               .encodeString((Boolean) valueObject ? "t" : "f"));
           break;
-        //
-        // toString() isn't enough for date and time types; we must format it correctly
-        // or we won't be able to re-parse it.
-        //
-        case Types.DATE: {
+        }
+        encodeRowBufferColumnViaCodec(rowBuffer, columnIndex, valueObject);
+        break;
+      //
+      // toString() isn't enough for date and time types; we must format it correctly
+      // or we won't be able to re-parse it.
+      //
+      case Types.DATE:
+        if (!binary) {
           // getObject(int, LocalDate.class) returns LocalDate, so updating the row buffer with
           // such a value must not assume it is always a java.sql.Date.
           String stringValue = valueObject instanceof LocalDate
@@ -2120,8 +2158,11 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
           rowBuffer.set(columnIndex, connection.encodeString(stringValue));
           break;
         }
+        encodeRowBufferColumnViaCodec(rowBuffer, columnIndex, valueObject);
+        break;
 
-        case Types.TIME: {
+      case Types.TIME:
+        if (!binary) {
           // time and timetz both map to Types.TIME, so the value can be java.sql.Time,
           // java.time.LocalTime (time) or java.time.OffsetTime (timetz).
           String stringValue;
@@ -2135,8 +2176,12 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
           rowBuffer.set(columnIndex, connection.encodeString(stringValue));
           break;
         }
+        encodeRowBufferColumnViaCodec(rowBuffer, columnIndex, valueObject);
+        break;
 
-        case Types.TIMESTAMP: {
+      case Types.TIMESTAMP:
+      case Types.TIMESTAMP_WITH_TIMEZONE:
+        if (!binary) {
           // timestamp and timestamptz both map to Types.TIMESTAMP, so the value can be
           // java.sql.Timestamp, java.time.LocalDateTime (timestamp)
           // or java.time.OffsetDateTime (timestamptz).
@@ -2151,43 +2196,89 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
           rowBuffer.set(columnIndex, connection.encodeString(stringValue));
           break;
         }
+        encodeRowBufferColumnViaCodec(rowBuffer, columnIndex, valueObject);
+        break;
 
-        case Types.NULL:
-          // Should never happen?
-          break;
+      case Types.NULL:
+        // Should never happen?
+        break;
 
-        case Types.BINARY:
-        case Types.LONGVARBINARY:
-        case Types.VARBINARY:
-          if (isBinary(columnIndex + 1)) {
-            rowBuffer.set(columnIndex, (byte[]) valueObject);
-          } else {
-            Charset charset;
-            try {
-              charset = Charset.forName(connection.getEncoding().name());
-            } catch (UnsupportedCharsetException e) {
-              throw new PSQLException(
-                  GT.tr("The JVM claims not to support the encoding: {0}", connection.getEncoding().name()),
-                  PSQLState.UNEXPECTED_ERROR, e);
-            }
-            byte[] bytes = PGbytea.toPGString((byte[]) valueObject).getBytes(charset);
-            rowBuffer.set(columnIndex, bytes);
+      case Types.BINARY:
+      case Types.LONGVARBINARY:
+      case Types.VARBINARY:
+        if (binary) {
+          rowBuffer.set(columnIndex, (byte[]) valueObject);
+        } else {
+          Charset charset;
+          try {
+            charset = Charset.forName(connection.getEncoding().name());
+          } catch (UnsupportedCharsetException e) {
+            throw new PSQLException(
+                GT.tr("The JVM claims not to support the encoding: {0}", connection.getEncoding().name()),
+                PSQLState.UNEXPECTED_ERROR, e);
           }
-          break;
+          byte[] bytes = PGbytea.toPGString((byte[]) valueObject).getBytes(charset);
+          rowBuffer.set(columnIndex, bytes);
+        }
+        break;
 
-        default:
-          rowBuffer.set(columnIndex, connection.encodeString(String.valueOf(valueObject)));
-          break;
+      default:
+        encodeRowBufferColumnViaCodec(rowBuffer, columnIndex, valueObject);
+        break;
+    }
+  }
+
+  /**
+   * Encodes {@code valueObject} into {@code rowBuffer} via the codec
+   * registry, choosing the binary or text representation that matches
+   * the column's wire format. Falls back to {@link String#valueOf} for
+   * columns whose type has no registered codec, mirroring the legacy
+   * default-branch behaviour.
+   */
+  private void encodeRowBufferColumnViaCodec(
+      Tuple rowBuffer, int columnIndex, Object valueObject) throws SQLException {
+    PgCodecContext ctx = getCodecContext();
+    int oid = fields[columnIndex].getOID();
+    PgType pgType = connection.getTypeInfo().getPgTypeByOid(oid);
+    if (isBinary(columnIndex + 1)) {
+      BinaryCodec codec = ctx.getCodecs().getBinaryCodec(oid, pgType);
+      if (codec != null) {
+        rowBuffer.set(columnIndex, codec.encodeBinary(valueObject, pgType, ctx));
+        return;
       }
+    } else {
+      TextCodec codec = ctx.getCodecs().getTextCodec(oid, pgType);
+      if (codec != null) {
+        String text = codec.encodeText(valueObject, pgType, ctx);
+        rowBuffer.set(columnIndex, text == null ? null : connection.encodeString(text));
+        return;
+      }
+    }
+    rowBuffer.set(columnIndex, connection.encodeString(String.valueOf(valueObject)));
+  }
 
+  /**
+   * Binds one column of a pending {@code insertRow()}/{@code updateRow()} onto {@code statement}.
+   * Routes through {@link PreparedStatement#setObject(int, Object, SQLType)} when the column was
+   * last set via one of the {@code updateObject(..., SQLType, ...)} overloads, otherwise falls
+   * back to the type-inferring {@link PreparedStatement#setObject(int, Object)}.
+   */
+  private void bindUpdateValue(PreparedStatement statement, int parameterIndex, String columnName,
+      @Nullable Object value) throws SQLException {
+    HashMap<String, SQLType> updateSqlTypes = this.updateSqlTypes;
+    SQLType targetSqlType = updateSqlTypes == null ? null : updateSqlTypes.get(columnName);
+    if (targetSqlType != null) {
+      statement.setObject(parameterIndex, value, targetSqlType);
+    } else {
+      statement.setObject(parameterIndex, value);
     }
   }
 
   private void updateRowBuffer(@Nullable PreparedStatement insertStatement,
-      Tuple rowBuffer, Map<String, Object> updateValues) throws SQLException {
-    for (Map.Entry<String, Object> entry : updateValues.entrySet()) {
+      Tuple rowBuffer, Map<String, @Nullable Object> updateValues) throws SQLException {
+    for (Map.Entry<String, @Nullable Object> entry : updateValues.entrySet()) {
       int columnIndex = findColumn(entry.getKey()) - 1;
-      Object valueObject = entry.getValue();
+      @Nullable Object valueObject = entry.getValue();
       setRowBufferColumn(rowBuffer, columnIndex, valueObject);
     }
 
@@ -2419,38 +2510,28 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     // varchar in binary is same as text, other binary fields are converted to their text format
     if (isBinary(columnIndex) && getSQLType(columnIndex) != Types.VARCHAR) {
-      Field field = fields[columnIndex - 1];
-      TimestampUtils ts = getTimestampUtils();
-      // internalGetObject is used in getObject(int), so we can't easily alter the returned type
-      // Currently, internalGetObject delegates to getTime(), getTimestamp(), so it has issues
-      // with timezone conversions.
-      // However, as we know the explicit oids, we can do a better job here
-      switch (field.getOID()) {
-        case Oid.TIME:
-          return ts.toString(ts.toLocalTimeBin(value));
-        case Oid.TIMETZ:
-          return ts.toStringOffsetTimeBin(value);
-        case Oid.DATE:
-          return ts.toString(ts.toLocalDateBin(value));
-        case Oid.TIMESTAMP:
-          return ts.toString(ts.toLocalDateTimeBin(value));
-        case Oid.TIMESTAMPTZ:
-          return ts.toStringOffsetDateTime(value);
+      Field field = getFieldWithType(columnIndex);
+      BinaryCodec codec = getBinaryCodec(columnIndex);
+      if (codec != null) {
+        // The descriptor carries the column modifier so binary getString of a modifier-sensitive
+        // type (e.g. numeric) renders through the same path as getObject, closing the earlier
+        // asymmetry where getString skipped the typmod rescale.
+        PgType pgType = field.getTypeDescriptor();
+        PgCodecContext ctx = getCodecContext();
+        String decoded = codec.decodeAsString(value, 0, value.length, pgType, ctx);
+        // trimString honours maxFieldSize; it is a no-op for non-trimmable types (e.g. numeric,
+        // arrays), matching the text and fallback branches below.
+        return decoded == null ? null : trimString(columnIndex, decoded);
       }
-      // internalGetObject requires thisRow to be non-null
+      // Fallback for types without a binary codec
       castNonNull(thisRow, "thisRow");
       Object obj = internalGetObject(columnIndex, field);
       if (obj == null) {
-        // internalGetObject() knows jdbc-types and some extra like hstore. It does not know of
-        // PGobject based types like geometric types but getObject does
         obj = getObject(columnIndex);
         if (obj == null) {
           return null;
         }
         return obj.toString();
-      }
-      if ("hstore".equals(getPGType(columnIndex))) {
-        return HStoreConverter.toString((Map<?, ?>) obj);
       }
       return trimString(columnIndex, obj.toString());
     }
@@ -2497,72 +2578,25 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return false;
     }
 
-    int col = columnIndex - 1;
-    if (Oid.BOOL == fields[col].getOID()) {
-      final byte[] v = value;
-      return (1 == v.length) && ((116 == v[0] && !isBinary(columnIndex)) || (1 == v[0] && isBinary(columnIndex))); // 116 = 't'
-    }
+    Field field = getFieldWithType(columnIndex);
+    PgType pgType = field.getPgType();
+    PgCodecContext ctx = getCodecContext();
 
     if (isBinary(columnIndex)) {
-      return BooleanTypeUtil.castToBoolean(readDoubleValue(value, fields[col].getOID(), "boolean"));
-    }
-
-    String stringValue = castNonNull(getString(columnIndex));
-    return BooleanTypeUtil.castToBoolean(stringValue);
-  }
-
-  private static final BigInteger BYTEMAX = new BigInteger(Byte.toString(Byte.MAX_VALUE));
-  private static final BigInteger BYTEMIN = new BigInteger(Byte.toString(Byte.MIN_VALUE));
-
-  // Cache for the boolean conversion property to avoid repeated property lookups
-  private @MonotonicNonNull Boolean convertBooleanToNumericCache;
-
-  /**
-   * Helper method to check if boolean-to-numeric conversion should be attempted.
-   * If convertBooleanToNumeric property is enabled and the column is a boolean type,
-   * converts PostgreSQL boolean values ('t' or 'f') to numeric values (1 or 0).
-   *
-   * @param stringValue the string value from the database
-   * @param columnIndex the column index to check if it's a boolean column
-   * @return numeric value (0 or 1) if conversion applied, -1 if no conversion needed
-   */
-  private int tryConvertBooleanToNumeric(@Nullable String stringValue, int columnIndex) {
-    if (stringValue == null || stringValue.isEmpty()) {
-      return -1;
-    }
-
-    // Cache property lookup for performance
-    if (convertBooleanToNumericCache == null) {
-      convertBooleanToNumericCache = connection.getConvertBooleanToNumeric();
-    }
-
-    // Only attempt conversion if the property is enabled
-    if (!convertBooleanToNumericCache) {
-      return -1;
-    }
-
-    String trimmed = stringValue.trim();
-    if (trimmed.isEmpty()) {
-      return -1;
-    }
-
-    // Check if the column is actually a boolean type for better accuracy
-    int col = columnIndex - 1;
-    boolean isBooleanColumn = fields[col].getOID() == Oid.BOOL;
-
-    // Only check for boolean values if it's actually a boolean column to avoid false positives
-    if (isBooleanColumn && trimmed.length() == 1) {
-      char c = trimmed.charAt(0);
-      if (c == 't') {
-        return 1;
+      BinaryCodec codec = getBinaryCodec(columnIndex);
+      if (codec == null) {
+        throw cannotConvert(field, "boolean");
       }
-      if (c == 'f') {
-        return 0;
-      }
+      return PrimitiveDecoders.asBoolean(codec, value, pgType, ctx);
     }
 
-    // Not a recognizable boolean value
-    return -1;
+    // Text format
+    TextCodec codec = getTextCodec(columnIndex);
+    if (codec == null) {
+      throw cannotConvert(field, "boolean");
+    }
+    String s = castNonNull(getString(columnIndex));
+    return PrimitiveDecoders.asBoolean(codec,s, pgType, ctx);
   }
 
   @Override
@@ -2573,60 +2607,35 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return 0; // SQL NULL
     }
 
+    Field field = getFieldWithType(columnIndex);
+    PgType pgType = field.getPgType();
+    PgCodecContext ctx = getCodecContext();
+
     if (isBinary(columnIndex)) {
-      int col = columnIndex - 1;
-      // there is no Oid for byte so must always do conversion from
-      // some other numeric type
-      return (byte) readLongValue(value, fields[col].getOID(), Byte.MIN_VALUE,
-          Byte.MAX_VALUE, "byte");
+      BinaryCodec codec = getBinaryCodec(columnIndex);
+      if (codec == null) {
+        throw cannotConvert(field, "byte");
+      }
+      int intValue = PrimitiveDecoders.asInt(codec, value, pgType, ctx);
+      if (intValue < Byte.MIN_VALUE || intValue > Byte.MAX_VALUE) {
+        throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "byte", intValue),
+            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      }
+      return (byte) intValue;
     }
 
-    Encoding encoding = connection.getEncoding();
-    if (encoding.hasAsciiNumbers()) {
-      try {
-        return (byte) NumberParser.getFastLong(value, Byte.MIN_VALUE, Byte.MAX_VALUE);
-      } catch (NumberFormatException ignored) {
-        // Fast path failed, use slower parsing below
-      }
+    // Text format - delegate to codec. BOOL→numeric is handled by BoolCodec
+    // which gates on the convertBooleanToNumeric connection property.
+    TextCodec codec = getTextCodec(columnIndex);
+    if (codec == null) {
+      throw cannotConvert(field, "byte");
     }
-
-    String s = getString(columnIndex);
-
-    if (s != null) {
-      s = s.trim();
-      if (s.isEmpty()) {
-        return 0;
-      }
-      try {
-        // try the optimal parse
-        return Byte.parseByte(s);
-      } catch (NumberFormatException e) {
-        // Check if this might be a boolean value that should be converted to numeric
-        int booleanValue = tryConvertBooleanToNumeric(s, columnIndex);
-        if (booleanValue != -1) {
-          return (byte) booleanValue;
-        }
-
-        // didn't work, assume the column is not a byte
-        try {
-          BigDecimal n = new BigDecimal(s);
-          BigInteger i = n.toBigInteger();
-
-          int gt = i.compareTo(BYTEMAX);
-          int lt = i.compareTo(BYTEMIN);
-
-          if (gt > 0 || lt < 0) {
-            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "byte", s),
-                PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-          }
-          return i.byteValue();
-        } catch (NumberFormatException ex) {
-          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "byte", s),
-              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-        }
-      }
+    int intValue = PrimitiveDecoders.asIntFromTextBytes(codec, value, pgType, ctx);
+    if (intValue < Byte.MIN_VALUE || intValue > Byte.MAX_VALUE) {
+      throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "byte", intValue),
+          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
     }
-    return 0; // SQL NULL
+    return (byte) intValue;
   }
 
   @Override
@@ -2637,31 +2646,35 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return 0; // SQL NULL
     }
 
+    Field field = getFieldWithType(columnIndex);
+    PgType pgType = field.getPgType();
+    PgCodecContext ctx = getCodecContext();
+
     if (isBinary(columnIndex)) {
-      int col = columnIndex - 1;
-      int oid = fields[col].getOID();
-      if (oid == Oid.INT2) {
-        return ByteConverter.int2(value, 0);
+      BinaryCodec codec = getBinaryCodec(columnIndex);
+      if (codec == null) {
+        throw cannotConvert(field, "short");
       }
-      return (short) readLongValue(value, oid, Short.MIN_VALUE, Short.MAX_VALUE, "short");
-    }
-    Encoding encoding = connection.getEncoding();
-    if (encoding.hasAsciiNumbers()) {
-      try {
-        return (short) NumberParser.getFastLong(value, Short.MIN_VALUE, Short.MAX_VALUE);
-      } catch (NumberFormatException ignored) {
-        // Fast path failed, use slower parsing below
+      int intValue = PrimitiveDecoders.asInt(codec, value, pgType, ctx);
+      if (intValue < Short.MIN_VALUE || intValue > Short.MAX_VALUE) {
+        throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "short", intValue),
+            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
       }
-    }
-    String s = getFixedString(columnIndex);
-
-    // Check if this might be a boolean value that should be converted to numeric
-    int booleanValue = tryConvertBooleanToNumeric(s, columnIndex);
-    if (booleanValue != -1) {
-      return (short) booleanValue;
+      return (short) intValue;
     }
 
-    return toShort(s);
+    // Text format - delegate to codec. BOOL→numeric is handled by BoolCodec
+    // which gates on the convertBooleanToNumeric connection property.
+    TextCodec codec = getTextCodec(columnIndex);
+    if (codec == null) {
+      throw cannotConvert(field, "short");
+    }
+    int intValue = PrimitiveDecoders.asIntFromTextBytes(codec, value, pgType, ctx);
+    if (intValue < Short.MIN_VALUE || intValue > Short.MAX_VALUE) {
+      throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "short", intValue),
+          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+    }
+    return (short) intValue;
   }
 
   @Pure
@@ -2673,32 +2686,25 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return 0; // SQL NULL
     }
 
+    Field field = getFieldWithType(columnIndex);
+    PgType pgType = field.getPgType();
+    PgCodecContext ctx = getCodecContext();
+
     if (isBinary(columnIndex)) {
-      int col = columnIndex - 1;
-      int oid = fields[col].getOID();
-      if (oid == Oid.INT4) {
-        return ByteConverter.int4(value, 0);
+      BinaryCodec codec = getBinaryCodec(columnIndex);
+      if (codec == null) {
+        throw cannotConvert(field, "int");
       }
-      return (int) readLongValue(value, oid, Integer.MIN_VALUE, Integer.MAX_VALUE, "int");
+      return PrimitiveDecoders.asInt(codec, value, pgType, ctx);
     }
 
-    Encoding encoding = connection.getEncoding();
-    if (encoding.hasAsciiNumbers()) {
-      try {
-        return (int) NumberParser.getFastLong(value, Integer.MIN_VALUE, Integer.MAX_VALUE);
-      } catch (NumberFormatException ignored) {
-        // Fast path failed, use slower parsing below
-      }
+    // Text format - delegate to codec. BOOL→numeric is handled by BoolCodec
+    // which gates on the convertBooleanToNumeric connection property.
+    TextCodec codec = getTextCodec(columnIndex);
+    if (codec == null) {
+      throw cannotConvert(field, "int");
     }
-    String s = getFixedString(columnIndex);
-
-    // Check if this might be a boolean value that should be converted to numeric
-    int booleanValue = tryConvertBooleanToNumeric(s, columnIndex);
-    if (booleanValue != -1) {
-      return booleanValue;
-    }
-
-    return toInt(s);
+    return PrimitiveDecoders.asIntFromTextBytes(codec, value, pgType, ctx);
   }
 
   @Pure
@@ -2710,32 +2716,25 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return 0; // SQL NULL
     }
 
+    Field field = getFieldWithType(columnIndex);
+    PgType pgType = field.getPgType();
+    PgCodecContext ctx = getCodecContext();
+
     if (isBinary(columnIndex)) {
-      int col = columnIndex - 1;
-      int oid = fields[col].getOID();
-      if (oid == Oid.INT8) {
-        return ByteConverter.int8(value, 0);
+      BinaryCodec codec = getBinaryCodec(columnIndex);
+      if (codec == null) {
+        throw cannotConvert(field, "long");
       }
-      return readLongValue(value, oid, Long.MIN_VALUE, Long.MAX_VALUE, "long");
+      return PrimitiveDecoders.asLong(codec, value, pgType, ctx);
     }
 
-    Encoding encoding = connection.getEncoding();
-    if (encoding.hasAsciiNumbers()) {
-      try {
-        return NumberParser.getFastLong(value, Long.MIN_VALUE, Long.MAX_VALUE);
-      } catch (NumberFormatException ignored) {
-        // Fast path failed, use slower parsing below
-      }
+    // Text format - delegate to codec. BOOL→numeric is handled by BoolCodec
+    // which gates on the convertBooleanToNumeric connection property.
+    TextCodec codec = getTextCodec(columnIndex);
+    if (codec == null) {
+      throw cannotConvert(field, "long");
     }
-    String s = getFixedString(columnIndex);
-
-    // Check if this might be a boolean value that should be converted to numeric
-    int booleanValue = tryConvertBooleanToNumeric(s, columnIndex);
-    if (booleanValue != -1) {
-      return booleanValue;
-    }
-
-    return toLong(s);
+    return PrimitiveDecoders.asLongFromTextBytes(codec, value, pgType, ctx);
   }
 
   /**
@@ -2826,24 +2825,25 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return 0; // SQL NULL
     }
 
+    Field field = getFieldWithType(columnIndex);
+    PgType pgType = field.getPgType();
+    PgCodecContext ctx = getCodecContext();
+
     if (isBinary(columnIndex)) {
-      int col = columnIndex - 1;
-      int oid = fields[col].getOID();
-      if (oid == Oid.FLOAT4) {
-        return ByteConverter.float4(value, 0);
+      BinaryCodec codec = getBinaryCodec(columnIndex);
+      if (codec == null) {
+        throw cannotConvert(field, "float");
       }
-      return (float) readDoubleValue(value, oid, "float");
+      return PrimitiveDecoders.asFloat(codec, value, pgType, ctx);
     }
 
-    String s = getFixedString(columnIndex);
-
-    // Check if this might be a boolean value that should be converted to numeric
-    int booleanValue = tryConvertBooleanToNumeric(s, columnIndex);
-    if (booleanValue != -1) {
-      return (float) booleanValue;
+    // Text format - delegate to codec. BOOL→numeric is handled by BoolCodec
+    // which gates on the convertBooleanToNumeric connection property.
+    TextCodec codec = getTextCodec(columnIndex);
+    if (codec == null) {
+      throw cannotConvert(field, "float");
     }
-
-    return toFloat(s);
+    return PrimitiveDecoders.asFloat(codec, numericText(field, columnIndex), pgType, ctx);
   }
 
   @Pure
@@ -2855,24 +2855,36 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return 0; // SQL NULL
     }
 
+    Field field = getFieldWithType(columnIndex);
+    PgType pgType = field.getPgType();
+    PgCodecContext ctx = getCodecContext();
+
     if (isBinary(columnIndex)) {
-      int col = columnIndex - 1;
-      int oid = fields[col].getOID();
-      if (oid == Oid.FLOAT8) {
-        return ByteConverter.float8(value, 0);
+      BinaryCodec codec = getBinaryCodec(columnIndex);
+      if (codec == null) {
+        throw cannotConvert(field, "double");
       }
-      return readDoubleValue(value, oid, "double");
+      return PrimitiveDecoders.asDouble(codec, value, pgType, ctx);
     }
 
-    String s = getFixedString(columnIndex);
-
-    // Check if this might be a boolean value that should be converted to numeric
-    int booleanValue = tryConvertBooleanToNumeric(s, columnIndex);
-    if (booleanValue != -1) {
-      return (double) booleanValue;
+    // Text format - delegate to codec. BOOL→numeric is handled by BoolCodec
+    // which gates on the convertBooleanToNumeric connection property.
+    TextCodec codec = getTextCodec(columnIndex);
+    if (codec == null) {
+      throw cannotConvert(field, "double");
     }
+    return PrimitiveDecoders.asDouble(codec, numericText(field, columnIndex), pgType, ctx);
+  }
 
-    return toDouble(s);
+  /**
+   * The text to feed a numeric getter's codec. For {@code money} this is the raw server literal, so
+   * the money codec parses the locale rendering itself (currency symbol, grouping, decimal separator);
+   * for every other type it is {@link #getFixedString}, which is a no-op there.
+   */
+  private String numericText(Field field, @Positive int columnIndex) throws SQLException {
+    return field.getOID() == Oid.MONEY
+        ? castNonNull(getString(columnIndex))
+        : castNonNull(getFixedString(columnIndex));
   }
 
   @Override
@@ -2892,30 +2904,46 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
 
     if (isBinary(columnIndex)) {
-      int sqlType = getSQLType(columnIndex);
-      if (sqlType != Types.NUMERIC && sqlType != Types.DECIMAL) {
-        Object obj = internalGetObject(columnIndex, fields[columnIndex - 1]);
-        if (obj == null) {
+      Field field = getFieldWithType(columnIndex);
+      BinaryCodec codec = getBinaryCodec(columnIndex);
+      if (codec != null) {
+        if (allowSpecial) {
+          // For getNumeric with allowSpecial (called from internalGetObject with NUMERIC type),
+          // use decodeBinary to get the Number directly (may return Double for NaN/Infinity)
+          TypeDescriptor type = field.getPgType();
+          CodecContext ctx = getCodecContext();
+          Object decoded = codec.decodeBinary(value, 0, value.length, type, ctx);
+          if (decoded instanceof Number) {
+            Number num = (Number) decoded;
+            if (num instanceof BigDecimal) {
+              return scaleBigDecimal((BigDecimal) num, scale);
+            }
+            return num;
+          }
           return null;
         }
-        if (obj instanceof Long || obj instanceof Integer || obj instanceof Byte) {
-          BigDecimal res = BigDecimal.valueOf(((Number) obj).longValue());
-          res = scaleBigDecimal(res, scale);
-          return res;
+        TypeDescriptor type = field.getPgType();
+        CodecContext ctx = getCodecContext();
+        BigDecimal bd = PrimitiveDecoders.asBigDecimal(codec, value, 0, value.length, type, ctx);
+        if (bd != null) {
+          bd = scaleBigDecimal(bd, scale);
         }
-        return toBigDecimal(trimMoney(String.valueOf(obj)), scale);
-      } else {
-        Number num = ByteConverter.numeric(value);
-        if (!allowSpecial && num instanceof Double) {
-          String val = Double.toString(num.doubleValue());
-          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "BigDecimal", val),
-              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-        }
-        if (num instanceof BigDecimal) {
-          return scaleBigDecimal((BigDecimal) num, scale);
-        }
+        return bd;
+      }
+      throw new PSQLException(GT.tr("No codec for binary numeric conversion"),
+          PSQLState.DATA_TYPE_MISMATCH);
+    }
 
-        return num;
+    // money renders per lc_monetary (currency symbol, grouping, locale decimal separator); let the
+    // money codec parse the raw server literal rather than getFastBigDecimal/getFixedString, which
+    // assume a '$'-prefixed, '.'-decimal form.
+    if (fields[columnIndex - 1].getOID() == Oid.MONEY) {
+      Field moneyField = getFieldWithType(columnIndex);
+      TextCodec moneyCodec = getTextCodec(columnIndex);
+      if (moneyCodec != null) {
+        BigDecimal bd = PrimitiveDecoders.asBigDecimal(moneyCodec, castNonNull(getString(columnIndex)),
+            moneyField.getPgType(), getCodecContext());
+        return bd == null ? null : scaleBigDecimal(bd, scale);
       }
     }
 
@@ -2930,13 +2958,19 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       }
     }
 
-    String stringValue = getFixedString(columnIndex);
+    String stringValue = castNonNull(getFixedString(columnIndex));
 
-    // Check if this might be a boolean value that should be converted to numeric
-    int booleanValue = tryConvertBooleanToNumeric(stringValue, columnIndex);
-    if (booleanValue != -1) {
-      BigDecimal res = BigDecimal.valueOf(booleanValue);
-      return scaleBigDecimal(res, scale);
+    // BOOL→numeric conversion is handled by BoolCodec, which gates on the
+    // convertBooleanToNumeric connection property and throws otherwise.
+    if (fields[columnIndex - 1].getOID() == Oid.BOOL) {
+      Field field = getFieldWithType(columnIndex);
+      TextCodec codec = getTextCodec(columnIndex);
+      if (codec != null) {
+        BigDecimal bd = PrimitiveDecoders.asBigDecimal(codec, stringValue, field.getPgType(), getCodecContext());
+        if (bd != null) {
+          return scaleBigDecimal(bd, scale);
+        }
+      }
     }
 
     if (allowSpecial) {
@@ -2970,8 +3004,10 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
 
     if (isBinary(columnIndex)) {
-      // If the data is already binary then just return it
-      return value;
+      // The data is already binary; still honour maxFieldSize, which applies to
+      // char/varchar/binary columns regardless of transfer format. trimBytes is a
+      // no-op for non-trimmable types (e.g. a binary int4), so this is safe.
+      return trimBytes(columnIndex, value);
     }
     if (fields[columnIndex - 1].getOID() == Oid.BYTEA) {
       return trimBytes(columnIndex, PGbytea.toBytes(value));
@@ -3190,14 +3226,13 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   @Override
   public @Nullable Object getObject(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getObject columnIndex: {0}", columnIndex);
-    Field field;
 
     byte[] value = getRawValue(columnIndex);
     if (value == null) {
       return null;
     }
 
-    field = fields[columnIndex - 1];
+    Field field = fields[columnIndex - 1];
 
     // some fields can be null, mainly from those returned by MetaData methods
     if (field == null) {
@@ -3205,14 +3240,106 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return null;
     }
 
-    Object result = internalGetObject(columnIndex, field);
-    if (result != null) {
-      return result;
+    int oid = field.getOID();
+
+    // Special case: bit(1) returns Boolean, wider bit returns PGobject (via BitCodec), for backward
+    // compatibility. The bit count is the byte length in text but the leading int4 in binary, so it
+    // must be read format-aware before deciding; bit(n>1) then falls through to the codec path.
+    if (oid == Oid.BIT) {
+      int nbits = isBinary(columnIndex) && value.length > 4 ? ByteConverter.int4(value, 0) : value.length;
+      if (nbits == 1) {
+        return getBoolean(columnIndex);
+      }
+      // bit(n>1) — fall through to the codec path, which returns a PGobject.
+    }
+    // isBinary()/getBoolean() above are instance calls, so the checker can no longer prove thisRow
+    // is non-null after the bit branch merges back in; getRawValue() above did set it.
+    castNonNull(thisRow, "thisRow");
+
+    // Special case: refcursor returns a ResultSet
+    if (oid == Oid.REFCURSOR) {
+      return internalGetObject(columnIndex, field);
+    }
+
+    // Special case: XML returns SQLXML wrapper for the JDBC contract; the
+    // codec layer otherwise hands back String.
+    if (oid == Oid.XML) {
+      return getSQLXML(columnIndex);
+    }
+
+    // Special case: money's plain getObject default is Double (money maps to Types.DOUBLE),
+    // matching the legacy contract. The money -> PGmoney entry in the Java type registry exists only
+    // for the explicit getObject(int, PGmoney.class)/getObject(typeName) paths (mirroring the legacy
+    // addDataType("money", PGmoney.class)); routing plain getObject through the codec+type-map path
+    // would return PGmoney instead. internalGetObject dispatches money to getDouble.
+    if (oid == Oid.MONEY) {
+      return internalGetObject(columnIndex, field);
+    }
+
+    // Special case: 'unknown' (oid 705) — the backend couldn't infer the
+    // column type (e.g. `SELECT 'ok' where ...` with no cast). The legacy
+    // contract is to coerce the raw bytes to a String rather than falling
+    // through to the codec layer (which would return a PGobject wrapper).
+    if (oid == 705) {
+      return getString(columnIndex);
+    }
+
+    // For date/time columns, the legacy contract is that any getter triggers
+    // the per-resultset default-timezone cache (so subsequent getters with
+    // the same Calendar hit a hot path). Touch the cache here since the
+    // codec path doesn't go through getDefaultCalendar otherwise.
+    if (oid == Oid.DATE || oid == Oid.TIME || oid == Oid.TIMETZ
+        || oid == Oid.TIMESTAMP || oid == Oid.TIMESTAMPTZ) {
+      dateTimeHelper.getDefaultCalendar();
+    }
+
+    // Use codec for all other types. The descriptor carries the column modifier (field.getMod()),
+    // so a modifier-sensitive codec — numeric rescaling to the column's declared scale, for
+    // instance — sees it; this is what lets numeric go through the codec instead of a legacy path.
+    field = getFieldWithType(columnIndex);
+    PgType pgType = field.getTypeDescriptor();
+    PgCodecContext ctx = getCodecContext();
+
+    // Honor the connection-level type map: if the user has registered a Java class for this
+    // PostgreSQL type, route through decodeBinaryAs/decodeTextAs so SQLData (and PGobject subclass)
+    // mappings take effect on plain getObject(). The JDBC connection type map
+    // (Connection.setTypeMap) customizes only user-defined types; for a built-in type it is ignored
+    // (getTypeMapClass returns null), so a stale entry such as {"varchar" -> Foo} — matched by
+    // resolved OID in IdentifierNormalizingTypeMap — cannot hijack a built-in column. A pgjdbc
+    // addDataType() registration and the default JavaTypeRegistry mapping still apply, to built-in
+    // and user-defined types alike.
+    Class<?> mapped = ctx.getTypeMapClass(pgType);
+    if (mapped == null) {
+      mapped = ctx.getRegisteredClass(pgType.getFullName());
+      if (mapped == null) {
+        mapped = ctx.getRegisteredClass(pgType.getTypeName().getName());
+      }
     }
 
     if (isBinary(columnIndex)) {
+      BinaryCodec codec = getBinaryCodec(columnIndex);
+      if (codec != null) {
+        if (mapped != null) {
+          return codec.decodeBinaryAs(value, 0, value.length, pgType, mapped, ctx);
+        }
+        return codec.decodeBinary(value, 0, value.length, pgType, ctx);
+      }
+      // No binary codec — fall back to legacy Connection.addDataType() lookup.
+      // Decoding binary bytes via a TextCodec is wrong (different wire formats),
+      // so we never cross over from binary to text here.
       return connection.getObject(getPGType(columnIndex), null, value);
     }
+
+    // Text format
+    TextCodec codec = getTextCodec(columnIndex);
+    if (codec != null) {
+      String stringValue = castNonNull(getString(columnIndex));
+      if (mapped != null) {
+        return codec.decodeTextAs(stringValue, pgType, mapped, ctx);
+      }
+      return codec.decodeText(stringValue, pgType, ctx);
+    }
+    // No text codec — legacy Connection.addDataType() lookup.
     String stringValue = castNonNull(getString(columnIndex));
     return connection.getObject(getPGType(columnIndex), stringValue, null);
   }
@@ -3297,6 +3424,10 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    *
    * <p>It converts ($##.##) to -##.## and $##.## to ##.##</p>
    *
+   * <p>This handles only the {@code en_US}-style leading {@code $}; {@code money} columns route their
+   * numeric getters through the money codec, which parses every locale rendering. This helper is kept
+   * for its published signature and any external caller.</p>
+   *
    * @param col column position (1-based)
    * @return numeric-parsable representation of money string literal
    * @throws SQLException if something wrong happens
@@ -3338,29 +3469,83 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
   @Pure
   protected String getPGType(@Positive int column) throws SQLException {
-    Field field = fields[column - 1];
-    initSqlType(field);
+    Field field = getFieldWithType(column);
     return field.getPGType();
   }
 
   @Pure
   protected int getSQLType(@Positive int column) throws SQLException {
-    Field field = fields[column - 1];
-    initSqlType(field);
+    Field field = getFieldWithType(column);
     return field.getSQLType();
   }
 
-  @Pure
-  private void initSqlType(Field field) throws SQLException {
-    if (field.isTypeInitialized()) {
-      return;
-    }
+  private Field getFieldWithType(@Positive int column) throws SQLException {
+    Field field = fields[column - 1];
+    field.initializePgType(connection.getTypeInfo());
+    return field;
+  }
+
+  /**
+   * Resolves the codec for a column, caching it for this result set only.
+   *
+   * <p>The codec is resolved through the connection's {@link CodecRegistry} on first read of the
+   * column and reused for the rest of this result set's life. Because the cache lives on the result
+   * set rather than the shared {@link Field}, a codec registered between two executions of the same
+   * prepared statement takes effect on the next execution (a fresh result set), while a result set
+   * that is already open keeps the codecs it has resolved.</p>
+   *
+   * @param column the 1-based column index
+   * @return the resolved codec (never null; {@code FallbackCodec} for unknown types)
+   * @throws SQLException if an error occurs
+   */
+  private Codec codecFor(@Positive int column) throws SQLException {
+    Field field = fields[column - 1];
     TypeInfo typeInfo = connection.getTypeInfo();
-    int oid = field.getOID();
-    String pgType = castNonNull(typeInfo.getPGType(oid));
-    int sqlType = typeInfo.getSQLType(pgType);
-    field.setSQLType(sqlType);
-    field.setPGType(pgType);
+    field.initializePgType(typeInfo);
+    @Nullable Codec[] codecs = this.codecs;
+    if (codecs == null) {
+      this.codecs = codecs = new Codec[fields.length];
+    }
+    Codec codec = codecs[column - 1];
+    if (codec == null) {
+      // Resolve by the base pgType (no column modifier), matching the former Field.initializeCodec.
+      codec = typeInfo.getCodecRegistry().getByOid(field.getOID(), field.getPgType());
+      codecs[column - 1] = codec;
+    }
+    return codec;
+  }
+
+  /**
+   * Decodes the value at the given column using the codec's decodeBinary/decodeText.
+   * The codec's decode methods respect java.time preferences, so this is suitable
+   * for internalGetObject dispatch where the right return type depends on connection properties.
+   */
+  private @Nullable Object decodeViaCodec(@Positive int columnIndex) throws SQLException {
+    byte[] value = getRawValue(columnIndex);
+    if (value == null) {
+      return null;
+    }
+    Field field = getFieldWithType(columnIndex);
+    PgType pgType = field.getTypeDescriptor();
+    PgCodecContext ctx = getCodecContext();
+    if (isBinary(columnIndex)) {
+      BinaryCodec codec = getBinaryCodec(columnIndex);
+      if (codec != null) {
+        return codec.decodeBinary(value, 0, value.length, pgType, ctx);
+      }
+    } else {
+      TextCodec codec = getTextCodec(columnIndex);
+      if (codec != null) {
+        return codec.decodeText(castNonNull(getString(columnIndex)), pgType, ctx);
+      }
+    }
+    // CodecRegistry guarantees a codec for every OID (FallbackCodec for unknown types),
+    // so this branch is unreachable. Throwing protects the invariant: returning null
+    // would silently surface as SQL NULL to the caller.
+    throw new PSQLException(
+        GT.tr("No {0} codec available for type {1}",
+            isBinary(columnIndex) ? "binary" : "text", pgType.getTypeName()),
+        PSQLState.SYSTEM_ERROR);
   }
 
   @EnsuresNonNull({"updateValues", "rows"})
@@ -3558,18 +3743,6 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return scaleBigDecimal(val, scale);
   }
 
-  /**
-   * Extracts the scale of a {@code numeric} column from its type modifier. Since PostgreSQL 15 the
-   * scale is a signed 11-bit value (e.g. {@code numeric(2,-2)}), so it must be sign-extended rather
-   * than masked with {@code 0xffff}.
-   *
-   * @param typmod the column type modifier, which must not be {@code -1}
-   * @return the (possibly negative) scale
-   */
-  private static int decodeNumericScale(int typmod) {
-    return ((((typmod - 4) & 0x7ff) ^ 0x400) - 0x400);
-  }
-
   private static BigDecimal scaleBigDecimal(BigDecimal val, @Nullable Integer scale)
       throws PSQLException {
     if (scale == null) {
@@ -3657,119 +3830,11 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
-  /**
-   * Converts any numeric binary field to double value. This method does no overflow checking.
-   *
-   * @param bytes The bytes of the numeric field.
-   * @param oid The oid of the field.
-   * @param targetType The target type. Used for error reporting.
-   * @return The value as double.
-   * @throws PSQLException If the field type is not supported numeric type.
-   */
-  private static double readDoubleValue(byte[] bytes, int oid, String targetType) throws PSQLException {
-    // currently implemented binary encoded fields
-    switch (oid) {
-      case Oid.INT2:
-        return ByteConverter.int2(bytes, 0);
-      case Oid.INT4:
-        return ByteConverter.int4(bytes, 0);
-      case Oid.INT8:
-        // might not fit but there still should be no overflow checking
-        return ByteConverter.int8(bytes, 0);
-      case Oid.FLOAT4:
-        return ByteConverter.float4(bytes, 0);
-      case Oid.FLOAT8:
-        return ByteConverter.float8(bytes, 0);
-      case Oid.NUMERIC:
-        return ByteConverter.numeric(bytes).doubleValue();
-    }
-    throw new PSQLException(GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-        Oid.toString(oid), targetType), PSQLState.DATA_TYPE_MISMATCH);
-  }
-
-  private static final float LONG_MAX_FLOAT = StrictMath.nextDown((float) Long.MAX_VALUE);
-  private static final float LONG_MIN_FLOAT = StrictMath.nextUp((float) Long.MIN_VALUE);
-  private static final double LONG_MAX_DOUBLE = StrictMath.nextDown((double) Long.MAX_VALUE);
-  private static final double LONG_MIN_DOUBLE = StrictMath.nextUp((double) Long.MIN_VALUE);
-
-  /**
-   * Converts any numeric binary field to long value.
-   *
-   * <p>This method is used by getByte,getShort,getInt and getLong. It must support a subset of the
-   * following java types that use Binary encoding. (fields that use text encoding use a different
-   * code path).
-   *
-   * <code>byte,short,int,long,float,double,BigDecimal,boolean,string</code>.
-   * </p>
-   *
-   * @param bytes The bytes of the numeric field.
-   * @param oid The oid of the field.
-   * @param minVal the minimum value allowed.
-   * @param maxVal the maximum value allowed.
-   * @param targetType The target type. Used for error reporting.
-   * @return The value as long.
-   * @throws PSQLException If the field type is not supported numeric type or if the value is out of
-   *         range.
-   */
-  @Pure
-  private static long readLongValue(byte[] bytes, int oid, long minVal, long maxVal, String targetType)
-      throws PSQLException {
-    long val;
-    // currently implemented binary encoded fields
-    switch (oid) {
-      case Oid.INT2:
-        val = ByteConverter.int2(bytes, 0);
-        break;
-      case Oid.INT4:
-        val = ByteConverter.int4(bytes, 0);
-        break;
-      case Oid.INT8:
-        val = ByteConverter.int8(bytes, 0);
-        break;
-      case Oid.FLOAT4:
-        float f = ByteConverter.float4(bytes, 0);
-        // for float values we know to be within values of long, just cast directly to long
-        if (f <= LONG_MAX_FLOAT && f >= LONG_MIN_FLOAT) {
-          val = (long) f;
-        } else {
-          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", targetType, f),
-              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-        }
-        break;
-      case Oid.FLOAT8:
-        double d = ByteConverter.float8(bytes, 0);
-        // for double values within the values of a long, just directly cast to long
-        if (d <= LONG_MAX_DOUBLE && d >= LONG_MIN_DOUBLE) {
-          val = (long) d;
-        } else {
-          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", targetType, d),
-              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-        }
-        break;
-      case Oid.NUMERIC:
-        Number num = ByteConverter.numeric(bytes);
-        BigInteger i = ((BigDecimal) num).toBigInteger();
-        int gt = i.compareTo(LONGMAX);
-        int lt = i.compareTo(LONGMIN);
-
-        if (gt > 0 || lt < 0) {
-          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "long", num),
-              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-        } else {
-          val = num.longValue();
-        }
-        break;
-      default:
-        throw new PSQLException(
-            GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-                Oid.toString(oid), targetType),
-            PSQLState.DATA_TYPE_MISMATCH);
-    }
-    if (val < minVal || val > maxVal) {
-      throw new PSQLException(GT.tr("Bad value for type {0} : {1}", targetType, val),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-    }
-    return val;
+  private static PSQLException cannotConvert(Field field, String targetType) {
+    return new PSQLException(
+        GT.tr("Cannot convert the column of type {0} to requested type {1}.",
+            Oid.toString(field.getOID()), targetType),
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   protected void updateValue(@Positive int columnIndex, @Nullable Object value) throws SQLException {
@@ -3792,6 +3857,41 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       castNonNull(updateValues, "updateValues")
           .put(md.getBaseColumnName(columnIndex), value);
     }
+  }
+
+  /**
+   * Like {@link #updateValue(int, Object)}, but also records {@code targetSqlType} so
+   * {@link #insertRow()} and {@link #updateRow()} bind the value through
+   * {@link PreparedStatement#setObject(int, Object, SQLType)} instead of the type-inferring
+   * {@link PreparedStatement#setObject(int, Object)}. Unlike {@link #updateValue(int, Object)},
+   * a {@code null} value is stored as-is rather than routed through {@link #updateNull(int)}:
+   * the caller-supplied type already pins the OID a {@code null} should be bound with, so the
+   * generic {@code NullObject} cast is unnecessary here.
+   */
+  protected void updateValue(@Positive int columnIndex, @Nullable Object value, SQLType targetSqlType)
+      throws SQLException {
+    checkUpdateable();
+
+    if (!onInsertRow && (isBeforeFirst() || isAfterLast() || castNonNull(rows, "rows").isEmpty())) {
+      throw new PSQLException(
+          GT.tr(
+              "Cannot update the ResultSet because it is either before the start or after the end of the results."),
+          PSQLState.INVALID_CURSOR_STATE);
+    }
+
+    checkColumnIndex(columnIndex);
+
+    doingUpdates = !onInsertRow;
+    PGResultSetMetaData md = (PGResultSetMetaData) getMetaData();
+    String columnName = md.getBaseColumnName(columnIndex);
+    castNonNull(updateValues, "updateValues").put(columnName, value);
+
+    HashMap<String, SQLType> sqlTypes = updateSqlTypes;
+    if (sqlTypes == null) {
+      sqlTypes = new HashMap<>();
+      updateSqlTypes = sqlTypes;
+    }
+    sqlTypes.put(columnName, targetSqlType);
   }
 
   @Pure
@@ -3896,124 +3996,10 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       throw new SQLException("type is null");
     }
     int sqlType = getSQLType(columnIndex);
-    if (type == BigDecimal.class) {
-      if (sqlType == Types.NUMERIC || sqlType == Types.DECIMAL) {
-        return type.cast(getBigDecimal(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == String.class) {
-      if (sqlType == Types.CHAR || sqlType == Types.VARCHAR) {
-        return type.cast(getString(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Boolean.class) {
-      if (sqlType == Types.BOOLEAN || sqlType == Types.BIT) {
-        boolean booleanValue = getBoolean(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(booleanValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Short.class) {
-      if (sqlType == Types.SMALLINT) {
-        short shortValue = getShort(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(shortValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Integer.class) {
-      if (sqlType == Types.INTEGER || sqlType == Types.SMALLINT) {
-        int intValue = getInt(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(intValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Long.class) {
-      if (sqlType == Types.BIGINT) {
-        long longValue = getLong(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(longValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == BigInteger.class) {
-      if (sqlType == Types.BIGINT) {
-        long longValue = getLong(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(BigInteger.valueOf(longValue));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Float.class) {
-      if (sqlType == Types.REAL) {
-        float floatValue = getFloat(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(floatValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Double.class) {
-      if (sqlType == Types.FLOAT || sqlType == Types.DOUBLE) {
-        double doubleValue = getDouble(columnIndex);
-        if (wasNull()) {
-          return null;
-        }
-        return type.cast(doubleValue);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Date.class) {
-      if (sqlType == Types.DATE) {
-        return type.cast(getDate(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Time.class) {
-      if (sqlType == Types.TIME) {
-        return type.cast(getTime(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Timestamp.class) {
-      if (sqlType == Types.TIMESTAMP
-              || sqlType == Types.TIMESTAMP_WITH_TIMEZONE
-      ) {
-        return type.cast(getTimestamp(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Calendar.class) {
-      if (sqlType == Types.TIMESTAMP
-              || sqlType == Types.TIMESTAMP_WITH_TIMEZONE
-      ) {
+
+    // Handle JDBC-specific types that codecs don't manage
+    if (type == Calendar.class) {
+      if (sqlType == Types.TIMESTAMP || sqlType == Types.TIMESTAMP_WITH_TIMEZONE) {
         Timestamp timestampValue = getTimestamp(columnIndex);
         if (timestampValue == null) {
           return null;
@@ -4021,60 +4007,27 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         Calendar calendar = Calendar.getInstance(getDefaultCalendar().getTimeZone());
         calendar.setTimeInMillis(timestampValue.getTime());
         return type.cast(calendar);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
       }
+      throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
+          PSQLState.INVALID_PARAMETER_VALUE);
     } else if (type == Blob.class) {
       if (sqlType == Types.BLOB || sqlType == Types.BINARY || sqlType == Types.BIGINT) {
         return type.cast(getBlob(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
       }
+      throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
+          PSQLState.INVALID_PARAMETER_VALUE);
     } else if (type == Clob.class) {
       if (sqlType == Types.CLOB || sqlType == Types.BIGINT) {
         return type.cast(getClob(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
       }
-    } else if (type == byte[].class) {
-      if (sqlType == Types.BINARY || sqlType == Types.VARBINARY || sqlType == Types.LONGVARBINARY) {
-        return type.cast(getBytes(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-            PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == java.util.Date.class) {
-      if (sqlType == Types.TIMESTAMP) {
-        Timestamp timestamp = getTimestamp(columnIndex);
-        if (timestamp == null) {
-          return null;
-        }
-        @SuppressWarnings("JavaUtilDate")
-        java.util.Date res = new java.util.Date(timestamp.getTime());
-        return type.cast(res);
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    } else if (type == Array.class) {
-      if (sqlType == Types.ARRAY) {
-        return type.cast(getArray(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
-      }
+      throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
+          PSQLState.INVALID_PARAMETER_VALUE);
     } else if (type == SQLXML.class) {
       if (sqlType == Types.SQLXML) {
         return type.cast(getSQLXML(columnIndex));
-      } else {
-        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-                PSQLState.INVALID_PARAMETER_VALUE);
       }
-    } else if (type == UUID.class) {
-      return type.cast(getObject(columnIndex));
+      throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
+          PSQLState.INVALID_PARAMETER_VALUE);
     } else if (type == InetAddress.class) {
       String inetText = getString(columnIndex);
       if (inetText == null) {
@@ -4086,29 +4039,65 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       } catch (UnknownHostException ex) {
         throw new PSQLException(GT.tr("Invalid Inet data."), PSQLState.INVALID_PARAMETER_VALUE, ex);
       }
-      // JSR-310 support
-    } else if (type == LocalDate.class) {
-      return type.cast(getLocalDate(columnIndex));
-    } else if (type == LocalTime.class) {
-      return type.cast(getLocalTime(columnIndex));
-    } else if (type == LocalDateTime.class) {
-      return type.cast(getLocalDateTime(columnIndex));
-    } else if (type == OffsetDateTime.class) {
-      return type.cast(getOffsetDateTime(columnIndex));
-    } else if (type == OffsetTime.class) {
-      return type.cast(getOffsetTime(columnIndex));
-    } else if (PGobject.class.isAssignableFrom(type)) {
+    } else if (PGobject.class.isAssignableFrom(type)
+        && (type == PGobject.class
+            || connection.getTypeInfo().getPGobject(getPGType(columnIndex)) != null)) {
+      // connection.getObject owns the bare PGobject.class request and any type with a
+      // registered PGobject subclass (the geometric types, money, interval, and user types
+      // added through addDataType): it materialises a typed PGobject even for an SQL NULL and
+      // honours the registered subclass. Codec-managed PGobject subclasses such as PGRange and
+      // PGmultirange are not registered there, so they fall through to the codec path below and
+      // decode through decodeBinaryAs/decodeTextAs.
       Object object;
-      if (isBinary(columnIndex)) {
+      Class<? extends PGobject> registered =
+          connection.getTypeInfo().getPGobject(getPGType(columnIndex));
+      if (isBinary(columnIndex) && registered != null
+          && PGBinaryObject.class.isAssignableFrom(registered)) {
+        // Only a PGBinaryObject subclass parses the binary wire directly; connection.getObject
+        // consumes the bytes for it and ignores the string.
         byte[] byteValue = castNonNull(thisRow, "thisRow").get(columnIndex - 1);
         object = connection.getObject(getPGType(columnIndex), null, byteValue);
       } else {
+        // Otherwise -- text, an unregistered type, or a registered non-binary PGobject subclass --
+        // the value is the column's text, so decode the wire to text through the codec (getString).
+        // Passing the raw bytes would make connection.getObject call setValue(null) and drop the
+        // value under binary receive (e.g. refcursor, or an addDataType subclass that is not a
+        // PGBinaryObject).
         object = connection.getObject(getPGType(columnIndex), getString(columnIndex), null);
       }
       return type.cast(object);
     }
+
+    // Delegate to codec for all value types
+    byte[] value = getRawValue(columnIndex);
+    if (value == null) {
+      return null;
+    }
+
+    Field field = getFieldWithType(columnIndex);
+    // Typed getObject(col, Class) is wire-faithful, like getBigDecimal(col): it hands the codec a
+    // descriptor without the column modifier, so a numeric(p,s) value keeps its wire scale rather than
+    // the declared one. Only the untyped getObject(col)/getString/getArray apply the column scale (via
+    // getTypeDescriptor). Keeping typed access wire-faithful matches getBigDecimal and the released
+    // driver; a numeric(p,s)[] target likewise stays wire-faithful here.
+    PgType pgType = field.getPgType();
+    PgCodecContext ctx = getCodecContext();
+
+    if (isBinary(columnIndex)) {
+      BinaryCodec codec = getBinaryCodec(columnIndex);
+      if (codec != null) {
+        return codec.decodeBinaryAs(value, 0, value.length, pgType, type, ctx);
+      }
+    } else {
+      TextCodec codec = getTextCodec(columnIndex);
+      if (codec != null) {
+        String stringValue = castNonNull(getString(columnIndex));
+        return codec.decodeTextAs(stringValue, pgType, type, ctx);
+      }
+    }
+
     throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
-            PSQLState.INVALID_PARAMETER_VALUE);
+        PSQLState.INVALID_PARAMETER_VALUE);
   }
 
   @Override
@@ -4129,25 +4118,30 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   @Override
   public void updateObject(@Positive int columnIndex, @Nullable Object x, SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "updateObject");
+    try (ResourceLock ignore = lock.obtain()) {
+      // scaleOrLength is unused, same as updateObject(int, Object, int): the eventual bind goes
+      // through PreparedStatement#setObject(int, Object, SQLType), and this class has no lower-level
+      // hook to plumb a scale into.
+      updateValue(columnIndex, x, targetSqlType);
+    }
   }
 
   @Override
   public void updateObject(String columnLabel, @Nullable Object x, SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "updateObject");
+    updateObject(findColumn(columnLabel), x, targetSqlType, scaleOrLength);
   }
 
   @Override
   public void updateObject(@Positive int columnIndex, @Nullable Object x, SQLType targetSqlType)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "updateObject");
+    updateObject(columnIndex, x, targetSqlType, -1);
   }
 
   @Override
   public void updateObject(String columnLabel, @Nullable Object x, SQLType targetSqlType)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "updateObject");
+    updateObject(findColumn(columnLabel), x, targetSqlType);
   }
 
   @Override
@@ -4459,21 +4453,11 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   }
 
   private Calendar getDefaultCalendar() {
-    if (getTimestampUtils().hasFastDefaultTimeZone()) {
-      return getTimestampUtils().getSharedCalendar(null);
-    }
-    Calendar sharedCalendar = getTimestampUtils().getSharedCalendar(defaultTimeZone);
-    if (defaultTimeZone == null) {
-      defaultTimeZone = sharedCalendar.getTimeZone();
-    }
-    return sharedCalendar;
+    return dateTimeHelper.getDefaultCalendar();
   }
 
   private TimestampUtils getTimestampUtils() {
-    if (timestampUtils == null) {
-      timestampUtils = new TimestampUtils(!connection.getQueryExecutor().getIntegerDateTimes(), (Provider<TimeZone>) new QueryExecutorTimeZoneProvider(connection.getQueryExecutor()));
-    }
-    return timestampUtils;
+    return dateTimeHelper.getTimestampUtils();
   }
 
   /**

@@ -5,9 +5,11 @@
 
 package org.postgresql.jdbc;
 
-import static org.postgresql.util.internal.Nullness.castNonNull;
-
 import org.postgresql.Driver;
+import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.Codec;
+import org.postgresql.api.codec.Format;
+import org.postgresql.api.codec.TextCodec;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.CachedQuery;
 import org.postgresql.core.Oid;
@@ -18,6 +20,13 @@ import org.postgresql.core.ResultHandler;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.v3.BatchedQuery;
+import org.postgresql.jdbc.codec.ArrayCodec;
+import org.postgresql.jdbc.codec.CodecFormatPolicy;
+import org.postgresql.jdbc.codec.DateCodec;
+import org.postgresql.jdbc.codec.TimeCodec;
+import org.postgresql.jdbc.codec.TimestampCodec;
+import org.postgresql.jdbc.codec.TimestamptzCodec;
+import org.postgresql.jdbc.codec.TimetzCodec;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.util.ByteConverter;
@@ -34,7 +43,6 @@ import org.postgresql.util.ReaderInputStream;
 
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.index.qual.Positive;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.value.qual.IntRange;
 
@@ -44,13 +52,11 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.math.RoundingMode;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.charset.UnsupportedCharsetException;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -69,11 +75,13 @@ import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -86,8 +94,6 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   protected final CachedQuery preparedQuery; // Query fragments for prepared statement.
   protected final ParameterList preparedParameters; // Parameter values for prepared statement.
-
-  private @Nullable TimeZone defaultTimeZone;
 
   PgPreparedStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
       int rsHoldability) throws SQLException {
@@ -200,7 +206,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         return result != null && result.getResultSet() != null;
       }
     } finally {
-      defaultTimeZone = null;
+      getDateTimeHelper().resetDefaultTimeZone();
     }
   }
 
@@ -230,74 +236,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         PSQLState.INVALID_PARAMETER_VALUE);
     }
 
-    int oid;
-    switch (sqlType) {
-      case Types.SQLXML:
-        oid = Oid.XML;
-        break;
-      case Types.INTEGER:
-        oid = Oid.INT4;
-        break;
-      case Types.TINYINT:
-      case Types.SMALLINT:
-        oid = Oid.INT2;
-        break;
-      case Types.BIGINT:
-        oid = Oid.INT8;
-        break;
-      case Types.REAL:
-        oid = Oid.FLOAT4;
-        break;
-      case Types.DOUBLE:
-      case Types.FLOAT:
-        oid = Oid.FLOAT8;
-        break;
-      case Types.DECIMAL:
-      case Types.NUMERIC:
-        oid = Oid.NUMERIC;
-        break;
-      case Types.CHAR:
-        oid = Oid.BPCHAR;
-        break;
-      case Types.VARCHAR:
-      case Types.LONGVARCHAR:
-        oid = connection.getStringVarcharFlag() ? Oid.VARCHAR : Oid.UNSPECIFIED;
-        break;
-      case Types.DATE:
-        oid = Oid.DATE;
-        break;
-      case Types.TIME:
-      case Types.TIME_WITH_TIMEZONE:
-      case Types.TIMESTAMP_WITH_TIMEZONE:
-      case Types.TIMESTAMP:
-        oid = Oid.UNSPECIFIED;
-        break;
-      case Types.BOOLEAN:
-      case Types.BIT:
-        oid = Oid.BOOL;
-        break;
-      case Types.BINARY:
-      case Types.VARBINARY:
-      case Types.LONGVARBINARY:
-        oid = Oid.BYTEA;
-        break;
-      case Types.BLOB:
-      case Types.CLOB:
-        oid = Oid.OID;
-        break;
-      case Types.REF_CURSOR:
-        oid = Oid.REF_CURSOR;
-        break;
-      case Types.ARRAY:
-      case Types.DISTINCT:
-      case Types.STRUCT:
-      case Types.NULL:
-      case Types.OTHER:
-        oid = Oid.UNSPECIFIED;
-        break;
-      default:
-        // Bad Types value.
-        throw new PSQLException(GT.tr("Unknown Types value."), PSQLState.INVALID_PARAMETER_TYPE);
+    int oid = JavaTypeRegistry.getOidForSetNull(sqlType, connection.getStringVarcharFlag());
+    if (oid == -1) {
+      throw new PSQLException(GT.tr("Unknown Types value."), PSQLState.INVALID_PARAMETER_TYPE);
     }
     preparedParameters.setNull(parameterIndex, oid);
   }
@@ -479,9 +420,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       }
 
       setString(parameterIndex, new String(chars, 0, charsRead), Oid.VARCHAR);
-    } catch (UnsupportedEncodingException uee) {
+    } catch (UnsupportedCharsetException uce) {
       throw new PSQLException(GT.tr("The JVM claims not to support the {0} encoding.", encoding),
-          PSQLState.UNEXPECTED_ERROR, uee);
+          PSQLState.UNEXPECTED_ERROR, uce);
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("Provided InputStream failed."), PSQLState.UNEXPECTED_ERROR,
           ioe);
@@ -523,13 +464,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   // Helper method for setting parameters to PGobject subclasses.
   private void setPGobject(@Positive int parameterIndex, PGobject x) throws SQLException {
     String typename = x.getType();
-    int oid = connection.getTypeInfo().getPGType(typename);
-    if (oid == Oid.UNSPECIFIED) {
-      throw new PSQLException(GT.tr("Unknown type {0}.", typename),
-          PSQLState.INVALID_PARAMETER_TYPE);
-    }
+    PgType pgType = connection.getTypeInfo().getPgTypeByPgName(typename);
+    int oid = pgType.getOid();
 
-    if ((x instanceof PGBinaryObject) && connection.binaryTransferSend(oid)) {
+    if ((x instanceof PGBinaryObject) && connection.binaryTransferSend(oid)
+        && connection.getTypeInfo().backendCanReceiveBinary(pgType)) {
       PGBinaryObject binObj = (PGBinaryObject) x;
       int length = binObj.lengthInBytes();
       if (length == 0) {
@@ -545,12 +484,14 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   private void setMap(@Positive int parameterIndex, Map<?, ?> x) throws SQLException {
-    int oid = connection.getTypeInfo().getPGType("hstore");
+    PgType hstoreType = connection.getTypeInfo().getPgTypeByPgName("hstore");
+    int oid = hstoreType.getOid();
     if (oid == Oid.UNSPECIFIED) {
       throw new PSQLException(GT.tr("No hstore extension installed."),
           PSQLState.INVALID_PARAMETER_TYPE);
     }
-    if (connection.binaryTransferSend(oid)) {
+    if (connection.binaryTransferSend(oid)
+        && connection.getTypeInfo().backendCanReceiveBinary(hstoreType)) {
       byte[] data = HStoreConverter.toBytes(x, connection.getEncoding());
       bindBytes(parameterIndex, data, oid);
     } else {
@@ -593,25 +534,25 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         }
         break;
       case Types.INTEGER:
-        setInt(parameterIndex, castToInt(in));
+        setInt(parameterIndex, TypeCoercion.toInt(in));
         break;
       case Types.TINYINT:
       case Types.SMALLINT:
-        setShort(parameterIndex, castToShort(in));
+        setShort(parameterIndex, TypeCoercion.toShort(in));
         break;
       case Types.BIGINT:
-        setLong(parameterIndex, castToLong(in));
+        setLong(parameterIndex, TypeCoercion.toLong(in));
         break;
       case Types.REAL:
-        setFloat(parameterIndex, castToFloat(in));
+        setFloat(parameterIndex, TypeCoercion.toFloat(in));
         break;
       case Types.DOUBLE:
       case Types.FLOAT:
-        setDouble(parameterIndex, castToDouble(in));
+        setDouble(parameterIndex, TypeCoercion.toDouble(in));
         break;
       case Types.DECIMAL:
       case Types.NUMERIC:
-        setBigDecimal(parameterIndex, castToBigDecimal(in, scale));
+        bindNumericParameter(parameterIndex, in, scale);
         break;
       case Types.CHAR:
         setString(parameterIndex, castToString(in), Oid.BPCHAR);
@@ -629,42 +570,38 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       case Types.DATE:
         if (in instanceof Date) {
           setDate(parameterIndex, (Date) in);
+        } else if (in instanceof java.util.Date) {
+          @SuppressWarnings("JavaUtilDate")
+          Date res = new Date(((java.util.Date) in).getTime());
+          setDate(parameterIndex, res);
         } else {
-          Date tmpd;
-          if (in instanceof java.util.Date) {
-            // TODO: should we convert it to LocalDate instead?
-            @SuppressWarnings("JavaUtilDate")
-            Date res = new Date(((java.util.Date) in).getTime());
-            tmpd = res;
-          } else if (in instanceof LocalDate) {
-            setDate(parameterIndex, (LocalDate) in);
-            break;
-          } else {
-            tmpd = getTimestampUtils().toDate(getDefaultCalendar(), in.toString());
-          }
-          setDate(parameterIndex, tmpd);
+          // Handles LocalDate and other types via DateCodec
+          encodeViaCodec(parameterIndex, in, DateCodec.INSTANCE, Oid.DATE);
         }
         break;
       case Types.TIME:
         if (in instanceof Time) {
           setTime(parameterIndex, (Time) in);
+        } else if (in instanceof java.util.Date) {
+          @SuppressWarnings("JavaUtilDate")
+          Time res = new Time(((java.util.Date) in).getTime());
+          setTime(parameterIndex, res);
+        } else if (in instanceof java.time.OffsetTime) {
+          // Legacy contract: an OffsetTime passed with Types.TIME is bound as
+          // timetz so the offset survives the round-trip — TIME (no tz) would
+          // silently drop it.
+          encodeViaCodec(parameterIndex, in, TimetzCodec.INSTANCE, Oid.TIMETZ);
         } else {
-          Time tmpt;
-          if (in instanceof java.util.Date) {
-            // TODO: should we convert it to OffsetTime instead?
-            @SuppressWarnings("JavaUtilDate")
-            Time res = new Time(((java.util.Date) in).getTime());
-            tmpt = res;
-          } else if (in instanceof LocalTime) {
-            setTime(parameterIndex, (LocalTime) in);
-            break;
-          } else if (in instanceof OffsetTime) {
-            setTime(parameterIndex, (OffsetTime) in);
-            break;
-          } else {
-            tmpt = getTimestampUtils().toTime(getDefaultCalendar(), in.toString());
-          }
-          setTime(parameterIndex, tmpt);
+          // Handles LocalTime and other types via TimeCodec
+          encodeViaCodec(parameterIndex, in, TimeCodec.INSTANCE, Oid.TIME);
+        }
+        break;
+      case Types.TIME_WITH_TIMEZONE:
+        if (in instanceof Time) {
+          setTime(parameterIndex, (Time) in);
+        } else {
+          // Handles OffsetTime, LocalTime and other types via TimetzCodec
+          encodeViaCodec(parameterIndex, in, TimetzCodec.INSTANCE, Oid.TIMETZ);
         }
         break;
       case Types.TIMESTAMP:
@@ -672,33 +609,23 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           setObject(parameterIndex, in);
         } else if (in instanceof Timestamp) {
           setTimestamp(parameterIndex, (Timestamp) in);
+        } else if (in instanceof java.util.Date) {
+          @SuppressWarnings("JavaUtilDate")
+          Timestamp res = new Timestamp(((java.util.Date) in).getTime());
+          setTimestamp(parameterIndex, res);
         } else {
-          Timestamp tmpts;
-          if (in instanceof java.util.Date) {
-            // TODO: should we convert it to LocalDateTime instead?
-            @SuppressWarnings("JavaUtilDate")
-            Timestamp res = new Timestamp(((java.util.Date) in).getTime());
-            tmpts = res;
-          } else if (in instanceof LocalDateTime) {
-            setTimestamp(parameterIndex, (LocalDateTime) in);
-            break;
-          } else {
-            Charset connectionCharset = Charset.forName(connection.getEncoding().name());
-            tmpts = getTimestampUtils().toTimestamp(getDefaultCalendar(), in.toString().getBytes(connectionCharset));
-          }
-          setTimestamp(parameterIndex, tmpts);
+          // Handles LocalDateTime, OffsetDateTime, ZonedDateTime, Instant via TimestampCodec
+          encodeViaCodec(parameterIndex, in, TimestampCodec.INSTANCE, Oid.TIMESTAMP);
         }
         break;
       case Types.TIMESTAMP_WITH_TIMEZONE:
-        if (in instanceof OffsetDateTime) {
-          setTimestamp(parameterIndex, (OffsetDateTime) in);
-        } else if (in instanceof PGTimestamp) {
+        if (in instanceof PGTimestamp) {
           setObject(parameterIndex, in);
+        } else if (in instanceof Timestamp) {
+          setTimestamp(parameterIndex, (Timestamp) in);
         } else {
-          throw new PSQLException(
-              GT.tr("Cannot cast an instance of {0} to type {1}",
-                  in.getClass().getName(), "Types.TIMESTAMP_WITH_TIMEZONE"),
-              PSQLState.INVALID_PARAMETER_TYPE);
+          // Handles OffsetDateTime, ZonedDateTime, Instant, LocalDateTime via TimestamptzCodec
+          encodeViaCodec(parameterIndex, in, TimestamptzCodec.INSTANCE, Oid.TIMESTAMPTZ);
         }
         break;
       case Types.BOOLEAN:
@@ -749,6 +676,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       case Types.DISTINCT:
         bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED);
         break;
+      case Types.STRUCT:
+        setObject(parameterIndex, in);
+        break;
       case Types.OTHER:
         if (in instanceof PGobject) {
           setPGobject(parameterIndex, (PGobject) in);
@@ -773,237 +703,75 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     return type;
   }
 
-  private <A extends @NonNull Object> void setObjectArray(int parameterIndex, A in) throws SQLException {
-    final ArrayEncoding.ArrayEncoder<A> arraySupport = ArrayEncoding.getArrayEncoder(in);
+  private static Class<?> getArrayElementType(Class<?> arrayClass) {
+    Class<?> arrayType = getArrayType(arrayClass);
+    if (!arrayType.isPrimitive()) {
+      return arrayType;
+    }
+    if (arrayType == int.class) {
+      return Integer.class;
+    }
+    if (arrayType == long.class) {
+      return Long.class;
+    }
+    if (arrayType == short.class) {
+      return Short.class;
+    }
+    if (arrayType == double.class) {
+      return Double.class;
+    }
+    if (arrayType == float.class) {
+      return Float.class;
+    }
+    if (arrayType == boolean.class) {
+      return Boolean.class;
+    }
+    if (arrayType == byte.class) {
+      return byte[].class;
+    }
+    return arrayType;
+  }
 
-    final TypeInfo typeInfo = connection.getTypeInfo();
+  @SuppressWarnings("deprecation")
+  private void setObjectArray(int parameterIndex, Object in) throws SQLException {
+    TypeInfo typeInfo = connection.getTypeInfo();
+    Class<?> arrayType = getArrayElementType(in.getClass());
+    // arrayType is the Java type of one SQL element (byte[] for bytea), so the
+    // validator treats a byte[] element as a leaf rather than an inner dimension.
+    ArrayCodec.validateJavaArray(in, arrayType);
+    int oid = typeInfo.getJavaArrayType(arrayType);
+    if (oid == Oid.UNSPECIFIED) {
+      throw new SQLFeatureNotSupportedException();
+    }
+    bindArrayValue(parameterIndex, in, oid, typeInfo.getPgTypeByOid(oid));
+  }
 
-    int oid = arraySupport.getDefaultArrayTypeOid();
-
-    if (arraySupport.supportBinaryRepresentation(oid) && connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-      bindBytes(parameterIndex, arraySupport.toBinaryRepresentation(connection, in, oid), oid);
+  /**
+   * Binds {@code value} — a Java array, or the backing array unwrapped from a {@link Array} — as
+   * the array type {@code (oid, arrayType)} through its codec, preferring the binary wire format
+   * when the driver can encode the value and the server can parse it, and otherwise falling back
+   * to the text literal.
+   */
+  private void bindArrayValue(int parameterIndex, Object value, int oid, PgType arrayType)
+      throws SQLException {
+    PgCodecContext ctx = connection.getCodecContext();
+    Codec codec = ctx.getCodecs().getByOid(oid, arrayType);
+    // Prefer binary unless in simple query mode; backendCanReceiveBinary checks the server can parse
+    // it (typreceive), recursing into the element type, so a custom array whose element has no binary
+    // input stays in text instead of erroring. chooseBindFormat adds the driver-side canEncodeBinary
+    // gate, keeping this in step with the scalar bind path.
+    boolean backendCanBinary = connection.getPreferQueryMode() != PreferQueryMode.SIMPLE
+        && connection.getTypeInfo().backendCanReceiveBinary(arrayType);
+    if (CodecFormatPolicy.chooseBindFormat(codec, value, arrayType, ctx, backendCanBinary)
+        == Format.BINARY) {
+      bindBytes(parameterIndex, ((BinaryCodec) codec).encodeBinary(value, arrayType, ctx), oid);
     } else {
-      if (oid == Oid.UNSPECIFIED) {
-        Class<?> arrayType = getArrayType(in.getClass());
-        oid = typeInfo.getJavaArrayType(arrayType.getName());
-        if (oid == Oid.UNSPECIFIED) {
-          throw new SQLFeatureNotSupportedException();
-        }
-      }
-      final int baseOid = typeInfo.getPGArrayElement(oid);
-      final String baseType = castNonNull(typeInfo.getPGType(baseOid));
-
-      final Array array = getPGConnection().createArrayOf(baseType, in);
-      this.setArray(parameterIndex, array);
+      bindString(parameterIndex, ((TextCodec) codec).encodeText(value, arrayType, ctx), oid);
     }
-  }
-
-  private static String asString(final Clob in) throws SQLException {
-    return in.getSubString(1, (int) in.length());
-  }
-
-  private static int castToInt(final Object in) throws SQLException {
-    try {
-      if (in instanceof String) {
-        return Integer.parseInt((String) in);
-      }
-      if (in instanceof Number) {
-        return ((Number) in).intValue();
-      }
-      if (in instanceof java.util.Date) {
-        @SuppressWarnings("JavaUtilDate")
-        long time = ((java.util.Date) in).getTime();
-        return (int) time;
-      }
-      if (in instanceof Boolean) {
-        return (Boolean) in ? 1 : 0;
-      }
-      if (in instanceof Clob) {
-        return Integer.parseInt(asString((Clob) in));
-      }
-      if (in instanceof Character) {
-        return Integer.parseInt(in.toString());
-      }
-    } catch (final Exception e) {
-      throw cannotCastException(in.getClass().getName(), "int", e);
-    }
-    throw cannotCastException(in.getClass().getName(), "int");
-  }
-
-  private static short castToShort(final Object in) throws SQLException {
-    try {
-      if (in instanceof String) {
-        return Short.parseShort((String) in);
-      }
-      if (in instanceof Number) {
-        return ((Number) in).shortValue();
-      }
-      if (in instanceof java.util.Date) {
-        @SuppressWarnings("JavaUtilDate")
-        long time = ((java.util.Date) in).getTime();
-        return (short) time;
-      }
-      if (in instanceof Boolean) {
-        return (Boolean) in ? (short) 1 : (short) 0;
-      }
-      if (in instanceof Clob) {
-        return Short.parseShort(asString((Clob) in));
-      }
-      if (in instanceof Character) {
-        return Short.parseShort(in.toString());
-      }
-    } catch (final Exception e) {
-      throw cannotCastException(in.getClass().getName(), "short", e);
-    }
-    throw cannotCastException(in.getClass().getName(), "short");
-  }
-
-  private static long castToLong(final Object in) throws SQLException {
-    try {
-      if (in instanceof String) {
-        return Long.parseLong((String) in);
-      }
-      if (in instanceof Number) {
-        return ((Number) in).longValue();
-      }
-      if (in instanceof java.util.Date) {
-        @SuppressWarnings("JavaUtilDate")
-        long time = ((java.util.Date) in).getTime();
-        return time;
-      }
-      if (in instanceof Boolean) {
-        return (Boolean) in ? 1L : 0L;
-      }
-      if (in instanceof Clob) {
-        return Long.parseLong(asString((Clob) in));
-      }
-      if (in instanceof Character) {
-        return Long.parseLong(in.toString());
-      }
-    } catch (final Exception e) {
-      throw cannotCastException(in.getClass().getName(), "long", e);
-    }
-    throw cannotCastException(in.getClass().getName(), "long");
-  }
-
-  private static float castToFloat(final Object in) throws SQLException {
-    try {
-      if (in instanceof String) {
-        return Float.parseFloat((String) in);
-      }
-      if (in instanceof Number) {
-        return ((Number) in).floatValue();
-      }
-      if (in instanceof java.util.Date) {
-        @SuppressWarnings("JavaUtilDate")
-        long time = ((java.util.Date) in).getTime();
-        return time;
-      }
-      if (in instanceof Boolean) {
-        return (Boolean) in ? 1f : 0f;
-      }
-      if (in instanceof Clob) {
-        return Float.parseFloat(asString((Clob) in));
-      }
-      if (in instanceof Character) {
-        return Float.parseFloat(in.toString());
-      }
-    } catch (final Exception e) {
-      throw cannotCastException(in.getClass().getName(), "float", e);
-    }
-    throw cannotCastException(in.getClass().getName(), "float");
-  }
-
-  private static double castToDouble(final Object in) throws SQLException {
-    try {
-      if (in instanceof String) {
-        return Double.parseDouble((String) in);
-      }
-      if (in instanceof Number) {
-        return ((Number) in).doubleValue();
-      }
-      if (in instanceof java.util.Date) {
-        @SuppressWarnings("JavaUtilDate")
-        long time = ((java.util.Date) in).getTime();
-        return time;
-      }
-      if (in instanceof Boolean) {
-        return (Boolean) in ? 1d : 0d;
-      }
-      if (in instanceof Clob) {
-        return Double.parseDouble(asString((Clob) in));
-      }
-      if (in instanceof Character) {
-        return Double.parseDouble(in.toString());
-      }
-    } catch (final Exception e) {
-      throw cannotCastException(in.getClass().getName(), "double", e);
-    }
-    throw cannotCastException(in.getClass().getName(), "double");
-  }
-
-  private static BigDecimal castToBigDecimal(final Object in, final int scale) throws SQLException {
-    try {
-      BigDecimal rc = null;
-      if (in instanceof String) {
-        rc = new BigDecimal((String) in);
-      } else if (in instanceof BigDecimal) {
-        rc = (BigDecimal) in;
-      } else if (in instanceof BigInteger) {
-        rc = new BigDecimal((BigInteger) in);
-      } else if (in instanceof Long || in instanceof Integer || in instanceof Short
-          || in instanceof Byte) {
-        rc = BigDecimal.valueOf(((Number) in).longValue());
-      } else if (in instanceof Double || in instanceof Float) {
-        rc = BigDecimal.valueOf(((Number) in).doubleValue());
-      } else if (in instanceof java.util.Date) {
-        @SuppressWarnings("JavaUtilDate")
-        long time = ((java.util.Date) in).getTime();
-        rc = BigDecimal.valueOf(time);
-      } else if (in instanceof Boolean) {
-        rc = (Boolean) in ? BigDecimal.ONE : BigDecimal.ZERO;
-      } else if (in instanceof Clob) {
-        rc = new BigDecimal(asString((Clob) in));
-      } else if (in instanceof Character) {
-        rc = new BigDecimal(new char[]{(Character) in});
-      }
-      if (rc != null) {
-        if (scale >= 0) {
-          rc = rc.setScale(scale, RoundingMode.HALF_UP);
-        }
-        return rc;
-      }
-    } catch (final Exception e) {
-      throw cannotCastException(in.getClass().getName(), "BigDecimal", e);
-    }
-    throw cannotCastException(in.getClass().getName(), "BigDecimal");
   }
 
   private static String castToString(final Object in) throws SQLException {
-    try {
-      if (in instanceof String) {
-        return (String) in;
-      }
-      if (in instanceof Clob) {
-        return asString((Clob) in);
-      }
-      // convert any unknown objects to string.
-      return in.toString();
-
-    } catch (final Exception e) {
-      throw cannotCastException(in.getClass().getName(), "String", e);
-    }
-  }
-
-  private static PSQLException cannotCastException(final String fromType, final String toType) {
-    return cannotCastException(fromType, toType, null);
-  }
-
-  private static PSQLException cannotCastException(final String fromType, final String toType,
-      final @Nullable Exception cause) {
-    return new PSQLException(
-        GT.tr("Cannot convert an instance of {0} to type {1}", fromType, toType),
-        PSQLState.INVALID_PARAMETER_TYPE, cause);
+    return TypeCoercion.toString(in);
   }
 
   @Override
@@ -1058,6 +826,14 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setClob(parameterIndex, (Clob) x);
     } else if (x instanceof Array) {
       setArray(parameterIndex, (Array) x);
+    } else if (x instanceof java.sql.Struct) {
+      // PgStruct extends PGobject so we have to check Struct before PGobject;
+      // setPGobject would otherwise bind the (null) value field as NULL.
+      setStruct(parameterIndex, (java.sql.Struct) x);
+    } else if (x instanceof java.sql.SQLData) {
+      // Same reasoning: a SQLData implementation may also subclass PGobject
+      // and we want the composite-encoding path.
+      setSQLData(parameterIndex, (java.sql.SQLData) x);
     } else if (x instanceof PGobject) {
       setPGobject(parameterIndex, (PGobject) x);
     } else if (x instanceof Character) {
@@ -1072,6 +848,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setTimestamp(parameterIndex, (LocalDateTime) x);
     } else if (x instanceof OffsetDateTime) {
       setTimestamp(parameterIndex, (OffsetDateTime) x);
+    } else if (x instanceof Instant) {
+      encodeViaCodec(parameterIndex, x, TimestamptzCodec.INSTANCE, Oid.TIMESTAMPTZ);
+    } else if (x instanceof ZonedDateTime) {
+      encodeViaCodec(parameterIndex, x, TimestamptzCodec.INSTANCE, Oid.TIMESTAMPTZ);
     } else if (x instanceof Map) {
       setMap(parameterIndex, (Map<?, ?>) x);
     } else if (x instanceof Number) {
@@ -1157,6 +937,48 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     preparedParameters.setStringParameter(paramIndex, s, oid);
   }
 
+  /**
+   * Encodes a value using the given codec's text encoding and binds it as a string parameter.
+   *
+   * @param parameterIndex the parameter index (1-based)
+   * @param value the value to encode
+   * @param codec the text codec to use for encoding
+   * @param oid the PostgreSQL type OID to bind with
+   * @throws SQLException if encoding fails
+   */
+  private void encodeViaCodec(@Positive int parameterIndex, Object value, TextCodec codec, int oid)
+      throws SQLException {
+    PgType pgType = connection.getTypeInfo().getPgTypeByOid(oid);
+    PgCodecContext ctx = connection.getCodecContext();
+    String text = codec.encodeText(value, pgType, ctx);
+    bindString(parameterIndex, text, oid);
+  }
+
+  /**
+   * Binds a {@code NUMERIC}/{@code DECIMAL} parameter for {@code setObject(..., targetSqlType, scale)}.
+   *
+   * <p>Finite values keep the legacy {@link #setBigDecimal} path (byte-identical wire form). PostgreSQL
+   * {@code numeric} also carries {@code NaN} and {@code ±Infinity} (the latter since v14), which
+   * {@link BigDecimal} cannot represent, so {@link SqlTypeCoercion} hands those through as a non-finite
+   * {@code Double}/{@code Float} sentinel that the numeric codec spells out. This is the only scalar
+   * target routed through the codec, because it is the only one whose value space {@code BigDecimal}
+   * cannot cover; the primitive targets stay on the boxing-free typed setters.</p>
+   *
+   * @param parameterIndex the parameter index (1-based)
+   * @param in the value to coerce and bind
+   * @param scale the scale to apply, or -1 for none
+   * @throws SQLException if coercion, encoding, or binding fails
+   */
+  private void bindNumericParameter(@Positive int parameterIndex, Object in, int scale)
+      throws SQLException {
+    Object value = SqlTypeCoercion.coerce(in, Types.NUMERIC, scale);
+    if (value instanceof BigDecimal) {
+      setBigDecimal(parameterIndex, (BigDecimal) value);
+      return;
+    }
+    bindViaCodec(parameterIndex, value, connection.getTypeInfo().getPgTypeByOid(Oid.NUMERIC));
+  }
+
   @Override
   public boolean isUseServerPrepare() {
     return preparedQuery != null && mPrepareThreshold != 0
@@ -1232,27 +1054,36 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return;
     }
 
-    // This only works for Array implementations that return a valid array
-    // literal from Array.toString(), such as the implementation we return
-    // from ResultSet.getArray(). Eventually we need a proper implementation
-    // here that works for any Array implementation.
-    String typename = x.getBaseTypeName();
-    int oid = connection.getTypeInfo().getPGArrayType(typename);
-    if (oid == Oid.UNSPECIFIED) {
-      throw new PSQLException(GT.tr("Unknown type {0}.", typename),
-          PSQLState.INVALID_PARAMETER_TYPE);
-    }
-
     if (x instanceof PgArray) {
       PgArray arr = (PgArray) x;
+      int oid = arr.getOid();
       byte[] bytes = arr.toBytes();
       if (bytes != null) {
         bindBytes(i, bytes, oid);
         return;
       }
+      // Text-mode PgArray: its toString() is already a valid PostgreSQL array literal, so bind
+      // it directly and avoid a decode/re-encode round-trip.
+      setString(i, arr.toString(), oid);
+      return;
     }
 
-    setString(i, x.toString(), oid);
+    // Foreign java.sql.Array: Array.toString() is not guaranteed to be a PostgreSQL array
+    // literal, so unwrap the backing Java array and bind it through the array codec — the same
+    // path a raw Java-array parameter takes. The array type is resolved from the SQL element
+    // type name (Array.getBaseTypeName, per the JDBC contract).
+    String elementTypeName = x.getBaseTypeName();
+    int oid = connection.getTypeInfo().getPgTypeByPgName(elementTypeName).getArrayOid();
+    if (oid == Oid.UNSPECIFIED) {
+      throw new PSQLException(GT.tr("Unknown type {0}.", elementTypeName),
+          PSQLState.INVALID_PARAMETER_TYPE);
+    }
+    Object javaArray = x.getArray();
+    if (javaArray == null) {
+      setNull(i, Types.ARRAY);
+      return;
+    }
+    bindArrayValue(i, javaArray, oid, connection.getTypeInfo().getPgTypeByOid(oid));
   }
 
   protected long createBlob(InputStream inputStream,
@@ -1400,7 +1231,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     checkClosed();
 
     TypeInfo typeInfo = connection.getTypeInfo();
-    int oid = typeInfo.getPGType(typeName);
+    int oid = typeInfo.getPgTypeByPgName(typeName).getOid();
 
     preparedParameters.setNull(parameterIndex, oid);
   }
@@ -1576,14 +1407,117 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   public void setObject(@Positive int parameterIndex, @Nullable Object x,
       SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setObject");
+    checkClosed();
+
+    // Handle SQLData - encode using CompositeCodec
+    if (x instanceof java.sql.SQLData) {
+      setSQLData(parameterIndex, (java.sql.SQLData) x);
+      return;
+    }
+
+    // Handle Struct - encode as composite type
+    if (x instanceof java.sql.Struct) {
+      setStruct(parameterIndex, (java.sql.Struct) x);
+      return;
+    }
+
+    if (PGSQLType.VENDOR.equals(targetSqlType.getVendor())) {
+      // Any SQLType reporting this vendor id -- not just the PGSQLType constants -- carries a
+      // concrete PostgreSQL OID via getVendorTypeNumber(), so bind straight through the codec
+      // registry instead of narrowing it to the coarser java.sql.Types set below: e.g.
+      // PGSQLType.XID8 now binds as xid8 without requiring an explicit ::xid8 cast in the SQL
+      // text, and a caller can implement SQLType for a type PGSQLType has no constant for.
+      Integer vendorTypeNumber = targetSqlType.getVendorTypeNumber();
+      if (vendorTypeNumber == null) {
+        throw new PSQLException(
+            GT.tr("SQLType {0} of vendor {1} has no vendor type number (OID)",
+                targetSqlType.getName(), PGSQLType.VENDOR),
+            PSQLState.INVALID_PARAMETER_TYPE);
+      }
+      int oid = vendorTypeNumber;
+      if (x == null) {
+        preparedParameters.setNull(parameterIndex, oid);
+      } else {
+        bindViaCodec(parameterIndex, x, connection.getTypeInfo().getPgTypeByOid(oid));
+      }
+      return;
+    }
+
+    int sqlTypeCode = JavaTypeRegistry.getSqlTypeCode(targetSqlType);
+
+    if (x == null) {
+      setNull(parameterIndex, sqlTypeCode);
+      return;
+    }
+
+    // Delegate to int-based setObject
+    setObject(parameterIndex, x, sqlTypeCode, scaleOrLength);
   }
 
   @Override
   public void setObject(@Positive int parameterIndex, @Nullable Object x,
       SQLType targetSqlType)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setObject");
+    // Use default scale of 0
+    setObject(parameterIndex, x, targetSqlType, 0);
+  }
+
+  /**
+   * Sets an SQLData parameter value.
+   *
+   * @param parameterIndex the parameter index (1-based)
+   * @param sqlData the SQLData value
+   * @throws SQLException if an error occurs
+   */
+  private void setSQLData(@Positive int parameterIndex, java.sql.SQLData sqlData)
+      throws SQLException {
+    // getPgTypeByPgName throws SQLException if type is not found
+    PgType pgType = connection.getTypeInfo().getPgTypeByPgName(sqlData.getSQLTypeName());
+    bindViaCodec(parameterIndex, sqlData, pgType);
+  }
+
+  /**
+   * Sets a Struct parameter value.
+   *
+   * @param parameterIndex the parameter index (1-based)
+   * @param struct the Struct value
+   * @throws SQLException if an error occurs
+   */
+  private void setStruct(@Positive int parameterIndex, java.sql.Struct struct) throws SQLException {
+    // getPgTypeByPgName throws SQLException if type is not found
+    PgType pgType = connection.getTypeInfo().getPgTypeByPgName(struct.getSQLTypeName());
+    bindViaCodec(parameterIndex, struct, pgType);
+  }
+
+  /**
+   * Encodes a parameter value using the codec registered for the given PgType
+   * and binds it, choosing binary or text wire format based on
+   * {@link org.postgresql.core.BaseConnection#binaryTransferSend(int)}.
+   *
+   * <p>The actual codec is resolved from {@link CodecRegistry} via the type's
+   * OID, so a custom codec registered by the caller (e.g. via SPI) is honored
+   * transparently. {@link CodecRegistry} guarantees a non-null codec
+   * (FallbackCodec for unknown types).</p>
+   *
+   * @param parameterIndex the parameter index (1-based)
+   * @param value the value to encode
+   * @param pgType resolved type metadata
+   * @throws SQLException if no codec for the requested wire format is available
+   *     or if encoding/binding fails
+   */
+  private void bindViaCodec(@Positive int parameterIndex,
+      Object value, PgType pgType) throws SQLException {
+    int oid = pgType.getOid();
+    PgCodecContext ctx = connection.getCodecContext();
+    Codec codec = ctx.getCodecs().getByOid(oid, pgType);
+    boolean backendCanBinary = connection.binaryTransferSend(oid)
+        && connection.getTypeInfo().backendCanReceiveBinary(pgType);
+    if (CodecFormatPolicy.chooseBindFormat(codec, value, pgType, ctx, backendCanBinary)
+        == Format.BINARY) {
+      bindBytes(parameterIndex, ((BinaryCodec) codec).encodeBinary(value, pgType, ctx), oid);
+    } else {
+      bindLiteral(parameterIndex, ((TextCodec) codec).encodeText(value, pgType, ctx), oid);
+    }
   }
 
   @Override
@@ -1751,14 +1685,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   private void setUuid(@Positive int parameterIndex, UUID uuid) throws SQLException {
-    if (connection.binaryTransferSend(Oid.UUID)) {
-      byte[] val = new byte[16];
-      ByteConverter.int8(val, 0, uuid.getMostSignificantBits());
-      ByteConverter.int8(val, 8, uuid.getLeastSignificantBits());
-      bindBytes(parameterIndex, val, Oid.UUID);
-    } else {
-      bindLiteral(parameterIndex, uuid.toString(), Oid.UUID);
-    }
+    bindViaCodec(parameterIndex, uuid, connection.getTypeInfo().getPgTypeByOid(Oid.UUID));
   }
 
   @Override
@@ -1781,19 +1708,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       }
       return super.executeBatch();
     } finally {
-      defaultTimeZone = null;
+      getDateTimeHelper().resetDefaultTimeZone();
     }
   }
 
   private Calendar getDefaultCalendar() {
-    if (getTimestampUtils().hasFastDefaultTimeZone()) {
-      return getTimestampUtils().getSharedCalendar(null);
-    }
-    Calendar sharedCalendar = getTimestampUtils().getSharedCalendar(defaultTimeZone);
-    if (defaultTimeZone == null) {
-      defaultTimeZone = sharedCalendar.getTimeZone();
-    }
-    return sharedCalendar;
+    return getDateTimeHelper().getDefaultCalendar();
   }
 
   @Override

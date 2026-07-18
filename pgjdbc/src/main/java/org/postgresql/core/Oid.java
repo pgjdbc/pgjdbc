@@ -51,6 +51,8 @@ public class Oid {
   public static final int VARCHAR_ARRAY = 1015;
   public static final int OID = 26;
   public static final int OID_ARRAY = 1028;
+  public static final int OID8 = 6437;
+  public static final int OID8_ARRAY = 6442;
   public static final int BPCHAR = 1042;
   public static final int BPCHAR_ARRAY = 1014;
   public static final int MONEY = 790;
@@ -72,6 +74,8 @@ public class Oid {
   public static final int XML_ARRAY = 143;
   public static final int POINT = 600;
   public static final int POINT_ARRAY = 1017;
+  public static final int HSTORE = 16388;
+  public static final int HSTORE_ARRAY = 16393;
   public static final int BOX = 603;
   public static final int BOX_ARRAY = 1020;
   public static final int JSONB = 3802;
@@ -100,6 +104,8 @@ public class Oid {
   public static final int MACADDR8 = 774;
   public static final int TSVECTOR = 3614;
   public static final int TSQUERY = 3615;
+  public static final int XID8 = 5069;
+  public static final int XID8_ARRAY = 271;
   public static final int RECORD = 2249;
   public static final int RECORD_ARRAY = 2287;
 

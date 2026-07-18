@@ -45,7 +45,11 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
    * Prevents situation that a new value will be added to Oid class with ignoring the test.
    */
   private static List<String> oidsToIgnore = Arrays.asList(
-      "UNSPECIFIED" //UNSPECIFIED isn't an Oid, it's a value to specify that Oid value is unspecified
+      "UNSPECIFIED", //UNSPECIFIED isn't an Oid, it's a value to specify that Oid value is unspecified
+      // hstore is a contrib extension; its OID is assigned at CREATE EXTENSION time and
+      // varies between installations, so the constants in Oid.java are sample values only.
+      "HSTORE",
+      "HSTORE_ARRAY"
   );
 
   /**
@@ -61,6 +65,10 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
     oidsMinimumVersions.put("JSONB", ServerVersion.v9_4);
     oidsMinimumVersions.put("JSONB_ARRAY", ServerVersion.v9_4);
     oidsMinimumVersions.put("MACADDR8", ServerVersion.v10);
+    oidsMinimumVersions.put("OID8", ServerVersion.v19);
+    oidsMinimumVersions.put("OID8_ARRAY", ServerVersion.v19);
+    oidsMinimumVersions.put("XID8", ServerVersion.v13);
+    oidsMinimumVersions.put("XID8_ARRAY", ServerVersion.v13);
   }
 
   /**
@@ -88,6 +96,8 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
     oidTypeNames.put("BYTEA_ARRAY", "_BYTEA");
     oidTypeNames.put("VARCHAR_ARRAY", "_VARCHAR");
     oidTypeNames.put("OID_ARRAY", "_OID");
+    oidTypeNames.put("OID8_ARRAY", "_OID8");
+    oidTypeNames.put("XID8_ARRAY", "_XID8");
     oidTypeNames.put("BPCHAR_ARRAY", "_BPCHAR");
     oidTypeNames.put("MONEY_ARRAY", "_MONEY");
     oidTypeNames.put("NAME_ARRAY", "_NAME");

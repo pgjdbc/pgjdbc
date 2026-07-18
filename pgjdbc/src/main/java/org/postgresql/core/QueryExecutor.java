@@ -380,6 +380,44 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   void setBinaryReceiveOids(Set<Integer> useBinaryForOids);
 
   /**
+   * Injects the {@link TypeInfo} used to decide binary receive by the type's
+   * catalog capability (and recursive binaryTransferDisable opt-out). When left
+   * unset (for example when {@code binaryTransfer=false}), only the explicit
+   * receive-oids set enables binary receive.
+   *
+   * @param typeInfo the type info to consult, cache-only, on the bind path
+   */
+  void setTypeInfo(TypeInfo typeInfo);
+
+  /**
+   * Forces binary receive for every result column, bypassing the per-type capability check
+   * ({@code binaryTransferEnable=*}). Intended for testing the binary path: a type the server cannot
+   * send in binary then errors at execute, and one the driver cannot decode in binary may decode
+   * incorrectly. Overridden by {@link #setDisableBinaryAll(boolean)}.
+   *
+   * @param forceBinaryReceiveAll whether to request binary for all result columns
+   */
+  void setForceBinaryReceiveAll(boolean forceBinaryReceiveAll);
+
+  /**
+   * Forces text for every result column ({@code binaryTransferDisable=*}), taking precedence over
+   * every other binary-receive setting. Intended for testing whether a failure is caused by binary
+   * mode.
+   *
+   * @param disableBinaryAll whether to force text for all result columns
+   */
+  void setDisableBinaryAll(boolean disableBinaryAll);
+
+  /**
+   * Sets the explicit per-type {@code binaryTransferDisable} oids. They are honoured even when
+   * {@link #setForceBinaryReceiveAll(boolean)} is set, so a per-type disable overrides
+   * {@code binaryTransferEnable=*}.
+   *
+   * @param oids the oids explicitly disabled for binary receive
+   */
+  void setBinaryReceiveDisabledOids(Set<Integer> oids);
+
+  /**
    * Adds a single oid that should be sent using binary encoding.
    *
    * @param oid The oid to send with binary encoding.
@@ -601,6 +639,16 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * @param flushCacheOnDdl true to invalidate prepared statements on DDL
    */
   void setFlushCacheOnDdl(boolean flushCacheOnDdl);
+
+  /**
+   * Returns the current type cache epoch.
+   * A new epoch means the type cache should be invalidated.
+   * For instance, if user executes {@code DROP TYPE custom_type} SQL, then we should not reuse
+   * the type cache (for instance, oid) for the type. As of now, we can't have fine-grained
+   * notifications from the backend, so we invalidate the full cache.
+   * @return the current type cache epoch
+   */
+  int getTypeCacheEpoch();
 
   /**
    * @return the ReplicationProtocol instance for this connection.

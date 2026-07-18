@@ -121,20 +121,32 @@ public enum PGProperty {
   /**
    * Comma separated list of types to disable binary transfer. Either OID numbers or names.
    * Overrides values in the driver default set and values set with binaryTransferEnable.
+   * The special value {@code *} disables binary transfer for all types and takes precedence over
+   * binaryTransferEnable.
    */
   BINARY_TRANSFER_DISABLE(
       "binaryTransferDisable",
       "",
       "Comma separated list of types to disable binary transfer. Either OID numbers or names. "
-          + "Overrides values in the driver default set and values set with binaryTransferEnable."),
+          + "Overrides values in the driver default set and values set with binaryTransferEnable. "
+          + "The special value `*` disables binary transfer for all types (text everywhere) and "
+          + "takes precedence over binaryTransferEnable; useful for testing whether a failure is "
+          + "caused by binary mode."),
 
   /**
-   * Comma separated list of types to enable binary transfer. Either OID numbers or names
+   * Comma separated list of types to enable binary transfer. Either OID numbers or names.
+   * The special value {@code *} forces binary receive for all result columns, bypassing the
+   * per-type capability check.
    */
   BINARY_TRANSFER_ENABLE(
       "binaryTransferEnable",
       "",
-      "Comma separated list of types to enable binary transfer. Either OID numbers or names."),
+      "Comma separated list of types to enable binary transfer. Either OID numbers or names. "
+          + "The special value `*` forces binary receive for all result columns, bypassing the "
+          + "per-type capability check (for testing the binary path: a type the server cannot send "
+          + "in binary then errors, and one the driver cannot decode in binary may decode "
+          + "incorrectly). It does not affect the send direction, and binaryTransferDisable=* "
+          + "overrides it."),
 
   /**
    * Cancel command is sent out of band over its own connection, so cancel message can itself get
@@ -297,6 +309,71 @@ public enum PGProperty {
       "Invalidate the prepared-statement cache when a CREATE/DROP/ALTER "
           + "CommandComplete is observed (default true). Disable for legacy "
           + "behavior that surfaces 'cached plan must not change result type'."),
+
+  /**
+   * Controls the default Java type returned by getObject() for DATE columns.
+   * When set to "java.time", returns LocalDate. When set to "java.sql" (default),
+   * returns java.sql.Date.
+   */
+  GETOBJECT_DATE(
+      "getobjectDate",
+      "java.sql",
+      "Default type for getObject() on DATE: java.sql or java.time",
+      false,
+      new String[]{"java.sql", "java.time"}
+  ),
+
+  /**
+   * Controls the default Java type returned by getObject() for TIME columns.
+   * When set to "java.time", returns LocalTime. When set to "java.sql" (default),
+   * returns java.sql.Time.
+   */
+  GETOBJECT_TIME(
+      "getobjectTime",
+      "java.sql",
+      "Default type for getObject() on TIME: java.sql or java.time",
+      false,
+      new String[]{"java.sql", "java.time"}
+  ),
+
+  /**
+   * Controls the default Java type returned by getObject() for TIMESTAMP columns.
+   * When set to "java.time", returns LocalDateTime. When set to "java.sql" (default),
+   * returns java.sql.Timestamp.
+   */
+  GETOBJECT_TIMESTAMP(
+      "getobjectTimestamp",
+      "java.sql",
+      "Default type for getObject() on TIMESTAMP: java.sql or java.time",
+      false,
+      new String[]{"java.sql", "java.time"}
+  ),
+
+  /**
+   * Controls the default Java type returned by getObject() for TIMESTAMP WITH TIME ZONE columns.
+   * When set to "java.time", returns OffsetDateTime. When set to "java.sql" (default),
+   * returns java.sql.Timestamp.
+   */
+  GETOBJECT_TIMESTAMPTZ(
+      "getobjectTimestamptz",
+      "java.sql",
+      "Default type for getObject() on TIMESTAMPTZ: java.sql or java.time",
+      false,
+      new String[]{"java.sql", "java.time"}
+  ),
+
+  /**
+   * Controls the default Java type returned by getObject() for TIME WITH TIME ZONE columns.
+   * When set to "java.time", returns OffsetTime. When set to "java.sql" (default),
+   * returns java.sql.Time.
+   */
+  GETOBJECT_TIMETZ(
+      "getobjectTimetz",
+      "java.sql",
+      "Default type for getObject() on TIMETZ: java.sql or java.time",
+      false,
+      new String[]{"java.sql", "java.time"}
+  ),
 
   /**
    * Group startup parameters in a transaction
@@ -463,6 +540,20 @@ public enum PGProperty {
       "logUnclosedConnections",
       "false",
       "When connections that are not explicitly closed are garbage collected, log the stacktrace from the opening of the connection to trace the leak source"),
+
+  /**
+   * Controls the JDBC SQL type reported for PostgreSQL boolean columns in metadata.
+   * When set to "bit" (default for backward compatibility), boolean maps to Types.BIT.
+   * When set to "boolean", boolean maps to Types.BOOLEAN, which is more semantically correct.
+   * This affects ResultSetMetaData.getColumnType() and ORM type detection (e.g., Hibernate).
+   */
+  MAP_PG_TYPE_BOOLEAN(
+      "mapPgTypeBoolean",
+      "bit",
+      "JDBC type for PostgreSQL boolean: bit or boolean",
+      false,
+      new String[]{"bit", "boolean"}
+  ),
 
   /**
    * Specifies size of buffer during fetching result set. Can be specified as specified size or

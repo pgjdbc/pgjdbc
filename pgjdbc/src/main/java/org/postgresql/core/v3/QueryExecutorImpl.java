@@ -94,6 +94,7 @@ import org.postgresql.core.SqlCommand;
 import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.TransactionState;
 import org.postgresql.core.Tuple;
+import org.postgresql.core.TypeInfo;
 import org.postgresql.core.v3.adaptivefetch.AdaptiveFetchCache;
 import org.postgresql.core.v3.replication.V3ReplicationProtocol;
 import org.postgresql.jdbc.AutoSave;
@@ -192,6 +193,32 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private final IntSet useBinaryReceiveForOids = new IntSet();
 
   /**
+   * Type info consulted (cache-only) to decide binary receive by the column type's
+   * catalog capability and the recursive binaryTransferDisable opt-out. Null when the
+   * capability fallback is off (for example binaryTransfer=false), in which case only
+   * {@link #useBinaryReceiveForOids} enables binary receive.
+   */
+  private @Nullable TypeInfo binaryReceiveTypeInfo;
+
+  /**
+   * {@code binaryTransferEnable=*}: request binary for every result column, bypassing the per-type
+   * capability check. Set once at connection setup, read on the bind path.
+   */
+  private volatile boolean forceBinaryReceiveAll;
+
+  /**
+   * {@code binaryTransferDisable=*}: force text for every result column. Takes precedence over
+   * {@link #forceBinaryReceiveAll}, {@link #useBinaryReceiveForOids} and the capability fallback.
+   */
+  private volatile boolean disableBinaryAll;
+
+  /**
+   * Explicit per-type {@code binaryTransferDisable} oids. Honoured even under
+   * {@link #forceBinaryReceiveAll} so a per-type disable overrides {@code binaryTransferEnable=*}.
+   */
+  private volatile Set<Integer> binaryReceiveDisabledOids = Collections.emptySet();
+
+  /**
    * Bit set that has a bit set for each oid which should be sent using binary format.
    */
   private final IntSet useBinarySendForOids = new IntSet();
@@ -204,6 +231,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private final SimpleQuery sync = (SimpleQuery) createQuery("SYNC", false, true).query;
 
   private short deallocateEpoch;
+  private int typeCacheEpoch;
 
   /**
    * Number of leading characters of a {@code SET}/{@code RESET} statement that are scanned for the
@@ -254,6 +282,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   @Override
   public ProtocolVersion getProtocolVersion() {
     return protocolVersion;
+  }
+
+  @Override
+  public int getTypeCacheEpoch() {
+    return typeCacheEpoch;
   }
 
   /**
@@ -1867,12 +1900,28 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     Field[] fields = query.getFields();
-    if (!noBinaryTransfer && query.needUpdateFieldFormats() && fields != null) {
+    // Re-evaluate still-text columns on every Bind, not just once: a column whose type capability was
+    // cold at an earlier execution (its memos not yet warmed) upgrades to binary as soon as the type is
+    // warm. Already-binary columns are never revisited, and this only ever promotes text -> binary.
+    // needUpdateFieldFormats() is consumed to preserve the reset handshake with the noBinaryTransfer
+    // branch below; it no longer gates the loop.
+    if (!noBinaryTransfer && fields != null) {
+      query.needUpdateFieldFormats();
+      boolean anyBinary = false;
       for (Field field : fields) {
-        if (useBinary(field)) {
+        if (field.getFormat() == Field.TEXT_FORMAT && useBinary(field)) {
           field.setFormat(Field.BINARY_FORMAT);
-          query.setHasBinaryFields(true);
         }
+        // Recompute hasBinaryFields from the fields' actual formats, counting columns that are
+        // already binary from a prior describe. setFields() resets hasBinaryFields, so relying on it
+        // would drop those columns and a later Bind would request text while the cached metadata
+        // still says binary, corrupting the decode.
+        if (field.getFormat() == Field.BINARY_FORMAT) {
+          anyBinary = true;
+        }
+      }
+      if (anyBinary) {
+        query.setHasBinaryFields(true);
       }
     }
     // If text-only results are required (e.g. updateable resultset), and the query has binary columns,
@@ -1892,13 +1941,25 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // are text.
     int numBinaryFields = !noBinaryTransfer && query.hasBinaryFields() && fields != null
         ? fields.length : 0;
+    // binaryTransferEnable=*: when the result columns are not described yet (fields == null), request
+    // binary for all of them with a single result-format code, which the Bind protocol applies to
+    // every column. This forces binary from the first execution even without a prior describe.
+    // Skip it when a per-type binaryTransferDisable is set: a single code cannot exclude the disabled
+    // column, so defer to the per-field path (which honours the disable) once the columns are
+    // described, keeping disable-overrides-enable intact. Trade-off: with that combination the
+    // non-disabled columns are text on the first, undescribed execution and turn binary once the
+    // fields are cached; forcing them earlier would need an extra describe round-trip, not worth it
+    // for a testing flag.
+    boolean forceAllBinaryUndescribed = forceBinaryReceiveAll && !noBinaryTransfer && fields == null
+        && binaryReceiveDisabledOids.isEmpty();
+    int resultFormatCodeCount = forceAllBinaryUndescribed ? 1 : numBinaryFields;
 
     encodedSize = 4
         + (encodedPortalName == null ? 0 : encodedPortalName.length) + 1
         + (encodedStatementName == null ? 0 : encodedStatementName.length) + 1
         + 2 + params.getParameterCount() * 2L
         + 2 + encodedSize
-        + 2 + numBinaryFields * 2L;
+        + 2 + resultFormatCodeCount * 2L;
 
     // backend's MaxAllocSize is the largest message that can
     // be received from a client. If we have a bigger value
@@ -1959,9 +2020,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
     }
 
-    pgStream.sendInteger2(numBinaryFields); // # of result format codes
-    for (int i = 0; fields != null && i < numBinaryFields; i++) {
-      pgStream.sendInteger2(fields[i].getFormat());
+    pgStream.sendInteger2(resultFormatCodeCount); // # of result format codes
+    if (forceAllBinaryUndescribed) {
+      pgStream.sendInteger2(Field.BINARY_FORMAT); // one code applies to every result column
+    } else {
+      for (int i = 0; fields != null && i < numBinaryFields; i++) {
+        pgStream.sendInteger2(fields[i].getFormat());
+      }
     }
 
     pendingBindQueue.add(portal == null ? UNNAMED_PORTAL : portal);
@@ -1979,8 +2044,30 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    *         {@link Field#BINARY_FORMAT}.
    */
   private boolean useBinary(Field field) {
+    // binaryTransferDisable=* forces text for every column, overriding everything below.
+    if (disableBinaryAll) {
+      return false;
+    }
     int oid = field.getOID();
-    return useBinaryForReceive(oid);
+    // binaryTransferEnable=* forces binary for every column, bypassing the capability check
+    // (for testing the binary path even where the server can't send or the driver can't decode it).
+    // An explicit per-type binaryTransferDisable still wins, matching the disable-overrides-enable
+    // contract.
+    if (forceBinaryReceiveAll) {
+      return !binaryReceiveDisabledOids.contains(oid);
+    }
+    // Explicit binaryTransferEnable / registered binary types force binary on.
+    synchronized (useBinaryReceiveForOids) {
+      if (useBinaryReceiveForOids.contains(oid)) {
+        return true;
+      }
+    }
+    // Otherwise the column type's catalog capability and the recursive
+    // binaryTransferDisable opt-out decide. This runs while the Bind message is being
+    // composed, so the lookup is cache-only — a catalog query here would corrupt the
+    // protocol stream.
+    TypeInfo typeInfo = binaryReceiveTypeInfo;
+    return typeInfo != null && typeInfo.shouldReceiveBinary(oid);
   }
 
   private void sendDescribePortal(SimpleQuery query, @Nullable Portal portal) throws IOException {
@@ -2507,16 +2594,21 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               && (status.startsWith("DEALLOCATE ALL") || status.startsWith("DISCARD ALL"))) {
             deallocateEpoch++;
           }
-          if (isFlushCacheOnDdl()
-              && (status.startsWith("CREATE ")
-                  || status.startsWith("DROP ")
-                  || status.startsWith("ALTER "))) {
-            // DDL invalidates any server-side prepared plan that references
-            // the affected relation. Bump the epoch so the driver
-            // re-prepares matching statements on next use, instead of
-            // surfacing PostgreSQL's "cached plan must not change result
-            // type" to callers that don't opt into autosave=ALWAYS.
-            deallocateEpoch++;
+          if (status.startsWith("CREATE ")
+              || status.startsWith("DROP ")
+              || status.startsWith("ALTER ")) {
+            // DDL may redefine types (e.g. DROP TYPE / ALTER TYPE), so invalidate the
+            // driver's type cache regardless of flushCacheOnDdl, which only governs
+            // server-side prepared plans.
+            typeCacheEpoch++;
+            if (isFlushCacheOnDdl()) {
+              // DDL invalidates any server-side prepared plan that references
+              // the affected relation. Bump the epoch so the driver
+              // re-prepares matching statements on next use, instead of
+              // surfacing PostgreSQL's "cached plan must not change result
+              // type" to callers that don't opt into autosave=ALWAYS.
+              deallocateEpoch++;
+            }
           }
 
           doneAfterRowDescNoData = false;
@@ -2559,8 +2651,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             if (changesSearchPath
                 && !nativeSql.equals(lastSetSearchPathQuery)) {
               // Search path was changed, invalidate prepared statement cache
+              // *and* the per-connection type cache: name-keyed lookups
+              // (TypeInfoCache.getPgTypeByPgName) resolve against the
+              // current search_path, so a previously-cached "foo" might
+              // now refer to a different type.
               lastSetSearchPathQuery = nativeSql;
               deallocateEpoch++;
+              typeCacheEpoch++;
             }
           }
 
@@ -3158,14 +3255,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if ("search_path".equals(name)) {
       // PostgreSQL 18 and later report search_path changes to the client (GUC_REPORT) wherever the
       // change happens, including inside PL/pgSQL or a function. Invalidate the server-prepared
-      // statement cache only when the value actually changes -- compared against the previously
-      // reported value, which is still in the parameter status map until onParameterStatus updates
-      // it below -- so the next execution re-prepares against the new path. The first report just
-      // records the baseline; from then on the SET/RESET command-tag scan in processResults is
-      // skipped in favour of this report.
+      // statement cache *and* the per-connection type cache only when the value actually changes --
+      // compared against the previously reported value, which is still in the parameter status map
+      // until onParameterStatus updates it below -- so the next execution re-prepares against the
+      // new path and name-keyed lookups (TypeInfoCache.getPgTypeByPgName) re-resolve against it. The
+      // first report just records the baseline; from then on the SET/RESET command-tag scan in
+      // processResults is skipped in favour of this report.
       String previousSearchPath = getParameterStatus(name);
       if (previousSearchPath != null && !previousSearchPath.equals(value)) {
         deallocateEpoch++;
+        typeCacheEpoch++;
       }
     }
 
@@ -3294,6 +3393,26 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       useBinaryReceiveForOids.clear();
       useBinaryReceiveForOids.addAll(oids);
     }
+  }
+
+  @Override
+  public void setTypeInfo(TypeInfo typeInfo) {
+    this.binaryReceiveTypeInfo = typeInfo;
+  }
+
+  @Override
+  public void setForceBinaryReceiveAll(boolean forceBinaryReceiveAll) {
+    this.forceBinaryReceiveAll = forceBinaryReceiveAll;
+  }
+
+  @Override
+  public void setDisableBinaryAll(boolean disableBinaryAll) {
+    this.disableBinaryAll = disableBinaryAll;
+  }
+
+  @Override
+  public void setBinaryReceiveDisabledOids(Set<Integer> oids) {
+    this.binaryReceiveDisabledOids = oids;
   }
 
   @Override

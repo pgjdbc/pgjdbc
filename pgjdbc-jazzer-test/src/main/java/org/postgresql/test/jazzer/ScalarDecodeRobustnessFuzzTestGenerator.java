@@ -1,0 +1,175 @@
+/*
+ * Copyright (c) 2026, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
+package org.postgresql.test.jazzer;
+
+import org.postgresql.api.codec.Format;
+import org.postgresql.fuzzkit.ScalarDecodeRobustnessModel;
+import org.postgresql.fuzzkit.ScalarDecodeRobustnessModel.Target;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+
+/**
+ * Emits {@code GeneratedScalarDecodeRobustnessFuzzTest.java} from {@link ScalarDecodeRobustnessModel}, so the
+ * uniform scalar decode-robustness targets are generated from the codec registry rather than hand-kept.
+ *
+ * <p>Jazzer-JUnit fuzzes only real, physically compiled {@code @FuzzTest} methods and resolves each one's
+ * seed corpus from a classpath resource named after the method, so the targets must be concrete methods
+ * with stable names. This generator writes one such source file; the Gradle task compiles it into the test
+ * source set. Output is deterministic -- OID-ordered, no timestamps -- so a rerun produces identical bytes.
+ *
+ * <p>Driven by {@link FuzzTargetGenerator}, the module's single generator entry point, which passes the
+ * generated-sources root. It needs no database connection: the model is built from the offline codec registry.
+ */
+public final class ScalarDecodeRobustnessFuzzTestGenerator {
+
+  private static final String PACKAGE = "org.postgresql.test.jazzer";
+  private static final String CLASS_NAME = "GeneratedScalarDecodeRobustnessFuzzTest";
+  private static final String NL = "\n";
+
+  private ScalarDecodeRobustnessFuzzTestGenerator() {
+  }
+
+  /**
+   * Generates {@code GeneratedScalarDecodeRobustnessFuzzTest.java} under {@code generatedSourcesRoot}.
+   *
+   * @param generatedSourcesRoot the generated-sources root (a {@code java} source directory) to write into
+   * @throws IOException if the file cannot be written
+   */
+  public static void generate(Path generatedSourcesRoot) throws IOException {
+    List<Target> targets = ScalarDecodeRobustnessModel.targets();
+    String source = render(targets);
+
+    Path packageDir = generatedSourcesRoot.resolve(PACKAGE.replace('.', '/'));
+    Files.createDirectories(packageDir);
+    Path file = packageDir.resolve(CLASS_NAME + ".java");
+    Files.write(file, source.getBytes(StandardCharsets.UTF_8));
+    System.out.println("ScalarDecodeRobustnessFuzzTestGenerator: wrote " + targets.size() + " @FuzzTest targets to "
+        + file);
+  }
+
+  /** Renders the whole source file for {@code targets}. */
+  private static String render(List<Target> targets) {
+    boolean anyDisabled = false;
+    boolean anyEnumerated = false;
+    for (Target target : targets) {
+      anyDisabled |= target.disabled();
+      anyEnumerated |= target.enumeratedByteDomain();
+    }
+
+    StringBuilder sb = new StringBuilder(8192);
+    sb.append("/*").append(NL)
+        .append(" * Copyright (c) 2026, PostgreSQL Global Development Group").append(NL)
+        .append(" * See the LICENSE file in the project root for more information.").append(NL)
+        .append(" */").append(NL).append(NL)
+        .append("package ").append(PACKAGE).append(';').append(NL).append(NL);
+
+    sb.append("import org.postgresql.fuzzkit.CodecFuzzSupport;").append(NL).append(NL)
+        .append("import com.code_intelligence.jazzer.junit.FuzzTest;").append(NL)
+        .append("import com.code_intelligence.jazzer.mutation.annotation.NotNull;").append(NL);
+    if (anyDisabled) {
+      sb.append("import org.junit.jupiter.api.Disabled;").append(NL);
+    }
+    if (anyEnumerated) {
+      sb.append("import org.junit.jupiter.params.ParameterizedTest;").append(NL)
+          .append("import org.junit.jupiter.params.provider.MethodSource;").append(NL);
+    }
+    sb.append("import org.postgresql.fuzzkit.ScalarDecodeRobustnessModel;").append(NL);
+    sb.append(NL);
+
+    appendClassJavadoc(sb);
+    sb.append("class ").append(CLASS_NAME).append(" {").append(NL);
+
+    for (Target target : targets) {
+      sb.append(NL);
+      appendMethod(sb, target);
+    }
+
+    sb.append('}').append(NL);
+    return sb.toString();
+  }
+
+  private static void appendClassJavadoc(StringBuilder sb) {
+    sb.append("/**").append(NL)
+        .append(" * GENERATED with {@link ScalarDecodeRobustnessFuzzTestGenerator} -- do not edit. Regenerate with"
+            + " {@code ./gradlew :pgjdbc-jazzer-test:generateJazzerFuzzTargets}.").append(NL)
+        .append(" *").append(NL)
+        .append(" * <p>The uniform scalar decode-robustness family: for every built-in scalar leaf codec,"
+            + " one").append(NL)
+        .append(" * {@code @FuzzTest} per readable wire format that feeds adversarial bytes to the decoder"
+            + " and").append(NL)
+        .append(" * asserts it either decodes or refuses with a {@code SQLException}, never leaking an"
+            + " unchecked").append(NL)
+        .append(" * exception. A binary-readable codec gets a single {@code _binary} target that decodes"
+            + " from both").append(NL)
+        .append(" * offset 0 and a non-zero offset and asserts the two agree; a text-readable one gets a"
+            + "").append(NL)
+        .append(" * {@code _text} target. A single-byte type ({@code \"char\"}) has a finite binary wire"
+            + " domain, so its").append(NL)
+        .append(" * binary targets are exhaustive {@code @ParameterizedTest}s over every wire instead of"
+            + " {@code @FuzzTest}s.").append(NL)
+        .append(" * The targets, their names, and their disabled state come from"
+            + " {@link ScalarDecodeRobustnessModel}.").append(NL)
+        .append(" */").append(NL);
+  }
+
+  private static void appendMethod(StringBuilder sb, Target target) {
+    appendMethodJavadoc(sb, target);
+    if (target.disabled()) {
+      sb.append("  @Disabled(\"").append(escape(target.disabledReason())).append("\")").append(NL);
+    }
+    if (target.enumeratedByteDomain()) {
+      appendEnumeratedMethod(sb, target);
+      return;
+    }
+    sb.append("  @FuzzTest").append(NL);
+    if (target.format() == Format.TEXT) {
+      sb.append("  void ").append(target.methodName()).append("(@NotNull String literal) {").append(NL)
+          .append("    CodecFuzzSupport.decodeScalarTextExpectingNoLeak(literal, ")
+          .append(target.oid()).append(");").append(NL);
+    } else {
+      sb.append("  void ").append(target.methodName()).append("(byte @NotNull [] data) {").append(NL)
+          .append("    CodecFuzzSupport.decodeScalarBinaryOffsetInvariant(data, ")
+          .append(target.oid()).append(");").append(NL);
+    }
+    sb.append("  }").append(NL);
+  }
+
+  // An enumerated target: its wire domain is finite, so it is an exhaustive @ParameterizedTest over
+  // CodecFuzzSupport.singleByteBinaryDomain() rather than a @FuzzTest. Only binary targets are enumerated.
+  private static void appendEnumeratedMethod(StringBuilder sb, Target target) {
+    sb.append("  @ParameterizedTest").append(NL)
+        .append("  @MethodSource(\"org.postgresql.fuzzkit.CodecFuzzSupport#singleByteBinaryDomain\")").append(NL)
+        .append("  void ").append(target.methodName()).append("(byte[] data) {").append(NL)
+        .append("    CodecFuzzSupport.decodeSingleByteBinaryOffsetInvariant(data, ")
+        .append(target.oid()).append(");").append(NL)
+        .append("  }").append(NL);
+  }
+
+  private static void appendMethodJavadoc(StringBuilder sb, Target target) {
+    String subject = "{@code " + target.typeName() + "} (OID " + target.oid() + ")";
+    String summary;
+    if (target.enumeratedByteDomain()) {
+      summary = "Exhaustive binary decode of " + subject
+          + " over its whole single-byte wire domain at offset 0 and a non-zero offset"
+          + "; every wire must decode without leaking, and the ASCII subset to its own character.";
+    } else if (target.format() == Format.TEXT) {
+      summary = "Adversarial text decode of " + subject + "; must not leak an unchecked exception.";
+    } else {
+      summary = "Adversarial binary decode of " + subject
+          + " at offset 0 and a non-zero offset; must not leak unchecked and both must agree.";
+    }
+    sb.append("  /** ").append(summary).append(" */").append(NL);
+  }
+
+  // Escapes a reason string for a Java string literal in the emitted @Disabled annotation.
+  private static String escape(String reason) {
+    return reason.replace("\\", "\\\\").replace("\"", "\\\"");
+  }
+}

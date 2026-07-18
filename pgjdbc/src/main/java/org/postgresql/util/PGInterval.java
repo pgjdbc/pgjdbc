@@ -142,24 +142,30 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
       return;
     }
     final boolean postgresFormat = !value.startsWith("@");
-    if (value.startsWith("P")) {
-      parseISO8601Format(value);
-      return;
-    }
-    // Just a simple '0'
-    if (!postgresFormat && value.length() == 3 && value.charAt(2) == '0') {
-      setValue(0, 0, 0, 0, 0, 0.0);
-      return;
-    }
-
-    int years = 0;
-    int months = 0;
-    int days = 0;
-    int hours = 0;
-    int minutes = 0;
-    double seconds = 0;
-
+    // The whole parse runs under one guard: the ISO-8601 branch and the tokenizer branch both extract
+    // numbers with Integer.parseInt / Double.parseDouble and slice tokens with substring, so a
+    // malformed literal can leak a NumberFormatException or a StringIndexOutOfBoundsException. Surface
+    // either as a clean PSQLException with the server's state for a bad interval literal
+    // (invalid_datetime_format, 22007), rather than an unchecked exception out of a value read from an
+    // untrusted or corrupt wire.
     try {
+      if (value.startsWith("P")) {
+        parseISO8601Format(value);
+        return;
+      }
+      // Just a simple '0'
+      if (!postgresFormat && value.length() == 3 && value.charAt(2) == '0') {
+        setValue(0, 0, 0, 0, 0, 0.0);
+        return;
+      }
+
+      int years = 0;
+      int months = 0;
+      int days = 0;
+      int hours = 0;
+      int minutes = 0;
+      double seconds = 0;
+
       String valueToken = null;
 
       value = value.replace('+', ' ').replace('@', ' ');
@@ -216,16 +222,16 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
           }
         }
       }
-    } catch (NumberFormatException e) {
-      throw new PSQLException(GT.tr("Conversion of interval failed"),
-          PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE, e);
-    }
 
-    if (!postgresFormat && value.endsWith("ago")) {
-      // Inverse the leading sign
-      setValue(-years, -months, -days, -hours, -minutes, -seconds);
-    } else {
-      setValue(years, months, days, hours, minutes, seconds);
+      if (!postgresFormat && value.endsWith("ago")) {
+        // Inverse the leading sign
+        setValue(-years, -months, -days, -hours, -minutes, -seconds);
+      } else {
+        setValue(years, months, days, hours, minutes, seconds);
+      }
+    } catch (NumberFormatException | IndexOutOfBoundsException e) {
+      throw new PSQLException(GT.tr("Conversion of interval failed: {0}", value),
+          PSQLState.BAD_DATETIME_FORMAT, e);
     }
   }
 

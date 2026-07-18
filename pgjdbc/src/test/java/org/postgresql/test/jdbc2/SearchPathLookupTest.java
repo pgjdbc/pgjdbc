@@ -51,7 +51,7 @@ class SearchPathLookupTest {
       TestUtil.createTable(con, "last_schema.x", "last_schema_field_n text");
       stmt.execute("SET search_path TO third_schema;");
       TypeInfo typeInfo = con.getTypeInfo();
-      int oid = typeInfo.getPGType("x");
+      int oid = typeInfo.getPgTypeByPgName("x").getOid();
       ResultSet rs = stmt.executeQuery("SELECT 'third_schema.x'::regtype::oid");
       assertTrue(rs.next());
       assertEquals(oid, rs.getInt(1));
@@ -87,7 +87,7 @@ class SearchPathLookupTest {
       TestUtil.createTable(con, "last_schema.y", "last_schema_field_n text");
       stmt.execute("SET search_path TO first_schema, second_schema, last_schema, public;");
       TypeInfo typeInfo = con.getTypeInfo();
-      int oid = typeInfo.getPGType("y");
+      int oid = typeInfo.getPgTypeByPgName("y").getOid();
       ResultSet rs = stmt.executeQuery("SELECT 'second_schema.y'::regtype::oid");
       assertTrue(rs.next());
       assertEquals(oid, rs.getInt(1));
@@ -113,7 +113,7 @@ class SearchPathLookupTest {
       TestUtil.createSchema(con, "second_schema");
       TestUtil.createTable(con, "second_schema.x", "second_schema_field text");
       TypeInfo typeInfo = con.getTypeInfo();
-      int oid = typeInfo.getPGType("x");
+      int oid = typeInfo.getPgTypeByPgName("x").getOid();
       ResultSet rs = stmt
           .executeQuery("SELECT oid FROM pg_type WHERE typname = 'x' ORDER BY oid DESC LIMIT 1");
       assertTrue(rs.next());

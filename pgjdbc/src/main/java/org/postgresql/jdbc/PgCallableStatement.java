@@ -19,6 +19,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.InputStream;
 import java.io.Reader;
+import java.io.StringReader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.Array;
@@ -27,6 +28,7 @@ import java.sql.CallableStatement;
 import java.sql.Clob;
 import java.sql.Date;
 import java.sql.NClob;
+import java.sql.PreparedStatement;
 import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.RowId;
@@ -37,6 +39,9 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 class PgCallableStatement extends PgPreparedStatement implements CallableStatement {
@@ -47,20 +52,32 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   // check the getXXX methods..
   private int @Nullable [] functionReturnType;
   private int @Nullable [] testReturn;
+  // Type names for STRUCT OUT parameters (indexed by parameter index - 1)
+  private @Nullable String @Nullable [] outParameterTypeNames;
   // returnTypeSet is true when a proper call to registerOutParameter has been made
   private boolean returnTypeSet;
   protected @Nullable Object @Nullable [] callResult;
+  // Detached single-row snapshot of the OUT parameters, kept positioned so the temporal and
+  // getObject getters can decode straight from the wire bytes via the ResultSet codec path instead
+  // of re-parsing callResult's already-decoded value. parameterColumn maps a 1-based parameter index
+  // to its 1-based column in that row.
+  private @Nullable PgResultSet outParameterRow;
+  private int @Nullable [] parameterColumn;
   private int lastIndex;
+  // Original JDBC escape SQL ("{ ? = call f(...) }"), kept to resolve parameter names.
+  private final String jdbcSql;
 
   PgCallableStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
       int rsHoldability) throws SQLException {
     super(connection, connection.borrowCallableQuery(sql), rsType, rsConcurrency, rsHoldability);
+    this.jdbcSql = sql;
     this.isFunction = preparedQuery.isFunction;
 
     if (this.isFunction) {
       int inParamCount = this.preparedParameters.getInParameterCount() + 1;
       this.testReturn = new int[inParamCount];
       this.functionReturnType = new int[inParamCount];
+      this.outParameterTypeNames = new String[inParamCount];
     }
   }
 
@@ -123,6 +140,10 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
       // allocate enough space for all possible parameters without regard to in/out
       @Nullable Object[] callResult = new Object[preparedParameters.getParameterCount() + 1];
       this.callResult = callResult;
+      // parameterColumn[j] is the 1-based column of parameter j in the result row, so the getters
+      // can decode straight from the snapshot below.
+      int[] parameterColumn = new int[callResult.length];
+      this.parameterColumn = parameterColumn;
 
       // move them into the result set
       for (int i = 0, j = 0; i < cols; i++, j++) {
@@ -134,6 +155,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
           j++;
         }
 
+        parameterColumn[j] = i + 1;
         callResult[j] = rs.getObject(i + 1);
         int columnType = rs.getMetaData().getColumnType(i + 1);
 
@@ -149,6 +171,16 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
             // For backwards compatibility reasons we support that ref cursors can be
             // registered with both Types.OTHER and Types.REF_CURSOR so we allow
             // this specific mismatch
+          } else if (isCompatibleTemporalPair(columnType, functionReturnType[j])) {
+            // TIME/TIMESTAMP and their WITH TIME ZONE codes (Types.TIME_WITH_TIMEZONE,
+            // Types.TIMESTAMP_WITH_TIMEZONE) name the same PostgreSQL column. getSQLType() reports
+            // the base code for metadata/Hibernate compatibility, but registerOutParameter accepts
+            // the WITH TIME ZONE code the JDBC type constant stands for, so accept either pairing.
+          } else if (columnType == Types.OTHER
+              && (functionReturnType[j] == Types.STRUCT || functionReturnType[j] == Types.DISTINCT)) {
+            // A function returning an anonymous `record` reports Types.OTHER. Registering the OUT as
+            // Types.STRUCT/DISTINCT with a type name (the JDBC way to name a composite OUT) supplies
+            // the concrete type used to decode it; see getObject's decodeSqlData path.
           } else {
             throw new PSQLException(GT.tr(
                 "A CallableStatement function was executed and the out parameter {0} was of type {1} however type {2} was registered.",
@@ -158,10 +190,29 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
         }
 
       }
+      // Keep a detached, positioned copy of the single row so the temporal and getObject getters can
+      // decode from the wire bytes via the ResultSet codec path instead of re-parsing callResult.
+      PgResultSet pgRs = (PgResultSet) rs;
+      PgResultSet snapshot = (PgResultSet) createDriverResultSet(
+          pgRs.fields, Collections.singletonList(castNonNull(pgRs.thisRow)));
+      snapshot.next();
+      this.outParameterRow = snapshot;
       rs.close();
       result = null;
     }
     return false;
+  }
+
+  /**
+   * Whether {@code columnType} (from {@code ResultSetMetaData.getColumnType}) and the registered OUT
+   * type name the same temporal type. {@code TIME}/{@code TIMESTAMP} and their {@code WITH TIME ZONE}
+   * variants are accepted in either direction.
+   */
+  private static boolean isCompatibleTemporalPair(int columnType, int registeredType) {
+    return (columnType == Types.TIME && registeredType == Types.TIME_WITH_TIMEZONE)
+        || (columnType == Types.TIME_WITH_TIMEZONE && registeredType == Types.TIME)
+        || (columnType == Types.TIMESTAMP && registeredType == Types.TIMESTAMP_WITH_TIMEZONE)
+        || (columnType == Types.TIMESTAMP_WITH_TIMEZONE && registeredType == Types.TIMESTAMP);
   }
 
   /**
@@ -338,19 +389,31 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   @Override
   public @Nullable Date getDate(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.DATE, "Date");
-    return (@Nullable Date) result;
+    if (result == null) {
+      return null;
+    }
+    // Decode from the snapshot rather than casting callResult: under getobjectDate=java.time the
+    // materialized value is a LocalDate, so the cast would throw ClassCastException.
+    return requireOutParameterRow().getDate(columnForParameter(parameterIndex));
   }
 
   @Override
   public @Nullable Time getTime(@Positive int parameterIndex) throws SQLException {
-    Object result = checkIndex(parameterIndex, Types.TIME, "Time");
-    return (@Nullable Time) result;
+    Object result = checkIndex(parameterIndex, Types.TIME, Types.TIME_WITH_TIMEZONE, "Time");
+    if (result == null) {
+      return null;
+    }
+    return requireOutParameterRow().getTime(columnForParameter(parameterIndex));
   }
 
   @Override
   public @Nullable Timestamp getTimestamp(@Positive int parameterIndex) throws SQLException {
-    Object result = checkIndex(parameterIndex, Types.TIMESTAMP, "Timestamp");
-    return (@Nullable Timestamp) result;
+    Object result =
+        checkIndex(parameterIndex, Types.TIMESTAMP, Types.TIMESTAMP_WITH_TIMEZONE, "Timestamp");
+    if (result == null) {
+      return null;
+    }
+    return requireOutParameterRow().getTimestamp(columnForParameter(parameterIndex));
   }
 
   @Override
@@ -430,6 +493,252 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return callResult[parameterIndex - 1];
   }
 
+  /**
+   * The detached OUT-parameter row, which the getters decode from. Non-null once {@link
+   * #getCallResult} has passed, since {@link #executeWithFlags} sets it together with {@code
+   * callResult}.
+   */
+  private PgResultSet requireOutParameterRow() throws SQLException {
+    PgResultSet row = outParameterRow;
+    if (row == null) {
+      throw new PSQLException(
+          GT.tr("Results cannot be retrieved from a CallableStatement before it is executed."),
+          PSQLState.NO_DATA);
+    }
+    return row;
+  }
+
+  /** The 1-based snapshot column backing the given 1-based parameter index. */
+  private int columnForParameter(@Positive int parameterIndex) {
+    return castNonNull(parameterColumn)[parameterIndex - 1];
+  }
+
+  /** The PostgreSQL type name registered for a STRUCT/DISTINCT OUT parameter, or {@code null}. */
+  private @Nullable String registeredTypeName(@Positive int parameterIndex) {
+    @Nullable String[] typeNames = this.outParameterTypeNames;
+    if (typeNames != null && parameterIndex <= typeNames.length) {
+      return typeNames[parameterIndex - 1];
+    }
+    return null;
+  }
+
+  /** Closes and forgets the detached OUT-parameter snapshot. */
+  private void releaseOutParameterRow() throws SQLException {
+    PgResultSet row = outParameterRow;
+    outParameterRow = null;
+    parameterColumn = null;
+    if (row != null) {
+      row.close();
+    }
+  }
+
+  @Override
+  protected void closeForNextExecution() throws SQLException {
+    try {
+      super.closeForNextExecution();
+    } finally {
+      releaseOutParameterRow();
+    }
+  }
+
+  /**
+   * Resolves a JDBC parameter name to its 1-based parameter index.
+   *
+   * <p>Names are matched case-insensitively (PostgreSQL folds unquoted identifiers to lower
+   * case) against the routine's argument names, looked up once in {@code pg_catalog.pg_proc} and
+   * cached on the {@link org.postgresql.core.CachedQuery} so that repeated executions of the same
+   * callable SQL do not re-query the catalog. The cached mapping is stamped with the connection's
+   * type-cache epoch and rebuilt once a DDL statement bumps it, since the routine's signature may
+   * have changed. The catalog is the single source of truth here so that the same name resolves
+   * to the same index whether it is used before execution (e.g.
+   * {@code registerOutParameter(String, ...)}, {@code setXXX(String, ...)}) or after it (e.g.
+   * {@code getXXX(String)}).</p>
+   *
+   * @param parameterName the parameter name
+   * @return the 1-based parameter index
+   * @throws SQLException if the name cannot be resolved to a single parameter
+   */
+  private int resolveParameterIndex(String parameterName) throws SQLException {
+    checkClosed();
+    int typeCacheEpoch = connection.getTypeCacheEpoch();
+    Map<String, Integer> names = preparedQuery.getCallableParameterNameIndexMap(typeCacheEpoch);
+    if (names == null) {
+      names = resolveParameterNamesFromCatalog();
+      preparedQuery.setCallableParameterNameIndexMap(names, typeCacheEpoch);
+    }
+    Integer idx = names.get(parameterName.toLowerCase(Locale.US));
+    if (idx == null) {
+      throw new PSQLException(GT.tr("No parameter named {0} was found.", parameterName),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+    return idx;
+  }
+
+  /**
+   * Builds a (folded name -&gt; 1-based JDBC index) map from {@code pg_catalog.pg_proc} for the
+   * routine being called.
+   *
+   * <p>For the {@code { call proc(...) }} form every argument — IN, OUT, INOUT, TABLE — occupies
+   * its declaration-order JDBC position (1, 2, 3, …), mirroring the positional API where, for
+   * example, {@code { call f(?, ?) }} over {@code f(a INOUT, b OUT)} registers indexes 1 and 2.</p>
+   *
+   * <p>For the {@code { ? = call f(...) }} form the leading {@code ? =} return placeholder takes
+   * index 1: the first pure OUT/TABLE argument (or the scalar return) maps to index 1 and the
+   * input-bearing arguments (IN, INOUT, VARIADIC) map to 2, 3, … in declaration order. INOUT
+   * arguments are treated as inputs in this form.</p>
+   *
+   * <p>This queries {@code proargnames}/{@code proargmodes} directly rather than reusing
+   * {@link java.sql.DatabaseMetaData#getProcedureColumns} on purpose: those metadata calls take
+   * the schema and routine name as separate {@code LIKE} patterns, so reusing them would require
+   * splitting and LIKE-escaping the (possibly quoted, possibly schema-qualified) name, filtering
+   * the result rows by {@code search_path}, and disambiguating overloads by hand. A {@code regproc}
+   * cast resolves the name with the same rules as the call itself, which is both shorter and more
+   * accurate here; it raises on an absent or overloaded name, which is mapped to an actionable
+   * "use a positional parameter index" error.</p>
+   */
+  private Map<String, Integer> resolveParameterNamesFromCatalog() throws SQLException {
+    String functionName = extractRoutineName(jdbcSql);
+    if (functionName == null) {
+      throw new PSQLException(
+          GT.tr("Unable to determine the routine name to resolve parameter names; "
+              + "use a positional parameter index instead."),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+    String @Nullable [] argNames = null;
+    String @Nullable [] argModes = null;
+    boolean resolved = false;
+    // Resolve the (possibly quoted, schema-qualified) name through the same search_path and quoting
+    // rules as the call itself by casting it to regproc. The cast is available on every supported
+    // server, unlike pg_catalog.to_regproc (9.4+); it raises rather than returning NULL when the
+    // name is absent or overloaded, so the catch below maps that to the actionable message.
+    try (PreparedStatement ps = connection.prepareStatement(
+        "SELECT proargnames, proargmodes FROM pg_catalog.pg_proc "
+            + "WHERE oid = ?::pg_catalog.regproc")) {
+      ps.setString(1, functionName);
+      try (ResultSet rs = ps.executeQuery()) {
+        if (rs.next()) {
+          resolved = true;
+          Array namesArray = rs.getArray("proargnames");
+          if (namesArray != null) {
+            argNames = (String[]) namesArray.getArray();
+          }
+          Array modesArray = rs.getArray("proargmodes");
+          if (modesArray != null) {
+            argModes = (String[]) modesArray.getArray();
+          }
+        }
+      }
+    } catch (SQLException e) {
+      // The regproc cast raises 'function "x" does not exist' (absent) or 'more than one function
+      // named "x"' (overloaded); both mean the name is not a single routine.
+      throw new PSQLException(
+          GT.tr("Unable to resolve routine {0} to a single function; it may be overloaded "
+              + "or absent. Use a positional parameter index instead.", functionName),
+          PSQLState.INVALID_PARAMETER_VALUE, e);
+    }
+    if (!resolved) {
+      throw new PSQLException(
+          GT.tr("Unable to resolve routine {0} to a single function; it may be overloaded "
+              + "or absent. Use a positional parameter index instead.", functionName),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+
+    Map<String, Integer> result = new HashMap<>();
+    if (argNames == null) {
+      return result;
+    }
+    if (!hasReturnPlaceholder(jdbcSql)) {
+      // { call proc(...) }: every argument occupies its declaration-order JDBC position,
+      // regardless of mode, matching the positional API.
+      for (int i = 0; i < argNames.length; i++) {
+        String name = argNames[i];
+        if (name != null && !name.isEmpty()) {
+          result.putIfAbsent(name.toLowerCase(Locale.US), i + 1);
+        }
+      }
+      return result;
+    }
+    // { ? = call f(...) }: index 1 is the leading return placeholder (the first pure OUT/TABLE
+    // result, or the scalar return); input-bearing arguments map to 2, 3, … in declaration order.
+    int nextInIndex = 2;
+    boolean returnAssigned = false;
+    for (int i = 0; i < argNames.length; i++) {
+      String name = argNames[i];
+      char mode = argModes == null || argModes[i] == null || argModes[i].isEmpty()
+          ? 'i' : argModes[i].charAt(0);
+      if (mode == 'o' || mode == 't') {
+        if (!returnAssigned) {
+          if (name != null && !name.isEmpty()) {
+            result.putIfAbsent(name.toLowerCase(Locale.US), 1);
+          }
+          returnAssigned = true;
+        }
+        continue;
+      }
+      // Input-bearing argument (IN, INOUT, VARIADIC). Advance the position even for an unnamed
+      // argument: PostgreSQL still emits an empty proargnames entry for it, and skipping it
+      // would shift every following name by one.
+      int index = nextInIndex++;
+      if (name != null && !name.isEmpty()) {
+        result.putIfAbsent(name.toLowerCase(Locale.US), index);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Extracts the routine name (optionally schema-qualified and/or quoted) from the JDBC escape
+   * SQL. Schema, quoting and {@code search_path} resolution are left to the {@code regproc} cast.
+   *
+   * @return the routine name, or {@code null} if it cannot be located
+   */
+  private static @Nullable String extractRoutineName(String jdbcSql) {
+    String lower = jdbcSql.toLowerCase(Locale.US);
+    int from = 0;
+    while (true) {
+      int call = lower.indexOf("call", from);
+      if (call < 0) {
+        return null;
+      }
+      boolean leftBoundary = call == 0 || !Character.isLetterOrDigit(lower.charAt(call - 1));
+      int after = call + 4;
+      boolean rightBoundary = after >= lower.length() || !Character.isLetterOrDigit(lower.charAt(after));
+      if (leftBoundary && rightBoundary) {
+        int p = after;
+        while (p < jdbcSql.length() && Character.isWhitespace(jdbcSql.charAt(p))) {
+          p++;
+        }
+        int start = p;
+        boolean inQuotes = false;
+        while (p < jdbcSql.length()) {
+          char ch = jdbcSql.charAt(p);
+          if (ch == '"') {
+            inQuotes = !inQuotes;
+          } else if (!inQuotes && (ch == '(' || ch == '}' || Character.isWhitespace(ch))) {
+            break;
+          }
+          p++;
+        }
+        String name = jdbcSql.substring(start, p).trim();
+        return name.isEmpty() ? null : name;
+      }
+      from = call + 4;
+    }
+  }
+
+  /**
+   * Returns {@code true} when the call uses the {@code { ? = call ... }} form, i.e. a return
+   * placeholder precedes the {@code call} keyword.
+   */
+  private static boolean hasReturnPlaceholder(String jdbcSql) {
+    String lower = jdbcSql.toLowerCase(Locale.US);
+    int call = lower.indexOf("call");
+    if (call < 0) {
+      return false;
+    }
+    return jdbcSql.lastIndexOf('?', call) >= 0;
+  }
+
   @Override
   protected BatchResultHandler createBatchHandler(Query[] queries,
       @Nullable ParameterList[] parameterLists) {
@@ -462,7 +771,51 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     if (map == null || map.isEmpty()) {
       return getObject(i);
     }
-    throw Driver.notImplemented(this.getClass(), "getObjectImpl(int,Map)");
+    map = IdentifierNormalizingTypeMap.of(map, connection.getTypeInfo());
+
+    Object result = getCallResult(i);
+    if (result == null) {
+      return null;
+    }
+
+    // Determine the PostgreSQL type name: an explicit registerOutParameter type name wins, else the
+    // value's own type.
+    @Nullable String typeName = registeredTypeName(i);
+    if (typeName == null) {
+      if (result instanceof org.postgresql.util.PGobject) {
+        typeName = ((org.postgresql.util.PGobject) result).getType();
+      } else if (result instanceof java.sql.Struct) {
+        typeName = ((java.sql.Struct) result).getSQLTypeName();
+      }
+    }
+
+    if (typeName == null) {
+      // No type name available, fall back to default
+      return result;
+    }
+
+    // Look up in the map
+    Class<?> targetClass = map.get(typeName);
+    if (targetClass == null) {
+      // Type not in map, return as-is
+      return result;
+    }
+
+    // If the target is an SQLData implementation, decode straight from the snapshot's wire bytes
+    // (binary-safe), using the resolved type name so an explicit STRUCT/DISTINCT registration wins.
+    if (java.sql.SQLData.class.isAssignableFrom(targetClass)) {
+      @SuppressWarnings("unchecked")
+      Class<? extends java.sql.SQLData> sqlDataClass = (Class<? extends java.sql.SQLData>) targetClass;
+      return requireOutParameterRow().decodeSqlData(columnForParameter(i), sqlDataClass, typeName, map);
+    }
+
+    // For non-SQLData targets, check if result is already the right type
+    if (targetClass.isInstance(result)) {
+      return result;
+    }
+
+    // Return as-is if we can't convert
+    return result;
   }
 
   @Override
@@ -478,83 +831,117 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
       return null;
     }
 
-    return getTimestampUtils().toDate(cal, result.toString());
+    return requireOutParameterRow().getDate(columnForParameter(i), cal);
   }
 
   @Override
   public @Nullable Time getTime(int i, @Nullable Calendar cal) throws SQLException {
-    Object result = checkIndex(i, Types.TIME, "Time");
+    Object result = checkIndex(i, Types.TIME, Types.TIME_WITH_TIMEZONE, "Time");
 
     if (result == null) {
       return null;
     }
 
-    return getTimestampUtils().toTime(cal, result.toString());
+    return requireOutParameterRow().getTime(columnForParameter(i), cal);
   }
 
   @Override
   public @Nullable Timestamp getTimestamp(int i, @Nullable Calendar cal) throws SQLException {
-    Object result = checkIndex(i, Types.TIMESTAMP, "Timestamp");
+    Object result = checkIndex(i, Types.TIMESTAMP, Types.TIMESTAMP_WITH_TIMEZONE, "Timestamp");
 
     if (result == null) {
       return null;
     }
 
-    return getTimestampUtils().toTimestamp(cal, result.toString());
+    return requireOutParameterRow().getTimestamp(columnForParameter(i), cal);
   }
 
   @Override
   public void registerOutParameter(@Positive int parameterIndex, int sqlType, String typeName)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "registerOutParameter(int,int,String)");
+    // Register the OUT parameter with the given SQL type
+    registerOutParameter(parameterIndex, sqlType);
+
+    // Store the type name for STRUCT/DISTINCT types
+    if (sqlType == Types.STRUCT || sqlType == Types.DISTINCT) {
+      @Nullable String[] typeNames = this.outParameterTypeNames;
+      if (typeNames != null && parameterIndex <= typeNames.length) {
+        typeNames[parameterIndex - 1] = typeName;
+      }
+    }
   }
 
   @Override
   public void setObject(String parameterName, @Nullable Object x, SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setObject");
+    setObject(resolveParameterIndex(parameterName), x, targetSqlType, scaleOrLength);
   }
 
   @Override
   public void setObject(String parameterName, @Nullable Object x, SQLType targetSqlType)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setObject");
+    setObject(resolveParameterIndex(parameterName), x, targetSqlType);
   }
 
   @Override
   public void registerOutParameter(@Positive int parameterIndex, SQLType sqlType)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "registerOutParameter");
+    registerOutParameter(parameterIndex, resolveSqlTypeCode(sqlType));
   }
 
   @Override
   public void registerOutParameter(@Positive int parameterIndex, SQLType sqlType, int scale)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "registerOutParameter");
+    registerOutParameter(parameterIndex, resolveSqlTypeCode(sqlType), scale);
   }
 
   @Override
   public void registerOutParameter(@Positive int parameterIndex, SQLType sqlType, String typeName)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "registerOutParameter");
+    registerOutParameter(parameterIndex, resolveSqlTypeCode(sqlType), typeName);
+  }
+
+  /**
+   * Resolves the {@link Types} code to register {@code sqlType} under.
+   *
+   * <p>A {@link SQLType} reporting {@link PGSQLType#VENDOR} -- not just the {@link PGSQLType}
+   * constants, but any implementation with that vendor id -- carries a concrete PostgreSQL OID via
+   * {@link SQLType#getVendorTypeNumber()}. Looking that OID up through the type registry, instead
+   * of {@link JavaTypeRegistry#getSqlTypeCode(SQLType)}'s name-based guess, returns the exact code
+   * {@link java.sql.ResultSetMetaData#getColumnType(int)} reports for the actual out-parameter
+   * column, so the post-execute type check in {@link #executeWithFlags(int)} does not spuriously
+   * mismatch for a type {@code JavaTypeRegistry} has no name mapping for, e.g. {@link PGSQLType#XID8}.</p>
+   */
+  private int resolveSqlTypeCode(SQLType sqlType) throws SQLException {
+    if (!PGSQLType.VENDOR.equals(sqlType.getVendor())) {
+      return JavaTypeRegistry.getSqlTypeCode(sqlType);
+    }
+    Integer vendorTypeNumber = sqlType.getVendorTypeNumber();
+    if (vendorTypeNumber == null) {
+      throw new PSQLException(
+          GT.tr("SQLType {0} of vendor {1} has no vendor type number (OID)",
+              sqlType.getName(), PGSQLType.VENDOR),
+          PSQLState.INVALID_PARAMETER_TYPE);
+    }
+    return connection.getTypeInfo().getPgTypeByOid(vendorTypeNumber).getSqlType();
   }
 
   @Override
   public void registerOutParameter(String parameterName, SQLType sqlType)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "registerOutParameter");
+    registerOutParameter(resolveParameterIndex(parameterName), sqlType);
   }
 
   @Override
   public void registerOutParameter(String parameterName, SQLType sqlType, int scale)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "registerOutParameter");
+    registerOutParameter(resolveParameterIndex(parameterName), sqlType, scale);
   }
 
   @Override
   public void registerOutParameter(String parameterName, SQLType sqlType, String typeName)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "registerOutParameter");
+    registerOutParameter(resolveParameterIndex(parameterName), sqlType, typeName);
   }
 
   @Override
@@ -564,107 +951,107 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
   @Override
   public @Nullable RowId getRowId(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getRowId(String)");
+    return getRowId(resolveParameterIndex(parameterName));
   }
 
   @Override
   public void setRowId(String parameterName, @Nullable RowId x) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setRowId(String, RowId)");
+    setRowId(resolveParameterIndex(parameterName), x);
   }
 
   @Override
   public void setNString(String parameterName, @Nullable String value) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setNString(String, String)");
+    setNString(resolveParameterIndex(parameterName), value);
   }
 
   @Override
   public void setNCharacterStream(String parameterName, @Nullable Reader value, long length)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setNCharacterStream(String, Reader, long)");
+    setNCharacterStream(resolveParameterIndex(parameterName), value, length);
   }
 
   @Override
   public void setNCharacterStream(String parameterName, @Nullable Reader value) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setNCharacterStream(String, Reader)");
+    setNCharacterStream(resolveParameterIndex(parameterName), value);
   }
 
   @Override
   public void setCharacterStream(String parameterName, @Nullable Reader value, long length)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setCharacterStream(String, Reader, long)");
+    setCharacterStream(resolveParameterIndex(parameterName), value, length);
   }
 
   @Override
   public void setCharacterStream(String parameterName, @Nullable Reader value) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setCharacterStream(String, Reader)");
+    setCharacterStream(resolveParameterIndex(parameterName), value);
   }
 
   @Override
   public void setBinaryStream(String parameterName, @Nullable InputStream value, long length)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setBinaryStream(String, InputStream, long)");
+    setBinaryStream(resolveParameterIndex(parameterName), value, length);
   }
 
   @Override
   public void setBinaryStream(String parameterName, @Nullable InputStream value) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setBinaryStream(String, InputStream)");
+    setBinaryStream(resolveParameterIndex(parameterName), value);
   }
 
   @Override
   public void setAsciiStream(String parameterName, @Nullable InputStream value, long length)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setAsciiStream(String, InputStream, long)");
+    setAsciiStream(resolveParameterIndex(parameterName), value, length);
   }
 
   @Override
   public void setAsciiStream(String parameterName, @Nullable InputStream value) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setAsciiStream(String, InputStream)");
+    setAsciiStream(resolveParameterIndex(parameterName), value);
   }
 
   @Override
   public void setNClob(String parameterName, @Nullable NClob value) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setNClob(String, NClob)");
+    setNClob(resolveParameterIndex(parameterName), value);
   }
 
   @Override
   public void setClob(String parameterName, @Nullable Reader reader, long length) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setClob(String, Reader, long)");
+    setClob(resolveParameterIndex(parameterName), reader, length);
   }
 
   @Override
   public void setClob(String parameterName, @Nullable Reader reader) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setClob(String, Reader)");
+    setClob(resolveParameterIndex(parameterName), reader);
   }
 
   @Override
   public void setBlob(String parameterName, @Nullable InputStream inputStream, long length)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setBlob(String, InputStream, long)");
+    setBlob(resolveParameterIndex(parameterName), inputStream, length);
   }
 
   @Override
   public void setBlob(String parameterName, @Nullable InputStream inputStream) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setBlob(String, InputStream)");
+    setBlob(resolveParameterIndex(parameterName), inputStream);
   }
 
   @Override
   public void setBlob(String parameterName, @Nullable Blob x) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setBlob(String, Blob)");
+    setBlob(resolveParameterIndex(parameterName), x);
   }
 
   @Override
   public void setClob(String parameterName, @Nullable Clob x) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setClob(String, Clob)");
+    setClob(resolveParameterIndex(parameterName), x);
   }
 
   @Override
   public void setNClob(String parameterName, @Nullable Reader reader, long length) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setNClob(String, Reader, long)");
+    setNClob(resolveParameterIndex(parameterName), reader, length);
   }
 
   @Override
   public void setNClob(String parameterName, @Nullable Reader reader) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setNClob(String, Reader)");
+    setNClob(resolveParameterIndex(parameterName), reader);
   }
 
   @Override
@@ -674,12 +1061,12 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
   @Override
   public @Nullable NClob getNClob(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getNClob(String)");
+    return getNClob(resolveParameterIndex(parameterName));
   }
 
   @Override
   public void setSQLXML(String parameterName, @Nullable SQLXML xmlObject) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setSQLXML(String, SQLXML)");
+    setSQLXML(resolveParameterIndex(parameterName), xmlObject);
   }
 
   @Override
@@ -689,8 +1076,8 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   }
 
   @Override
-  public @Nullable SQLXML getSQLXML(String parameterIndex) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getSQLXML(String)");
+  public @Nullable SQLXML getSQLXML(String parameterName) throws SQLException {
+    return getSQLXML(resolveParameterIndex(parameterName));
   }
 
   @Override
@@ -700,7 +1087,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
   @Override
   public @Nullable String getNString(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getNString(String)");
+    return getNString(resolveParameterIndex(parameterName));
   }
 
   @Override
@@ -710,17 +1097,21 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
   @Override
   public @Nullable Reader getNCharacterStream(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getNCharacterStream(String)");
+    return getNCharacterStream(resolveParameterIndex(parameterName));
   }
 
   @Override
   public @Nullable Reader getCharacterStream(@Positive int parameterIndex) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getCharacterStream(int)");
+    Object result = checkIndex(parameterIndex, Types.VARCHAR, "String");
+    if (result == null) {
+      return null;
+    }
+    return new StringReader((String) result);
   }
 
   @Override
   public @Nullable Reader getCharacterStream(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getCharacterStream(String)");
+    return getCharacterStream(resolveParameterIndex(parameterName));
   }
 
   @Override
@@ -729,30 +1120,63 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     if (type == ResultSet.class) {
       return type.cast(getObject(parameterIndex));
     }
-    throw new PSQLException(GT.tr("Unsupported type conversion to {0}.", type),
-            PSQLState.INVALID_PARAMETER_VALUE);
+
+    Object result = getCallResult(parameterIndex);
+    if (result == null) {
+      return null;
+    }
+
+    // If result is already the requested type, return it
+    if (type.isInstance(result)) {
+      return type.cast(result);
+    }
+
+    // Handle SQLData implementations: resolve the type name (an explicit STRUCT/DISTINCT
+    // registration wins, else the value's own type) and decode straight from the snapshot's wire
+    // bytes, so binary transfer is honoured instead of a text round-trip.
+    if (java.sql.SQLData.class.isAssignableFrom(type)) {
+      String typeName = registeredTypeName(parameterIndex);
+      if (typeName == null) {
+        if (result instanceof org.postgresql.util.PGobject) {
+          typeName = ((org.postgresql.util.PGobject) result).getType();
+        } else if (result instanceof java.sql.Struct) {
+          typeName = ((java.sql.Struct) result).getSQLTypeName();
+        }
+      }
+      if (typeName != null) {
+        @SuppressWarnings("unchecked")
+        Class<? extends java.sql.SQLData> sqlDataClass = (Class<? extends java.sql.SQLData>) type;
+        return type.cast(requireOutParameterRow().decodeSqlData(
+            columnForParameter(parameterIndex), sqlDataClass, typeName, null));
+      }
+    }
+
+    // Anything else (e.g. a java.time target): decode straight from the wire bytes via the
+    // ResultSet codec path, which names the type explicitly and is independent of the connection's
+    // getObject default preference.
+    return requireOutParameterRow().getObject(columnForParameter(parameterIndex), type);
   }
 
   @Override
   public <T> @Nullable T getObject(String parameterName, Class<T> type) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getObject(String, Class<T>)");
+    return getObject(resolveParameterIndex(parameterName), type);
   }
 
   @Override
   public void registerOutParameter(String parameterName, int sqlType) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "registerOutParameter(String,int)");
+    registerOutParameter(resolveParameterIndex(parameterName), sqlType);
   }
 
   @Override
   public void registerOutParameter(String parameterName, int sqlType, int scale)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "registerOutParameter(String,int,int)");
+    registerOutParameter(resolveParameterIndex(parameterName), sqlType, scale);
   }
 
   @Override
   public void registerOutParameter(String parameterName, int sqlType, String typeName)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "registerOutParameter(String,int,String)");
+    registerOutParameter(resolveParameterIndex(parameterName), sqlType, typeName);
   }
 
   @Override
@@ -762,243 +1186,243 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
   @Override
   public void setURL(String parameterName, @Nullable URL val) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setURL(String,URL)");
+    setURL(resolveParameterIndex(parameterName), val);
   }
 
   @Override
   public void setNull(String parameterName, int sqlType) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setNull(String,int)");
+    setNull(resolveParameterIndex(parameterName), sqlType);
   }
 
   @Override
   public void setBoolean(String parameterName, boolean x) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setBoolean(String,boolean)");
+    setBoolean(resolveParameterIndex(parameterName), x);
   }
 
   @Override
   public void setByte(String parameterName, byte x) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setByte(String,byte)");
+    setByte(resolveParameterIndex(parameterName), x);
   }
 
   @Override
   public void setShort(String parameterName, short x) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setShort(String,short)");
+    setShort(resolveParameterIndex(parameterName), x);
   }
 
   @Override
   public void setInt(String parameterName, int x) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setInt(String,int)");
+    setInt(resolveParameterIndex(parameterName), x);
   }
 
   @Override
   public void setLong(String parameterName, long x) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setLong(String,long)");
+    setLong(resolveParameterIndex(parameterName), x);
   }
 
   @Override
   public void setFloat(String parameterName, float x) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setFloat(String,float)");
+    setFloat(resolveParameterIndex(parameterName), x);
   }
 
   @Override
   public void setDouble(String parameterName, double x) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setDouble(String,double)");
+    setDouble(resolveParameterIndex(parameterName), x);
   }
 
   @Override
   public void setBigDecimal(String parameterName, @Nullable BigDecimal x) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setBigDecimal(String,BigDecimal)");
+    setBigDecimal(resolveParameterIndex(parameterName), x);
   }
 
   @Override
   public void setString(String parameterName, @Nullable String x) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setString(String,String)");
+    setString(resolveParameterIndex(parameterName), x);
   }
 
   @Override
   public void setBytes(String parameterName, byte @Nullable [] x) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setBytes(String,byte)");
+    setBytes(resolveParameterIndex(parameterName), x);
   }
 
   @Override
   public void setDate(String parameterName, @Nullable Date x) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setDate(String,Date)");
+    setDate(resolveParameterIndex(parameterName), x);
   }
 
   @Override
   public void setTime(String parameterName, @Nullable Time x) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setTime(String,Time)");
+    setTime(resolveParameterIndex(parameterName), x);
   }
 
   @Override
   public void setTimestamp(String parameterName, @Nullable Timestamp x) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setTimestamp(String,Timestamp)");
+    setTimestamp(resolveParameterIndex(parameterName), x);
   }
 
   @Override
   public void setAsciiStream(String parameterName, @Nullable InputStream x, int length) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setAsciiStream(String,InputStream,int)");
+    setAsciiStream(resolveParameterIndex(parameterName), x, length);
   }
 
   @Override
   public void setBinaryStream(String parameterName, @Nullable InputStream x, int length) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setBinaryStream(String,InputStream,int)");
+    setBinaryStream(resolveParameterIndex(parameterName), x, length);
   }
 
   @Override
   public void setObject(String parameterName, @Nullable Object x, int targetSqlType, int scale)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setObject(String,Object,int,int)");
+    setObject(resolveParameterIndex(parameterName), x, targetSqlType, scale);
   }
 
   @Override
   public void setObject(String parameterName, @Nullable Object x, int targetSqlType) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setObject(String,Object,int)");
+    setObject(resolveParameterIndex(parameterName), x, targetSqlType);
   }
 
   @Override
   public void setObject(String parameterName, @Nullable Object x) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setObject(String,Object)");
+    setObject(resolveParameterIndex(parameterName), x);
   }
 
   @Override
   public void setCharacterStream(String parameterName, @Nullable Reader reader, int length)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setCharacterStream(String,Reader,int)");
+    setCharacterStream(resolveParameterIndex(parameterName), reader, length);
   }
 
   @Override
   public void setDate(String parameterName, @Nullable Date x, @Nullable Calendar cal) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setDate(String,Date,Calendar)");
+    setDate(resolveParameterIndex(parameterName), x, cal);
   }
 
   @Override
   public void setTime(String parameterName, @Nullable Time x, @Nullable Calendar cal) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setTime(String,Time,Calendar)");
+    setTime(resolveParameterIndex(parameterName), x, cal);
   }
 
   @Override
   public void setTimestamp(String parameterName, @Nullable Timestamp x, @Nullable Calendar cal) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setTimestamp(String,Timestamp,Calendar)");
+    setTimestamp(resolveParameterIndex(parameterName), x, cal);
   }
 
   @Override
   public void setNull(String parameterName, int sqlType, String typeName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setNull(String,int,String)");
+    setNull(resolveParameterIndex(parameterName), sqlType, typeName);
   }
 
   @Override
   public @Nullable String getString(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getString(String)");
+    return getString(resolveParameterIndex(parameterName));
   }
 
   @Override
   public boolean getBoolean(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getBoolean(String)");
+    return getBoolean(resolveParameterIndex(parameterName));
   }
 
   @Override
   public byte getByte(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getByte(String)");
+    return getByte(resolveParameterIndex(parameterName));
   }
 
   @Override
   public short getShort(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getShort(String)");
+    return getShort(resolveParameterIndex(parameterName));
   }
 
   @Override
   public int getInt(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getInt(String)");
+    return getInt(resolveParameterIndex(parameterName));
   }
 
   @Override
   public long getLong(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getLong(String)");
+    return getLong(resolveParameterIndex(parameterName));
   }
 
   @Override
   public float getFloat(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getFloat(String)");
+    return getFloat(resolveParameterIndex(parameterName));
   }
 
   @Override
   public double getDouble(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getDouble(String)");
+    return getDouble(resolveParameterIndex(parameterName));
   }
 
   @Override
   public byte @Nullable [] getBytes(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getBytes(String)");
+    return getBytes(resolveParameterIndex(parameterName));
   }
 
   @Override
   public @Nullable Date getDate(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getDate(String)");
+    return getDate(resolveParameterIndex(parameterName));
   }
 
   @Override
-  public Time getTime(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getTime(String)");
+  public @Nullable Time getTime(String parameterName) throws SQLException {
+    return getTime(resolveParameterIndex(parameterName));
   }
 
   @Override
   public @Nullable Timestamp getTimestamp(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getTimestamp(String)");
+    return getTimestamp(resolveParameterIndex(parameterName));
   }
 
   @Override
   public @Nullable Object getObject(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getObject(String)");
+    return getObject(resolveParameterIndex(parameterName));
   }
 
   @Override
   public @Nullable BigDecimal getBigDecimal(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getBigDecimal(String)");
+    return getBigDecimal(resolveParameterIndex(parameterName));
   }
 
   public @Nullable Object getObjectImpl(String parameterName, @Nullable Map<String, Class<?>> map) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getObject(String,Map)");
+    return getObjectImpl(resolveParameterIndex(parameterName), map);
   }
 
   @Override
   public @Nullable Ref getRef(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getRef(String)");
+    return getRef(resolveParameterIndex(parameterName));
   }
 
   @Override
   public @Nullable Blob getBlob(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getBlob(String)");
+    return getBlob(resolveParameterIndex(parameterName));
   }
 
   @Override
   public @Nullable Clob getClob(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getClob(String)");
+    return getClob(resolveParameterIndex(parameterName));
   }
 
   @Override
   public @Nullable Array getArray(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getArray(String)");
+    return getArray(resolveParameterIndex(parameterName));
   }
 
   @Override
   public @Nullable Date getDate(String parameterName, @Nullable Calendar cal) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getDate(String,Calendar)");
+    return getDate(resolveParameterIndex(parameterName), cal);
   }
 
   @Override
   public @Nullable Time getTime(String parameterName, @Nullable Calendar cal) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getTime(String,Calendar)");
+    return getTime(resolveParameterIndex(parameterName), cal);
   }
 
   @Override
   public @Nullable Timestamp getTimestamp(String parameterName, @Nullable Calendar cal) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getTimestamp(String,Calendar)");
+    return getTimestamp(resolveParameterIndex(parameterName), cal);
   }
 
   @Override
   public @Nullable URL getURL(String parameterName) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getURL(String)");
+    return getURL(resolveParameterIndex(parameterName));
   }
 
   @Override

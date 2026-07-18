@@ -27,6 +27,36 @@ plugins {
     id("com.github.vlsi.gradle-extensions")
     id("com.github.vlsi.ide")
     id("com.github.vlsi.stage-vote-release") apply false
+    id("info.solidsoft.pitest")
+}
+
+// Local scaffolding for codec mutation testing (not for commit).
+// Run: ./gradlew :postgresql:pitest -Pcodec.pitest
+if (providers.gradleProperty("codec.pitest").isPresent) {
+    configure<info.solidsoft.gradle.pitest.PitestPluginExtension> {
+        pitestVersion.set("1.15.8")
+        junit5PluginVersion.set("1.2.1")
+        targetClasses.set(setOf("org.postgresql.jdbc.codec.*", "org.postgresql.api.codec.*"))
+        targetTests.set(setOf("org.postgresql.jdbc.codec.*", "org.postgresql.api.codec.*"))
+        excludedTestClasses.set(setOf(
+            "org.postgresql.jdbc.codec.ArrayParityMatrixTest",
+            "org.postgresql.jdbc.codec.ArrayWalkerCatchAllTest",
+            "org.postgresql.jdbc.codec.CodecIntegrationTest",
+            "org.postgresql.jdbc.codec.CodecParityRoundtripTest",
+            "org.postgresql.jdbc.codec.CompositeEscapingTest",
+            "org.postgresql.jdbc.codec.CompositeFormatTest",
+            "org.postgresql.jdbc.codec.NestingDepthTest",
+            "org.postgresql.jdbc.codec.ParityHarness",
+            "org.postgresql.jdbc.codec.ServerCoercionTruthTest",
+            "org.postgresql.jdbc.codec.ServerTruthOracle",
+            "org.postgresql.jdbc.codec.ServerTruthOracleTest"
+        ))
+        threads.set(4)
+        outputFormats.set(setOf("XML", "HTML"))
+        timestampedReports.set(false)
+        useClasspathFile.set(true)
+        verbose.set(false)
+    }
 }
 
 buildscript {
@@ -171,6 +201,8 @@ dependencies {
         because("DataSourceFactory is needed for PGDataSourceFactoryTest")
     }
     shaded("com.ongres.scram:scram-client:3.2")
+    // Caffeine 2.9.x is the last version supporting Java 8
+    shaded("com.github.ben-manes.caffeine:caffeine:2.9.3")
 
     implementation("org.checkerframework:checker-qual:3.55.1")
     java11.implementationConfigurationName("org.checkerframework:checker-qual:3.55.1")
@@ -178,6 +210,9 @@ dependencies {
     testKitSourcesWithoutAnnotations(projects.testkit)
 
     testImplementation(projects.testkit)
+    testImplementation("com.tngtech.archunit:archunit:1.4.2") {
+        because("Guards the org.postgresql.api codec SPI boundary against dependencies on jdbc/core")
+    }
 }
 
 val skipReplicationTests by props()
@@ -324,7 +359,8 @@ tasks.shadowJar {
     exclude("NOTICE")
     addMultiReleaseContents()
     listOf(
-            "com.ongres"
+        "com.github.benmanes.caffeine",
+        "com.ongres"
     ).forEach {
         relocate(it, "${project.group}.shaded.$it")
     }
@@ -445,6 +481,10 @@ val sourceDistribution = tasks.register<Tar>("sourceDistribution") {
             exclude("**/*Suite*")
             exclude("*/org/postgresql/test/sspi/*.java")
             exclude("*/org/postgresql/replication/**")
+            // ArchUnit (com.tngtech.archunit) is not declared in reduced-pom.xml and is not
+            // packaged for Fedora, so the api boundary test cannot compile in the minimal
+            // source-distribution build. The Gradle build already runs it.
+            exclude("*/org/postgresql/api/ApiBoundaryArchTest.java")
         }
         from(testKitSourcesWithoutAnnotationsResolved.flatMap { it.elements }.map { set ->
             set.map {

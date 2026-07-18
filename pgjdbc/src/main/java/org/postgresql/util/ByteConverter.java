@@ -189,7 +189,13 @@ public class ByteConverter {
     //if the absolute value is (0, 1), then leading '0' values
     //do not matter for the unscaledInt, but trailing 0s do
     if (weight < 0) {
-      assert scale > 0;
+      // For a valid numeric the server guarantees scale > 0 whenever weight < 0 (the value is a pure
+      // fraction). A crafted or corrupt binary value can break that, which used to trip an assertion
+      // (an AssertionError under -ea) or fall through to produce garbage without -ea. Reject it
+      // consistently as malformed input, matching the length/sign/scale checks above.
+      if (scale <= 0) {
+        throw new IllegalArgumentException("invalid weight/scale in \"numeric\" value");
+      }
       int effectiveScale = scale;
       //adjust weight to determine how many leading 0s after the decimal
       //before the provided values/digits actually begin
@@ -208,7 +214,11 @@ public class ByteConverter {
         d = ByteConverter.int2(bytes, idx);
       }
 
-      assert effectiveScale > 0;
+      // As above: a valid numeric keeps effectiveScale > 0 here; crafted input can drive it to zero or
+      // below (an AssertionError under -ea, garbage otherwise). Reject it as malformed.
+      if (effectiveScale <= 0) {
+        throw new IllegalArgumentException("invalid scale in \"numeric\" value");
+      }
       if (effectiveScale >= 4) {
         effectiveScale -= 4;
       } else {
@@ -495,6 +505,35 @@ public class ByteConverter {
       idx += 2;
     }
 
+    return bytes;
+  }
+
+  /**
+   * Converts a non-finite {@code double} to binary format for {@link org.postgresql.core.Oid#NUMERIC}.
+   *
+   * <p>{@code numeric} carries {@code NaN} and, since PostgreSQL 14, {@code ±Infinity}, but
+   * {@link BigDecimal} can't represent them. Callers that hold such a sentinel — as produced by
+   * {@link #numeric(byte[], int, int)} — route through here instead of {@link #numeric(BigDecimal)},
+   * which would reject the value.</p>
+   *
+   * @param value a value for which {@link Double#isNaN(double)} or {@link Double#isInfinite(double)} holds
+   * @return the binary representation of the numeric special value
+   * @throws IllegalArgumentException if <i>value</i> is finite
+   */
+  public static byte[] numericNonFinite(double value) {
+    final short sign;
+    if (Double.isNaN(value)) {
+      sign = NUMERIC_NAN;
+    } else if (value == Double.POSITIVE_INFINITY) {
+      sign = NUMERIC_PINF;
+    } else if (value == Double.NEGATIVE_INFINITY) {
+      sign = NUMERIC_NINF;
+    } else {
+      throw new IllegalArgumentException("numericNonFinite expects NaN or ±Infinity, got: " + value);
+    }
+    // len = 0, weight = 0, dscale = 0; only the sign field carries the value.
+    final byte[] bytes = new byte[8];
+    ByteConverter.int2(bytes, 4, sign);
     return bytes;
   }
 

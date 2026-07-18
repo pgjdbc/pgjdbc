@@ -28,15 +28,19 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -50,6 +54,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Stream;
 
 /**
  * ResultSet tests.
@@ -224,6 +229,42 @@ public class ResultSetTest extends BaseTest4 {
   }
 
   @Test
+  public void testGetDateTimeTimestampOnStringColumns() throws SQLException {
+    // getDate/getTime/getTimestamp now coerce string columns through the text codecs, so a
+    // date/time literal stored in varchar/text parses just like a temporal column.
+    try (Statement stmt = con.createStatement();
+         ResultSet rs = stmt.executeQuery(
+             "SELECT '2024-01-02'::varchar, '12:34:56'::text")) {
+      assertTrue(rs.next());
+      assertEquals(Date.valueOf("2024-01-02"), rs.getDate(1));
+      assertEquals(Time.valueOf("12:34:56"), rs.getTime(2));
+    }
+  }
+
+  @Test
+  public void testGetTimestampOnUnknownColumn() throws SQLException {
+    // 'SELECT <literal>' without a cast yields the unknown type (oid 705), which resolves to the
+    // fallback codec. The fallback parses the literal as a date/time, matching the old behaviour.
+    try (Statement stmt = con.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT '2024-01-02 12:34:56'")) {
+      assertTrue(rs.next());
+      assertEquals(Timestamp.valueOf("2024-01-02 12:34:56"), rs.getTimestamp(1));
+    }
+  }
+
+  @Test
+  public void testGetDateOnIntegerColumnThrows() throws SQLException {
+    // A non-temporal, non-string column cannot be coerced to a date: the int4 codec rejects the
+    // Date target with the same read-side state (DATA_TYPE_MISMATCH) as getDate's own tail.
+    try (Statement stmt = con.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT 42::int4")) {
+      assertTrue(rs.next());
+      PSQLException ex = assertThrows(PSQLException.class, () -> rs.getDate(1));
+      assertEquals(PSQLState.DATA_TYPE_MISMATCH.getState(), ex.getSQLState());
+    }
+  }
+
+  @Test
   public void testBackward() throws SQLException {
     Statement stmt =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
@@ -337,6 +378,60 @@ public class ResultSetTest extends BaseTest4 {
     rs.next();
     assertEquals("12", rs.getString(1));
     assertEquals("12", new String(rs.getBytes(1)));
+  }
+
+  /**
+   * getString cases for {@link #getStringHonorsMaxFieldSize}. Each row is
+   * {@code (label, sql, expected)}. The class is parameterized over {@link BinaryMode}, so every
+   * case runs once in text transfer (REGULAR) and once in binary transfer (FORCE); the expected
+   * value is the same for both formats.
+   */
+  static Stream<Arguments> maxFieldSizeStringCases() {
+    return Stream.of(
+        // Trimmable per the JDBC spec (getMaxFieldSize applies to CHAR/VARCHAR/LONGVARCHAR):
+        // the value is cut to maxFieldSize regardless of the transfer format.
+        Arguments.of("bpchar", "SELECT 'ABCDEFGHIJ'::char(10)", "AB"),
+        Arguments.of("varchar", "SELECT 'ABCDEFGHIJ'::varchar(10)", "AB"),
+        Arguments.of("text", "SELECT 'ABCDEFGHIJ'::text", "AB"),
+        // Not trimmable: the limit applies only to the char/binary field types the spec lists, so
+        // an integer keeps its full text.
+        Arguments.of("int4", "SELECT 12345::int4", "12345"));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("maxFieldSizeStringCases")
+  void getStringHonorsMaxFieldSize(String label, String sql, String expected) throws SQLException {
+    // A PreparedStatement is server-prepared under BinaryMode.FORCE (prepareThreshold=-1), so a
+    // binary-capable column is transferred in binary and getString goes through the codec path.
+    try (PreparedStatement ps = con.prepareStatement(sql)) {
+      ps.setMaxFieldSize(2);
+      try (ResultSet rs = ps.executeQuery()) {
+        assertTrue(rs.next());
+        assertEquals(expected, rs.getString(1),
+            () -> label + " getString must honor maxFieldSize=2 in " + binaryMode + " mode");
+      }
+    }
+  }
+
+  /**
+   * getMaxFieldSize is defined to apply only to CHAR/VARCHAR/LONGVARCHAR and the binary field
+   * types; an array column reports {@code Types.ARRAY}, which is not on that list. So getString on
+   * an array returns the whole literal even when the elements are long strings and maxFieldSize is
+   * small. The exact literal differs between text and binary transfer (binary quotes the elements),
+   * so we only assert that no truncation happened.
+   */
+  @Test
+  void getStringOnArrayIgnoresMaxFieldSize() throws SQLException {
+    try (PreparedStatement ps = con.prepareStatement("SELECT ARRAY['ABCDEFGHIJ','KLMNOP']::text[]")) {
+      ps.setMaxFieldSize(2);
+      try (ResultSet rs = ps.executeQuery()) {
+        assertTrue(rs.next());
+        String value = rs.getString(1);
+        assertTrue(value != null && value.contains("ABCDEFGHIJ") && value.contains("KLMNOP"),
+            () -> "array getString must not be trimmed by maxFieldSize in " + binaryMode
+                + " mode, but was: " + value);
+      }
+    }
   }
 
   @Test
@@ -504,7 +599,7 @@ public class ResultSetTest extends BaseTest4 {
     assertEquals(1, rs.getByte(1));
 
     assertTrue(rs.next());
-    assertEquals(-2, rs.getByte(1));
+    assertEquals(-3, rs.getByte(1)); // -2.5 rounds half-away-from-zero, matching numeric->int cast
 
     assertTrue(rs.next());
     assertEquals(0, rs.getByte(1));
@@ -549,7 +644,7 @@ public class ResultSetTest extends BaseTest4 {
     assertEquals(1, rs.getShort(1));
 
     assertTrue(rs.next());
-    assertEquals(-2, rs.getShort(1));
+    assertEquals(-3, rs.getShort(1)); // -2.5 rounds half-away-from-zero, matching numeric->int cast
 
     assertTrue(rs.next());
     assertEquals(0, rs.getShort(1));
@@ -593,7 +688,7 @@ public class ResultSetTest extends BaseTest4 {
     assertEquals(1, rs.getInt(1));
 
     assertTrue(rs.next());
-    assertEquals(-2, rs.getInt(1));
+    assertEquals(-3, rs.getInt(1)); // -2.5 rounds half-away-from-zero, matching numeric->int cast
 
     assertTrue(rs.next());
     assertEquals(0, rs.getInt(1));
@@ -645,6 +740,180 @@ public class ResultSetTest extends BaseTest4 {
   }
 
   @Test
+  public void testGetIntNumericFractionRoundsThenRangeChecks() throws SQLException {
+    // getInt on a numeric must round half-away-from-zero and *then* range-check, matching the server's
+    // numeric->int4 cast: a fraction just past the boundary that rounds back to it fits, a fraction that
+    // rounds past it overflows, and the returned value rounds rather than truncating toward zero. Each
+    // in-range case is cross-checked against the server's own cast.
+    assertGetIntNumericMatchesServer("2147483647.4", Integer.MAX_VALUE);
+    assertGetIntNumericMatchesServer("-2147483648.4", Integer.MIN_VALUE);
+    // 2147483646.5 rounds up to 2147483647 (not truncated to 2147483646), matching the server.
+    assertGetIntNumericMatchesServer("2147483646.5", 2147483647);
+    assertGetIntNumericMatchesServer("-2.5", -3);
+    assertGetIntNumericMatchesServer("2.5", 3);
+    // x.5 rounds one step past the boundary and overflows.
+    assertGetIntNumericOverflows("2147483647.5");
+    assertGetIntNumericOverflows("-2147483648.5");
+  }
+
+  private void assertGetIntNumericMatchesServer(String literal, int expected) throws SQLException {
+    try (ResultSet rs = con.createStatement().executeQuery("select '" + literal + "'::numeric")) {
+      assertTrue(rs.next());
+      assertEquals(expected, rs.getInt(1), () -> "getInt on " + literal + "::numeric");
+    }
+    // The driver rounds like the server's own numeric->int4 cast.
+    try (ResultSet rs = con.createStatement().executeQuery("select '" + literal + "'::numeric::int4")) {
+      assertTrue(rs.next());
+      assertEquals(expected, rs.getInt(1), () -> "server cast " + literal + "::numeric::int4");
+    }
+  }
+
+  private void assertGetIntNumericOverflows(String literal) throws SQLException {
+    try (ResultSet rs = con.createStatement().executeQuery("select '" + literal + "'::numeric")) {
+      assertTrue(rs.next());
+      SQLException e = assertThrows(SQLException.class, () -> rs.getInt(1),
+          () -> "getInt on " + literal + "::numeric should overflow");
+      assertEquals(PSQLState.NUMERIC_VALUE_OUT_OF_RANGE.getState(), e.getSQLState(),
+          () -> "SQLState for overflow on " + literal);
+    }
+  }
+
+  @FunctionalInterface
+  private interface RsAccessor {
+    void access(ResultSet rs) throws SQLException;
+  }
+
+  @Test
+  public void testIntegerAccessorsOnFloatNaNAndOverflow() throws SQLException {
+    // NaN, +/-Infinity, and floats past the target integer range have no integer value: the server's
+    // real/double -> int cast errors ("integer/bigint out of range"), so getByte/getShort/getInt/
+    // getLong must throw SQLState 22003 too — never return 0 for NaN or clamp to a MIN/MAX bound. The
+    // BinaryMode parameterization runs this under both text and binary transfer; a PreparedStatement
+    // (server-prepared under BinaryMode.FORCE) is what makes the binary result path apply.
+    for (String pgType : new String[]{"float4", "float8"}) {
+      for (String special : new String[]{"'NaN'", "'Infinity'", "'-Infinity'"}) {
+        assertFloatAccessorOverflows(pgType, special, "getByte", rs -> rs.getByte(1));
+        assertFloatAccessorOverflows(pgType, special, "getShort", rs -> rs.getShort(1));
+        assertFloatAccessorOverflows(pgType, special, "getInt", rs -> rs.getInt(1));
+        assertFloatAccessorOverflows(pgType, special, "getLong", rs -> rs.getLong(1));
+      }
+    }
+
+    // (float4) 2147483647 rounds up to 2^31, one past Integer.MAX_VALUE: getInt must overflow rather
+    // than clamp to Integer.MAX_VALUE. The server agrees: '2147483647'::float4::int4 errors.
+    assertFloatAccessorOverflows("float4", "2147483647", "getInt", rs -> rs.getInt(1));
+    // (float8) 9223372036854775807 rounds up to 2^63, one past Long.MAX_VALUE: getLong must overflow
+    // rather than clamp to Long.MAX_VALUE. The server agrees: '9.2e18'::float8::int8 errors.
+    assertFloatAccessorOverflows("float8", "9223372036854775807", "getLong", rs -> rs.getLong(1));
+  }
+
+  private void assertFloatAccessorOverflows(String pgType, String literal, String accessorName,
+      RsAccessor accessor) throws SQLException {
+    try (PreparedStatement ps = con.prepareStatement("select " + literal + "::" + pgType);
+         ResultSet rs = ps.executeQuery()) {
+      assertTrue(rs.next());
+      SQLException e = assertThrows(SQLException.class, () -> accessor.access(rs),
+          () -> accessorName + " on " + literal + "::" + pgType + " should overflow");
+      assertEquals(PSQLState.NUMERIC_VALUE_OUT_OF_RANGE.getState(), e.getSQLState(),
+          () -> "SQLState for " + accessorName + " on " + literal + "::" + pgType);
+    }
+  }
+
+  @Test
+  public void testIntegerAccessorsRoundFloat() throws SQLException {
+    // float4/float8 integer getters round to nearest, ties to even (rint), matching the server's
+    // real/double -> int cast rather than truncating toward zero. 2.5 -> 2 and 3.5 -> 4 (ties to even),
+    // 2.6 -> 3, -2.5 -> -2. Each case is cross-checked against the server's own cast so the expectation
+    // cannot drift from PostgreSQL.
+    for (String pgType : new String[]{"float4", "float8"}) {
+      for (String literal : new String[]{"2.4", "2.5", "2.6", "3.5", "-2.5", "0.5"}) {
+        assertGetIntFloatMatchesServer(pgType, literal);
+      }
+    }
+  }
+
+  private void assertGetIntFloatMatchesServer(String pgType, String literal) throws SQLException {
+    int expected;
+    try (ResultSet rs = con.createStatement()
+        .executeQuery("select '" + literal + "'::" + pgType + "::int4")) {
+      assertTrue(rs.next());
+      expected = rs.getInt(1);
+    }
+    try (PreparedStatement ps = con.prepareStatement("select '" + literal + "'::" + pgType);
+         ResultSet rs = ps.executeQuery()) {
+      assertTrue(rs.next());
+      assertEquals(expected, rs.getInt(1),
+          () -> "getInt on " + literal + "::" + pgType + " must match the server " + pgType
+              + "->int4 cast");
+    }
+  }
+
+  @Test
+  public void testIntegerAccessorsOnOidAboveIntRange() throws SQLException {
+    // oid is an unsigned 32-bit type. getInt reinterprets the raw 32-bit value as a signed int (wrapping
+    // above Integer.MAX_VALUE) and no longer throws, matching the legacy driver; getLong keeps the full
+    // unsigned value. getByte/getShort narrow that wrapped int and throw 22003 only when it does not fit
+    // their range. The BinaryMode parameterization runs this under both text and binary transfer.
+
+    // 2147483648 = Integer.MAX_VALUE + 1: getInt wraps to Integer.MIN_VALUE, which does not fit byte/short.
+    assertOidGetInt("2147483648", Integer.MIN_VALUE);
+    assertOidAccessorOverflows("2147483648", "getByte", rs -> rs.getByte(1));
+    assertOidAccessorOverflows("2147483648", "getShort", rs -> rs.getShort(1));
+
+    // 4294967295 = unsigned max: getInt wraps to -1, which fits byte and short.
+    assertOidGetInt("4294967295", -1);
+    assertOidGetByte("4294967295", (byte) -1);
+    assertOidGetShort("4294967295", (short) -1);
+
+    assertOidGetLong("2147483648", 2147483648L);
+    assertOidGetLong("4294967295", 4294967295L);
+  }
+
+  private void assertOidAccessorOverflows(String literal, String accessorName, RsAccessor accessor)
+      throws SQLException {
+    try (PreparedStatement ps = con.prepareStatement("select '" + literal + "'::oid");
+         ResultSet rs = ps.executeQuery()) {
+      assertTrue(rs.next());
+      SQLException e = assertThrows(SQLException.class, () -> accessor.access(rs),
+          () -> accessorName + " on " + literal + "::oid should overflow");
+      assertEquals(PSQLState.NUMERIC_VALUE_OUT_OF_RANGE.getState(), e.getSQLState(),
+          () -> "SQLState for " + accessorName + " on " + literal + "::oid");
+    }
+  }
+
+  private void assertOidGetInt(String literal, int expected) throws SQLException {
+    try (PreparedStatement ps = con.prepareStatement("select '" + literal + "'::oid");
+         ResultSet rs = ps.executeQuery()) {
+      assertTrue(rs.next());
+      assertEquals(expected, rs.getInt(1), () -> "getInt on " + literal + "::oid");
+    }
+  }
+
+  private void assertOidGetByte(String literal, byte expected) throws SQLException {
+    try (PreparedStatement ps = con.prepareStatement("select '" + literal + "'::oid");
+         ResultSet rs = ps.executeQuery()) {
+      assertTrue(rs.next());
+      assertEquals(expected, rs.getByte(1), () -> "getByte on " + literal + "::oid");
+    }
+  }
+
+  private void assertOidGetShort(String literal, short expected) throws SQLException {
+    try (PreparedStatement ps = con.prepareStatement("select '" + literal + "'::oid");
+         ResultSet rs = ps.executeQuery()) {
+      assertTrue(rs.next());
+      assertEquals(expected, rs.getShort(1), () -> "getShort on " + literal + "::oid");
+    }
+  }
+
+  private void assertOidGetLong(String literal, long expected) throws SQLException {
+    try (PreparedStatement ps = con.prepareStatement("select '" + literal + "'::oid");
+         ResultSet rs = ps.executeQuery()) {
+      assertTrue(rs.next());
+      assertEquals(expected, rs.getLong(1), () -> "getLong on " + literal + "::oid");
+    }
+  }
+
+  @Test
   public void testgetLong() throws SQLException {
     ResultSet rs = null;
 
@@ -670,7 +939,7 @@ public class ResultSetTest extends BaseTest4 {
 
     rs = con.createStatement().executeQuery("select a from testnumeric where t = '-2.5'");
     assertTrue(rs.next());
-    assertEquals(-2, rs.getLong(1));
+    assertEquals(-3, rs.getLong(1)); // -2.5 rounds half-away-from-zero, matching numeric->int cast
     rs.close();
 
     rs = con.createStatement().executeQuery("select a from testnumeric where t = '0.000000000000000000000000000990'");
@@ -743,9 +1012,16 @@ public class ResultSetTest extends BaseTest4 {
     assertEquals(Long.MAX_VALUE, rs.getLong(1));
     rs.close();
 
+    // 9223372036854775807.9 rounds half-away-from-zero to 9223372036854775808, which overflows int8,
+    // matching the server's numeric->int8 cast (the driver no longer truncates to Long.MAX_VALUE).
     rs = con.createStatement().executeQuery("select a from testnumeric where t = '9223372036854775807.9'");
     assertTrue(rs.next());
-    assertEquals(Long.MAX_VALUE, rs.getLong(1));
+    try {
+      rs.getLong(1);
+      fail("Exception expected. " + rs.getString(1));
+    } catch (SQLException e) {
+      assertEquals("22003", e.getSQLState());
+    }
     rs.close();
 
     rs = con.createStatement().executeQuery("select a from testnumeric where t = '-9223372036854775808'");

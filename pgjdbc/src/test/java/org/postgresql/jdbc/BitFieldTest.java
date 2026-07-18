@@ -14,13 +14,31 @@ import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PGobject;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collection;
 
+@ParameterizedClass
+@MethodSource("data")
 public class BitFieldTest extends BaseTest4 {
+
+  public BitFieldTest(BinaryMode binaryMode) {
+    setBinaryMode(binaryMode);
+  }
+
+  public static Iterable<Object[]> data() {
+    Collection<Object[]> ids = new ArrayList<>();
+    for (BinaryMode binaryMode : BinaryMode.values()) {
+      ids.add(new Object[]{binaryMode});
+    }
+    return ids;
+  }
 
   private static class TestData {
     private final String bitValue;
@@ -70,65 +88,91 @@ public class BitFieldTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    con = TestUtil.openDB();
-    Statement stmt = con.createStatement();
-    for (TestData testData : testBitValues) {
-      TestUtil.createTempTable(con, testData.getTableName(), testData.getTableFields());
-      stmt.execute(String.format("INSERT INTO %s values(b'%s')", testData.getTableName(),
-          testData.getBitValue()));
+    try (Statement stmt = con.createStatement()) {
+      for (TestData testData : testBitValues) {
+        TestUtil.createTempTable(con, testData.getTableName(), testData.getTableFields());
+        stmt.execute(String.format("INSERT INTO %s values(b'%s')", testData.getTableName(),
+            testData.getBitValue()));
+      }
     }
   }
 
   @Override
   public void tearDown() throws SQLException {
-    Statement stmt = con.createStatement();
     for (TestData testData : testBitValues) {
-      stmt.execute(String.format("DROP TABLE %s", testData.getTableName()));
+      TestUtil.dropTable(con, testData.getTableName());
     }
-    stmt.close();
-    TestUtil.closeDB(con);
+    super.tearDown();
   }
 
   @Test
-  public void TestGetObjectForBitFields() throws SQLException {
-    // Start from 1 to skip the first testBit value
+  public void testGetObjectForBitFields() throws SQLException {
     for (TestData testData : testBitValues) {
-      PreparedStatement pstmt = con.prepareStatement(String.format("SELECT field_bit FROM %s "
-          + "limit 1", testData.getTableName()));
-      checkBitFieldValue(pstmt, testData.getBitValue(), testData.getIsVarBit());
-      pstmt.close();
+      try (PreparedStatement pstmt = con.prepareStatement(String.format("SELECT field_bit FROM %s "
+          + "limit 1", testData.getTableName()))) {
+        checkBitFieldValue(pstmt, testData.getBitValue(), testData.getIsVarBit());
+      }
     }
   }
 
   @Test
-  public void TestSetBitParameter() throws SQLException {
+  public void testSetBitParameter() throws SQLException {
     for (TestData testData : testBitValues) {
-      PreparedStatement pstmt = con.prepareStatement(
+      try (PreparedStatement pstmt = con.prepareStatement(
           String.format("SELECT field_bit FROM %s where ", testData.getTableName())
-              + "field_bit = ?");
-      PGobject param = new PGobject();
-      param.setValue(testData.getBitValue());
-      param.setType(testData.getIsVarBit() ? "varbit" : "bit");
-      pstmt.setObject(1, param);
-      checkBitFieldValue(pstmt, testData.getBitValue(), testData.getIsVarBit());
-      pstmt.close();
+              + "field_bit = ?")) {
+        PGobject param = new PGobject();
+        param.setValue(testData.getBitValue());
+        param.setType(testData.getIsVarBit() ? "varbit" : "bit");
+        pstmt.setObject(1, param);
+        checkBitFieldValue(pstmt, testData.getBitValue(), testData.getIsVarBit());
+      }
+    }
+  }
+
+  @Test
+  public void testBitArrayReturnsPGobjectArray() throws SQLException {
+    try (PreparedStatement pstmt = con.prepareStatement("SELECT ARRAY[b'101', b'010']::bit(3)[]");
+         ResultSet rs = pstmt.executeQuery()) {
+      assertTrue(rs.next());
+      Object array = rs.getArray(1).getArray();
+      assertInstanceOf(PGobject[].class, array);
+      PGobject[] out = (PGobject[]) array;
+      assertEquals(2, out.length);
+      assertEquals("101", out[0].getValue());
+      assertEquals("010", out[1].getValue());
+    }
+  }
+
+  @Test
+  public void testVarbitArrayReturnsPGobjectArray() throws SQLException {
+    try (PreparedStatement pstmt = con.prepareStatement("SELECT ARRAY[b'1', b'0101']::varbit[]");
+         ResultSet rs = pstmt.executeQuery()) {
+      assertTrue(rs.next());
+      Object array = rs.getArray(1).getArray();
+      assertInstanceOf(PGobject[].class, array);
+      PGobject[] out = (PGobject[]) array;
+      assertEquals(2, out.length);
+      assertEquals("1", out[0].getValue());
+      assertEquals("0101", out[1].getValue());
     }
   }
 
   private static void checkBitFieldValue(PreparedStatement pstmt, String bitValue, boolean isVarBit) throws SQLException {
-    ResultSet rs = pstmt.executeQuery();
-    assertTrue(rs.next());
-    Object o = rs.getObject(1);
-    if (bitValue.length() == 1 && !isVarBit) {
-      assertInstanceOf(Boolean.class, o, "Failed for " + bitValue);
-      Boolean b = (Boolean) o;
-      assertEquals(bitValue.charAt(0) == '1', b, "Failed for " + bitValue);
-    } else {
-      assertInstanceOf(PGobject.class, o, "Failed for " + bitValue);
-      PGobject pGobject = (PGobject) o;
-      assertEquals(bitValue, pGobject.getValue(), "Failed for " + bitValue);
+    try (ResultSet rs = pstmt.executeQuery()) {
+      assertTrue(rs.next());
+      Object o = rs.getObject(1);
+      if (bitValue.length() == 1 && !isVarBit) {
+        assertInstanceOf(Boolean.class, o, "Failed for " + bitValue);
+        Boolean b = (Boolean) o;
+        assertEquals(bitValue.charAt(0) == '1', b, "Failed for " + bitValue);
+      } else {
+        assertInstanceOf(PGobject.class, o, "Failed for " + bitValue);
+        PGobject pGobject = (PGobject) o;
+        assertEquals(bitValue, pGobject.getValue(), "Failed for " + bitValue);
+      }
+      String s = rs.getString(1);
+      assertEquals(bitValue, s);
     }
-    String s = rs.getString(1);
-    assertEquals(bitValue, s);
   }
 }

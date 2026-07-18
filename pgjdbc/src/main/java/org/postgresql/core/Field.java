@@ -5,11 +5,15 @@
 
 package org.postgresql.core;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.jdbc.FieldMetadata;
+import org.postgresql.jdbc.PgType;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
+import java.sql.SQLException;
 import java.util.Locale;
 
 public class Field {
@@ -35,11 +39,10 @@ public class Field {
   // Don't use unless that has been called.
   private @Nullable FieldMetadata metadata;
 
-  private int sqlType;
-  private String pgType = NOT_YET_LOADED;
-
-  // New string to avoid clashes with other strings
-  private static final String NOT_YET_LOADED = new String("pgType is not yet loaded");
+  private @Nullable PgType pgType;
+  // pgType stamped with this column's mod (getMod), so a codec can decode a modifier-sensitive type
+  // such as numeric(10,2); equals pgType itself when mod is -1. Lazily built, mirroring pgType.
+  private @Nullable PgType typeDescriptor;
 
   /**
    * Construct a field based on the information fed to it.
@@ -161,26 +164,49 @@ public class Field {
         + ")";
   }
 
-  public void setSQLType(int sqlType) {
-    this.sqlType = sqlType;
+  public PgType getPgType() {
+    return castNonNull(pgType);
+  }
+
+  /**
+   * Returns this field's type descriptor stamped with the column modifier ({@link #getMod()}), so a
+   * codec can decode a modifier-sensitive type such as {@code numeric(10,2)}. When the field has no
+   * modifier ({@code mod == -1}), this is the plain {@link #getPgType()}.
+   *
+   * <p>Requires {@link #initializePgType(TypeInfo)} to have been called first.</p>
+   *
+   * @return the mod-carrying type descriptor
+   */
+  public PgType getTypeDescriptor() {
+    PgType descriptor = typeDescriptor;
+    if (descriptor == null) {
+      PgType base = castNonNull(pgType);
+      descriptor = mod == -1 ? base : base.withTypmod(mod);
+      typeDescriptor = descriptor;
+    }
+    return descriptor;
   }
 
   public int getSQLType() {
-    return sqlType;
-  }
-
-  public void setPGType(String pgType) {
-    this.pgType = pgType;
+    return getPgType().getSqlType();
   }
 
   public String getPGType() {
-    return pgType;
+    return getPgType().getFullName();
   }
 
-  @SuppressWarnings("ReferenceEquality")
-  public boolean isTypeInitialized() {
-    //noinspection StringEquality
-    return pgType != NOT_YET_LOADED;
+  public void initializePgType(TypeInfo typeInfo) throws SQLException {
+    if (pgType != null) {
+      return;
+    }
+    PgType resolved = typeInfo.getPgTypeByOid(oid);
+    pgType = resolved;
+    // Warm the binary-receive capability memos at this safe point (a result set is
+    // materializing, no protocol message is being composed), so a later bind can
+    // read them via TypeInfo.shouldReceiveBinary() without a catalog query.
+    typeInfo.backendCanSendBinary(resolved);
+    typeInfo.driverCanReceiveBinary(resolved);
+    typeInfo.isBinaryReceiveDisabled(resolved);
   }
 
   public void upperCaseLabel() {

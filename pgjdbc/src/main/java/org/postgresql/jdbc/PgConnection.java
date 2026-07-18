@@ -10,6 +10,7 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 import org.postgresql.Driver;
 import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
+import org.postgresql.api.codec.Codec;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
@@ -29,13 +30,8 @@ import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
 import org.postgresql.fastpath.Fastpath;
-import org.postgresql.geometric.PGbox;
-import org.postgresql.geometric.PGcircle;
-import org.postgresql.geometric.PGline;
-import org.postgresql.geometric.PGlseg;
-import org.postgresql.geometric.PGpath;
-import org.postgresql.geometric.PGpoint;
-import org.postgresql.geometric.PGpolygon;
+import org.postgresql.jdbc.codec.ArrayCodec;
+import org.postgresql.jdbc.codec.CompositeCodec;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.replication.PGReplicationConnectionImpl;
@@ -48,8 +44,6 @@ import org.postgresql.util.LazyCleaner;
 import org.postgresql.util.LazyCleanerImpl;
 import org.postgresql.util.LruCache;
 import org.postgresql.util.PGBinaryObject;
-import org.postgresql.util.PGInterval;
-import org.postgresql.util.PGmoney;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -77,6 +71,7 @@ import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLClientInfoException;
+import java.sql.SQLData;
 import java.sql.SQLException;
 import java.sql.SQLPermission;
 import java.sql.SQLWarning;
@@ -84,12 +79,12 @@ import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
-import java.sql.Types;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -176,6 +171,9 @@ public class PgConnection implements BaseConnection {
 
   private final TypeInfo typeCache;
 
+  private final CodecRegistry codecRegistry;
+  private final JavaTypeRegistry javaTypeRegistry;
+
   private boolean disableColumnSanitiser;
 
   // Default statement prepare threshold.
@@ -203,6 +201,11 @@ public class PgConnection implements BaseConnection {
    */
   private final Set<? extends Integer> binaryDisabledOids;
 
+  /**
+   * {@code binaryTransferDisable=*}: binary transfer is forced off for every type.
+   */
+  private final boolean disableBinaryAll;
+
   private int rsHoldability = ResultSet.CLOSE_CURSORS_AT_COMMIT;
   private int savepointId;
   // Connection's autocommit state.
@@ -217,6 +220,16 @@ public class PgConnection implements BaseConnection {
   private final boolean bindStringAsVarchar;
   // Convert boolean values to numeric types?
   private final boolean convertBooleanToNumeric;
+
+  // Date/time type preferences for getObject()
+  private final boolean prefersJavaTimeForDate;
+  private final boolean prefersJavaTimeForTime;
+  private final boolean prefersJavaTimeForTimetz;
+  private final boolean prefersJavaTimeForTimestamp;
+  private final boolean prefersJavaTimeForTimestamptz;
+
+  // Boolean type mapping preference for metadata
+  private final boolean mapBooleanToBoolean;
 
   // Current warnings; there might be more on queryExecutor too.
   private @Nullable SQLWarning firstWarning;
@@ -264,6 +277,11 @@ public class PgConnection implements BaseConnection {
   public void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate) {
     queryExecutor.setFlushCacheOnDeallocate(flushCacheOnDeallocate);
     LOGGER.log(Level.FINE, "  setFlushCacheOnDeallocate = {0}", flushCacheOnDeallocate);
+  }
+
+  @Override
+  public int getTypeCacheEpoch() {
+    return queryExecutor.getTypeCacheEpoch();
   }
 
   //
@@ -318,6 +336,14 @@ public class PgConnection implements BaseConnection {
       // "cached plan must not change result type" to callers.
       queryExecutor.setFlushCacheOnDdl(PGProperty.FLUSH_CACHE_ON_DDL.getBoolean(info));
 
+      boolean binaryTransfer = PGProperty.BINARY_TRANSFER.getBoolean(info);
+
+      // binaryTransferDisable=* forces text for every type; binaryTransferEnable=* forces binary
+      // receive for every column (bypassing the capability check). For testing; disable=* wins.
+      this.disableBinaryAll = containsWildcard(PGProperty.BINARY_TRANSFER_DISABLE.getOrDefault(info));
+      boolean forceBinaryReceiveAll =
+          !disableBinaryAll && containsWildcard(PGProperty.BINARY_TRANSFER_ENABLE.getOrDefault(info));
+
       // get oids that support binary transfer
       Set<Integer> binaryOids = getBinaryEnabledOids(info);
       // get oids that should be disabled from transfer
@@ -327,23 +353,34 @@ public class PgConnection implements BaseConnection {
         binaryOids.removeAll(binaryDisabledOids);
       }
 
-      // split for receive and send for better control
+      // SEND still uses the explicit allow-list (its migration to per-value
+      // canEncodeBinary is a separate step).
       Set<Integer> useBinarySendForOids = new HashSet<>(binaryOids);
-
-      Set<Integer> useBinaryReceiveForOids = new HashSet<>(binaryOids);
-
       /*
        * Does not pass unit tests because unit tests expect setDate to have millisecond accuracy
        * whereas the binary transfer only supports date accuracy.
        */
       useBinarySendForOids.remove(Oid.DATE);
+      // binaryTransferDisable=* also forces text for parameter send.
+      queryExecutor.setBinarySendOids(
+          disableBinaryAll ? Collections.<Integer>emptySet() : useBinarySendForOids);
 
-      queryExecutor.setBinaryReceiveOids(useBinaryReceiveForOids);
-      queryExecutor.setBinarySendOids(useBinarySendForOids);
+      // RECEIVE is decided per column by the type's catalog capability
+      // (TypeInfo.shouldReceiveBinary), not the static allow-list. Only explicit
+      // binaryTransferEnable oids force binary on; the recursive binaryTransferDisable
+      // opt-out is applied by the TypeInfo (set below); the TypeInfo enabling the
+      // capability fallback is injected below, and only when binaryTransfer is on.
+      Set<Integer> explicitReceiveOids = getExplicitBinaryOids(info);
+      explicitReceiveOids.removeAll(binaryDisabledOids);
+      queryExecutor.setBinaryReceiveOids(explicitReceiveOids);
+      queryExecutor.setForceBinaryReceiveAll(forceBinaryReceiveAll);
+      queryExecutor.setDisableBinaryAll(disableBinaryAll);
+      // A per-type binaryTransferDisable overrides binaryTransferEnable=*.
+      queryExecutor.setBinaryReceiveDisabledOids(new HashSet<Integer>(binaryDisabledOids));
 
       if (LOGGER.isLoggable(Level.FINEST)) {
         LOGGER.log(Level.FINEST, "    types using binary send = {0}", oidsToString(useBinarySendForOids));
-        LOGGER.log(Level.FINEST, "    types using binary receive = {0}", oidsToString(useBinaryReceiveForOids));
+        LOGGER.log(Level.FINEST, "    types forcing binary receive = {0}", oidsToString(explicitReceiveOids));
         LOGGER.log(Level.FINEST, "    integer date/time = {0}", queryExecutor.getIntegerDateTimes());
       }
 
@@ -382,6 +419,26 @@ public class PgConnection implements BaseConnection {
       @SuppressWarnings("argument")
       TypeInfo typeCache = createTypeInfo(this, unknownLength);
       this.typeCache = typeCache;
+
+      // binaryTransferDisable is applied recursively (a disabled element/field taints
+      // the whole column), so the opt-out lives in the TypeInfo with the type tree.
+      typeCache.setBinaryReceiveDisabledOids(binaryDisabledOids);
+
+      // Enable the catalog capability fallback for result columns only when
+      // binaryTransfer is on. Without it the executor still honours the explicit
+      // binaryTransferEnable oids set above, matching binaryTransfer=false.
+      // binaryTransferDisable=* keeps it off so nothing can re-arm binary receive.
+      if (binaryTransfer && !disableBinaryAll) {
+        queryExecutor.setTypeInfo(typeCache);
+      }
+
+      // Initialize codec infrastructure. Share the TypeInfoCache's
+      // JavaTypeRegistry so addDataType updates apply to codec-context lookups
+      // (PgResultSet.getObject's type map check goes through codecContext.javaTypes,
+      // which has to see the user-registered classes).
+      this.codecRegistry = typeCache.getCodecRegistry();
+      this.javaTypeRegistry = typeCache.getJavaTypeRegistry();
+
       initObjectTypes(info);
 
       if (PGProperty.LOG_UNCLOSED_CONNECTIONS.getBoolean(info)) {
@@ -392,10 +449,13 @@ public class PgConnection implements BaseConnection {
       this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
       this.convertBooleanToNumeric = PGProperty.CONVERT_BOOLEAN_TO_NUMERIC.getBoolean(info);
 
-      if (haveMinimumServerVersion(ServerVersion.v8_3)) {
-        typeCache.addCoreType("uuid", Oid.UUID, Types.OTHER, "java.util.UUID", Oid.UUID_ARRAY);
-        typeCache.addCoreType("xml", Oid.XML, Types.SQLXML, "java.sql.SQLXML", Oid.XML_ARRAY);
-      }
+      // Initialize date/time type preferences for getObject()
+      this.prefersJavaTimeForDate = "java.time".equals(PGProperty.GETOBJECT_DATE.getOrDefault(info));
+      this.prefersJavaTimeForTime = "java.time".equals(PGProperty.GETOBJECT_TIME.getOrDefault(info));
+      this.prefersJavaTimeForTimetz = "java.time".equals(PGProperty.GETOBJECT_TIMETZ.getOrDefault(info));
+      this.prefersJavaTimeForTimestamp = "java.time".equals(PGProperty.GETOBJECT_TIMESTAMP.getOrDefault(info));
+      this.prefersJavaTimeForTimestamptz = "java.time".equals(PGProperty.GETOBJECT_TIMESTAMPTZ.getOrDefault(info));
+      this.mapBooleanToBoolean = "boolean".equals(PGProperty.MAP_PG_TYPE_BOOLEAN.getOrDefault(info));
 
       this.clientInfo = new Properties();
       if (haveMinimumServerVersion(ServerVersion.v9_0)) {
@@ -465,8 +525,42 @@ public class PgConnection implements BaseConnection {
         Oid.FLOAT8_ARRAY,
         Oid.VARCHAR_ARRAY,
         Oid.TEXT_ARRAY,
+        // Temporal arrays carry a binary encoder/decoder via TemporalCodecs and the array codec
+        // walker (GenericArrayLeafCodec writeLeaf/readLeaf), so they can use the binary protocol.
+        Oid.DATE_ARRAY,
+        Oid.TIME_ARRAY,
+        Oid.TIMETZ_ARRAY,
+        Oid.TIMESTAMP_ARRAY,
+        Oid.TIMESTAMPTZ_ARRAY,
         Oid.POINT,
         Oid.BOX,
+        Oid.CIRCLE,
+        Oid.LINE,
+        Oid.LSEG,
+        Oid.PATH,
+        Oid.POLYGON,
+        // bit/varbit carry a binary encoder/decoder via BitCodec; the scalar bit(1) -> Boolean
+        // contract reads the bit count from the binary int4 prefix in PgResultSet, and bit[]/varbit[]
+        // decode through the array codec walker (PGobject[]).
+        Oid.BIT,
+        Oid.VARBIT,
+        Oid.BIT_ARRAY,
+        Oid.VARBIT_ARRAY,
+        // json/jsonb carry a binary encoder/decoder via JsonCodec/JsonbCodec; json[]/jsonb[] decode
+        // to String[] through the array codec walker (JsonArrayLeafCodec) and the codec-backed slice
+        // decoder, both binary-aware (the jsonb version byte is handled by the codec).
+        Oid.JSON,
+        Oid.JSONB,
+        Oid.JSON_ARRAY,
+        Oid.JSONB_ARRAY,
+        // Anonymous and named composites decode through CompositeCodec, which reads each field's
+        // OID from the self-describing binary record wire format; record[]/composite[] walk through
+        // the array codec (GenericArrayLeafCodec). A PgStruct from a binary anonymous record carries
+        // the field types synthesized from the wire, so getString()/getValue() can rebuild the
+        // record_out literal without catalog fields for OID 2249. Binary also avoids record_out's
+        // exponential text quoting, so it is the safer default for deeply nested row(...) values.
+        Oid.RECORD,
+        Oid.RECORD_ARRAY,
         Oid.UUID));
   }
 
@@ -486,6 +580,25 @@ public class PgConnection implements BaseConnection {
       binaryOids.addAll(SUPPORTED_BINARY_OIDS);
     }
     // add all oids which are enabled for binary transfer by the creator of the connection
+    String oids = PGProperty.BINARY_TRANSFER_ENABLE.getOrDefault(info);
+    if (oids != null) {
+      binaryOids.addAll(getOidSet(oids));
+    }
+    return binaryOids;
+  }
+
+  /**
+   * Gets the oids the connection creator explicitly enabled via
+   * {@code binaryTransferEnable}, with no built-in {@link #SUPPORTED_BINARY_OIDS}
+   * defaults. Used for the receive path, where the default is decided per column
+   * by the type's catalog binary-send capability.
+   *
+   * @param info properties
+   * @return the explicitly enabled oids (possibly empty)
+   * @throws PSQLException if any oid is not valid
+   */
+  private static Set<Integer> getExplicitBinaryOids(Properties info) throws PSQLException {
+    Set<Integer> binaryOids = new HashSet<>();
     String oids = PGProperty.BINARY_TRANSFER_ENABLE.getOrDefault(info);
     if (oids != null) {
       binaryOids.addAll(getOidSet(oids));
@@ -518,9 +631,34 @@ public class PgConnection implements BaseConnection {
     StringTokenizer tokenizer = new StringTokenizer(oidList, ",");
     while (tokenizer.hasMoreTokens()) {
       String oid = tokenizer.nextToken();
+      // "*" is the wildcard handled via containsWildcard(); skip it so it neither fails Oid.valueOf
+      // nor hides any real oids listed alongside it.
+      if ("*".equals(oid)) {
+        continue;
+      }
       oids.add(Oid.valueOf(oid));
     }
     return oids;
+  }
+
+  /**
+   * Returns whether the comma-separated {@code binaryTransferEnable} / {@code binaryTransferDisable}
+   * list contains the {@code *} wildcard token.
+   *
+   * @param oidList the raw property value (may be {@code null})
+   * @return true if a {@code *} token is present
+   */
+  private static boolean containsWildcard(@Nullable String oidList) {
+    if (oidList == null || oidList.isEmpty()) {
+      return false;
+    }
+    StringTokenizer tokenizer = new StringTokenizer(oidList, ",");
+    while (tokenizer.hasMoreTokens()) {
+      if ("*".equals(tokenizer.nextToken())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static String oidsToString(Set<Integer> oids) {
@@ -768,10 +906,26 @@ public class PgConnection implements BaseConnection {
       throws SQLException {
     if (typemap != null) {
       Class<?> c = typemap.get(type);
-      if (c != null) {
-        // Handle the type (requires SQLInput & SQLOutput classes to be implemented)
-        throw new PSQLException(GT.tr("Custom type maps are not supported."),
-            PSQLState.NOT_IMPLEMENTED);
+      if (c != null && SQLData.class.isAssignableFrom(c)) {
+        // Use CompositeCodec to decode as SQLData
+        @SuppressWarnings("unchecked")
+        Class<? extends SQLData> sqlDataClass = (Class<? extends SQLData>) c;
+        PgType pgType = typeCache.getPgTypeByPgName(type);
+        PgCodecContext ctx = getCodecContext();
+        // decodeBinaryAs/decodeTextAs may return null only for an empty payload,
+        // which BaseConnection#getObject's non-null contract treats as
+        // "construct an empty PGobject" — fall through to the PGobject path in
+        // that case rather than returning null from a non-null-declared method.
+        Object decoded = null;
+        if (byteValue != null && byteValue.length > 0) {
+          decoded = CompositeCodec.INSTANCE.decodeBinaryAs(byteValue, 0, byteValue.length, pgType, sqlDataClass, ctx);
+        } else if (value != null && !value.isEmpty()) {
+          decoded = CompositeCodec.INSTANCE.decodeTextAs(value, pgType, sqlDataClass, ctx);
+        }
+        if (decoded != null) {
+          return decoded;
+        }
+        // empty payload — fall through to construct a typed PGobject below.
       }
     }
 
@@ -842,11 +996,18 @@ public class PgConnection implements BaseConnection {
     // first add the data type to the type cache
     typeCache.addDataType(type, klass);
     // then check if this type supports binary transfer
-    if (PGBinaryObject.class.isAssignableFrom(klass) && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-      // try to get an oid for this type (will return 0 if the type does not exist in the database)
-      int oid = typeCache.getPGType(type);
+    if (org.postgresql.util.PGBinaryObject.class.isAssignableFrom(klass)
+        && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+      // try to get an oid for this type (will return 0 if the type does not
+      // exist in the database)
+      int oid;
+      try {
+        oid = typeCache.getPgTypeByPgName(type).getOid();
+      } catch (SQLException e) {
+        oid = 0;
+      }
       // check if oid is there and if it is not disabled for binary transfer
-      if (oid > 0 && !binaryDisabledOids.contains(oid)) {
+      if (oid > 0 && !disableBinaryAll && !binaryDisabledOids.contains(oid)) {
         // allow using binary transfer for receiving and sending of this type
         queryExecutor.addBinaryReceiveOid(oid);
         queryExecutor.addBinarySendOid(oid);
@@ -856,18 +1017,6 @@ public class PgConnection implements BaseConnection {
 
   // This initialises the objectTypes hash map
   private void initObjectTypes(Properties info) throws SQLException {
-    // Add in the types that come packaged with the driver.
-    // These can be overridden later if desired.
-    addDataType("box", PGbox.class);
-    addDataType("circle", PGcircle.class);
-    addDataType("line", PGline.class);
-    addDataType("lseg", PGlseg.class);
-    addDataType("path", PGpath.class);
-    addDataType("point", PGpoint.class);
-    addDataType("polygon", PGpolygon.class);
-    addDataType("money", PGmoney.class);
-    addDataType("interval", PGInterval.class);
-
     Enumeration<?> e = info.propertyNames();
     while (e.hasMoreElements()) {
       String propertyName = (String) e.nextElement();
@@ -1538,35 +1687,58 @@ public class PgConnection implements BaseConnection {
   @Override
   public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
     checkClosed();
-    throw Driver.notImplemented(this.getClass(), "createStruct(String, Object[])");
+
+    // Validate that the type exists
+    PgType pgType = typeCache.getPgTypeByPgName(typeName);
+    if (pgType.getOid() == Oid.UNSPECIFIED) {
+      throw new PSQLException(
+          GT.tr("Unable to find type {0} in the database.", typeName),
+          PSQLState.INVALID_NAME);
+    }
+
+    // Get the expected number of fields for this composite type
+    List<PgField> fields = typeCache.getFields(pgType.getOid());
+    if (!fields.isEmpty() && attributes.length != fields.size()) {
+      throw new PSQLException(
+          GT.tr("Struct has {0} attributes but type {1} has {2} fields.",
+              attributes.length, typeName, fields.size()),
+          PSQLState.DATA_ERROR);
+    }
+
+    // Carry the codec context (connection-bound here) so getValue() rebuilds the literal; pass the
+    // user-supplied typeName verbatim so getSQLTypeName() keeps returning it (pgType.getFullName()
+    // may be schema-qualified). The type is resolved lazily by name on the first getValue().
+    return PgStruct.withCodecContext(typeName, attributes, getCodecContext());
   }
 
-  @SuppressWarnings({"rawtypes", "unchecked"})
   @Override
   public Array createArrayOf(String typeName, @Nullable Object elements) throws SQLException {
     checkClosed();
 
-    final TypeInfo typeInfo = getTypeInfo();
+    TypeInfo typeInfo = getTypeInfo();
 
-    final int oid = typeInfo.getPGArrayType(typeName);
-    final char delim = typeInfo.getArrayDelimiter(oid);
+    // typeName is the *element* type per JDBC; resolve it so we have both the
+    // element OID (for binary encoding / text formatting) and the array OID
+    // (needed by PgArray so it advertises the right server type at bind time).
+    PgType elementType = typeInfo.getPgTypeByPgName(typeName);
+    final int elementOid = elementType.getOid();
+    final int arrayOid = elementType.getArrayOid();
 
-    if (oid == Oid.UNSPECIFIED) {
+    if (elementOid == Oid.UNSPECIFIED) {
       throw new PSQLException(GT.tr("Unable to find server array type for provided name {0}.", typeName),
           PSQLState.INVALID_NAME);
     }
 
     if (elements == null) {
-      return makeArray(oid, null);
+      return makeArray(arrayOid, null);
     }
 
-    final ArrayEncoding.ArrayEncoder arraySupport = ArrayEncoding.getArrayEncoder(elements);
-    if (arraySupport.supportBinaryRepresentation(oid) && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-      return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements, oid));
-    }
-
-    final String arrayString = arraySupport.toArrayString(delim, elements);
-    return makeArray(oid, arrayString);
+    // Pass the element's Java type so an array-typed element (a byte[] for
+    // bytea) is validated as a leaf, not as an inner array dimension; bytea[]
+    // may then hold byte[] elements of differing lengths.
+    ArrayCodec.validateJavaArray(elements,
+        codecRegistry.getByOid(elementOid, elementType).getDefaultJavaType());
+    return new PgArray(this, arrayOid, elements);
   }
 
   @Override
@@ -2025,5 +2197,56 @@ public class PgConnection implements BaseConnection {
     }
     this.xmlFactoryFactory = xmlFactoryFactory;
     return xmlFactoryFactory;
+  }
+
+  @Override
+  public void registerCodec(Codec codec) throws SQLException {
+    checkClosed();
+    codecRegistry.registerCustomCodec(codec);
+  }
+
+  @Override
+  public void unregisterCodec(String typeName) {
+    codecRegistry.unregisterCustomCodec(typeName);
+  }
+
+  @Override
+  public CodecRegistry getCodecRegistry() {
+    return codecRegistry;
+  }
+
+  @Override
+  public void resetCodecs() {
+    codecRegistry.resetCustomCodecs();
+  }
+
+  /**
+   * Returns the Java type registry for this connection.
+   *
+   * @return the Java type registry
+   */
+  public JavaTypeRegistry getJavaTypeRegistry() {
+    return javaTypeRegistry;
+  }
+
+  /**
+   * Returns a PgCodecContext for this connection.
+   *
+   * <p>The PgCodecContext provides access to codecs and type information
+   * needed for encoding and decoding values.</p>
+   *
+   * @return the codec context
+   * @throws SQLException if the context cannot be created
+   */
+  @Override
+  public PgCodecContext getCodecContext() throws SQLException {
+    return new PgCodecContext(this, codecRegistry, javaTypeRegistry, typemap,
+        prefersJavaTimeForDate, prefersJavaTimeForTime, prefersJavaTimeForTimetz,
+        prefersJavaTimeForTimestamp, prefersJavaTimeForTimestamptz, convertBooleanToNumeric);
+  }
+
+  @Override
+  public boolean getMapBooleanToBoolean() {
+    return mapBooleanToBoolean;
   }
 }

@@ -52,22 +52,28 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
       return;
     }
     try {
-      String s1;
-      boolean negative;
+      String t = s.trim();
+      boolean negative = false;
 
-      negative = s.charAt(0) == '(';
-
-      // Remove any () (for negative) & currency symbol
-      s1 = PGtokenizer.removePara(s).substring(1);
-
-      // Strip out any , in currency
-      int pos = s1.indexOf(',');
-      while (pos != -1) {
-        s1 = s1.substring(0, pos) + s1.substring(pos + 1);
-        pos = s1.indexOf(',');
+      // A negative amount renders either as "($1.00)" or, in most locales, as "-$1.00".
+      if (t.length() >= 2 && t.charAt(0) == '(' && t.charAt(t.length() - 1) == ')') {
+        negative = true;
+        t = t.substring(1, t.length() - 1);
       }
 
-      val = Double.parseDouble(s1);
+      // Keep only the digits and decimal point; drop the currency symbol, grouping separators and a
+      // leading sign. This handles the "-$1.00" form that the previous single-character strip missed.
+      StringBuilder digits = new StringBuilder(t.length());
+      for (int i = 0; i < t.length(); i++) {
+        char c = t.charAt(i);
+        if (c >= '0' && c <= '9' || c == '.') {
+          digits.append(c);
+        } else if (c == '-' && digits.length() == 0) {
+          negative = true;
+        }
+      }
+
+      val = Double.parseDouble(digits.toString());
       val = negative ? -val : val;
 
     } catch (NumberFormatException e) {

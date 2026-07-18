@@ -8,4 +8,8 @@
     <suppress checks=".*" files=".*[/\\]messages_[^.]*.java"/>
     <suppress checks="AvoidEscapedUnicodeCharacters"
               files="DatabaseEncodingTest.java"/>
+    <!-- SeedSerializers is a same-package bridge to Jazzer's package-private SeedSerializer; its package
+         is Jazzer's own (com.code_intelligence.jazzer.junit) and carries an underscore we cannot rename. -->
+    <suppress checks="PackageName"
+              files="[/\\]com[/\\]code_intelligence[/\\]jazzer[/\\]junit[/\\]SeedSerializers\.java"/>
 </suppressions>

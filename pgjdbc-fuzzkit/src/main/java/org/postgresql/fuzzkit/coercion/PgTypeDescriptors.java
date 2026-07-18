@@ -1,0 +1,413 @@
+/*
+ * Copyright (c) 2026, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
+package org.postgresql.fuzzkit.coercion;
+
+import org.postgresql.core.Oid;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.JDBCType;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+
+/**
+ * The {@link PgTypeDescriptor} registry: every descriptor, a lookup by OID, and a traversal of all.
+ * Three static-init guards keep the registry consistent; all fail the class initialiser rather than
+ * let a mismatch slip through to a fuzz run. Two are scoped to {@link ScalarDescriptor}: they check
+ * coercion axes ({@code typedWriter}/{@code typedReader}, read rows), which only scalars carry. The
+ * third checks the structural descriptors resolve their element and field references.
+ *
+ * <ul>
+ *   <li><b>G3 (types):</b> every write-populated OID of {@link WriteCoercions} has a descriptor, and
+ *       every scalar descriptor OID is populated in {@link ReadCoercions}. A scalar descriptor without
+ *       a read row could never be read back, so it is an error.</li>
+ *   <li><b>G5 (identity):</b> every scalar descriptor forms an identity path -- either a typed pair
+ *       ({@code typedWriter} and {@code typedReader} both present) or the object axis through
+ *       {@code naturalClass} (both absent). A half-typed state (one present, one absent) is an
+ *       error.</li>
+ *   <li><b>Structural resolve:</b> every {@link ArrayDescriptor}'s element and every
+ *       {@link CompositeDescriptor}'s field OID resolves to a registered scalar descriptor. A dangling
+ *       reference would fail only mid-fuzz, so the guard raises it at class init.</li>
+ * </ul>
+ *
+ * <p>The registry holds the ten coercion scalars ({@code int4}, {@code int8}, {@code numeric},
+ * {@code text}, {@code bool}, {@code date}, {@code time}, {@code timetz}, {@code timestamp},
+ * {@code timestamptz}), eight read-only scalars ({@code int2}, {@code float4}, {@code float8},
+ * {@code bytea}, {@code oid}, {@code varchar}, {@code bpchar}, {@code name}), the nine arrays
+ * ({@code int4[]}, {@code text[]}, {@code int2[]}, {@code int8[]}, {@code float4[]}, {@code float8[]},
+ * {@code oid[]}, {@code bytea[]}, {@code bool[]}) over their scalar elements, and the {@code point}
+ * composite ({@code x int4, y int4, label text}). The read-only scalars are read-populated but not
+ * write-populated, so they carry a descriptor and reach the reader axis ({@link #readScalars()}) yet
+ * stay out of the write-populated coercion round-trip ({@link #coercionScalars()}); the arrays and
+ * composite are populated in neither dictionary, so the coercion guards do not apply to them.
+ */
+public final class PgTypeDescriptors {
+
+  private static final Map<Integer, PgTypeDescriptor> BY_OID = buildRegistry();
+
+  /** The {@code point} composite's OID, previously the codec fuzz support's {@code POINT_OID}. */
+  public static final int POINT_OID = 90_001;
+
+  static {
+    guardTypes();
+    guardIdentity();
+    guardStructural();
+  }
+
+  private PgTypeDescriptors() {
+  }
+
+  private static Map<Integer, PgTypeDescriptor> buildRegistry() {
+    Map<Integer, PgTypeDescriptor> map = new LinkedHashMap<>();
+    // The ten coercion scalars (write-populated): they drive the coercion round-trip identity pairs.
+    // int4 and text are bound to locals, because the two array descriptors reference them as elements.
+    ScalarDescriptor int4 = new ScalarDescriptor(Oid.INT4, "int4", 'N', JDBCType.INTEGER,
+        Integer.class, WriteCoercions.Method.WRITE_INT, ReadCoercions.Accessor.READ_INT,
+        Fidelity.EQUALS, ScalarDescriptor.NO_POISON);
+    add(map, int4);
+    ScalarDescriptor int8 = new ScalarDescriptor(Oid.INT8, "int8", 'N', JDBCType.BIGINT, Long.class,
+        WriteCoercions.Method.WRITE_LONG, ReadCoercions.Accessor.READ_LONG,
+        Fidelity.EQUALS, ScalarDescriptor.NO_POISON);
+    add(map, int8);
+    add(map, new ScalarDescriptor(Oid.NUMERIC, "numeric", 'N', JDBCType.NUMERIC, BigDecimal.class,
+        WriteCoercions.Method.WRITE_BIG_DECIMAL, ReadCoercions.Accessor.READ_BIG_DECIMAL,
+        Fidelity.NUMERIC_EQUAL, ScalarDescriptor.NON_FINITE_NUMERIC));
+    ScalarDescriptor text = new ScalarDescriptor(Oid.TEXT, "text", 'S', JDBCType.VARCHAR,
+        String.class, WriteCoercions.Method.WRITE_STRING, ReadCoercions.Accessor.READ_STRING,
+        Fidelity.EQUALS, ScalarDescriptor.NO_POISON);
+    add(map, text);
+    ScalarDescriptor bool = new ScalarDescriptor(Oid.BOOL, "bool", 'B', JDBCType.BOOLEAN, Boolean.class,
+        WriteCoercions.Method.WRITE_BOOLEAN, ReadCoercions.Accessor.READ_BOOLEAN,
+        Fidelity.EQUALS, ScalarDescriptor.NO_POISON);
+    add(map, bool);
+    add(map, new ScalarDescriptor(Oid.DATE, "date", 'D', JDBCType.DATE, Date.class,
+        WriteCoercions.Method.WRITE_DATE, ReadCoercions.Accessor.READ_DATE,
+        Fidelity.EQUALS, ScalarDescriptor.NO_POISON));
+    add(map, new ScalarDescriptor(Oid.TIME, "time", 'D', JDBCType.TIME, Time.class,
+        WriteCoercions.Method.WRITE_TIME, ReadCoercions.Accessor.READ_TIME,
+        Fidelity.EQUALS, ScalarDescriptor.NO_POISON));
+    // timetz has no typed Offset writer/reader, so it reaches identity through the object axis:
+    // writeObject(OffsetTime) / readObject(OffsetTime.class). naturalClass differs from the default
+    // getObject class (java.sql.Time), which is why it must be stored, not derived.
+    add(map, new ScalarDescriptor(Oid.TIMETZ, "timetz", 'D', JDBCType.TIME_WITH_TIMEZONE,
+        OffsetTime.class, null, null, Fidelity.EQUALS, ScalarDescriptor.NO_POISON));
+    add(map, new ScalarDescriptor(Oid.TIMESTAMP, "timestamp", 'D', JDBCType.TIMESTAMP, Timestamp.class,
+        WriteCoercions.Method.WRITE_TIMESTAMP, ReadCoercions.Accessor.READ_TIMESTAMP,
+        Fidelity.EQUALS, ScalarDescriptor.NO_POISON));
+    // timestamptz is an instant read back in the session zone, so its identity holds only up to the
+    // moment (SAME_INSTANT); like timetz it uses the object axis with OffsetDateTime.
+    add(map, new ScalarDescriptor(Oid.TIMESTAMPTZ, "timestamptz", 'D',
+        JDBCType.TIMESTAMP_WITH_TIMEZONE, OffsetDateTime.class, null, null, Fidelity.SAME_INSTANT,
+        ScalarDescriptor.NO_POISON));
+
+    // Four codec-only scalars (read-populated, not write-populated): the codec round-trip fuzzers
+    // need their PgType and natural class, but they carry no WriteCoercions row, so they stay out of the
+    // coercion round-trip's identity pairs (which build only from write-populated types). int2's natural
+    // class is Short (its WRITE_SHORT/READ_SHORT typed identity); its default getObject class stays
+    // Integer, delegated to the dictionary (pgjdbc's documented smallint backward-compat).
+    // int2, float4, float8 and bytea are bound to locals, because the leaf-type array descriptors below
+    // reference them as elements (int2[], float4[], float8[], bytea[]).
+    ScalarDescriptor int2 = new ScalarDescriptor(Oid.INT2, "int2", 'N', JDBCType.SMALLINT, Short.class,
+        WriteCoercions.Method.WRITE_SHORT, ReadCoercions.Accessor.READ_SHORT,
+        Fidelity.EQUALS, ScalarDescriptor.NO_POISON);
+    add(map, int2);
+    ScalarDescriptor float4 = new ScalarDescriptor(Oid.FLOAT4, "float4", 'N', JDBCType.REAL, Float.class,
+        WriteCoercions.Method.WRITE_FLOAT, ReadCoercions.Accessor.READ_FLOAT,
+        Fidelity.EQUALS, ScalarDescriptor.NO_POISON);
+    add(map, float4);
+    ScalarDescriptor float8 = new ScalarDescriptor(Oid.FLOAT8, "float8", 'N', JDBCType.DOUBLE,
+        Double.class, WriteCoercions.Method.WRITE_DOUBLE, ReadCoercions.Accessor.READ_DOUBLE,
+        Fidelity.EQUALS, ScalarDescriptor.NO_POISON);
+    add(map, float8);
+    ScalarDescriptor bytea = new ScalarDescriptor(Oid.BYTEA, "bytea", 'U', JDBCType.BINARY,
+        byte[].class, WriteCoercions.Method.WRITE_BYTES, ReadCoercions.Accessor.READ_BYTES,
+        Fidelity.BYTES_EQUAL, ScalarDescriptor.NO_POISON);
+    add(map, bytea);
+
+    // Four more read-populated scalars (oid, varchar, bpchar, name): each carries a ReadCoercions and a
+    // WriteCoercions row but no typed writer pair, so, like the codec-only scalars above, they gain a
+    // descriptor for the reader axis and reach identity through the object axis (typedWriter/typedReader
+    // both null, guard G5), the same shape timetz/timestamptz use -- but stay off the typed-pair set.
+    // oid decodes to Long; varchar, bpchar and name delegate to the text codec and decode to String.
+    // Keeping them off the typed-pair set is deliberate: the SQLData composite schema
+    // (CodecFuzzSupport.SQL_DATA_FIELD_OIDS) is derived from the typed-pair scalars and pinned to the
+    // twelve FuzzSqlData fields, so a new typed pair would break that pinned wire layout. The reader axis
+    // draws every SQLInput reader against the naturalClass regardless, so these types are still fully read.
+    //
+    // "char" (OID 18) is read-only: unlike the four above it has NO WriteCoercions row, because its encoder
+    // mirrors charin -- a String is truncated to a single byte -- so it cannot satisfy the value-fidelity
+    // round-trip (coercionScalars / record fields). It still gets a descriptor for the reader axis, and its
+    // byte->String->byte decode is idempotent, but it is off every write/round-trip axis. It decodes to a
+    // String via the charout form (0x80 -> "\200").
+    ScalarDescriptor oid = new ScalarDescriptor(Oid.OID, "oid", 'N', JDBCType.BIGINT, Long.class,
+        null, null, Fidelity.EQUALS, ScalarDescriptor.NO_POISON);
+    add(map, oid);
+    add(map, new ScalarDescriptor(Oid.VARCHAR, "varchar", 'S', JDBCType.VARCHAR, String.class,
+        null, null, Fidelity.EQUALS, ScalarDescriptor.NO_POISON));
+    add(map, new ScalarDescriptor(Oid.BPCHAR, "bpchar", 'S', JDBCType.CHAR, String.class,
+        null, null, Fidelity.EQUALS, ScalarDescriptor.NO_POISON));
+    add(map, new ScalarDescriptor(Oid.NAME, "name", 'S', JDBCType.VARCHAR, String.class,
+        null, null, Fidelity.EQUALS, ScalarDescriptor.NO_POISON));
+    add(map, new ScalarDescriptor(Oid.CHAR, "char", 'Z', JDBCType.CHAR, String.class,
+        null, null, Fidelity.EQUALS, ScalarDescriptor.NO_POISON));
+
+    // The nine codec arrays, over their scalar elements. One descriptor per element covers every
+    // dimension {1, 2, 3}, and each carries DEEP_EQUALS. An element with a primitive leaf (int4, int2,
+    // int8, float4, float8, oid, bool) fuzzes both the boxed and the primitive representation -- int4[]
+    // fuzzes Integer[n] and int[n]; the leaf-only text and bytea elements fuzz the boxed representation
+    // only, so text[] fuzzes String[n] and bytea[] fuzzes byte[][n] (byte[] itself is the leaf). oid[]'s
+    // leaf decodes to Long like int8[], but its binary codec truncates each element to unsigned 32 bits,
+    // so its generator narrows the leaf to [0, 2^32-1] (PgValueArgumentsFactory.drawArray), whereas
+    // int8[] keeps the full-width Long.
+    add(map, new ArrayDescriptor(Oid.INT4_ARRAY, "_int4", "int4[]", int4, 1, 2, 3));
+    add(map, new ArrayDescriptor(Oid.TEXT_ARRAY, "_text", "text[]", text, 1, 2, 3));
+    add(map, new ArrayDescriptor(Oid.INT2_ARRAY, "_int2", "int2[]", int2, 1, 2, 3));
+    add(map, new ArrayDescriptor(Oid.INT8_ARRAY, "_int8", "int8[]", int8, 1, 2, 3));
+    add(map, new ArrayDescriptor(Oid.FLOAT4_ARRAY, "_float4", "float4[]", float4, 1, 2, 3));
+    add(map, new ArrayDescriptor(Oid.FLOAT8_ARRAY, "_float8", "float8[]", float8, 1, 2, 3));
+    add(map, new ArrayDescriptor(Oid.OID_ARRAY, "_oid", "oid[]", oid, 1, 2, 3));
+    add(map, new ArrayDescriptor(Oid.BYTEA_ARRAY, "_bytea", "bytea[]", bytea, 1, 2, 3));
+    add(map, new ArrayDescriptor(Oid.BOOL_ARRAY, "_bool", "bool[]", bool, 1, 2, 3));
+
+    // The point composite (x int4, y int4, label text) -- the "regular" named-struct shape, previously
+    // the codec fuzz support's pointType().
+    add(map, new CompositeDescriptor(POINT_OID, "public", "fuzz_point", "public.fuzz_point",
+        Arrays.asList(new CompositeDescriptor.Field("x", Oid.INT4),
+            new CompositeDescriptor.Field("y", Oid.INT4),
+            new CompositeDescriptor.Field("label", Oid.TEXT))));
+    return Collections.unmodifiableMap(map);
+  }
+
+  private static void add(Map<Integer, PgTypeDescriptor> map, PgTypeDescriptor descriptor) {
+    map.put(descriptor.oid(), descriptor);
+  }
+
+  /**
+   * The descriptor for an OID.
+   *
+   * @param oid the PostgreSQL type OID
+   * @return the descriptor
+   * @throws IllegalArgumentException if no descriptor is registered for the OID
+   */
+  public static PgTypeDescriptor of(int oid) {
+    PgTypeDescriptor descriptor = BY_OID.get(oid);
+    if (descriptor == null) {
+      throw new IllegalArgumentException("No PgTypeDescriptor for OID " + oid);
+    }
+    return descriptor;
+  }
+
+  /**
+   * The scalar descriptor for an OID.
+   *
+   * @param oid the PostgreSQL type OID
+   * @return the scalar descriptor
+   * @throws IllegalArgumentException if no descriptor is registered for the OID, or it is not a scalar
+   */
+  public static ScalarDescriptor scalar(int oid) {
+    PgTypeDescriptor descriptor = of(oid);
+    if (!(descriptor instanceof ScalarDescriptor)) {
+      throw new IllegalArgumentException("PgTypeDescriptor for OID " + oid + " is not a scalar");
+    }
+    return (ScalarDescriptor) descriptor;
+  }
+
+  /**
+   * The array descriptor for an OID.
+   *
+   * @param oid the PostgreSQL array-type OID
+   * @return the array descriptor
+   * @throws IllegalArgumentException if no descriptor is registered for the OID, or it is not an array
+   */
+  public static ArrayDescriptor array(int oid) {
+    PgTypeDescriptor descriptor = of(oid);
+    if (!(descriptor instanceof ArrayDescriptor)) {
+      throw new IllegalArgumentException("PgTypeDescriptor for OID " + oid + " is not an array");
+    }
+    return (ArrayDescriptor) descriptor;
+  }
+
+  /**
+   * The composite descriptor for an OID.
+   *
+   * @param oid the PostgreSQL composite-type OID
+   * @return the composite descriptor
+   * @throws IllegalArgumentException if no descriptor is registered for the OID, or it is not a
+   *     composite
+   */
+  public static CompositeDescriptor composite(int oid) {
+    PgTypeDescriptor descriptor = of(oid);
+    if (!(descriptor instanceof CompositeDescriptor)) {
+      throw new IllegalArgumentException("PgTypeDescriptor for OID " + oid + " is not a composite");
+    }
+    return (CompositeDescriptor) descriptor;
+  }
+
+  /**
+   * The descriptor for an OID, or {@code null} if none is registered.
+   *
+   * @param oid the PostgreSQL type OID
+   * @return the descriptor, or {@code null}
+   */
+  public static @Nullable PgTypeDescriptor find(int oid) {
+    return BY_OID.get(oid);
+  }
+
+  /** All registered descriptors, in registration order. */
+  public static Collection<PgTypeDescriptor> all() {
+    return BY_OID.values();
+  }
+
+  /** All registered scalar descriptors, in registration order. */
+  public static Collection<ScalarDescriptor> scalars() {
+    List<ScalarDescriptor> scalars = new ArrayList<>();
+    for (PgTypeDescriptor descriptor : BY_OID.values()) {
+      if (descriptor instanceof ScalarDescriptor) {
+        scalars.add((ScalarDescriptor) descriptor);
+      }
+    }
+    return Collections.unmodifiableList(scalars);
+  }
+
+  /** All registered array descriptors, in registration order. */
+  public static Collection<ArrayDescriptor> arrays() {
+    List<ArrayDescriptor> arrays = new ArrayList<>();
+    for (PgTypeDescriptor descriptor : BY_OID.values()) {
+      if (descriptor instanceof ArrayDescriptor) {
+        arrays.add((ArrayDescriptor) descriptor);
+      }
+    }
+    return Collections.unmodifiableList(arrays);
+  }
+
+  /** All registered composite descriptors, in registration order. */
+  public static Collection<CompositeDescriptor> composites() {
+    List<CompositeDescriptor> composites = new ArrayList<>();
+    for (PgTypeDescriptor descriptor : BY_OID.values()) {
+      if (descriptor instanceof CompositeDescriptor) {
+        composites.add((CompositeDescriptor) descriptor);
+      }
+    }
+    return Collections.unmodifiableList(composites);
+  }
+
+  /**
+   * The write-populated scalar descriptors, in registration order -- the coercion scalars that carry a
+   * {@link WriteCoercions} row and so take part in the coercion write/round-trip matrix. This excludes
+   * the codec-only scalars ({@code int2}, {@code float4}, {@code float8}, {@code bytea}), which are
+   * read-populated but not write-populated, keeping the coercion matrix at exactly the ten types it
+   * covered before the codec scalars joined the registry.
+   *
+   * @return the write-populated scalar descriptors
+   */
+  public static Collection<ScalarDescriptor> coercionScalars() {
+    List<ScalarDescriptor> scalars = new ArrayList<>();
+    for (PgTypeDescriptor descriptor : BY_OID.values()) {
+      if (descriptor instanceof ScalarDescriptor
+          && WriteCoercions.populatedOids().contains(descriptor.oid())) {
+        scalars.add((ScalarDescriptor) descriptor);
+      }
+    }
+    return Collections.unmodifiableList(scalars);
+  }
+
+  /**
+   * The read-populated scalar descriptors, in registration order -- every registered scalar. Guard G3
+   * requires each scalar descriptor's OID to carry a {@link ReadCoercions} row (a scalar that could
+   * never be read back is an error), so every registered scalar is read-populated by construction and
+   * this returns the same set as {@link #scalars()}. It is the reader axis: the reader and read-side
+   * round-trip fuzzers drive every read-populated scalar, not just the write-populated
+   * {@link #coercionScalars()} subset, so the read-only scalars ({@code int2}, {@code float4},
+   * {@code float8}, {@code bytea}, {@code oid}, {@code varchar}, {@code bpchar}, {@code name},
+   * {@code char}) all reach the reader oracle.
+   *
+   * @return the read-populated scalar descriptors
+   */
+  public static Collection<ScalarDescriptor> readScalars() {
+    return scalars();
+  }
+
+  /** The OIDs every registered descriptor covers. */
+  public static Set<Integer> oids() {
+    return Collections.unmodifiableSet(BY_OID.keySet());
+  }
+
+  private static void guardTypes() {
+    // G3: every write-populated OID must have a descriptor, and every scalar descriptor OID must be
+    // populated on the read side (a scalar descriptor without a read row could never be read back).
+    Set<Integer> descriptorOids = BY_OID.keySet();
+    Set<Integer> writeMissing = new TreeSet<>(WriteCoercions.populatedOids());
+    writeMissing.removeAll(descriptorOids);
+    if (!writeMissing.isEmpty()) {
+      throw new ExceptionInInitializerError(
+          "PgTypeDescriptors is missing descriptors for write-populated OIDs: " + writeMissing);
+    }
+    for (PgTypeDescriptor descriptor : BY_OID.values()) {
+      if (descriptor instanceof ScalarDescriptor && !ReadCoercions.isPopulated(descriptor.oid())) {
+        throw new ExceptionInInitializerError(
+            "ScalarDescriptor OID " + descriptor.oid() + " has no ReadCoercions row");
+      }
+    }
+  }
+
+  private static void guardIdentity() {
+    // G5: a scalar descriptor's identity path is either a typed pair (writer and reader both present)
+    // or the object axis through naturalClass (both absent). One present and one absent is a half-typed
+    // error. Only scalars carry typed writers/readers, so the guard is scoped to ScalarDescriptor.
+    for (PgTypeDescriptor descriptor : BY_OID.values()) {
+      if (!(descriptor instanceof ScalarDescriptor)) {
+        continue;
+      }
+      ScalarDescriptor scalar = (ScalarDescriptor) descriptor;
+      boolean hasWriter = scalar.typedWriter() != null;
+      boolean hasReader = scalar.typedReader() != null;
+      if (hasWriter != hasReader) {
+        throw new ExceptionInInitializerError("ScalarDescriptor OID " + scalar.oid()
+            + " has a half-typed identity path: typedWriter=" + scalar.typedWriter()
+            + ", typedReader=" + scalar.typedReader());
+      }
+    }
+  }
+
+  private static void guardStructural() {
+    // Structural resolve: an array's element and a composite's field OIDs must each name a registered
+    // scalar descriptor. A dangling reference would surface only mid-fuzz, so raise it at class init.
+    for (PgTypeDescriptor descriptor : BY_OID.values()) {
+      if (descriptor instanceof ArrayDescriptor) {
+        ArrayDescriptor array = (ArrayDescriptor) descriptor;
+        requireScalar(array.element().oid(),
+            "ArrayDescriptor OID " + array.oid() + " element");
+      } else if (descriptor instanceof CompositeDescriptor) {
+        CompositeDescriptor composite = (CompositeDescriptor) descriptor;
+        for (CompositeDescriptor.Field field : composite.fields()) {
+          requireScalar(field.oid(),
+              "CompositeDescriptor OID " + composite.oid() + " field '" + field.name() + "'");
+        }
+      }
+    }
+  }
+
+  private static void requireScalar(int oid, String context) {
+    PgTypeDescriptor referenced = BY_OID.get(oid);
+    if (!(referenced instanceof ScalarDescriptor)) {
+      throw new ExceptionInInitializerError(
+          context + " references OID " + oid + ", which is not a registered scalar descriptor");
+    }
+  }
+}

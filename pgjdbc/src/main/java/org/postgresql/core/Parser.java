@@ -1237,8 +1237,13 @@ public class Parser {
     String suffix;
     if (escapeSyntaxCallMode == EscapeSyntaxCallMode.SELECT || serverVersion < 110000
         || (outParamBeforeFunc && escapeSyntaxCallMode == EscapeSyntaxCallMode.CALL_IF_NO_RETURN)) {
-      prefix = "select * from ";
-      suffix = " as result";
+      if (outParamBeforeFunc) {
+        prefix = "select ";
+        suffix = " as result";
+      } else {
+        prefix = "select * from ";
+        suffix = " as result";
+      }
     } else {
       prefix = "call ";
       suffix = "";

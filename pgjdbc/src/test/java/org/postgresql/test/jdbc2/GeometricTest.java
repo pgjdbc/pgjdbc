@@ -197,4 +197,53 @@ public class GeometricTest extends BaseTest4 {
     checkReadWrite(new PGpoint(1.0, 2.0), "pointval");
   }
 
+  /**
+   * getString must be wire-format-independent: a geometric value read in binary transfer must render
+   * whole-number coordinates the same way the server's own text form does ({@code 1}, not Java's
+   * {@code 1.0}). The binary codec once formatted coordinates through {@code Double.toString} and drifted
+   * from the text rendering; this reads each value's getString alongside the server's {@code ::text} of
+   * the same value and asserts they match, in both text and binary mode. point and box are out of scope
+   * (they still render {@code 1.0} in binary, matching the released driver).
+   */
+  @Test
+  public void testGetStringMatchesServerText() throws Exception {
+    List<String[]> cases = new ArrayList<>();
+    cases.add(new String[]{"lseg", "[(0,0),(1,1)]"});
+    cases.add(new String[]{"lseg", "[(-1.5,-2.5),(3,4)]"});
+    cases.add(new String[]{"path", "[(0,0),(1,1),(2,0)]"});
+    cases.add(new String[]{"path", "((0,0),(1,1),(2,0))"});
+    cases.add(new String[]{"polygon", "((0,0),(1,0),(1,1),(0,1))"});
+    cases.add(new String[]{"circle", "<(0,0),1>"});
+    cases.add(new String[]{"circle", "<(0,0),1e100>"});
+    // Coordinates straddling float8out's fixed<->scientific switch (the leading digit's exponent
+    // leaving [-4, 14]): 1e14 still renders fixed (100000000000000), 1e15 flips to scientific (1e+15),
+    // and 1e-4/1e-5 do the same at the small end. These are where a Double.toString-based rendering
+    // drifts from the server, so cross-check them against ::text over both wire formats.
+    cases.add(new String[]{"circle", "<(0,0),1e14>"});
+    cases.add(new String[]{"circle", "<(0,0),1e15>"});
+    cases.add(new String[]{"circle", "<(0,0),0.0001>"});
+    cases.add(new String[]{"circle", "<(0,0),1e-05>"});
+    cases.add(new String[]{"lseg", "[(1e14,0.0001),(1e15,2)]"});
+    cases.add(new String[]{"polygon", "((0.1,1e15),(9999999999999998,1e-05))"});
+    cases.add(new String[]{"path", "[(1e-05,1e14),(2,1e15)]"});
+    // line_out only exists from 9.4 on.
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_4)) {
+      cases.add(new String[]{"line", "{1,-1,0}"});
+      cases.add(new String[]{"line", "{1e100,1,0}"});
+      cases.add(new String[]{"line", "{1e15,1e-05,1}"});
+    }
+
+    for (String[] c : cases) {
+      String type = c[0];
+      String literal = c[1];
+      try (Statement stmt = con.createStatement();
+          ResultSet rs = stmt.executeQuery(
+              "SELECT '" + literal + "'::" + type + ", ('" + literal + "'::" + type + ")::text")) {
+        assertTrue(rs.next());
+        assertEquals(rs.getString(2), rs.getString(1),
+            type + " '" + literal + "' getString should match the server text form");
+      }
+    }
+  }
+
 }

@@ -8,6 +8,8 @@ package org.postgresql.jdbc;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.Driver;
+import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.TextCodec;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Parser;
@@ -47,8 +49,14 @@ import java.util.Map;
  * </p>
  *
  * @author Brett Okken
+ * @deprecated array decoding moved to the codec layer
+ *     ({@link org.postgresql.jdbc.codec.ArrayCodec} and its leaf codecs). This class is retained only
+ *     for the residual fall-back paths in {@link PgArray} (the {@code getArrayImpl} legacy branch for
+ *     element types the walker cannot reproduce, such as a DOMAIN over varchar) and will be removed
+ *     once those are migrated. New code must use {@code ArrayCodec}.
  */
-final class ArrayDecoding {
+@Deprecated
+public final class ArrayDecoding {
 
   /**
    * Array list implementation specific for storing PG array elements. If
@@ -56,7 +64,7 @@ final class ArrayDecoding {
    * {@link String}. For all larger <i>dimensionsCount</i>, the values will be
    * {@link PgArrayList} instances.
    */
-  static final class PgArrayList extends ArrayList<@Nullable Object> {
+  public static final class PgArrayList extends ArrayList<@Nullable Object> {
 
     private static final long serialVersionUID = 1L;
 
@@ -429,11 +437,13 @@ final class ArrayDecoding {
 
   private static final class MappedTypeObjectArrayDecoder extends AbstractObjectArrayDecoder<Object[]> {
 
-    private final String typeName;
+    private final PgType elementType;
+    private final int elementOid;
 
-    MappedTypeObjectArrayDecoder(String baseTypeName) {
+    MappedTypeObjectArrayDecoder(PgType elementType) {
       super(Object.class);
-      this.typeName = baseTypeName;
+      this.elementType = elementType;
+      this.elementOid = elementType.getOid();
     }
 
     /**
@@ -443,7 +453,15 @@ final class ArrayDecoding {
     Object parseValue(int length, ByteBuffer bytes, BaseConnection connection) throws SQLException {
       final byte[] copy = new byte[length];
       bytes.get(copy);
-      return connection.getObject(typeName, null, copy);
+      PgCodecContext ctx = connection.getCodecContext();
+      BinaryCodec codec = ctx.getCodecs().getBinaryCodec(elementOid, elementType);
+      if (codec == null) {
+        throw new PSQLException(
+            GT.tr("No binary codec registered for element type {0}",
+                elementType.getFullName()),
+            PSQLState.DATA_TYPE_MISMATCH);
+      }
+      return castNonNull(codec.decodeBinary(copy, 0, copy.length, elementType, ctx));
     }
 
     /**
@@ -451,36 +469,41 @@ final class ArrayDecoding {
      */
     @Override
     Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
-      return connection.getObject(typeName, stringVal, null);
+      PgCodecContext ctx = connection.getCodecContext();
+      TextCodec codec = ctx.getCodecs().getTextCodec(elementOid, elementType);
+      if (codec == null) {
+        throw new PSQLException(
+            GT.tr("No text codec registered for element type {0}",
+                elementType.getFullName()),
+            PSQLState.DATA_TYPE_MISMATCH);
+      }
+      return castNonNull(codec.decodeText(stringVal, elementType, ctx));
     }
   }
 
   @SuppressWarnings("unchecked")
-  private static <A extends @NonNull Object> ArrayDecoder<A> getDecoder(int oid, BaseConnection connection) throws SQLException {
-    final Integer key = oid;
+  private static <A extends @NonNull Object> ArrayDecoder<A> getDecoder(int elementOid, BaseConnection connection) throws SQLException {
+    final Integer key = elementOid;
     @SuppressWarnings("rawtypes")
     final ArrayDecoder decoder = OID_TO_DECODER.get(key);
     if (decoder != null) {
       return decoder;
     }
 
-    final ArrayAssistant assistant = ArrayAssistantRegistry.getAssistant(oid);
+    final ArrayAssistant assistant = ArrayAssistantRegistry.getAssistant(elementOid);
 
     if (assistant != null) {
       return new ArrayAssistantObjectArrayDecoder(assistant);
     }
 
-    final String typeName = connection.getTypeInfo().getPGType(oid);
-    if (typeName == null) {
-      throw Driver.notImplemented(PgArray.class, "readArray(data,oid)");
-    }
+    PgType elementType = connection.getTypeInfo().getPgTypeByOid(elementOid);
 
     // 42.2.x should return enums as strings
-    int type = connection.getTypeInfo().getSQLType(typeName);
+    int type = elementType.getSqlType();
     if (type == Types.CHAR || type == Types.VARCHAR) {
       return (ArrayDecoder<A>) STRING_ONLY_DECODER;
     }
-    return (ArrayDecoder<A>) new MappedTypeObjectArrayDecoder(typeName);
+    return (ArrayDecoder<A>) new MappedTypeObjectArrayDecoder(elementType);
   }
 
   /**
@@ -586,7 +609,7 @@ final class ArrayDecoding {
    *          The delimiter character appropriate for the data type.
    * @return A {@link PgArrayList} representing the parsed <i>fieldString</i>.
    */
-  static PgArrayList buildArrayList(String fieldString, char delim) {
+  public static PgArrayList buildArrayList(String fieldString, char delim) {
 
     final PgArrayList arrayList = new PgArrayList();
 
