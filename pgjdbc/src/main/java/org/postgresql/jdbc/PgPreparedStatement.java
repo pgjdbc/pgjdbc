@@ -1798,14 +1798,33 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   @Override
   public ParameterMetaData getParameterMetaData() throws SQLException {
-    int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY
-        | QueryExecutor.QUERY_SUPPRESS_BEGIN;
-    ResultHandler handler = new DiscardResultHandler();
-    connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
-        flags);
+    QueryExecutor queryExecutor = connection.getQueryExecutor();
+    // Describe the statement on the server only when a previous describe with a compatible
+    // set of parameter types is not cached yet
+    if (!queryExecutor.tryResolveParameterTypes(preparedQuery.query, preparedParameters)) {
+      try {
+        describeParameters(queryExecutor);
+      } catch (SQLException e) {
+        // The describe names a server-side statement that may be gone without the driver having
+        // noticed, for instance when a connection pooler resets the session. Describing has no
+        // side effects, so drop the statement and ask again rather than fail the caller
+        if (!queryExecutor.willHealOnRetry(e)) {
+          throw e;
+        }
+        preparedQuery.query.close();
+        describeParameters(queryExecutor);
+      }
+    }
 
     int[] oids = preparedParameters.getTypeOIDs();
     return createParameterMetaData(connection, oids);
+  }
+
+  private void describeParameters(QueryExecutor queryExecutor) throws SQLException {
+    int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY
+        | QueryExecutor.QUERY_SUPPRESS_BEGIN;
+    ResultHandler handler = new DiscardResultHandler();
+    queryExecutor.execute(preparedQuery.query, preparedParameters, handler, 0, 0, flags);
   }
 
   @Override

@@ -222,6 +222,47 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   void fetch(ResultCursor cursor, ResultHandler handler, int fetchSize, boolean adaptiveFetch) throws SQLException;
 
   /**
+   * Attempts to resolve the parameter types of the given query from the results of previous
+   * "describe statement" requests, avoiding a network round trip.
+   *
+   * <p>On success, the unspecified types in {@code parameters} are updated to the server-resolved
+   * ones, exactly as an actual describe would update them. The cached results are reused only for
+   * a compatible set of parameter types: the server infers unspecified types from the specified
+   * ones, so a type change invalidates the resolution (see
+   * {@code SimpleQuery#getCachedDescribeResult(int[], short)}). Events after which the server may
+   * resolve the types differently, such as DDL or {@code SET search_path}, discard the cached
+   * results as well.</p>
+   *
+   * <p>A query that binds no parameters leaves the server nothing to resolve, so it succeeds
+   * without ever describing.</p>
+   *
+   * @param query a query created by this executor
+   * @param parameters parameters of the query, created by {@link Query#createParameterList()}
+   * @return true if all parameter types are known without a network round trip
+   */
+  default boolean tryResolveParameterTypes(Query query, ParameterList parameters) {
+    return false;
+  }
+
+  /**
+   * Returns true if the statement that an execution of {@code query} with the given parameters
+   * would use has already been described, so a describe-only round trip before executing it would
+   * add nothing. Unlike {@link Query#isStatementDescribed()}, the check accounts for the
+   * parameter types and for invalidation events: a statement the execution would have to
+   * re-prepare (type mismatch, {@code DEALLOCATE ALL}, DDL, or a {@code search_path} change)
+   * reports false even if its previous describe results are still around.
+   *
+   * @param query the query about to be executed
+   * @param parameters parameters of the upcoming execution, or null for no parameters
+   * @param flags execution flags of the upcoming execution; {@link #QUERY_ONESHOT} is honored
+   * @return true if the upcoming execution's statement is described and the describe is current
+   */
+  default boolean isStatementDescribed(Query query, @Nullable ParameterList parameters,
+      int flags) {
+    return query.isStatementDescribed();
+  }
+
+  /**
    * Create an unparameterized Query object suitable for execution by this QueryExecutor. The
    * provided query string is not parsed for parameter placeholders ('?' characters), and the
    * {@link Query#createParameterList} of the returned object will always return an empty

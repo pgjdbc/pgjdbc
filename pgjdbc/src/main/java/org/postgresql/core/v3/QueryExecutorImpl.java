@@ -126,6 +126,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -235,6 +237,26 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private boolean inExtendedProtocol;
 
+  /**
+   * How many named statements one query may keep, one per parameter-type signature. See
+   * {@link PGProperty#PREPARED_STATEMENT_CACHE_TYPE_VARIANTS}.
+   */
+  private final int maxTypeVariants;
+
+  /**
+   * Soft cap on named statements kept per connection across all queries, 0 for no limit. See
+   * {@link PGProperty#MAX_SERVER_PREPARED_STATEMENTS}.
+   */
+  private final int maxServerPreparedStatements;
+
+  /**
+   * Named statements in least recently used order, maintained only when
+   * {@link #maxServerPreparedStatements} is set, so the default configuration pays nothing.
+   * Entries are added on Parse and touched on handle resolution; stale entries (statements
+   * closed through other paths) are dropped by the enforcement walk.
+   */
+  private final @Nullable LinkedHashMap<ServerHandle, Boolean> liveServerStatements;
+
   @SuppressWarnings({"assignment", "argument",
       "method.invocation"})
   public QueryExecutorImpl(PGStream pgStream,
@@ -246,6 +268,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
     this.cleanupSavePoints = PGProperty.CLEANUP_SAVEPOINTS.getBoolean(info);
+    this.maxTypeVariants =
+        Math.max(1, PGProperty.PREPARED_STATEMENT_CACHE_TYPE_VARIANTS.getInt(info));
+    this.maxServerPreparedStatements =
+        Math.max(0, PGProperty.MAX_SERVER_PREPARED_STATEMENTS.getInt(info));
+    this.liveServerStatements = maxServerPreparedStatements == 0
+        ? null : new LinkedHashMap<ServerHandle, Boolean>(16, 0.75f, true);
     // assignment, argument
     this.replicationProtocol = new V3ReplicationProtocol(this, pgStream);
     readStartupMessages();
@@ -435,7 +463,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           handler = sendQueryPreamble(handler, flags);
           autosave = sendAutomaticSavepoint(query, flags);
           sendQuery(query, (V3ParameterList) parameters, maxRows, fetchSize, flags,
-              handler, null, adaptiveFetch);
+              handler, null, adaptiveFetch, null);
           if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
             // Sync message is not required for 'Q' execution as 'Q' ends with ReadyForQuery message
             // on its own
@@ -488,7 +516,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private boolean sendAutomaticSavepoint(Query query, int flags) throws IOException {
     if (shouldCreateAutomaticSavepoint(query, flags)) {
-      sendOneQuery(autoSaveQuery, SimpleQuery.NO_PARAMETERS, 1, 0,
+      sendOneQuery(autoSaveQuery,
+          resolveHandle(autoSaveQuery, SimpleQuery.NO_PARAMETERS,
+              QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE),
+          SimpleQuery.NO_PARAMETERS, 1, 0,
           QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
       return true;
     }
@@ -543,7 +574,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   // thus no need to set a savepoint before such query
   private static boolean queryMightFail(Query query) {
     return !(query instanceof SimpleQuery)
-        || ((SimpleQuery) query).getFields() != null;
+        || ((SimpleQuery) query).hasResultFields();
   }
 
   private void releaseSavePoint(boolean autosave) throws SQLException {
@@ -551,7 +582,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       return;
     }
     try {
-      sendOneQuery(releaseAutoSave, SimpleQuery.NO_PARAMETERS, 1, 0,
+      sendOneQuery(releaseAutoSave,
+          resolveHandle(releaseAutoSave, SimpleQuery.NO_PARAMETERS,
+              QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE),
+          SimpleQuery.NO_PARAMETERS, 1, 0,
           QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
       // No response processing follows, so flush the deferred cleanup before returning.
       pgStream.flush();
@@ -674,18 +708,20 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         for (int i = 0; i < queries.length; i++) {
           SimpleQuery query = (SimpleQuery) queries[i];
-          if (i == 0) {
-            estimatedReceiveBufferBytes += estimateQueryResponseBytes(query, flags);
-          } else {
-            flushIfDeadlockRisk(query, handler, batchHandler, flags);
-          }
-
           V3ParameterList parameters = (V3ParameterList) parameterLists[i];
           if (parameters == null) {
             parameters = SimpleQuery.NO_PARAMETERS;
           }
 
-          sendQuery(query, parameters, maxRows, fetchSize, flags, handler, batchHandler, adaptiveFetch);
+          ServerHandle handle = resolveHandle(query, (SimpleParameterList) parameters, flags);
+          if (i == 0) {
+            estimatedReceiveBufferBytes += estimateQueryResponseBytes(handle, flags);
+          } else {
+            flushIfDeadlockRisk(handle, handler, batchHandler, flags);
+          }
+
+          sendQuery(query, parameters, maxRows, fetchSize, flags, handler, batchHandler,
+              adaptiveFetch, handle);
 
           if (handler.getException() != null) {
             break;
@@ -722,9 +758,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private ResultHandler sendQueryPreamble(final ResultHandler delegateHandler, int flags)
       throws IOException {
-    // First, send CloseStatements for finalized SimpleQueries that had statement names assigned.
-    processDeadParsedQueries();
+    // First, send Close for finalized portals and statements. Portals go first: their unpins may
+    // queue statement Closes, and a statement Close must never overtake its portal's Close. The
+    // statement cap is enforced here as well — the pending queues are empty at this point, so an
+    // evicted statement cannot have messages in flight.
     processDeadPortals();
+    enforceServerStatementCap();
+    processDeadParsedQueries();
 
     // Send BEGIN on first statement in transaction.
     if ((flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) != 0
@@ -743,7 +783,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     final SimpleQuery beginQuery = (flags & QueryExecutor.QUERY_READ_ONLY_HINT) == 0 ? beginTransactionQuery : beginReadOnlyTransactionQuery;
 
-    sendOneQuery(beginQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
+    sendOneQuery(beginQuery, resolveHandle(beginQuery, SimpleQuery.NO_PARAMETERS, beginFlags),
+        SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
 
     // Insert a handler that intercepts the BEGIN.
     return new ResultHandlerDelegate(delegateHandler) {
@@ -842,7 +883,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
                          | QueryExecutor.QUERY_ONESHOT
                          | QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
         beginFlags = updateQueryMode(beginFlags);
-        sendOneQuery(beginTransactionQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
+        sendOneQuery(beginTransactionQuery,
+            resolveHandle(beginTransactionQuery, SimpleQuery.NO_PARAMETERS, beginFlags),
+            SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
         sendSync();
         pgStream.flush();
         processResults(handler, 0);
@@ -1618,7 +1661,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * @param flags query execution flags
    * @return estimated number of bytes produced by a single query execution or MAX_BUFFERED_RECV_BYTES
    */
-  private static int estimateQueryResponseBytes(SimpleQuery query, int flags) {
+  private static int estimateQueryResponseBytes(ServerHandle handle, int flags) {
     // Assume all statements need at least this much reply buffer space,
     // plus params
     int resultBytes = NODATA_QUERY_RESPONSE_SIZE_BYTES;
@@ -1631,7 +1674,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       return MAX_BUFFERED_RECV_BYTES;
     }
 
-    if (query.isStatementDescribed()) {
+    if (handle.isStatementDescribed()) {
       /*
        * Estimate the response size of the fields and add it to the expected response size.
        *
@@ -1639,7 +1682,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
        * case for batches and we're leaving plenty of breathing room in this approach. It's still
        * not deadlock-proof though; see pgjdbc github issues #194 and #195.
        */
-      int maxResultRowSize = query.getMaxResultRowSize();
+      int maxResultRowSize = handle.getMaxResultRowSize();
       if (maxResultRowSize >= 0) {
         resultBytes += maxResultRowSize;
       } else {
@@ -1664,11 +1707,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    *
    * See the comments above MAX_BUFFERED_RECV_BYTES's declaration for details.
    */
-  private void flushIfDeadlockRisk(SimpleQuery query,
+  private void flushIfDeadlockRisk(ServerHandle handle,
       ResultHandler resultHandler,
       @Nullable BatchResultHandler batchHandler,
       final int flags) throws IOException {
-    int resultBytes = estimateQueryResponseBytes(query, flags);
+    int resultBytes = estimateQueryResponseBytes(handle, flags);
 
     int estimatedReceiveBufferBytesTotal = estimatedReceiveBufferBytes + resultBytes;
     if (estimatedReceiveBufferBytesTotal < MAX_BUFFERED_RECV_BYTES) {
@@ -1691,7 +1734,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private void sendQuery(Query query, V3ParameterList parameters, int maxRows, int fetchSize,
       int flags, ResultHandler resultHandler,
-      @Nullable BatchResultHandler batchHandler, boolean adaptiveFetch) throws IOException, SQLException {
+      @Nullable BatchResultHandler batchHandler, boolean adaptiveFetch,
+      @Nullable ServerHandle resolvedHandle) throws IOException, SQLException {
     // Now the query itself.
     Query[] subqueries = query.getSubqueries();
     SimpleParameterList[] subparams = parameters.getSubparams();
@@ -1702,21 +1746,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         if (fetchSize != 0) {
           adaptiveFetchCache.addNewQuery(adaptiveFetch, query);
         }
-        sendOneQuery((SimpleQuery) query, (SimpleParameterList) parameters, maxRows, fetchSize,
-            flags);
+        SimpleQuery simpleQuery = (SimpleQuery) query;
+        SimpleParameterList simpleParams = (SimpleParameterList) parameters;
+        // Resolving can claim a re-prepare slot, so it must happen exactly once per execution:
+        // the batch path resolves for its response-size estimate and passes the result here.
+        ServerHandle handle = resolvedHandle != null
+            ? resolvedHandle : resolveHandle(simpleQuery, simpleParams, flags);
+        sendOneQuery(simpleQuery, handle, simpleParams, maxRows, fetchSize, flags);
       }
     } else {
       for (int i = 0; i < subqueries.length; i++) {
         final SimpleQuery subquery = (SimpleQuery) subqueries[i];
-        if (i == 0) {
-          estimatedReceiveBufferBytes += estimateQueryResponseBytes(subquery, flags);
-        } else {
-          flushIfDeadlockRisk(subquery, resultHandler, batchHandler, flags);
-          // If we saw errors, don't send anything more.
-          if (resultHandler.getException() != null) {
-            break;
-          }
-        }
 
         // In the situation where parameters is already
         // NO_PARAMETERS it cannot know the correct
@@ -1728,10 +1768,25 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         if (subparams != null) {
           subparam = subparams[i];
         }
+
+        // The response-size estimate must look at the statement this execution will actually
+        // use: a one-shot describe leaves its row description on the unnamed statement, and
+        // reading the named one would underestimate the receive buffer.
+        ServerHandle subqueryHandle = resolveHandle(subquery, subparam, flags);
+        if (i == 0) {
+          estimatedReceiveBufferBytes += estimateQueryResponseBytes(subqueryHandle, flags);
+        } else {
+          flushIfDeadlockRisk(subqueryHandle, resultHandler, batchHandler, flags);
+          // If we saw errors, don't send anything more.
+          if (resultHandler.getException() != null) {
+            break;
+          }
+        }
+
         if (fetchSize != 0) {
           adaptiveFetchCache.addNewQuery(adaptiveFetch, subquery);
         }
-        sendOneQuery((SimpleQuery) subquery, subparam, maxRows, fetchSize, flags);
+        sendOneQuery(subquery, subqueryHandle, subparam, maxRows, fetchSize, flags);
       }
     }
   }
@@ -1747,28 +1802,28 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.sendChar(PgMessageType.SYNC_REQUEST); // Sync
     pgStream.sendInteger4(4); // Length
     // Below "add queues" are likely not required at all
-    pendingExecuteQueue.add(new ExecuteRequest(sync, null, true));
-    pendingDescribePortalQueue.add(sync);
+    pendingExecuteQueue.add(new ExecuteRequest(sync, sync.getHandle(), null, true));
+    pendingDescribePortalQueue.add(sync.getHandle());
   }
 
-  private void sendParse(SimpleQuery query, SimpleParameterList params, boolean oneShot)
-      throws IOException {
+  private void sendParse(SimpleQuery query, ServerHandle handle, SimpleParameterList params,
+      boolean oneShot) throws IOException {
     // Already parsed, or we have a Parse pending and the types are right?
     int[] typeOIDs = params.getTypeOIDs();
-    if (query.isPreparedFor(typeOIDs, deallocateEpoch)) {
+    if (handle.isPreparedFor(typeOIDs, deallocateEpoch)) {
       return;
     }
 
     inExtendedProtocol = true;
 
     // Clean up any existing statement, as we can't use it.
-    query.unprepare();
+    handle.unprepare();
     processDeadParsedQueries();
 
     // Remove any cached Field values. The re-parsed query might report different
     // fields because input parameter types may result in different type inferences
     // for unspecified types.
-    query.setFields(null);
+    handle.setFields(null);
 
     String statementName = null;
     if (!oneShot) {
@@ -1779,12 +1834,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       // NB: Must clone the OID array, as it's a direct reference to
       // the SimpleParameterList's internal array that might be modified
       // under us.
-      query.setStatementName(statementName, deallocateEpoch);
-      query.setPrepareTypes(typeOIDs);
-      registerParsedQuery(query, statementName);
+      handle.setStatementName(statementName, deallocateEpoch);
+      handle.setPrepareTypes(typeOIDs);
+      registerParsedQuery(query, handle, statementName);
     }
 
-    byte[] encodedStatementName = query.getEncodedStatementName();
+    byte[] encodedStatementName = handle.getEncodedStatementName();
     String nativeSql = query.getNativeSql();
 
     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -1829,16 +1884,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       pgStream.sendInteger4(params.getTypeOID(i));
     }
 
-    pendingParseQueue.add(query);
+    pendingParseQueue.add(handle);
     inExtendedProtocol = true;
   }
 
-  private void sendBind(SimpleQuery query, SimpleParameterList params, @Nullable Portal portal,
+  private void sendBind(ServerHandle handle, SimpleParameterList params, @Nullable Portal portal,
       boolean noBinaryTransfer) throws IOException {
     inExtendedProtocol = true;
 
-    String statementName = query.getStatementName();
-    byte[] encodedStatementName = query.getEncodedStatementName();
+    String statementName = handle.getStatementName();
+    byte[] encodedStatementName = handle.getEncodedStatementName();
     byte[] encodedPortalName = portal == null ? null : portal.getEncodedPortalName();
 
     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -1866,31 +1921,31 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
     }
 
-    Field[] fields = query.getFields();
-    if (!noBinaryTransfer && query.needUpdateFieldFormats() && fields != null) {
+    Field[] fields = handle.getFields();
+    if (!noBinaryTransfer && handle.needUpdateFieldFormats() && fields != null) {
       for (Field field : fields) {
         if (useBinary(field)) {
           field.setFormat(Field.BINARY_FORMAT);
-          query.setHasBinaryFields(true);
+          handle.setHasBinaryFields(true);
         }
       }
     }
     // If text-only results are required (e.g. updateable resultset), and the query has binary columns,
     // flip to text format.
-    if (noBinaryTransfer && query.hasBinaryFields() && fields != null) {
+    if (noBinaryTransfer && handle.hasBinaryFields() && fields != null) {
       for (Field field : fields) {
         if (field.getFormat() != Field.TEXT_FORMAT) {
           field.setFormat(Field.TEXT_FORMAT);
         }
       }
-      query.resetNeedUpdateFieldFormats();
-      query.setHasBinaryFields(false);
+      handle.resetNeedUpdateFieldFormats();
+      handle.setHasBinaryFields(false);
     }
 
     // This is not the number of binary fields, but the total number
     // of fields if any of them are binary or zero if all of them
     // are text.
-    int numBinaryFields = !noBinaryTransfer && query.hasBinaryFields() && fields != null
+    int numBinaryFields = !noBinaryTransfer && handle.hasBinaryFields() && fields != null
         ? fields.length : 0;
 
     encodedSize = 4
@@ -1983,7 +2038,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return useBinaryForReceive(oid);
   }
 
-  private void sendDescribePortal(SimpleQuery query, @Nullable Portal portal) throws IOException {
+  private void sendDescribePortal(ServerHandle handle, @Nullable Portal portal)
+      throws IOException {
     inExtendedProtocol = true;
 
     LOGGER.log(Level.FINEST, " FE=> Describe(portal={0})", portal);
@@ -2001,17 +2057,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
     pgStream.sendChar(0); // end of portal name
 
-    pendingDescribePortalQueue.add(query);
-    query.setPortalDescribed(true);
+    pendingDescribePortalQueue.add(handle);
+    handle.setPortalDescribed(true);
   }
 
-  private void sendDescribeStatement(SimpleQuery query, SimpleParameterList params,
-      boolean describeOnly) throws IOException {
+  private void sendDescribeStatement(SimpleQuery query, ServerHandle handle,
+      SimpleParameterList params, boolean describeOnly) throws IOException {
     inExtendedProtocol = true;
 
-    LOGGER.log(Level.FINEST, " FE=> Describe(statement={0})", query.getStatementName());
+    LOGGER.log(Level.FINEST, " FE=> Describe(statement={0})", handle.getStatementName());
 
-    byte[] encodedStatementName = query.getEncodedStatementName();
+    byte[] encodedStatementName = handle.getEncodedStatementName();
 
     // Total size = 4 (size field) + 1 (describe type, 'S') + N + 1 (portal name)
     int encodedSize = 4 + 1 + (encodedStatementName == null ? 0 : encodedStatementName.length) + 1;
@@ -2027,14 +2083,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // Note: statement name can change over time for the same query object
     // Thus we take a snapshot of the query name
     pendingDescribeStatementQueue.add(
-        new DescribeRequest(query, params, describeOnly, query.getStatementName()));
-    pendingDescribePortalQueue.add(query);
-    query.setStatementDescribed(true);
-    query.setPortalDescribed(true);
+        new DescribeRequest(query, handle, params, describeOnly, handle.getStatementName(),
+            params.getTypeOIDs().clone()));
+    pendingDescribePortalQueue.add(handle);
+    handle.markStatementDescribed(deallocateEpoch);
+    handle.setPortalDescribed(true);
   }
 
-  private void sendExecute(SimpleQuery query, @Nullable Portal portal, int limit)
-      throws IOException {
+  private void sendExecute(SimpleQuery query, ServerHandle handle, @Nullable Portal portal,
+      int limit) throws IOException {
     inExtendedProtocol = true;
 
     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -2053,7 +2110,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.sendChar(0); // portal name terminator
     pgStream.sendInteger4(limit); // row limit
 
-    pendingExecuteQueue.add(new ExecuteRequest(query, portal, false));
+    pendingExecuteQueue.add(new ExecuteRequest(query, handle, portal, false));
   }
 
   private void sendClosePortal(String portalName) throws IOException {
@@ -2121,14 +2178,133 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * processResults() which enters the Message Processing State Machine (State #3) to
    * consume server responses and update pending queues.</p>
    */
-  private void sendOneQuery(SimpleQuery query, SimpleParameterList params, int maxRows,
-      int fetchSize, int flags) throws IOException {
+  /**
+   * Picks the server statement an execution with the given parameters will use: the most
+   * recently used named statement when it matches the parameter types (the common, allocation
+   * free case), else any other named statement of the query (promoted to most recently used).
+   * On a miss, a one-shot execution falls back to the query's unnamed statement, leaving the
+   * named statements (and their plans) intact, while a regular execution claims a slot for the
+   * upcoming re-prepare, evicting the least recently used unpinned statement once the query has
+   * {@code preparedStatementCacheTypeVariants} of them.
+   *
+   * <p>Claiming a slot rotates the query's statement table, so a regular execution must resolve
+   * exactly once and pass the result along; speculative callers (estimates, describe gates) are
+   * fine because a repeated resolve of the same types hits the promoted statement.</p>
+   *
+   * @param query the query being executed
+   * @param params parameters of this execution
+   * @param flags execution flags, {@link QueryExecutor#QUERY_ONESHOT} is honored
+   * @return the statement this execution will use
+   */
+  private ServerHandle resolveHandle(SimpleQuery query, SimpleParameterList params, int flags) {
+    ServerHandle mru = query.getHandle();
+    int[] typeOIDs = params.getTypeOIDs();
+    if (mru.isPreparedFor(typeOIDs, deallocateEpoch, false)) {
+      touchServerStatement(mru);
+      return mru;
+    }
+    ServerHandle variant = query.findPreparedFor(typeOIDs, deallocateEpoch);
+    if (variant != null) {
+      touchServerStatement(variant);
+      return variant;
+    }
+    if ((flags & QueryExecutor.QUERY_ONESHOT) != 0) {
+      return query.getUnnamedHandle();
+    }
+    return query.takeHandleForPrepare(maxTypeVariants);
+  }
+
+  /**
+   * Marks a named statement as most recently used for {@link #maxServerPreparedStatements}
+   * enforcement. No-op (and no cost) when no limit is configured.
+   */
+  private void touchServerStatement(ServerHandle handle) {
+    LinkedHashMap<ServerHandle, Boolean> live = liveServerStatements;
+    if (live != null) {
+      live.get(handle); // access-order map: the lookup itself is the touch
+    }
+  }
+
+  /**
+   * Closes the least recently used named statements down to
+   * {@link #maxServerPreparedStatements}. Runs only at execution boundaries, when the pending
+   * queues are empty, so a victim can never have messages in flight. Statements pinned by an
+   * open portal are exempt: the backend keeps them alive for the cursor anyway, so the cap is a
+   * soft one. The queued Close messages go out with the caller's
+   * {@code processDeadParsedQueries()}.
+   */
+  private void enforceServerStatementCap() {
+    LinkedHashMap<ServerHandle, Boolean> live = liveServerStatements;
+    if (live == null || live.size() <= maxServerPreparedStatements) {
+      return;
+    }
+    Iterator<ServerHandle> it = live.keySet().iterator();
+    while (it.hasNext() && live.size() > maxServerPreparedStatements) {
+      ServerHandle handle = it.next();
+      if (handle.getStatementName() == null) {
+        // Closed through another path (re-prepare, error cleanup, query eviction).
+        it.remove();
+        continue;
+      }
+      if (handle.isPinned()) {
+        continue;
+      }
+      handle.unprepare();
+      it.remove();
+    }
+  }
+
+  @Override
+  public boolean isStatementDescribed(Query query, @Nullable ParameterList parameters, int flags) {
+    try (ResourceLock ignore = lock.obtain()) {
+      Query[] subqueries = query.getSubqueries();
+      if (subqueries == null) {
+        SimpleParameterList params = parameters == null
+            ? SimpleQuery.NO_PARAMETERS : (SimpleParameterList) parameters;
+        return isStatementDescribed((SimpleQuery) query, params, flags);
+      }
+      SimpleParameterList[] subparams = parameters == null
+          ? null : ((V3ParameterList) parameters).getSubparams();
+      for (int i = 0; i < subqueries.length; i++) {
+        SimpleParameterList subparam = subparams == null
+            ? SimpleQuery.NO_PARAMETERS : subparams[i];
+        if (!isStatementDescribed((SimpleQuery) subqueries[i], subparam, flags)) {
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+
+  private boolean isStatementDescribed(SimpleQuery query, SimpleParameterList params, int flags) {
+    // Read-only probe: unlike resolveHandle, never claim a re-prepare slot here.
+    ServerHandle mru = query.getHandle();
+    int[] typeOIDs = params.getTypeOIDs();
+    ServerHandle named = mru.isPreparedFor(typeOIDs, deallocateEpoch, false)
+        ? mru : query.findPreparedFor(typeOIDs, deallocateEpoch);
+    if (named != null) {
+      // A named statement the execution can reuse as-is (isPreparedFor covers the epoch):
+      // its describe results are valid.
+      return named.isStatementDescribed();
+    }
+    if ((flags & QueryExecutor.QUERY_ONESHOT) != 0) {
+      // The unnamed statement: re-parsed on every execution with the same SQL, so its describe
+      // results stay valid until the server may resolve the query differently (epoch bump).
+      ServerHandle unnamed = query.peekUnnamedHandle();
+      return unnamed != null && unnamed.isStatementDescribedAt(deallocateEpoch);
+    }
+    // A regular execution would re-prepare, resetting the describe results.
+    return false;
+  }
+
+  private void sendOneQuery(SimpleQuery query, ServerHandle handle, SimpleParameterList params,
+      int maxRows, int fetchSize, int flags) throws IOException {
     boolean asSimple = (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0;
     if (asSimple) {
       assert (flags & QueryExecutor.QUERY_DESCRIBE_ONLY) == 0
           : "Simple mode does not support describe requests. sql = " + query.getNativeSql()
           + ", flags = " + flags;
-      sendSimpleQuery(query, params);
+      sendSimpleQuery(query, handle, params);
       return;
     }
 
@@ -2157,37 +2333,39 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     // STATE: Send Parse message (or skip if already parsed)
     // NEXT: Server will respond with ParseComplete (or skip if cached)
-    sendParse(query, params, oneShot);
+    sendParse(query, handle, params, oneShot);
 
-    boolean queryHasUnknown = query.hasUnresolvedTypes();
+    boolean queryHasUnknown = handle.hasUnresolvedTypes();
     boolean paramsHasUnknown = params.hasUnresolvedTypes();
 
     boolean describeStatement = shouldDescribeStatement(describeOnly, oneShot, queryHasUnknown,
-        paramsHasUnknown, query);
+        paramsHasUnknown, handle);
 
     if (!describeStatement && paramsHasUnknown && !queryHasUnknown) {
-      resolveParameterTypes(query, params);
+      resolveParameterTypes(handle, params);
     }
 
     if (describeStatement) {
       // STATE: Send Describe(Statement) to get parameter types
       // NEXT: Server responds with ParameterDescription
-      sendDescribeStatement(query, params, describeOnly);
+      sendDescribeStatement(query, handle, params, describeOnly);
       if (describeOnly) {
         return;
       }
     }
 
-    // Construct a new portal if needed.
+    // Construct a new portal if needed. The portal pins the statement right away, before Bind is
+    // even sent: in a pipeline, a later query could otherwise evict the statement a pending Bind
+    // depends on.
     Portal portal = null;
     if (usePortal) {
       String portalName = "C_" + (nextUniqueID++);
-      portal = new Portal(query, portalName);
+      portal = new Portal(query, handle, portalName);
     }
 
     // STATE: Send Bind message to bind parameters to statement
     // NEXT: Server responds with BindComplete
-    sendBind(query, params, portal, noBinaryTransfer);
+    sendBind(handle, params, portal, noBinaryTransfer);
 
     // A statement describe will also output a RowDescription,
     // so don't reissue it here if we've already done so.
@@ -2208,16 +2386,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
        * that the field information available when we decoded the results. This is undeniably a
        * hack, but there aren't many good alternatives.
        */
-      if (!query.isPortalDescribed() || forceDescribePortal) {
+      if (!handle.isPortalDescribed() || forceDescribePortal) {
         // STATE: Send Describe(Portal) to get result metadata
         // NEXT: Server responds with RowDescription or NoData
-        sendDescribePortal(query, portal);
+        sendDescribePortal(handle, portal);
       }
     }
 
     // STATE: Send Execute message to run the query
     // NEXT: Server responds with DataRow* followed by CommandComplete or PortalSuspended
-    sendExecute(query, portal, rows);
+    sendExecute(query, handle, portal, rows);
     // After this method returns, caller sends Sync and processes all responses via processResults()
   }
 
@@ -2235,22 +2413,69 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private static boolean shouldDescribeStatement(boolean describeOnly, boolean oneShot,
-      boolean queryHasUnknown, boolean paramsHasUnknown, SimpleQuery query) {
+      boolean queryHasUnknown, boolean paramsHasUnknown, ServerHandle handle) {
     return describeOnly
-        || (!oneShot && paramsHasUnknown && queryHasUnknown && !query.isStatementDescribed());
+        || (!oneShot && paramsHasUnknown && queryHasUnknown && !handle.isStatementDescribed());
   }
 
-  private static void resolveParameterTypes(SimpleQuery query, SimpleParameterList params) {
-    int[] queryOIDs = castNonNull(query.getPrepareTypes());
+  private static void resolveParameterTypes(ServerHandle handle, SimpleParameterList params) {
+    applyResolvedTypes(params, castNonNull(handle.getPrepareTypes()));
+  }
+
+  private static void applyResolvedTypes(SimpleParameterList params, int[] resolvedTypes) {
     int[] paramOIDs = params.getTypeOIDs();
     for (int i = 0; i < paramOIDs.length; i++) {
       if (paramOIDs[i] == Oid.UNSPECIFIED) {
-        params.setResolvedType(i + 1, queryOIDs[i]);
+        params.setResolvedType(i + 1, resolvedTypes[i]);
       }
     }
   }
 
-  private void sendSimpleQuery(SimpleQuery query, SimpleParameterList params) throws IOException {
+  @Override
+  public boolean tryResolveParameterTypes(Query query, ParameterList parameters) {
+    if (parameters.getParameterCount() == 0) {
+      // There is no type for the server to resolve, so all of them are known already
+      return true;
+    }
+    try (ResourceLock ignore = lock.obtain()) {
+      Query[] subqueries = query.getSubqueries();
+      if (subqueries == null) {
+        SimpleQuery simpleQuery = (SimpleQuery) query;
+        int[] resolvedTypes =
+            simpleQuery.getCachedDescribeResult(((SimpleParameterList) parameters).getTypeOIDs(),
+                deallocateEpoch);
+        if (resolvedTypes == null) {
+          return false;
+        }
+        applyResolvedTypes((SimpleParameterList) parameters, resolvedTypes);
+        return true;
+      }
+
+      SimpleParameterList[] subparams = ((V3ParameterList) parameters).getSubparams();
+      // Resolve all subqueries before mutating any parameters, so a miss on a later
+      // subquery does not leave the parameters partially resolved
+      int[][] resolvedTypes = new int[subqueries.length][];
+      for (int i = 0; i < subqueries.length; i++) {
+        SimpleQuery subquery = (SimpleQuery) subqueries[i];
+        SimpleParameterList subparam =
+            subparams == null ? SimpleQuery.NO_PARAMETERS : subparams[i];
+        int[] resolved = subquery.getCachedDescribeResult(subparam.getTypeOIDs(), deallocateEpoch);
+        if (resolved == null) {
+          return false;
+        }
+        resolvedTypes[i] = resolved;
+      }
+      if (subparams != null) {
+        for (int i = 0; i < subqueries.length; i++) {
+          applyResolvedTypes(subparams[i], resolvedTypes[i]);
+        }
+      }
+      return true;
+    }
+  }
+
+  private void sendSimpleQuery(SimpleQuery query, ServerHandle handle, SimpleParameterList params)
+      throws IOException {
     if (inExtendedProtocol) {
       // A sync message is required when switching from extended protocol to a simple query protocol
       // See https://github.com/pgjdbc/pgjdbc/issues/3107
@@ -2269,8 +2494,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.sendInteger4(encoded.length + 4 + 1);
     pgStream.send(encoded);
     pgStream.sendChar(0);
-    pendingExecuteQueue.add(new ExecuteRequest(query, null, true));
-    pendingDescribePortalQueue.add(query);
+    pendingExecuteQueue.add(new ExecuteRequest(query, handle, null, true));
+    pendingDescribePortalQueue.add(handle);
   }
 
   //
@@ -2302,15 +2527,21 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private final ReferenceQueue<SimpleQuery> parsedQueryCleanupQueue =
       new ReferenceQueue<>();
 
-  private void registerParsedQuery(SimpleQuery query, String statementName) {
+  private void registerParsedQuery(SimpleQuery query, ServerHandle handle, String statementName) {
     if (statementName == null) {
       return;
     }
 
+    // The reference must point at the query, not the handle: a Portal keeps the query strongly
+    // reachable while a cursor is open, which keeps the statement from being closed under it.
     PhantomReference<SimpleQuery> cleanupRef =
         new PhantomReference<>(query, parsedQueryCleanupQueue);
     parsedQueryMap.put(cleanupRef, statementName);
-    query.setCleanupRef(cleanupRef);
+    handle.setCleanupRef(cleanupRef);
+    LinkedHashMap<ServerHandle, Boolean> live = liveServerStatements;
+    if (live != null) {
+      live.put(handle, Boolean.TRUE);
+    }
   }
 
   private void processDeadParsedQueries() throws IOException {
@@ -2331,29 +2562,31 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   // are also closed.
   //
 
-  private final HashMap<PhantomReference<Portal>, String> openPortalMap =
+  private final HashMap<PhantomReference<Portal>, Portal.Cleanup> openPortalMap =
       new HashMap<>();
   private final ReferenceQueue<Portal> openPortalCleanupQueue = new ReferenceQueue<>();
 
-  private static final Portal UNNAMED_PORTAL = new Portal(null, "unnamed");
+  private static final Portal UNNAMED_PORTAL = new Portal(null, null, "unnamed");
 
   private void registerOpenPortal(Portal portal) {
     if (portal == UNNAMED_PORTAL) {
       return; // Using the unnamed portal.
     }
 
-    String portalName = portal.getPortalName();
     PhantomReference<Portal> cleanupRef =
         new PhantomReference<>(portal, openPortalCleanupQueue);
-    openPortalMap.put(cleanupRef, portalName);
+    openPortalMap.put(cleanupRef, portal.getCleanup());
     portal.setCleanupRef(cleanupRef);
   }
 
   private void processDeadPortals() throws IOException {
     Reference<? extends Portal> deadPortal;
     while ((deadPortal = openPortalCleanupQueue.poll()) != null) {
-      String portalName = castNonNull(openPortalMap.remove(deadPortal));
-      sendClosePortal(portalName);
+      Portal.Cleanup cleanup = castNonNull(openPortalMap.remove(deadPortal));
+      sendClosePortal(cleanup.portalName);
+      // Close(portal) is queued before the pin release, so once the pin release lets the
+      // statement be closed, that Close cannot outrun the portal's own Close.
+      cleanup.releaseHandlePin();
       deadPortal.clear();
     }
   }
@@ -2389,8 +2622,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         case PgMessageType.PARSE_COMPLETE_RESPONSE: // Parse Complete (response to Parse)
           pgStream.receiveInteger4(); // len, discarded
 
-          SimpleQuery parsedQuery = pendingParseQueue.removeFirst();
-          String parsedStatementName = parsedQuery.getStatementName();
+          ServerHandle parsedHandle = pendingParseQueue.removeFirst();
+          String parsedStatementName = parsedHandle.getStatementName();
 
           LOGGER.log(Level.FINEST, " <=BE ParseComplete [{0}]", parsedStatementName);
 
@@ -2418,12 +2651,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // Since we can issue multiple Parse and DescribeStatement
           // messages in a single network trip, we need to make
           // sure the describe results we requested are still
-          // applicable to the latest parsed query.
+          // applicable to the statement the describe was sent for.
           //
-          if ((origStatementName == null && query.getStatementName() == null)
-              || (origStatementName != null
-                  && origStatementName.equals(query.getStatementName()))) {
-            query.setPrepareTypes(params.getTypeOIDs());
+          ServerHandle describedHandle = describeData.handle;
+          if (Objects.equals(origStatementName, describedHandle.getStatementName())) {
+            describedHandle.setPrepareTypes(params.getTypeOIDs());
+            query.addDescribeResult(describeData.requestedParameterTypes,
+                params.getTypeOIDs().clone(), deallocateEpoch);
           }
 
           if (describeOnly) {
@@ -2456,13 +2690,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           if (doneAfterRowDescNoData) {
             DescribeRequest describeData = pendingDescribeStatementQueue.removeFirst();
-            SimpleQuery currentQuery = describeData.query;
 
-            Field[] fields = currentQuery.getFields();
+            Field[] fields = describeData.handle.getFields();
 
             if (fields != null) { // There was a resultset.
               tuples = new ArrayList<>();
-              handler.handleResultRows(currentQuery, fields, tuples, null);
+              handler.handleResultRows(describeData.query, fields, tuples, null);
               tuples = null;
             }
           }
@@ -2486,7 +2719,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
           pgStream.clearMaxRowSizeBytes();
 
-          Field[] fields = currentQuery.getFields();
+          Field[] fields = executeData.handle.getFields();
           if (fields != null && tuples == null) {
             // When no results expected, pretend an empty resultset was returned
             // Not sure if new ArrayList can be always replaced with emptyList
@@ -2577,7 +2810,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             break;
           }
 
-          Field[] fields = currentQuery.getFields();
+          Field[] fields = executeData.handle.getFields();
           if (fields != null && tuples == null) {
             // When no results expected, pretend an empty resultset was returned
             // Not sure if new ArrayList can be always replaced with emptyList
@@ -2608,7 +2841,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             // Simple queries might return several resultsets, thus we clear
             // fields, so queries like "select 1;update; select2" will properly
             // identify that "update" did not return any results
-            currentQuery.setFields(null);
+            executeData.handle.setFields(null);
           }
 
           if (currentPortal != null) {
@@ -2700,21 +2933,20 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           Field[] fields = receiveFields();
           tuples = new ArrayList<>();
 
-          SimpleQuery query = castNonNull(pendingDescribePortalQueue.peekFirst());
+          ServerHandle describePortalHandle = castNonNull(pendingDescribePortalQueue.peekFirst());
           if (!pendingExecuteQueue.isEmpty()
               && !castNonNull(pendingExecuteQueue.peekFirst()).asSimple) {
             pendingDescribePortalQueue.removeFirst();
           }
-          query.setFields(fields);
+          describePortalHandle.setFields(fields);
 
           if (doneAfterRowDescNoData) {
             DescribeRequest describeData = pendingDescribeStatementQueue.removeFirst();
-            SimpleQuery currentQuery = describeData.query;
-            currentQuery.setFields(fields);
+            describeData.handle.setFields(fields);
 
             // We do not need creating resultset here, however, it is actually used
             // in PgPreparedStatement#getMetaData()
-            handler.handleResultRows(currentQuery, fields, tuples, null);
+            handler.handleResultRows(describeData.query, fields, tuples, null);
             tuples = null;
           }
           break;
@@ -2730,7 +2962,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             // Simple queries might return several resultsets, thus we clear
             // fields, so queries like "select 1;update; select2" will properly
             // identify that "update" did not return any results
-            executeRequest.query.setFields(null);
+            executeRequest.handle.setFields(null);
 
             pendingDescribePortalQueue.removeFirst();
             if (!pendingExecuteQueue.isEmpty()) {
@@ -2743,10 +2975,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
           endQuery = true;
 
-          // Reset the statement name of Parses that failed.
+          // Reset the statement name of Parses that failed. Only the statement whose Parse was
+          // in flight is affected; other statements of the same query stay prepared.
           while (!pendingParseQueue.isEmpty()) {
-            SimpleQuery failedQuery = pendingParseQueue.removeFirst();
-            failedQuery.unprepare();
+            ServerHandle failedHandle = pendingParseQueue.removeFirst();
+            failedHandle.unprepare();
           }
 
           pendingParseQueue.clear(); // No more ParseComplete messages expected.
@@ -2756,15 +2989,29 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           while (!pendingDescribeStatementQueue.isEmpty()) {
             DescribeRequest request = pendingDescribeStatementQueue.removeFirst();
             LOGGER.log(Level.FINEST, " FE marking setStatementDescribed(false) for query {0}", request.query);
-            request.query.setStatementDescribed(false);
+            request.handle.setStatementDescribed(false);
           }
           while (!pendingDescribePortalQueue.isEmpty()) {
-            SimpleQuery describePortalQuery = pendingDescribePortalQueue.removeFirst();
-            LOGGER.log(Level.FINEST, " FE marking setPortalDescribed(false) for query {0}", describePortalQuery);
-            describePortalQuery.setPortalDescribed(false);
+            ServerHandle undescribedHandle = pendingDescribePortalQueue.removeFirst();
+            LOGGER.log(Level.FINEST, " FE marking setPortalDescribed(false) for statement {0}", undescribedHandle);
+            undescribedHandle.setPortalDescribed(false);
           }
-          pendingBindQueue.clear(); // No more BindComplete messages expected.
-          pendingExecuteQueue.clear(); // No more query executions expected.
+          // No more BindComplete messages expected. A portal still here never reached
+          // BindComplete, so no server-side portal exists: just release the statement pin.
+          while (!pendingBindQueue.isEmpty()) {
+            pendingBindQueue.removeFirst().releaseHandlePin();
+          }
+          // No more query executions expected. A portal still here may have been bound and its
+          // Execute failed: queue its Close and release the pin deterministically rather than
+          // waiting for the portal to be garbage collected. The server has already destroyed the
+          // portal with the failed (sub)transaction, so the Close is a no-op there.
+          while (!pendingExecuteQueue.isEmpty()) {
+            Portal failedPortal = pendingExecuteQueue.removeFirst().portal;
+            if (failedPortal != null) {
+              failedPortal.close();
+              failedPortal.releaseHandlePin();
+            }
+          }
           break;
 
         case PgMessageType.COPY_IN_RESPONSE:
@@ -2871,7 +3118,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         processDeadParsedQueries();
         processDeadPortals();
 
-        sendExecute(query, portal, fetchSize);
+        // The portal was bound from a specific statement; fetch on that statement even if the
+        // query has been re-prepared since.
+        sendExecute(query, castNonNull(portal.getHandle()), portal, fetchSize);
         sendSync();
         pgStream.flush();
 
@@ -3343,12 +3592,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return integerDateTimes;
   }
 
-  private final Deque<SimpleQuery> pendingParseQueue = new ArrayDeque<>();
+  private final Deque<ServerHandle> pendingParseQueue = new ArrayDeque<>();
   private final Deque<Portal> pendingBindQueue = new ArrayDeque<>();
   private final Deque<ExecuteRequest> pendingExecuteQueue = new ArrayDeque<>();
   private final Deque<DescribeRequest> pendingDescribeStatementQueue =
       new ArrayDeque<>();
-  private final Deque<SimpleQuery> pendingDescribePortalQueue = new ArrayDeque<>();
+  private final Deque<ServerHandle> pendingDescribePortalQueue = new ArrayDeque<>();
 
   private long nextUniqueID = 1;
   private final boolean allowEncodingChanges;

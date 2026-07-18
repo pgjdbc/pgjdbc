@@ -2,6 +2,23 @@
 Notable changes since version 42.0.0, read the complete [History of Changes](https://jdbc.postgresql.org/documentation/changelog.html).
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
+## [42.7.14] (2026-xx-xx)
+
+### Security
+### Added
+* feat: new connection property `maxServerPreparedStatements` (default `0`, no limit) bounds the server-prepared statements a connection keeps across all SQL texts. The least recently used statements above the limit are closed and re-prepared transparently on next use, which caps backend memory when `preparedStatementCacheTypeVariants` multiplies statements per SQL text [PR #4300](https://github.com/pgjdbc/pgjdbc/pull/4300)
+
+### Changed
+* feat: one SQL text may now keep several server-prepared statements, one per distinct parameter-type signature, so executing the same statement with alternating parameter types — `setInt` on one call and `setString` on the next, or Spring's `setNull` path — reuses the statement prepared for each signature instead of re-parsing and losing the server-side plan on every switch. The new `preparedStatementCacheTypeVariants` property caps them per SQL text and defaults to `4`; a statement that binds stable types keeps a single server-prepared statement as before, and a value of `1` restores the previous behavior exactly [Issue #345](https://github.com/pgjdbc/pgjdbc/issues/345) [PR #4300](https://github.com/pgjdbc/pgjdbc/pull/4300)
+* chore: `PreparedStatement.getParameterMetaData()` no longer describes a statement that binds no parameters, as the server has nothing to resolve for one. Such a statement reports its empty parameter list without a network round trip, and no longer throws when the server would reject its SQL, since the describe that used to surface that error is gone [PR #4299](https://github.com/pgjdbc/pgjdbc/pull/4299)
+* chore: the `preparedStatementCacheSizeMiB` budget now counts the parameter type arrays a cached query retains instead of estimating an entry from the length of its SQL text alone. A query with many parameters is charged closer to what it actually holds, so such a query may now be evicted, or skipped by the cache entirely when it would take more than half of it [PR #4299](https://github.com/pgjdbc/pgjdbc/pull/4299)
+
+### Fixed
+* fix: the driver no longer decides the transfer format of a result, or the response size of a batch, from describe results that DDL, `SET search_path`, or `DEALLOCATE ALL` had already invalidated. The checks now resolve the statement the execution will actually use, at the current parameter types and deallocate epoch [PR #4300](https://github.com/pgjdbc/pgjdbc/pull/4300)
+* fix: a portal whose `Execute` failed is now closed during the error cleanup instead of staying open on the server until the driver's phantom reference was collected [PR #4300](https://github.com/pgjdbc/pgjdbc/pull/4300)
+* fix: `PreparedStatement.getParameterMetaData()` no longer fails with `prepared statement "S_1" does not exist` when the server-side statement was dropped without the driver noticing, which is what a connection pooler resetting the session between checkouts does. The driver re-parses and describes again instead [Issue #621](https://github.com/pgjdbc/pgjdbc/issues/621) [PR #4299](https://github.com/pgjdbc/pgjdbc/pull/4299)
+* perf: `PreparedStatement.getParameterMetaData()` no longer costs a `Describe` round trip on every call. The driver remembers up to four describe results per query and reuses one when the parameter types are compatible, which removes a round trip per row for frameworks that read parameter metadata while binding, such as Spring's `setNull` path. Changing a parameter type, DDL, and `SET search_path` all force a fresh describe, so a reused result never reports a type the server would resolve differently [Issue #621](https://github.com/pgjdbc/pgjdbc/issues/621) [PR #4299](https://github.com/pgjdbc/pgjdbc/pull/4299). Supersedes [PR #3429](https://github.com/pgjdbc/pgjdbc/pull/3429).
+
 ## [42.7.13] (2026-07-06)
 
 ### Added

@@ -112,6 +112,15 @@ class CompositeQuery implements Query {
   }
 
   @Override
+  public long getRetainedSizeExcludingSql() {
+    long size = 0;
+    for (SimpleQuery subquery : subqueries) {
+      size += subquery.getRetainedSizeExcludingSql();
+    }
+    return size;
+  }
+
+  @Override
   public @Nullable Map<String, Integer> getResultSetColumnNameIndexMap() {
     return null; // unsupported
   }
