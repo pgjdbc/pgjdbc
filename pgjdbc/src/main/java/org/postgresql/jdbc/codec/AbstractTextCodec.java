@@ -225,6 +225,7 @@ abstract class AbstractTextCodec implements PrimitiveBinaryDecoder, PrimitiveTex
       return 0;
     }
     try {
+      NumberDecoders.requireAsciiLiteral(s);
       return Integer.parseInt(s.trim());
     } catch (NumberFormatException e) {
       throw Exceptions.cannotConvertValue("int", s, e);
@@ -236,6 +237,7 @@ abstract class AbstractTextCodec implements PrimitiveBinaryDecoder, PrimitiveTex
       return 0;
     }
     try {
+      NumberDecoders.requireAsciiLiteral(s);
       return Long.parseLong(s.trim());
     } catch (NumberFormatException e) {
       throw Exceptions.cannotConvertValue("long", s, e);
@@ -272,6 +274,7 @@ abstract class AbstractTextCodec implements PrimitiveBinaryDecoder, PrimitiveTex
       return null;
     }
     try {
+      NumberDecoders.requireAsciiLiteral(s);
       return new BigDecimal(s.trim());
     } catch (NumberFormatException e) {
       throw Exceptions.cannotConvertValue("numeric", s, e);

@@ -15,10 +15,29 @@ import java.util.List;
  * make {@code getShort}/{@code getByte} overflow.
  */
 public final class Int4EdgeCases {
+  /**
+   * Literals no {@code int4in} accepts: the empty string and non-ASCII look-alikes of a digit and a minus
+   * sign, which additionally walk the multi-byte path of whatever charset decodes the wire text.
+   *
+   * <p>Deliberately absent from {@link #ALL}: every entry there casts cleanly and callers rely on that. Use
+   * this one for the refusal side only.
+   */
+  public static final List<EdgeCase> MALFORMED = Collections.unmodifiableList(malformed());
+
   /** Every case, in a stable order. */
   public static final List<EdgeCase> ALL = Collections.unmodifiableList(all());
 
   private Int4EdgeCases() {
+  }
+
+  private static List<EdgeCase> malformed() {
+    List<EdgeCase> out = new ArrayList<>();
+    out.add(new EdgeCase("malformed_empty", "", null));
+    // U+FF11 U+FF12 U+FF13, fullwidth one, two, three.
+    out.add(new EdgeCase("malformed_non_ascii_digits", "１２３", null));
+    // U+2212, the typographic minus that is not the ASCII hyphen-minus.
+    out.add(new EdgeCase("malformed_non_ascii_minus", "−1", null));
+    return out;
   }
 
   private static List<EdgeCase> all() {

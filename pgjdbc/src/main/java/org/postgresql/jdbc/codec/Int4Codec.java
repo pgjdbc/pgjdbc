@@ -156,8 +156,11 @@ public final class Int4Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
       // The fast path rejects a leading '+', whitespace, or an out-of-range value; fall back to the
       // String parser, which owns the parse and the error message. A String reaching here is copied
       // out once; a borrowed CharArraySequence slice parses in place on the fast path.
+      // It also rejects a non-ASCII digit, which Integer.parseInt would otherwise accept, so screen for
+      // that here rather than on the fast path, where a well-formed value would pay for the scan.
       String text = data.toString();
       try {
+        NumberDecoders.requireAsciiLiteral(text);
         return Integer.parseInt(text.trim());
       } catch (NumberFormatException e) {
         throw Exceptions.cannotConvertValue("int", text, e);
@@ -247,6 +250,7 @@ public final class Int4Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
     }
     if (value instanceof String) {
       try {
+        NumberDecoders.requireAsciiLiteral((String) value);
         return Integer.parseInt(((String) value).trim());
       } catch (NumberFormatException e) {
         throw Exceptions.cannotConvertValue("int", value, e);

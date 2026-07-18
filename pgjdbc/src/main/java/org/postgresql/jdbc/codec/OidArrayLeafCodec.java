@@ -186,10 +186,14 @@ final class OidArrayLeafCodec implements ArrayLeafCodec {
     try {
       return NumberParser.getFastLong(chars, off, len, 0L, UINT32_MASK);
     } catch (NumberFormatException fast) {
+      // Screened on the fallback only: the fast path is ASCII-strict already, so a well-formed
+      // element never pays for the scan.
+      String text = new String(chars, off, len);
       try {
-        return Long.parseLong(new String(chars, off, len));
+        NumberDecoders.requireAsciiLiteral(text);
+        return Long.parseLong(text);
       } catch (NumberFormatException e) {
-        throw Exceptions.invalidArrayElement("oid", new String(chars, off, len), e);
+        throw Exceptions.invalidArrayElement("oid", text, e);
       }
     }
   }

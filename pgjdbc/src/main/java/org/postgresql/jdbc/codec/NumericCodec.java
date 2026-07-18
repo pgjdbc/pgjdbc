@@ -208,7 +208,11 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
         || "-Infinity".equalsIgnoreCase(trimmed)) {
       throw Exceptions.badValueForType("BigDecimal", trimmed);
     }
+    // Unlike the integer codecs there is no ASCII fast parser to fall out of, so the screen sits on
+    // the main path. It is a single character range test over a literal BigDecimal is about to scan
+    // several times while allocating, so it does not move the needle.
     try {
+      NumberDecoders.requireAsciiLiteral(trimmed);
       return applyTypmodScale(new BigDecimal(trimmed), type.getTypmod());
     } catch (NumberFormatException e) {
       throw Exceptions.cannotConvertValue("numeric", trimmed, e);
@@ -527,6 +531,7 @@ public final class NumericCodec implements PrimitiveBinaryDecoder, PrimitiveText
     }
     if (value instanceof String) {
       try {
+        NumberDecoders.requireAsciiLiteral((String) value);
         return new BigDecimal(((String) value).trim());
       } catch (NumberFormatException e) {
         throw Exceptions.cannotConvertValue("numeric", value, e);

@@ -15,8 +15,9 @@ import java.sql.SQLException;
 
 /**
  * The Jazzer port of {@code JqfTextLiteralDecodeFuzzTest} in pgjdbc-jqf-test: the same adversarial
- * text-literal decode invariant over the container targets (int4[], text[], the point composite, and the
- * int4range / int4multirange grammars), differing only in how the literal arrives. jqf composes a typed
+ * text-literal decode invariant over the container targets (int4[], text[], the point composite, the
+ * int4range / int4multirange grammars, and a domain over int4), differing only in how the literal arrives.
+ * jqf composes a typed
  * {@link String}; here Jazzer's mutation framework maps a {@code @NotNull String} straight from the
  * {@code @FuzzTest} signature. The oracle is shared -- {@link CodecFuzzSupport#decodeTextExpectingNoLeak}
  * -- so a leak surfaces identically under both front-ends. The scalar text-literal targets (numeric and
@@ -72,5 +73,11 @@ class JazzerTextLiteralDecodeFuzzTest {
   void multirangeLiteral(@NotNull String literal) throws SQLException {
     CodecFuzzSupport.decodeTextExpectingNoLeak(literal, ContainerDecodeTypes.INT4MULTIRANGE,
         ContainerDecodeTypes.INT4MULTIRANGE_CONTEXT);
+  }
+
+  @FuzzTest
+  void domainLiteral(@NotNull String literal) throws SQLException {
+    CodecFuzzSupport.decodeTextExpectingNoLeak(literal, ContainerDecodeTypes.INT4_DOMAIN,
+        ContainerDecodeTypes.INT4_DOMAIN_CONTEXT);
   }
 }

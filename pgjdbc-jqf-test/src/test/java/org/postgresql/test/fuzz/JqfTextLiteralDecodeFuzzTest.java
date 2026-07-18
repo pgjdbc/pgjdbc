@@ -88,4 +88,10 @@ class JqfTextLiteralDecodeFuzzTest {
     CodecFuzzSupport.decodeTextExpectingNoLeak(literal, ContainerDecodeTypes.INT4MULTIRANGE,
         ContainerDecodeTypes.INT4MULTIRANGE_CONTEXT);
   }
+
+  @FuzzTest
+  void domainLiteral(String literal) throws SQLException {
+    CodecFuzzSupport.decodeTextExpectingNoLeak(literal, ContainerDecodeTypes.INT4_DOMAIN,
+        ContainerDecodeTypes.INT4_DOMAIN_CONTEXT);
+  }
 }

@@ -13,9 +13,10 @@ import com.code_intelligence.jazzer.mutation.annotation.NotNull;
 
 /**
  * The binary-wire robustness invariant for the container decoders (blind spot Z1): feed arbitrary
- * bytes to the array, composite, range, and multirange binary decoders and assert each either returns a
- * value or refuses with a clean {@code SQLException}, never leaking an unchecked exception and never
- * exhausting the heap.
+ * bytes to the array, composite, range, multirange, and domain binary decoders and assert each either
+ * returns a value or refuses with a clean {@code SQLException}, never leaking an unchecked exception and
+ * never exhausting the heap. The domain target also pins that {@code DomainCodec} forwards the value
+ * offset to its base codec (a past offset-drop defect), which the offset-invariant helper checks.
  *
  * <p>This is the binary sibling of {@link JazzerTextLiteralDecodeFuzzTest}, which drives the same
  * containers through their text-literal grammars. The two front-ends reach different code: the text
@@ -29,8 +30,9 @@ import com.code_intelligence.jazzer.mutation.annotation.NotNull;
  *
  * <p>Jazzer mutates the wire bytes directly, so the property is the whole target -- no oracle and no
  * value generator. The invariant lives in the shared
- * {@link CodecFuzzSupport#decodeBinaryExpectingNoLeak} helper, so a leak surfaces the same way it
- * would under any other front-end.
+ * {@link CodecFuzzSupport#decodeBinaryOffsetInvariant} helper, which also decodes each buffer from a
+ * non-zero offset and asserts the two agree, so a container decoder that mishandles the value offset is
+ * caught the same way it would be under any other front-end.
  *
  * <p>The container types come from {@link ContainerDecodeTypes}: the arrays and the composite from the
  * shared descriptor registry, the range and multirange built inline (the registry carries neither) so they
@@ -49,31 +51,37 @@ class JazzerBinaryContainerDecodeFuzzTest {
 
   @FuzzTest
   void int4ArrayBinary(byte @NotNull [] data) {
-    CodecFuzzSupport.decodeBinaryExpectingNoLeak(data, ContainerDecodeTypes.INT4_ARRAY,
+    CodecFuzzSupport.decodeBinaryOffsetInvariant(data, ContainerDecodeTypes.INT4_ARRAY,
         CodecFuzzSupport.builtins());
   }
 
   @FuzzTest
   void textArrayBinary(byte @NotNull [] data) {
-    CodecFuzzSupport.decodeBinaryExpectingNoLeak(data, ContainerDecodeTypes.TEXT_ARRAY,
+    CodecFuzzSupport.decodeBinaryOffsetInvariant(data, ContainerDecodeTypes.TEXT_ARRAY,
         CodecFuzzSupport.builtins());
   }
 
   @FuzzTest
   void compositeBinary(byte @NotNull [] data) {
-    CodecFuzzSupport.decodeBinaryExpectingNoLeak(data, ContainerDecodeTypes.POINT,
+    CodecFuzzSupport.decodeBinaryOffsetInvariant(data, ContainerDecodeTypes.POINT,
         ContainerDecodeTypes.POINT_CONTEXT);
   }
 
   @FuzzTest
   void rangeBinary(byte @NotNull [] data) {
-    CodecFuzzSupport.decodeBinaryExpectingNoLeak(data, ContainerDecodeTypes.INT4RANGE,
+    CodecFuzzSupport.decodeBinaryOffsetInvariant(data, ContainerDecodeTypes.INT4RANGE,
         ContainerDecodeTypes.INT4RANGE_CONTEXT);
   }
 
   @FuzzTest
   void multirangeBinary(byte @NotNull [] data) {
-    CodecFuzzSupport.decodeBinaryExpectingNoLeak(data, ContainerDecodeTypes.INT4MULTIRANGE,
+    CodecFuzzSupport.decodeBinaryOffsetInvariant(data, ContainerDecodeTypes.INT4MULTIRANGE,
         ContainerDecodeTypes.INT4MULTIRANGE_CONTEXT);
+  }
+
+  @FuzzTest
+  void domainBinary(byte @NotNull [] data) {
+    CodecFuzzSupport.decodeBinaryOffsetInvariant(data, ContainerDecodeTypes.INT4_DOMAIN,
+        ContainerDecodeTypes.INT4_DOMAIN_CONTEXT);
   }
 }

@@ -45,9 +45,9 @@ import org.postgresql.test.data.VarbitEdgeCases;
 import org.postgresql.test.jazzer.JazzerFuzzTargets.NamedArg;
 import org.postgresql.test.jazzer.JazzerFuzzTargets.Target;
 
-import com.code_intelligence.jazzer.mutation.ArgumentsMutator;
+import com.code_intelligence.jazzer.junit.SeedSerializers;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -72,17 +72,20 @@ import java.util.stream.Stream;
  *   <resourcesRoot>/org/postgresql/test/jazzer/<TestClass>Inputs/<method>/<edge-case-name>
  * }</pre>
  *
- * <p>The on-disk byte layout of a seed file depends on the {@code @FuzzTest} parameter type -- a
- * {@code byte[]} argument carries a length prefix, a {@link String} does not, and the primitives use a
- * fixed-width form. Rather than hand-encode any of that, every seed goes through the same
- * {@link ArgumentsMutator#writeAny} the Jazzer engine itself uses to serialise a corpus entry, so the
- * bytes are correct by construction for whatever the target's signature is and stay correct across Jazzer
- * upgrades. In non-fuzzing (regression) mode the JUnit engine replays these files as bounded inputs.
+ * <p>The on-disk byte layout of a seed file depends on the {@code @FuzzTest} parameter type, and it must
+ * match what Jazzer-JUnit's {@code SeedSerializer.of(method)} reads back: a sole {@code byte[]} parameter
+ * is served the file bytes verbatim ({@code ByteArraySeedSerializer}), every other signature goes through
+ * the mutation framework. Rather than re-derive that split, {@link #writeMethodCorpus} serialises each seed
+ * with the engine's own {@code SeedSerializer}, reached through the same-package
+ * {@link com.code_intelligence.jazzer.junit.SeedSerializers} bridge, so the written bytes are the exact
+ * inverse of the read and stay correct across Jazzer upgrades. In non-fuzzing (regression) mode the JUnit
+ * engine replays these files as bounded inputs.
  *
  * <p>The generated scalar targets are seeded from the same {@link ScalarDecodeRobustnessModel} the source
  * generator drives, mapped to a per-OID edge-case catalogue: a binary target seeds from the canonical
  * binary wire of each edge case that has a bindable value; a text target seeds from each edge case's
- * literal. A disabled target ({@code numeric} binary, finding F3) never runs, so it is not seeded, and an
+ * literal, plus the catalogue's malformed literals, which a text target's oracle accepts as refusals.
+ * A disabled target ({@code numeric} binary, finding F3) never runs, so it is not seeded, and an
  * OID with no catalogue is left with the empty input only. The method name comes from
  * {@link ScalarDecodeRobustnessNaming}, so the seed directory matches the generated method exactly.
  *
@@ -153,7 +156,7 @@ public final class JazzerSeedCorpusGenerator {
         continue;
       }
       List<NamedArg> seeds = target.format() == Format.TEXT
-          ? textSeeds(cases)
+          ? textSeeds(cases, malformedTextByOid().get(target.oid()))
           : binarySeeds(target.oid(), cases);
       if (seeds.isEmpty()) {
         continue;
@@ -190,13 +193,39 @@ public final class JazzerSeedCorpusGenerator {
     return out;
   }
 
-  /** Each edge case's literal text as a {@link String}, for a generated {@code _text} target. */
-  private static List<NamedArg> textSeeds(List<EdgeCase> cases) {
+  /**
+   * Each edge case's literal text as a {@link String}, for a generated {@code _text} target, followed by the
+   * type's malformed literals when it has any. A text target's oracle accepts a refusal, so a literal the
+   * parser must reject is a legitimate seed -- and a valuable one, since it starts the campaign inside the
+   * error paths (an empty input, a non-ASCII charset path) instead of leaving them to be discovered.
+   *
+   * @param malformed the type's known-bad literals, or {@code null} when the catalogue lists none
+   */
+  private static List<NamedArg> textSeeds(List<EdgeCase> cases, @Nullable List<EdgeCase> malformed) {
     List<NamedArg> out = new ArrayList<>();
     for (EdgeCase edgeCase : cases) {
       out.add(new NamedArg(edgeCase.name(), edgeCase.literal()));
     }
+    if (malformed != null) {
+      for (EdgeCase edgeCase : malformed) {
+        out.add(new NamedArg(edgeCase.name(), edgeCase.literal()));
+      }
+    }
     return out;
+  }
+
+  // The literals a type's text decoder must refuse, seeded into the text target on top of its ALL
+  // catalogue. Kept out of the catalogues above because those feed the binary side too, and every entry
+  // there is expected to cast cleanly. The refusal itself is pinned in the fuzzkit's
+  // MalformedLiteralRefusalTest; here they only widen the campaign's starting corpus.
+  private static Map<Integer, List<EdgeCase>> malformedTextByOid() {
+    Map<Integer, List<EdgeCase>> map = new LinkedHashMap<>();
+    map.put(Oid.INT2, Int2EdgeCases.MALFORMED);
+    map.put(Oid.INT4, Int4EdgeCases.MALFORMED);
+    map.put(Oid.INT8, Int8EdgeCases.MALFORMED);
+    map.put(Oid.OID, OidEdgeCases.MALFORMED);
+    map.put(Oid.NUMERIC, NumericEdgeCases.MALFORMED);
+    return map;
   }
 
   /** Resolves the generated {@code @FuzzTest} method for a target by its name and parameter type. */
@@ -250,10 +279,10 @@ public final class JazzerSeedCorpusGenerator {
       throws IOException {
     Files.createDirectories(methodDir);
 
-    // A mutator built from the exact target method, so writeAny serialises each seed in that signature's
-    // on-disk layout. One instance is reused across the target's seeds.
-    ArgumentsMutator mutator = ArgumentsMutator.forMethodOrThrow(method, false);
-
+    // Serialise each seed with the very SeedSerializer Jazzer-JUnit will read it back with, reached through
+    // the same-package SeedSerializers bridge. This is what makes a raw-byte[] target's seed the raw wire
+    // (ByteArraySeedSerializer) and a mutation-framework target's seed the writeAny form, without this
+    // generator re-deriving that split.
     Set<String> written = new LinkedHashSet<>();
     for (NamedArg seed : seeds) {
       String fileName = sanitise(seed.name());
@@ -261,9 +290,7 @@ public final class JazzerSeedCorpusGenerator {
         throw new IllegalStateException("Duplicate seed file name '" + fileName + "' for "
             + method.getName() + "; edge-case names must be unique per target");
       }
-      ByteArrayOutputStream out = new ByteArrayOutputStream();
-      mutator.writeAny(out, new Object[]{seed.value()});
-      Files.write(methodDir.resolve(fileName), out.toByteArray());
+      Files.write(methodDir.resolve(fileName), SeedSerializers.write(method, new Object[]{seed.value()}));
     }
 
     removeOrphans(methodDir, written);

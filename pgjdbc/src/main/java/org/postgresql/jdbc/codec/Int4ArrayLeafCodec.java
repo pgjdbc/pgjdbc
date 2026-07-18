@@ -181,10 +181,14 @@ final class Int4ArrayLeafCodec implements ArrayLeafCodec {
     try {
       return (int) NumberParser.getFastLong(chars, off, len, Integer.MIN_VALUE, Integer.MAX_VALUE);
     } catch (NumberFormatException fast) {
+      // Screened on the fallback only: the fast path is ASCII-strict already, so a well-formed
+      // element never pays for the scan.
+      String text = new String(chars, off, len);
       try {
-        return Integer.parseInt(new String(chars, off, len));
+        NumberDecoders.requireAsciiLiteral(text);
+        return Integer.parseInt(text);
       } catch (NumberFormatException e) {
-        throw Exceptions.invalidArrayElement("int4", new String(chars, off, len), e);
+        throw Exceptions.invalidArrayElement("int4", text, e);
       }
     }
   }

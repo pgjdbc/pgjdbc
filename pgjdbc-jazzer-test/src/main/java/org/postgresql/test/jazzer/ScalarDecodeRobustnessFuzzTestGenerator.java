@@ -106,10 +106,10 @@ public final class ScalarDecodeRobustnessFuzzTestGenerator {
             + " and").append(NL)
         .append(" * asserts it either decodes or refuses with a {@code SQLException}, never leaking an"
             + " unchecked").append(NL)
-        .append(" * exception. A binary-readable codec gets a whole-array {@code _binary} target and an"
-            + " offset-aware").append(NL)
-        .append(" * {@code _binaryOffset} sibling (the {@code byte[] + off + len} path); a text-readable one"
-            + " gets a").append(NL)
+        .append(" * exception. A binary-readable codec gets a single {@code _binary} target that decodes"
+            + " from both").append(NL)
+        .append(" * offset 0 and a non-zero offset and asserts the two agree; a text-readable one gets a"
+            + "").append(NL)
         .append(" * {@code _text} target. A single-byte type ({@code \"char\"}) has a finite binary wire"
             + " domain, so its").append(NL)
         .append(" * binary targets are exhaustive {@code @ParameterizedTest}s over every wire instead of"
@@ -133,13 +133,9 @@ public final class ScalarDecodeRobustnessFuzzTestGenerator {
       sb.append("  void ").append(target.methodName()).append("(@NotNull String literal) {").append(NL)
           .append("    CodecFuzzSupport.decodeScalarTextExpectingNoLeak(literal, ")
           .append(target.oid()).append(");").append(NL);
-    } else if (target.offsetVariant()) {
-      sb.append("  void ").append(target.methodName()).append("(byte @NotNull [] data) {").append(NL)
-          .append("    CodecFuzzSupport.decodeScalarBinarySliceExpectingNoLeak(data, ")
-          .append(target.oid()).append(");").append(NL);
     } else {
       sb.append("  void ").append(target.methodName()).append("(byte @NotNull [] data) {").append(NL)
-          .append("    CodecFuzzSupport.decodeScalarBinaryExpectingNoLeak(data, ")
+          .append("    CodecFuzzSupport.decodeScalarBinaryOffsetInvariant(data, ")
           .append(target.oid()).append(");").append(NL);
     }
     sb.append("  }").append(NL);
@@ -148,12 +144,10 @@ public final class ScalarDecodeRobustnessFuzzTestGenerator {
   // An enumerated target: its wire domain is finite, so it is an exhaustive @ParameterizedTest over
   // CodecFuzzSupport.singleByteBinaryDomain() rather than a @FuzzTest. Only binary targets are enumerated.
   private static void appendEnumeratedMethod(StringBuilder sb, Target target) {
-    String helper = target.offsetVariant()
-        ? "decodeSingleByteBinarySlice" : "decodeSingleByteBinary";
     sb.append("  @ParameterizedTest").append(NL)
         .append("  @MethodSource(\"org.postgresql.fuzzkit.CodecFuzzSupport#singleByteBinaryDomain\")").append(NL)
         .append("  void ").append(target.methodName()).append("(byte[] data) {").append(NL)
-        .append("    CodecFuzzSupport.").append(helper).append("(data, ")
+        .append("    CodecFuzzSupport.decodeSingleByteBinaryOffsetInvariant(data, ")
         .append(target.oid()).append(");").append(NL)
         .append("  }").append(NL);
   }
@@ -163,15 +157,13 @@ public final class ScalarDecodeRobustnessFuzzTestGenerator {
     String summary;
     if (target.enumeratedByteDomain()) {
       summary = "Exhaustive binary decode of " + subject
-          + " over its whole single-byte wire domain" + (target.offsetVariant() ? " at a non-zero offset" : "")
+          + " over its whole single-byte wire domain at offset 0 and a non-zero offset"
           + "; every wire must decode without leaking, and the ASCII subset to its own character.";
     } else if (target.format() == Format.TEXT) {
       summary = "Adversarial text decode of " + subject + "; must not leak an unchecked exception.";
-    } else if (target.offsetVariant()) {
-      summary = "Adversarial binary decode of " + subject
-          + " at a non-zero offset; must not leak unchecked.";
     } else {
-      summary = "Adversarial binary decode of " + subject + "; must not leak an unchecked exception.";
+      summary = "Adversarial binary decode of " + subject
+          + " at offset 0 and a non-zero offset; must not leak unchecked and both must agree.";
     }
     sb.append("  /** ").append(summary).append(" */").append(NL);
   }

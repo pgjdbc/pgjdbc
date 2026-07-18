@@ -21,6 +21,11 @@ import java.sql.SQLException;
  * by the codec too — the {@code String} form (float- or double-specific), {@code int8}'s
  * {@link java.math.BigInteger}, and the {@code Long} bound (which differs between {@code float4} and
  * {@code float8}) — so none of those reach these methods.</p>
+ *
+ * <p>{@link #requireAsciiLiteral} is the one text-side helper here. Every codec that turns a number
+ * literal into a value shares it — the scalars, their array leaves, the text-like and fallback codecs,
+ * and the {@code String} branch of each encoder — so a non-ASCII digit is refused wherever a literal
+ * enters, rather than at one path a fuzzer happened to reach.</p>
  */
 final class NumberDecoders {
 
@@ -119,6 +124,38 @@ final class NumberDecoders {
       throw Exceptions.outOfRange(value, "float");
     }
     return result;
+  }
+
+  /**
+   * Refuses a numeric literal that carries a non-ASCII character.
+   *
+   * <p>{@link Integer#parseInt} and the {@link BigDecimal} string constructor recognise every Unicode
+   * decimal digit, so a fullwidth (U+FF11 U+FF12 U+FF13) or Arabic-Indic (U+0661 U+0662 U+0663) digit
+   * string would decode to 123. PostgreSQL's {@code int4in} and {@code numeric_in} read ASCII only and
+   * reject both with 22P02. Accepting them invents a value the server can never have sent, so the
+   * codecs screen the literal before handing it to the JDK parser.</p>
+   *
+   * <p>Every grammar these codecs accept is ASCII throughout — digits, sign, decimal point, exponent
+   * marker — so one character range test covers it, and the JDK parser still owns the grammar and the
+   * error message for everything else.</p>
+   *
+   * <p>Server output is ASCII, so this fires only on a literal the caller supplied: an offline decode,
+   * a text COPY stream, or a {@link String} bound to a numeric parameter.</p>
+   *
+   * <p>Signals with the parsers' own {@link NumberFormatException} rather than an
+   * {@link SQLException}, so a call site slots it into the {@code try} it already wraps the parse in
+   * and keeps its own error message — which differs per caller (a scalar reports a failed conversion,
+   * an array leaf reports a bad element).</p>
+   *
+   * @param text the literal about to be parsed
+   * @throws NumberFormatException if {@code text} contains a character outside ASCII
+   */
+  static void requireAsciiLiteral(String text) {
+    for (int i = 0, len = text.length(); i < len; i++) {
+      if (text.charAt(i) > 0x7f) {
+        throw new NumberFormatException("non-ASCII character at index " + i);
+      }
+    }
   }
 
   /**

@@ -48,8 +48,8 @@ import java.util.TreeSet;
  *
  * <p>The exclusions are codec classes with no standalone decode surface: the {@code *ArrayLeafCodec} array
  * element machinery (exercised transitively when {@code int4[]}/{@code text[]} decode), and a small set of
- * codecs that either forward to another codec or have no pinned built-in type to fuzz. Each is named with
- * its reason; a stale exclusion (a class that no longer exists) fails the test too.
+ * codecs that have no pinned built-in type to fuzz. Each is named with its reason; a stale exclusion (a
+ * class that no longer exists) fails the test too.
  */
 class JazzerCodecDecodeCoverageArchTest {
 
@@ -57,7 +57,6 @@ class JazzerCodecDecodeCoverageArchTest {
 
   // Concrete codecs with no standalone decode-robustness target, each with the reason it needs none.
   private static final Set<String> EXCLUDED = new TreeSet<>(Arrays.asList(
-      "DomainCodec",    // forwards decode to its base codec; the base is covered by the scalar family
       "PGobjectCodec",  // generic fallback for custom PGobject types; no pinned built-in type to fuzz
       "FallbackCodec",  // last-resort codec for an unknown OID; no pinned type
       "TextLikeCodec",  // text-send codec-less types (refcursor, extensions); resolved dynamically, no OID

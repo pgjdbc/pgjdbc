@@ -49,31 +49,31 @@ class JazzerCodecCoverageArchTest {
 
   @Test
   void generatedModelCoversEveryReadableBuiltinScalar() {
-    // Expected: one target per readable (oid, format) of every built-in scalar codec, plus the offset-aware
-    // sibling for each binary target. Derived straight from the registry and the capability predicates.
+    // Expected: one target per readable (oid, format) of every built-in scalar codec. The binary target
+    // decodes from both offset 0 and a non-zero offset internally, so there is no separate offset target.
+    // Derived straight from the registry and the capability predicates.
     Set<String> expected = new TreeSet<>();
     for (Map.Entry<Integer, Codec> entry : OfflineCodecs.defaultRegistry().builtinCodecsByOid()
         .entrySet()) {
       int oid = entry.getKey();
       Codec codec = entry.getValue();
       if (CodecFormatSupport.canReadBinary(codec)) {
-        expected.add(key(oid, Format.BINARY, false));
-        expected.add(key(oid, Format.BINARY, true));
+        expected.add(key(oid, Format.BINARY));
       }
       if (CodecFormatSupport.canReadText(codec)) {
-        expected.add(key(oid, Format.TEXT, false));
+        expected.add(key(oid, Format.TEXT));
       }
     }
     assertFalse(expected.isEmpty(), "the built-in scalar codec registry is empty; nothing to generate");
 
     Set<String> actual = new TreeSet<>();
     for (Target target : ScalarDecodeRobustnessModel.targets()) {
-      actual.add(key(target.oid(), target.format(), target.offsetVariant()));
+      actual.add(key(target.oid(), target.format()));
     }
 
     assertEquals(expected, actual,
         "ScalarDecodeRobustnessModel must emit one target per readable (oid, format) of every built-in scalar "
-            + "codec, plus a binary-offset sibling -- no codec silently filtered out, no spurious target.");
+            + "codec -- no codec silently filtered out, no spurious target.");
   }
 
   @Test
@@ -115,7 +115,7 @@ class JazzerCodecCoverageArchTest {
         "Hand-written targets claim to read OIDs with no built-in codec. Fix the OID in the registration.");
   }
 
-  private static String key(int oid, Format format, boolean offsetVariant) {
-    return oid + ":" + format + (offsetVariant ? ":offset" : "");
+  private static String key(int oid, Format format) {
+    return oid + ":" + format;
   }
 }

@@ -20,7 +20,8 @@ import java.util.Map;
  * boundaries, and -- for probing rounding and overflow in {@code getByte}/{@code getShort}/{@code
  * getInt}/{@code getLong} -- values sitting exactly on and just around each integer type's minimum and
  * maximum (including the {@code x.5} half-way points that decide whether a coercion rounds past the
- * boundary).
+ * boundary). {@link #LEXICAL} covers the spellings a text literal can take for a value the driver has
+ * seen before, and {@link #MALFORMED} the literals a text parser must refuse.
  *
  * <p>Meant to be reused across modules -- the differential backward-compat oracle, fuzzers, and ordinary
  * coercion tests -- so the same edge cases are exercised everywhere.
@@ -45,6 +46,23 @@ public final class NumericEdgeCases {
   /** Values on and around each integer type's min/max, including {@code x.5} rounding points. */
   public static final List<EdgeCase> INTEGER_BOUNDARIES =
       Collections.unmodifiableList(integerBoundaries());
+
+  /**
+   * Literals that spell out a small value in a form other than its canonical text: a signed zero, a leading
+   * zero, an explicit plus, a trailing fractional zero, an exponent. The server normalizes them on input, so
+   * these only reach the driver's own text parser -- through a literal cast, {@code setObject} with a
+   * {@link String}, or a fuzzer seed.
+   */
+  public static final List<EdgeCase> LEXICAL = Collections.unmodifiableList(lexical());
+
+  /**
+   * Literals no {@code numeric} parser accepts: the empty string and non-ASCII look-alikes of a digit and a
+   * minus sign, which additionally walk the multi-byte path of whatever charset decodes the wire text.
+   *
+   * <p>Deliberately absent from {@link #ALL}: every other list holds literals that cast cleanly, and callers
+   * rely on that. Use this one for the refusal side only.
+   */
+  public static final List<EdgeCase> MALFORMED = Collections.unmodifiableList(malformed());
 
   /** Every case, in a stable order. */
   public static final List<EdgeCase> ALL = Collections.unmodifiableList(all());
@@ -107,19 +125,52 @@ public final class NumericEdgeCases {
   }
 
   private static void addBoundary(List<EdgeCase> out, String label, BigDecimal min, BigDecimal max) {
-    // Around the maximum: exact, one past (clear overflow), and the fractional points that decide
-    // whether a coercion rounds up over the boundary.
+    // Around the maximum: exact, one step either way (clear overflow one side, clear success the other),
+    // and the fractional points that decide whether a coercion rounds up over the boundary.
     out.add(at(label + "_max", max));
     out.add(at(label + "_max_plus_1", max.add(ONE)));
     out.add(at(label + "_max_plus_0_4", max.add(FOUR_TENTHS)));
     out.add(at(label + "_max_plus_0_5", max.add(HALF)));
+    out.add(at(label + "_max_minus_1", max.subtract(ONE)));
+    out.add(at(label + "_max_minus_0_4", max.subtract(FOUR_TENTHS)));
     out.add(at(label + "_max_minus_0_5", max.subtract(HALF)));
     // Around the minimum, mirrored (rounding away from zero pushes past the boundary).
     out.add(at(label + "_min", min));
     out.add(at(label + "_min_minus_1", min.subtract(ONE)));
     out.add(at(label + "_min_minus_0_4", min.subtract(FOUR_TENTHS)));
     out.add(at(label + "_min_minus_0_5", min.subtract(HALF)));
+    out.add(at(label + "_min_plus_1", min.add(ONE)));
+    out.add(at(label + "_min_plus_0_4", min.add(FOUR_TENTHS)));
     out.add(at(label + "_min_plus_0_5", min.add(HALF)));
+  }
+
+  private static List<EdgeCase> lexical() {
+    List<EdgeCase> out = new ArrayList<>();
+    out.add(spelled("lexical_zero", "0"));
+    out.add(spelled("lexical_minus_zero", "-0"));
+    out.add(spelled("lexical_leading_zero", "01"));
+    out.add(spelled("lexical_explicit_plus", "+1"));
+    out.add(spelled("lexical_trailing_fraction_zero", "1.0"));
+    out.add(spelled("lexical_exponent", "1e0"));
+    return out;
+  }
+
+  private static List<EdgeCase> malformed() {
+    List<EdgeCase> out = new ArrayList<>();
+    out.add(new EdgeCase("malformed_empty", "", null));
+    // U+FF11 U+FF12 U+FF13, fullwidth one, two, three.
+    out.add(new EdgeCase("malformed_non_ascii_digits", "１２３", null));
+    // U+2212, the typographic minus that is not the ASCII hyphen-minus.
+    out.add(new EdgeCase("malformed_non_ascii_minus", "−1", null));
+    return out;
+  }
+
+  /**
+   * A case whose literal is written out rather than derived from the value, so an alternative spelling
+   * survives into the read side while the bind side still carries the value it denotes.
+   */
+  private static EdgeCase spelled(String name, String literal) {
+    return new EdgeCase(name, literal, new BigDecimal(literal));
   }
 
   private static EdgeCase at(String name, BigDecimal value) {
@@ -132,6 +183,7 @@ public final class NumericEdgeCases {
     out.addAll(BASIC);
     out.addAll(PRECISION);
     out.addAll(INTEGER_BOUNDARIES);
+    out.addAll(LEXICAL);
     return out;
   }
 

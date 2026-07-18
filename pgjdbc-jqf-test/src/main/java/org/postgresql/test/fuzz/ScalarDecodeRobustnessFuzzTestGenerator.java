@@ -113,10 +113,10 @@ public final class ScalarDecodeRobustnessFuzzTestGenerator {
         .append(" * wire format feeds adversarial bytes to the decoder and asserts it either decodes or"
             + " refuses with a").append(NL)
         .append(" * {@code SQLException}, never leaking an unchecked exception. A binary-readable codec gets"
-            + " a whole-array").append(NL)
-        .append(" * {@code _binary} target and an offset-aware {@code _binaryOffset} sibling (the"
-            + " {@code byte[] + off + len}").append(NL)
-        .append(" * path); a text-readable one gets a {@code _text} target that decodes the raw bytes,"
+            + " a single").append(NL)
+        .append(" * {@code _binary} target that decodes from both offset 0 and a non-zero offset and asserts"
+            + " the two").append(NL)
+        .append(" * agree; a text-readable one gets a {@code _text} target that decodes the raw bytes,"
             + " reaching invalid-UTF-8").append(NL)
         .append(" * wires. A guided parameter is a {@code byte[]} drawn by {@link PgValueArgumentsFactory}. A"
             + " single-byte").append(NL)
@@ -142,13 +142,9 @@ public final class ScalarDecodeRobustnessFuzzTestGenerator {
       sb.append("  void ").append(target.methodName()).append("(byte[] payload) {").append(NL)
           .append("    CodecFuzzSupport.decodeScalarTextBytesExpectingNoLeak(payload, ")
           .append(target.oid()).append(");").append(NL);
-    } else if (target.offsetVariant()) {
-      sb.append("  void ").append(target.methodName()).append("(byte[] payload) {").append(NL)
-          .append("    CodecFuzzSupport.decodeScalarBinarySliceExpectingNoLeak(payload, ")
-          .append(target.oid()).append(");").append(NL);
     } else {
       sb.append("  void ").append(target.methodName()).append("(byte[] payload) {").append(NL)
-          .append("    CodecFuzzSupport.decodeScalarBinaryExpectingNoLeak(payload, ")
+          .append("    CodecFuzzSupport.decodeScalarBinaryOffsetInvariant(payload, ")
           .append(target.oid()).append(");").append(NL);
     }
     sb.append("  }").append(NL);
@@ -158,12 +154,10 @@ public final class ScalarDecodeRobustnessFuzzTestGenerator {
   // CodecFuzzSupport.singleByteBinaryDomain() rather than a guided @FuzzTest. Only binary targets are
   // enumerated, so both engines' generated classes stay identical for these methods.
   private static void appendEnumeratedMethod(StringBuilder sb, Target target) {
-    String helper = target.offsetVariant()
-        ? "decodeSingleByteBinarySlice" : "decodeSingleByteBinary";
     sb.append("  @ParameterizedTest").append(NL)
         .append("  @MethodSource(\"org.postgresql.fuzzkit.CodecFuzzSupport#singleByteBinaryDomain\")").append(NL)
         .append("  void ").append(target.methodName()).append("(byte[] data) {").append(NL)
-        .append("    CodecFuzzSupport.").append(helper).append("(data, ")
+        .append("    CodecFuzzSupport.decodeSingleByteBinaryOffsetInvariant(data, ")
         .append(target.oid()).append(");").append(NL)
         .append("  }").append(NL);
   }
@@ -173,16 +167,14 @@ public final class ScalarDecodeRobustnessFuzzTestGenerator {
     String summary;
     if (target.enumeratedByteDomain()) {
       summary = "Exhaustive binary decode of " + subject
-          + " over its whole single-byte wire domain" + (target.offsetVariant() ? " at a non-zero offset" : "")
+          + " over its whole single-byte wire domain at offset 0 and a non-zero offset"
           + "; every wire must decode without leaking, and the ASCII subset to its own character.";
     } else if (target.format() == Format.TEXT) {
       summary = "Adversarial text decode of " + subject
           + " from raw bytes; must not leak an unchecked exception.";
-    } else if (target.offsetVariant()) {
-      summary = "Adversarial binary decode of " + subject
-          + " at a non-zero offset; must not leak unchecked.";
     } else {
-      summary = "Adversarial binary decode of " + subject + "; must not leak an unchecked exception.";
+      summary = "Adversarial binary decode of " + subject
+          + " at offset 0 and a non-zero offset; must not leak unchecked and both must agree.";
     }
     sb.append("  /** ").append(summary).append(" */").append(NL);
   }

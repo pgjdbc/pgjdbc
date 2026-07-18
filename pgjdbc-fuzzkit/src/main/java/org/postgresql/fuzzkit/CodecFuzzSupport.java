@@ -63,6 +63,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.stream.Stream;
@@ -2067,6 +2068,100 @@ public final class CodecFuzzSupport {
           + quoteLiteral(literal), leak);
     }
     reencodeExpectingNoLeak(decoded, type, ctx, Format.TEXT);
+    assertDecodeTextSliceOffsetInvariant(literal, type, ctx);
+  }
+
+  /**
+   * The strong form of {@link #decodeTextExpectingNoLeak}, for a literal whose outcome is known: decoding
+   * {@code literal} as {@code type} in the text format must refuse with an {@link SQLException}. Returning a
+   * value fails just as loudly as leaking an unchecked exception -- a parser that accepts a literal no
+   * {@code <type>_in} accepts has invented a value the server can never have sent.
+   *
+   * <p>Use it for a curated malformed literal (a catalogue's {@code MALFORMED} list); the arbitrary strings a
+   * fuzzer composes go through {@link #decodeTextExpectingNoLeak}, since most of them are simply unknown
+   * rather than known-bad.
+   *
+   * @param literal the literal the decoder must refuse
+   * @param type the backend type to decode the literal as
+   * @param ctx the offline codec context, which must resolve {@code type}
+   */
+  public static void decodeTextExpectingRefusal(String literal, PgType type, CodecContext ctx) {
+    RawValue raw = RawValue.text(literal.getBytes(StandardCharsets.UTF_8));
+    @Nullable Object decoded;
+    try {
+      decoded = Codecs.decode(raw, type, ctx, Object.class);
+    } catch (SQLException refused) {
+      return;
+    } catch (RuntimeException leak) {
+      throw new AssertionError("text decode of t" + type.getOid() + " leaked "
+          + leak.getClass().getName() + " (expected SQLException) on malformed literal "
+          + quoteLiteral(literal), leak);
+    }
+    throw new AssertionError("text decode of t" + type.getOid() + " accepted malformed literal "
+        + quoteLiteral(literal) + " and returned " + decoded + "; it must refuse with an SQLException");
+  }
+
+  // Leading canary chars prepended to the value in assertDecodeTextSliceOffsetInvariant so one decode of
+  // the char[] slice overload runs from a non-zero offset; U+FFFF (a noncharacter no scalar text value
+  // begins with) so a decoder that ignores the offset and reads from index 0 sees a foreign char rather
+  // than the value.
+  private static final char[] TEXT_CANARY = {'\uFFFF', '\uFFFF', '\uFFFF'};
+
+  // Holds the char[]-slice decodeText overload -- the in-place form container codecs call for each element,
+  // bound, or field -- to offset-invariance: decoding the same literal from a char[] at offset 0 and at the
+  // canary offset must refuse together or return equal values. Skips a codec that cannot read text. The
+  // String-form text decode is exercised by decodeTextExpectingNoLeak itself; this adds the offset
+  // arithmetic of the slice overload, which the top-level String path never reaches.
+  private static void assertDecodeTextSliceOffsetInvariant(String literal, PgType type, CodecContext ctx) {
+    Codec codec;
+    try {
+      codec = ctx.resolveCodec(type.getOid());
+    } catch (SQLException cannotResolve) {
+      return;
+    }
+    if (!CodecFormatSupport.canReadText(codec)) {
+      return;
+    }
+    TextCodec text = (TextCodec) codec;
+    char[] chars = literal.toCharArray();
+    @Nullable Object atZero =
+        decodeTextSliceCapturing(text, chars, 0, chars.length, type, ctx, literal, "offset 0");
+
+    char[] shifted = new char[TEXT_CANARY.length + chars.length];
+    System.arraycopy(TEXT_CANARY, 0, shifted, 0, TEXT_CANARY.length);
+    System.arraycopy(chars, 0, shifted, TEXT_CANARY.length, chars.length);
+    @Nullable Object atOffset = decodeTextSliceCapturing(text, shifted, TEXT_CANARY.length, chars.length,
+        type, ctx, literal, "offset " + TEXT_CANARY.length);
+
+    boolean refusedAtZero = atZero == REFUSED;
+    boolean refusedAtOffset = atOffset == REFUSED;
+    if (refusedAtZero != refusedAtOffset) {
+      throw new AssertionError("text slice decode of t" + type.getOid() + " changed outcome with the value "
+          + "offset on literal " + quoteLiteral(literal));
+    }
+    if (refusedAtZero) {
+      return;
+    }
+    if (!valueEquals(atZero, atOffset)) {
+      throw new AssertionError("text slice decode of t" + type.getOid() + " changed value with the value "
+          + "offset: offset 0 -> " + describeValue(atZero) + " but offset " + TEXT_CANARY.length + " -> "
+          + describeValue(atOffset) + " on literal " + quoteLiteral(literal));
+    }
+  }
+
+  // Decodes the char[] slice at (offset, length) via the decodeText slice overload, returning the value
+  // (possibly null) or REFUSED on a clean SQLException; an unchecked leak becomes an AssertionError.
+  private static @Nullable Object decodeTextSliceCapturing(TextCodec text, char[] buffer, int offset,
+      int length, PgType type, CodecContext ctx, String literal, String where) {
+    try {
+      return text.decodeText(buffer, offset, length, type, ctx);
+    } catch (SQLException refused) {
+      return REFUSED;
+    } catch (RuntimeException leak) {
+      throw new AssertionError("text slice decode at " + where + " of t" + type.getOid() + " leaked "
+          + leak.getClass().getName() + " (expected only SQLException) on literal " + quoteLiteral(literal),
+          leak);
+    }
   }
 
   /**
@@ -2091,67 +2186,136 @@ public final class CodecFuzzSupport {
    * robustness gap for the campaign to report, not a per-value contract breach for this oracle to
    * translate.
    *
-   * <p>This decodes the whole array from offset 0. The offset-aware sibling
-   * {@link #decodeBinarySliceExpectingNoLeak} fuzzes the {@code byte[] + off + len} path independently, so
-   * the two decode arithmetics stay separate targets rather than being conflated here.
+   * <p>The decode is run twice from the same {@code data}: once from offset 0 in a buffer that is exactly
+   * the value ({@code offset + length == buffer.length}), and once at a non-zero offset in
+   * {@code [0xFF, 0xFF, 0xFF] ++ data} with the value again flush against the buffer end. Both runs must
+   * agree -- refuse together, or decode to {@link #valueEquals equal} values -- which folds the old
+   * separate offset target into this one and turns a silently-wrong offset into a comparison failure, not
+   * just a leak. Keeping both runs flush against the buffer end preserves the over-read check the offset
+   * target was built for: a read past the value's end runs off the array rather than into trailing slack,
+   * so it surfaces as the {@link ArrayIndexOutOfBoundsException} this oracle converts to an
+   * {@link AssertionError}. The leading {@code 0xFF} canary catches a decoder that ignores the value
+   * offset and reads from index 0. The rendered form ({@code getString}) is held to the same
+   * offset-invariance.
    *
    * @param data the arbitrary bytes to decode as a binary wire value
    * @param type the backend type to decode the bytes as
    * @param ctx the offline codec context, which must resolve {@code type}
    */
-  public static void decodeBinaryExpectingNoLeak(byte[] data, PgType type, CodecContext ctx) {
-    @Nullable Object decoded;
-    try {
-      decoded = Codecs.decode(RawValue.binary(data), type, ctx, Object.class);
-    } catch (SQLException refused) {
-      // Expected: malformed bytes refuse per value.
-      return;
-    } catch (RuntimeException leak) {
-      throw new AssertionError("binary decode of t" + type.getOid() + " leaked "
-          + leak.getClass().getName() + " (expected only SQLException) on bytes "
-          + hexPrefix(data), leak);
+  public static void decodeBinaryOffsetInvariant(byte[] data, PgType type, CodecContext ctx) {
+    @Nullable Object atZero = decodeBinaryCapturing(data, 0, data.length, type, ctx, "offset 0");
+
+    byte[] shifted = new byte[BINARY_CANARY.length + data.length];
+    System.arraycopy(BINARY_CANARY, 0, shifted, 0, BINARY_CANARY.length);
+    System.arraycopy(data, 0, shifted, BINARY_CANARY.length, data.length);
+    @Nullable Object atOffset =
+        decodeBinaryCapturing(shifted, BINARY_CANARY.length, data.length, type, ctx,
+            "offset " + BINARY_CANARY.length);
+
+    boolean refusedAtZero = atZero == REFUSED;
+    boolean refusedAtOffset = atOffset == REFUSED;
+    if (refusedAtZero != refusedAtOffset) {
+      throw new AssertionError("binary decode of t" + type.getOid() + " changed outcome with the value "
+          + "offset: offset 0 " + (refusedAtZero ? "refused" : "returned " + describeValue(atZero))
+          + " but offset " + BINARY_CANARY.length + " "
+          + (refusedAtOffset ? "refused" : "returned " + describeValue(atOffset)) + " on bytes "
+          + hexPrefix(data));
     }
-    reencodeExpectingNoLeak(decoded, type, ctx, Format.BINARY);
+    if (refusedAtZero) {
+      // Both refused: malformed bytes refuse per value, and there is no value to compare or re-encode.
+      return;
+    }
+    if (!valueEquals(atZero, atOffset)) {
+      throw new AssertionError("binary decode of t" + type.getOid() + " changed value with the value "
+          + "offset: offset 0 -> " + describeValue(atZero) + " but offset " + BINARY_CANARY.length
+          + " -> " + describeValue(atOffset) + " on bytes " + hexPrefix(data));
+    }
+    reencodeExpectingNoLeak(atZero, type, ctx, Format.BINARY);
+    assertDecodeAsStringOffsetInvariant(data, shifted, type, ctx);
   }
 
-  /**
-   * The offset-aware sibling of {@link #decodeBinaryExpectingNoLeak}: the same no-leak invariant, but the
-   * decode runs from a non-zero offset in a canary buffer with no trailing slack, so it exercises the
-   * {@code byte[] + off + len} path independently of the whole-array path.
-   *
-   * <p>The bytes sit flush against the end of {@code [0xFF, 0xFF, 0xFF] ++ data}, decoded at offset 3 with
-   * length {@code data.length}, so {@code offset + length == buffer.length}. This has two effects. First,
-   * it exercises the decoders' offset arithmetic -- a codec that ignores the value offset reads the
-   * {@code 0xFF} canary instead of the value. Second, it leaves no trailing bytes for an over-read to land
-   * in, so a read past the value's end runs off the array end and surfaces as the
-   * {@link ArrayIndexOutOfBoundsException} this method already converts to an {@link AssertionError}.
-   *
-   * @param data the arbitrary bytes to decode as a binary wire value, placed at a non-zero offset
-   * @param type the backend type to decode the bytes as
-   * @param ctx the offline codec context, which must resolve {@code type}
-   */
-  public static void decodeBinarySliceExpectingNoLeak(byte[] data, PgType type, CodecContext ctx) {
-    byte[] buffer = new byte[BINARY_CANARY.length + data.length];
-    System.arraycopy(BINARY_CANARY, 0, buffer, 0, BINARY_CANARY.length);
-    System.arraycopy(data, 0, buffer, BINARY_CANARY.length, data.length);
-    @Nullable Object decoded;
+  // A distinguished non-null return of decodeBinaryCapturing/decodeAsStringCapturing meaning "the decode
+  // refused with an SQLException", kept apart from a legitimate null decode result so the two runs can be
+  // compared for refuse-together as well as decode-to-equal.
+  private static final Object REFUSED = new Object();
+
+  // Decodes the value at (buffer, offset, length) as binary, returning the decoded value (possibly null),
+  // or REFUSED when the codec refuses with a clean SQLException. An unchecked leak becomes an
+  // AssertionError naming the type OID, the offset the run used, and a hex prefix of the value bytes.
+  private static @Nullable Object decodeBinaryCapturing(byte[] buffer, int offset, int length, PgType type,
+      CodecContext ctx, String where) {
     try {
-      decoded = Codecs.decode(RawValue.of(Format.BINARY, buffer, BINARY_CANARY.length, data.length),
-          type, ctx, Object.class);
+      return Codecs.decode(RawValue.of(Format.BINARY, buffer, offset, length), type, ctx, Object.class);
     } catch (SQLException refused) {
-      // Expected: malformed bytes refuse per value.
-      return;
+      return REFUSED;
     } catch (RuntimeException leak) {
-      throw new AssertionError("binary slice decode of t" + type.getOid() + " leaked "
+      throw new AssertionError("binary decode at " + where + " of t" + type.getOid() + " leaked "
           + leak.getClass().getName() + " (expected only SQLException) on bytes "
-          + hexPrefix(data), leak);
+          + hexPrefix(sliceValue(buffer, offset, length)), leak);
     }
-    reencodeExpectingNoLeak(decoded, type, ctx, Format.BINARY);
   }
 
-  // Leading canary bytes prepended to the value in decodeBinarySliceExpectingNoLeak so the decode runs
-  // from a non-zero offset; 0xFF (not 0x00) so a codec that mistakenly reads from index 0 sees a non-zero
-  // byte rather than a benign zero.
+  // Holds getString to the same offset-invariance: decodeAsString of the value at offset 0 and at the
+  // canary offset must refuse together or render equal strings. Skips a codec that cannot read binary
+  // (nothing to render); resolution here cannot fail, since decodeBinaryOffsetInvariant already decoded.
+  private static void assertDecodeAsStringOffsetInvariant(byte[] data, byte[] shifted, PgType type,
+      CodecContext ctx) {
+    Codec codec;
+    try {
+      codec = ctx.resolveCodec(type.getOid());
+    } catch (SQLException cannotResolve) {
+      return;
+    }
+    if (!CodecFormatSupport.canReadBinary(codec)) {
+      return;
+    }
+    BinaryCodec binary = (BinaryCodec) codec;
+    @Nullable Object atZero = decodeAsStringCapturing(binary, data, 0, data.length, type, ctx, "offset 0");
+    @Nullable Object atOffset = decodeAsStringCapturing(binary, shifted, BINARY_CANARY.length,
+        data.length, type, ctx, "offset " + BINARY_CANARY.length);
+
+    boolean refusedAtZero = atZero == REFUSED;
+    boolean refusedAtOffset = atOffset == REFUSED;
+    if (refusedAtZero != refusedAtOffset) {
+      throw new AssertionError("binary getString of t" + type.getOid() + " changed outcome with the value "
+          + "offset on bytes " + hexPrefix(data));
+    }
+    if (refusedAtZero) {
+      return;
+    }
+    if (!valueEquals(atZero, atOffset)) {
+      throw new AssertionError("binary getString of t" + type.getOid() + " changed with the value offset: "
+          + "offset 0 -> " + describeValue(atZero) + " but offset " + BINARY_CANARY.length + " -> "
+          + describeValue(atOffset) + " on bytes " + hexPrefix(data));
+    }
+  }
+
+  // Renders the value at (buffer, offset, length) via getString, returning the String (possibly null), or
+  // REFUSED when the codec refuses with a clean SQLException; an unchecked leak becomes an AssertionError.
+  private static @Nullable Object decodeAsStringCapturing(BinaryCodec binary, byte[] buffer, int offset,
+      int length, PgType type, CodecContext ctx, String where) {
+    try {
+      return binary.decodeAsString(buffer, offset, length, type, ctx);
+    } catch (SQLException refused) {
+      return REFUSED;
+    } catch (RuntimeException leak) {
+      throw new AssertionError("binary getString at " + where + " of t" + type.getOid() + " leaked "
+          + leak.getClass().getName() + " (expected only SQLException) on bytes "
+          + hexPrefix(sliceValue(buffer, offset, length)), leak);
+    }
+  }
+
+  // The value bytes a run decoded, extracted from its buffer for an error message. The offset-0 run passes
+  // its whole buffer; the canary run's value is the tail after the prefix.
+  private static byte[] sliceValue(byte[] buffer, int offset, int length) {
+    byte[] value = new byte[length];
+    System.arraycopy(buffer, offset, value, 0, length);
+    return value;
+  }
+
+  // Leading canary bytes prepended to the value in decodeBinaryOffsetInvariant so one decode runs from a
+  // non-zero offset; 0xFF (not 0x00) so a codec that mistakenly reads from index 0 sees a non-zero byte
+  // rather than a benign zero.
   private static final byte[] BINARY_CANARY = {(byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
 
   // --- Idempotence partition: which scalar decodes round-trip their value exactly -----------------
@@ -2256,14 +2420,14 @@ public final class CodecFuzzSupport {
   }
 
   private static boolean valueEquals(@Nullable Object a, @Nullable Object b) {
-    if (a instanceof byte[] && b instanceof byte[]) {
-      return Arrays.equals((byte[]) a, (byte[]) b);
-    }
     if (a instanceof BigDecimal && b instanceof BigDecimal) {
       // Compare by value: re-encoding may normalise the scale (1E+2 vs 100) without losing the value.
       return ((BigDecimal) a).compareTo((BigDecimal) b) == 0;
     }
-    return a == null ? b == null : a.equals(b);
+    // Objects.deepEquals compares arrays by content (an array codec returns a fresh Object[]/int[]/... per
+    // decode, so the two offset runs are distinct instances), byte[] via Arrays.equals, and every other
+    // value via equals -- which folds Double/Float NaN to equal. Nulls compare equal to nulls.
+    return Objects.deepEquals(a, b);
   }
 
   private static String describeValue(@Nullable Object v) {
@@ -2271,7 +2435,7 @@ public final class CodecFuzzSupport {
   }
 
   /**
-   * A scalar-by-OID convenience over {@link #decodeBinaryExpectingNoLeak}: builds the offline scalar
+   * A scalar-by-OID convenience over {@link #decodeBinaryOffsetInvariant}: builds the offline scalar
    * {@link PgType} and built-in context for {@code oid}, so a generated target need not construct either.
    * The type name is cosmetic -- resolution runs off the pinned OID -- so a synthetic {@code "t" + oid} is
    * used.
@@ -2279,19 +2443,8 @@ public final class CodecFuzzSupport {
    * @param data the arbitrary bytes to decode as a binary wire value
    * @param oid the pinned built-in scalar OID to decode the bytes as
    */
-  public static void decodeScalarBinaryExpectingNoLeak(byte[] data, int oid) {
-    decodeBinaryExpectingNoLeak(data, scalar(oid, "t" + oid, 'X'), builtins());
-  }
-
-  /**
-   * A scalar-by-OID convenience over {@link #decodeBinarySliceExpectingNoLeak}: the offset-aware sibling of
-   * {@link #decodeScalarBinaryExpectingNoLeak}, building the same offline scalar type and context.
-   *
-   * @param data the arbitrary bytes to decode as a binary wire value, placed at a non-zero offset
-   * @param oid the pinned built-in scalar OID to decode the bytes as
-   */
-  public static void decodeScalarBinarySliceExpectingNoLeak(byte[] data, int oid) {
-    decodeBinarySliceExpectingNoLeak(data, scalar(oid, "t" + oid, 'X'), builtins());
+  public static void decodeScalarBinaryOffsetInvariant(byte[] data, int oid) {
+    decodeBinaryOffsetInvariant(data, scalar(oid, "t" + oid, 'X'), builtins());
   }
 
   /**
@@ -2303,6 +2456,17 @@ public final class CodecFuzzSupport {
    */
   public static void decodeScalarTextExpectingNoLeak(String literal, int oid) {
     decodeTextExpectingNoLeak(literal, scalar(oid, "t" + oid, 'X'), builtins());
+  }
+
+  /**
+   * The scalar-by-OID convenience over {@link #decodeTextExpectingRefusal}, mirroring
+   * {@link #decodeScalarTextExpectingNoLeak}.
+   *
+   * @param literal the literal the scalar text decoder must refuse
+   * @param oid the pinned built-in scalar OID to decode the literal as
+   */
+  public static void decodeScalarTextExpectingRefusal(String literal, int oid) {
+    decodeTextExpectingRefusal(literal, scalar(oid, "t" + oid, 'X'), builtins());
   }
 
   /**
@@ -2372,32 +2536,26 @@ public final class CodecFuzzSupport {
   }
 
   /**
-   * Decodes one input from a single-byte type's finite binary domain ({@link #singleByteBinaryDomain}) and
-   * asserts the full {@code charout} contract: {@code 0x00} decodes to the empty string, {@code 0x01..0x7F}
-   * to that one character, and {@code 0x80..0xFF} to its backslash-octal escape ({@code 0x80 -> "\200"}). A
-   * decoded value is put through {@link #reencodeExpectingNoLeak} like the fuzz targets. The decode never
-   * refuses, so an {@link SQLException} is itself a failure.
+   * Decodes one input from a single-byte type's finite binary domain ({@link #singleByteBinaryDomain}) at
+   * offset 0 and again at a non-zero canary offset, and asserts the full {@code charout} contract on both:
+   * {@code 0x00} decodes to the empty string, {@code 0x01..0x7F} to that one character, and
+   * {@code 0x80..0xFF} to its backslash-octal escape ({@code 0x80 -> "\200"}). Asserting the same expected
+   * value at both offsets is the enumerated-domain form of the offset-invariance
+   * {@link #decodeBinaryOffsetInvariant} checks for the sampling targets: a decoder that ignores the value
+   * offset reads the {@code 0xFF} canary and produces the wrong character. A decoded value is put through
+   * {@link #reencodeExpectingNoLeak} like the fuzz targets. The decode never refuses, so an
+   * {@link SQLException} is itself a failure.
    *
    * @param data the one-byte wire to decode
    * @param oid the pinned single-byte built-in scalar OID ({@code Oid.CHAR})
    */
-  public static void decodeSingleByteBinary(byte[] data, int oid) {
+  public static void decodeSingleByteBinaryOffsetInvariant(byte[] data, int oid) {
     assertSingleByteDecode(RawValue.binary(data), data, oid, "");
-  }
-
-  /**
-   * The offset-aware sibling of {@link #decodeSingleByteBinary}: places the wire after a non-zero canary
-   * prefix and decodes the {@code byte[] + off + len} slice, so a decoder that ignores the offset is caught.
-   *
-   * @param data the wire bytes (empty or one byte) to decode
-   * @param oid the pinned single-byte built-in scalar OID ({@code Oid.CHAR})
-   */
-  public static void decodeSingleByteBinarySlice(byte[] data, int oid) {
     byte[] buffer = new byte[BINARY_CANARY.length + data.length];
     System.arraycopy(BINARY_CANARY, 0, buffer, 0, BINARY_CANARY.length);
     System.arraycopy(data, 0, buffer, BINARY_CANARY.length, data.length);
     assertSingleByteDecode(RawValue.of(Format.BINARY, buffer, BINARY_CANARY.length, data.length),
-        data, oid, "slice ");
+        data, oid, "offset ");
   }
 
   private static void assertSingleByteDecode(RawValue raw, byte[] wire, int oid, String pathLabel) {

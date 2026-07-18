@@ -5,8 +5,13 @@
 
 package org.postgresql.test.jazzer;
 
+import org.postgresql.api.codec.CodecContext;
+import org.postgresql.api.codec.Codecs;
+import org.postgresql.api.codec.Format;
 import org.postgresql.core.Oid;
+import org.postgresql.fuzzkit.CodecFuzzSupport;
 import org.postgresql.fuzzkit.ScalarDecodeRobustnessModel;
+import org.postgresql.jdbc.PgType;
 import org.postgresql.test.data.EdgeCase;
 import org.postgresql.test.data.Int4EdgeCases;
 import org.postgresql.test.data.Int8EdgeCases;
@@ -222,6 +227,13 @@ final class JazzerFuzzTargets {
     targets.add(new Target(container, "rangeBinary", only(Oid.INT4), none(), JazzerFuzzTargets::noSeeds));
     targets.add(new Target(container, "multirangeBinary", only(Oid.INT4), none(),
         JazzerFuzzTargets::noSeeds));
+    // The int4 domain forwards its binary decode to the int4 base codec, so it is seeded with a valid int4
+    // wire per boundary value. domainBinary's sole parameter is byte[], so the seed reaches the target as the
+    // raw wire (see JazzerSeedCorpusGenerator): the offset-invariant oracle then decodes each wire from both
+    // offset 0 and a non-zero offset, and a DomainCodec that drops the value offset is caught in regression,
+    // not only under a live campaign.
+    targets.add(new Target(container, "domainBinary", only(Oid.INT4), none(),
+        JazzerFuzzTargets::int4BinaryWires));
 
     // --- JazzerTextLiteralDecodeFuzzTest: adversarial container/scalar text literal. -----------------
     Class<?> literal = JazzerTextLiteralDecodeFuzzTest.class;
@@ -234,6 +246,10 @@ final class JazzerFuzzTargets {
     targets.add(new Target(literal, "rangeLiteral", none(), only(Oid.INT4), JazzerFuzzTargets::noSeeds));
     targets.add(new Target(literal, "multirangeLiteral", none(), only(Oid.INT4),
         JazzerFuzzTargets::noSeeds));
+    // The int4 domain forwards its text decode to the int4 base codec, so it is seeded from the int4
+    // boundary literals -- the same catalogue the scalar int4_text target uses.
+    targets.add(new Target(literal, "domainLiteral", none(), only(Oid.INT4),
+        () -> literalStrings(Int4EdgeCases.ALL)));
 
     // The coercion-reader matrix is generated per scalar into Generated<Type>CoercionReaderFuzzTest (see
     // CoercionReaderFuzzTestGenerator); like the other generated families it is not registered here, and
@@ -289,6 +305,21 @@ final class JazzerFuzzTargets {
     List<NamedArg> out = new ArrayList<>();
     for (String[] entry : POINT_LITERALS) {
       out.add(new NamedArg(entry[0], entry[1]));
+    }
+    return out;
+  }
+
+  /** A canonical int4 binary wire per boundary value, as the domainBinary target's raw {@code byte[]} seed. */
+  private static List<NamedArg> int4BinaryWires() throws SQLException {
+    PgType int4 = CodecFuzzSupport.scalar(Oid.INT4, "int4", 'N');
+    CodecContext ctx = CodecFuzzSupport.builtins();
+    List<NamedArg> out = new ArrayList<>();
+    for (EdgeCase edgeCase : Int4EdgeCases.ALL) {
+      Object value = edgeCase.value();
+      if (value == null) {
+        continue;
+      }
+      out.add(new NamedArg(edgeCase.name(), Codecs.encode(value, int4, ctx, Format.BINARY).toByteArray()));
     }
     return out;
   }

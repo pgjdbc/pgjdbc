@@ -13,12 +13,12 @@ import java.util.Locale;
 /**
  * The single naming function for the generated scalar decode-robustness targets, shared by every engine's
  * source generator and seed generator. Each engine derives a target's identity from the same
- * {@code (oid, format, offsetVariant)} triple, so a generated method name and the seed directory an engine
- * resolves for it never drift.
+ * {@code (oid, format)} pair, so a generated method name and the seed directory an engine resolves for it
+ * never drift.
  *
  * <p>A name is the PostgreSQL type name of the OID (for example {@code int4}, {@code numeric}) plus a
- * format suffix: {@code _binary}, {@code _binaryOffset} (the {@code byte[] + off + len} sibling), or
- * {@code _text}. The type name comes from {@link Oid#toString(int)}, which is keyed by OID, so the two OIDs
+ * format suffix: {@code _binary} or {@code _text}. The type name comes from {@link Oid#toString(int)},
+ * which is keyed by OID, so the two OIDs
  * that share {@code BitCodec} still get distinct names ({@code bit} for 1560, {@code varbit} for 1562) --
  * unlike {@link org.postgresql.api.codec.Codec#getPrimaryTypeName()}, whose value is a single name-resolution key
  * both OIDs report as {@code bit}. An OID with no {@code Oid} constant falls back to {@code oid<n>}.
@@ -33,16 +33,11 @@ public final class ScalarDecodeRobustnessNaming {
    *
    * @param oid the built-in scalar OID
    * @param format the wire format the target decodes
-   * @param offsetVariant whether this is the offset-aware ({@code byte[] + off + len}) sibling; only a
-   *     binary target has one
-   * @return the method name, for example {@code int4_binary}, {@code int4_binaryOffset}, {@code text_text}
+   * @return the method name, for example {@code int4_binary}, {@code text_text}
    */
-  public static String methodName(int oid, Format format, boolean offsetVariant) {
+  public static String methodName(int oid, Format format) {
     String base = typeName(oid);
-    if (format == Format.TEXT) {
-      return base + "_text";
-    }
-    return offsetVariant ? base + "_binaryOffset" : base + "_binary";
+    return format == Format.TEXT ? base + "_text" : base + "_binary";
   }
 
   /** The PostgreSQL type name for {@code oid}, or {@code oid<n>} when no {@code Oid} constant names it. */

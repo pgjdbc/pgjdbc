@@ -157,9 +157,12 @@ public final class Int8Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
       return NumberParser.getFastLong(data, 0, data.length(), Long.MIN_VALUE, Long.MAX_VALUE);
     } catch (NumberFormatException fast) {
       // The fast path rejects a leading '+', whitespace, or an out-of-range value; fall back to the
-      // String parser, which owns the parse and the error message.
+      // String parser, which owns the parse and the error message. It also rejects a non-ASCII digit,
+      // which Long.parseLong would otherwise accept, so screen for that here rather than on the fast
+      // path, where a well-formed value would pay for the scan.
       String text = data.toString();
       try {
+        NumberDecoders.requireAsciiLiteral(text);
         return Long.parseLong(text.trim());
       } catch (NumberFormatException e) {
         throw Exceptions.cannotConvertValue("long", text, e);
@@ -234,6 +237,7 @@ public final class Int8Codec implements PrimitiveBinaryEncoder, PrimitiveBinaryD
     }
     if (value instanceof String) {
       try {
+        NumberDecoders.requireAsciiLiteral((String) value);
         return Long.parseLong(((String) value).trim());
       } catch (NumberFormatException e) {
         throw Exceptions.cannotConvertValue("long", value, e);

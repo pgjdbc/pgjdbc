@@ -27,6 +27,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -146,7 +147,10 @@ class ServerCoercionTruthTest {
   // its text form, so a numeric value read through it must narrow to float/double the same way the
   // server's numeric->float4/float8 cast does. There is no live column that resolves to it and still
   // casts to float on the server, so this pins the fallback directly: the value's canonical numeric
-  // text is fed to FallbackCodec offline and compared with the server's own cast of the same literal.
+  // text is fed to FallbackCodec offline and compared with the server's own cast of the same value.
+  // Canonical, not the raw literal: a codec only ever sees text the server emitted, so a lexical variant
+  // such as '-0' is normalized first -- otherwise the oracle would score the driver against a spelling
+  // the server never sends (Float.parseFloat("-0") is -0.0f, while '-0'::numeric is already 0).
   // Only the float/double narrowings are checked -- the fallback's int accessors parse the text and so
   // refuse a fractional value the server would round, a divergence outside this narrowing oracle.
   // ---------------------------------------------------------------------------------------------
@@ -162,24 +166,35 @@ class ServerCoercionTruthTest {
       if (e.value() == null) {
         continue;
       }
-      out.add(Arguments.of(e.name(), e.literal(), Coercion.FLOAT));
-      out.add(Arguments.of(e.name(), e.literal(), Coercion.DOUBLE));
+      out.add(Arguments.of(e.name(), e.literal(), canonical(e), Coercion.FLOAT));
+      out.add(Arguments.of(e.name(), e.literal(), canonical(e), Coercion.DOUBLE));
     }
     return out;
   }
 
-  @ParameterizedTest(name = "fallback/{2}/{0}")
+  /**
+   * The canonical numeric text of the case's value. For most cases this is the literal itself; for a
+   * lexical variant ({@code -0}, {@code 01}, {@code 1e0}) it is the text the server would have sent back,
+   * which is what a codec reading server output actually sees.
+   */
+  private static String canonical(EdgeCase e) {
+    return ((BigDecimal) e.value()).toPlainString();
+  }
+
+  @ParameterizedTest(name = "fallback/{3}/{0}")
   @MethodSource("fallbackFloatingCases")
-  void fallbackNumericFloatingMatchesServerCast(String caseName, String literal, Coercion c) {
+  void fallbackNumericFloatingMatchesServerCast(String caseName, String literal, String canonical,
+      Coercion c) {
     Outcome server = read(c.reader, "SELECT '" + literal + "'::numeric::" + c.castType);
-    Outcome client = readFallback(literal, c);
+    Outcome client = readFallback(canonical, c);
     assertEquals(server.refused, client.refused, () ->
-        "fallback numeric '" + literal + "' get" + c + ": client refusal must match the server "
-            + "numeric->" + c.castType + " cast (client=" + client + ", server=" + server + ")");
+        "fallback numeric '" + canonical + "' get" + c + ": client refusal must match the server "
+            + "numeric->" + c.castType + " cast of '" + literal + "' (client=" + client
+            + ", server=" + server + ")");
     if (!server.refused) {
       assertEquals(server.value, client.value, () ->
-          "fallback numeric '" + literal + "' get" + c + " must equal the server numeric->"
-              + c.castType + " cast");
+          "fallback numeric '" + canonical + "' get" + c + " must equal the server numeric->"
+              + c.castType + " cast of '" + literal + "'");
     }
   }
 

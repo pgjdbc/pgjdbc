@@ -179,10 +179,12 @@ final class Xid8ArrayLeafCodec implements ArrayLeafCodec {
     char[] chars = cur.tokenChars();
     int off = cur.tokenOffset();
     int len = cur.tokenLength();
+    String text = new String(chars, off, len);
     try {
-      return Long.parseUnsignedLong(new String(chars, off, len));
+      NumberDecoders.requireAsciiLiteral(text);
+      return Long.parseUnsignedLong(text);
     } catch (NumberFormatException e) {
-      throw Exceptions.invalidArrayElement("xid8", new String(chars, off, len), e);
+      throw Exceptions.invalidArrayElement("xid8", text, e);
     }
   }
 

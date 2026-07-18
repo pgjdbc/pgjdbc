@@ -129,6 +129,7 @@ public final class Xid8Codec implements StreamingBinaryCodec, PrimitiveBinaryDec
   public long decodeAsLong(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     String text = data.toString();
     try {
+      NumberDecoders.requireAsciiLiteral(text);
       return Long.parseUnsignedLong(text.trim());
     } catch (NumberFormatException e) {
       throw Exceptions.cannotConvertValue("xid8", text, e);
@@ -214,6 +215,7 @@ public final class Xid8Codec implements StreamingBinaryCodec, PrimitiveBinaryDec
     }
     if (value instanceof String) {
       try {
+        NumberDecoders.requireAsciiLiteral((String) value);
         return Long.parseUnsignedLong(((String) value).trim());
       } catch (NumberFormatException e) {
         throw Exceptions.cannotConvertValue("xid8", value, e);

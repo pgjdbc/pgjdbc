@@ -167,6 +167,7 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
       throws SQLException {
     String s = new String(data, offset, length, ctx.getCharset());
     try {
+      NumberDecoders.requireAsciiLiteral(s);
       return Integer.parseInt(s.trim());
     } catch (NumberFormatException e) {
       throw Exceptions.cannotConvertValue("int", s, e);
@@ -177,6 +178,7 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
   public int decodeAsInt(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     String text = data.toString();
     try {
+      NumberDecoders.requireAsciiLiteral(text);
       return Integer.parseInt(text.trim());
     } catch (NumberFormatException e) {
       throw Exceptions.cannotConvertValue("int", text, e);
@@ -188,6 +190,7 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
       throws SQLException {
     String s = new String(data, offset, length, ctx.getCharset());
     try {
+      NumberDecoders.requireAsciiLiteral(s);
       return Long.parseLong(s.trim());
     } catch (NumberFormatException e) {
       throw Exceptions.cannotConvertValue("long", s, e);
@@ -198,6 +201,7 @@ public final class FallbackCodec implements PrimitiveBinaryDecoder, PrimitiveTex
   public long decodeAsLong(CharSequence data, TypeDescriptor type, CodecContext ctx) throws SQLException {
     String text = data.toString();
     try {
+      NumberDecoders.requireAsciiLiteral(text);
       return Long.parseLong(text.trim());
     } catch (NumberFormatException e) {
       throw Exceptions.cannotConvertValue("long", text, e);

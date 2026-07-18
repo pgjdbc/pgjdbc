@@ -26,6 +26,36 @@ plugins {
     id("com.github.vlsi.gradle-extensions")
     id("com.github.vlsi.ide")
     id("com.github.vlsi.stage-vote-release") apply false
+    id("info.solidsoft.pitest")
+}
+
+// Local scaffolding for codec mutation testing (not for commit).
+// Run: ./gradlew :postgresql:pitest -Pcodec.pitest
+if (providers.gradleProperty("codec.pitest").isPresent) {
+    configure<info.solidsoft.gradle.pitest.PitestPluginExtension> {
+        pitestVersion.set("1.15.8")
+        junit5PluginVersion.set("1.2.1")
+        targetClasses.set(setOf("org.postgresql.jdbc.codec.*", "org.postgresql.api.codec.*"))
+        targetTests.set(setOf("org.postgresql.jdbc.codec.*", "org.postgresql.api.codec.*"))
+        excludedTestClasses.set(setOf(
+            "org.postgresql.jdbc.codec.ArrayParityMatrixTest",
+            "org.postgresql.jdbc.codec.ArrayWalkerCatchAllTest",
+            "org.postgresql.jdbc.codec.CodecIntegrationTest",
+            "org.postgresql.jdbc.codec.CodecParityRoundtripTest",
+            "org.postgresql.jdbc.codec.CompositeEscapingTest",
+            "org.postgresql.jdbc.codec.CompositeFormatTest",
+            "org.postgresql.jdbc.codec.NestingDepthTest",
+            "org.postgresql.jdbc.codec.ParityHarness",
+            "org.postgresql.jdbc.codec.ServerCoercionTruthTest",
+            "org.postgresql.jdbc.codec.ServerTruthOracle",
+            "org.postgresql.jdbc.codec.ServerTruthOracleTest"
+        ))
+        threads.set(4)
+        outputFormats.set(setOf("XML", "HTML"))
+        timestampedReports.set(false)
+        useClasspathFile.set(true)
+        verbose.set(false)
+    }
 }
 
 buildscript {

@@ -187,10 +187,14 @@ final class Int2ArrayLeafCodec implements ArrayLeafCodec {
     try {
       return (short) NumberParser.getFastLong(chars, off, len, Short.MIN_VALUE, Short.MAX_VALUE);
     } catch (NumberFormatException fast) {
+      // Screened on the fallback only: the fast path is ASCII-strict already, so a well-formed
+      // element never pays for the scan.
+      String text = new String(chars, off, len);
       try {
-        return Short.parseShort(new String(chars, off, len));
+        NumberDecoders.requireAsciiLiteral(text);
+        return Short.parseShort(text);
       } catch (NumberFormatException e) {
-        throw Exceptions.invalidArrayElement("int2", new String(chars, off, len), e);
+        throw Exceptions.invalidArrayElement("int2", text, e);
       }
     }
   }

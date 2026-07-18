@@ -28,8 +28,9 @@ import java.util.TreeSet;
  * <p>Each built-in scalar leaf codec ({@link OfflineCodecs#defaultRegistry()}{@code .builtinCodecsByOid()})
  * yields, in OID order:
  * <ul>
- *   <li>a {@code _binary} target and its offset-aware {@code _binaryOffset} sibling when the codec can read
- *       binary ({@link CodecFormatSupport#canReadBinary});</li>
+ *   <li>a {@code _binary} target when the codec can read binary
+ *       ({@link CodecFormatSupport#canReadBinary}); it drives the decoder from both offset 0 and a non-zero
+ *       offset and asserts the two agree, so there is no separate offset target;</li>
  *   <li>a {@code _text} target when the codec can read text ({@link CodecFormatSupport#canReadText}).</li>
  * </ul>
  * Containers (array, composite, range, multirange) resolve by {@code typtype}, not by OID, so they are
@@ -40,8 +41,9 @@ import java.util.TreeSet;
  * {@link Target#enumeratedByteDomain() enumerated}: its wire domain is finite (the empty wire plus every
  * byte {@code 0x00..0xFF}), so each engine's generator emits it as an exhaustive {@code @ParameterizedTest}
  * over that domain rather than a sampling {@code @FuzzTest}. The {@code (oid, format)} coverage is unchanged
- * -- the target still exists for {@code (char, binary)} and its offset sibling -- only its generated shape
- * differs.
+ * -- the target still exists for {@code (char, binary)} -- only its generated shape differs; the exhaustive
+ * test asserts the same expected character at offset 0 and at a non-zero offset, so it keeps the
+ * offset-invariance the sampling targets check.
  *
  * <p>An override marks a target {@link Target#disabled() disabled} with a reason the generator turns into a
  * JUnit {@code @Disabled}. The table is empty today: every generated target runs. It is the hook for a
@@ -57,26 +59,24 @@ public final class ScalarDecodeRobustnessModel {
   }
 
   /**
-   * One generated target: its OID, wire format, offset variant, name, disabled state, and whether its wire
-   * domain is finite and enumerable ({@link #enumeratedByteDomain()}).
+   * One generated target: its OID, wire format, name, disabled state, and whether its wire domain is finite
+   * and enumerable ({@link #enumeratedByteDomain()}).
    */
   public static final class Target {
     private final int oid;
     private final String typeName;
     private final Format format;
-    private final boolean offsetVariant;
     private final boolean enumeratedByteDomain;
     private final String methodName;
     private final String disabledReason;
 
-    Target(int oid, String typeName, Format format, boolean offsetVariant, boolean enumeratedByteDomain,
+    Target(int oid, String typeName, Format format, boolean enumeratedByteDomain,
         String disabledReason) {
       this.oid = oid;
       this.typeName = typeName;
       this.format = format;
-      this.offsetVariant = offsetVariant;
       this.enumeratedByteDomain = enumeratedByteDomain;
-      this.methodName = ScalarDecodeRobustnessNaming.methodName(oid, format, offsetVariant);
+      this.methodName = ScalarDecodeRobustnessNaming.methodName(oid, format);
       this.disabledReason = disabledReason;
     }
 
@@ -90,10 +90,6 @@ public final class ScalarDecodeRobustnessModel {
 
     public Format format() {
       return format;
-    }
-
-    public boolean offsetVariant() {
-      return offsetVariant;
     }
 
     /**
@@ -132,12 +128,11 @@ public final class ScalarDecodeRobustnessModel {
       String typeName = ScalarDecodeRobustnessNaming.typeName(oid);
       if (CodecFormatSupport.canReadBinary(codec)) {
         boolean enumerable = enumerableBinaryDomain(oid);
-        targets.add(new Target(oid, typeName, Format.BINARY, false, enumerable, disabledReason(oid, Format.BINARY)));
-        targets.add(new Target(oid, typeName, Format.BINARY, true, enumerable, disabledReason(oid, Format.BINARY)));
+        targets.add(new Target(oid, typeName, Format.BINARY, enumerable, disabledReason(oid, Format.BINARY)));
       }
       if (CodecFormatSupport.canReadText(codec)) {
         // The text wire is an arbitrary-length literal, so it is never a finite enumerable domain.
-        targets.add(new Target(oid, typeName, Format.TEXT, false, false, disabledReason(oid, Format.TEXT)));
+        targets.add(new Target(oid, typeName, Format.TEXT, false, disabledReason(oid, Format.TEXT)));
       }
     }
     requireUniqueMethodNames(targets);

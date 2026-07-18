@@ -214,9 +214,9 @@ public final class DomainCodec implements StreamingBinaryCodec, StreamingTextCod
       Codec baseCodec = getBaseCodec(type, ctx);
       TypeDescriptor baseType = getBaseType(type, ctx);
       if (baseCodec instanceof BinaryCodec) {
-        return ((BinaryCodec) baseCodec).decodeBinaryAs(data, 0, data.length, baseType, targetClass, ctx);
+        return ((BinaryCodec) baseCodec).decodeBinaryAs(data, offset, length, baseType, targetClass, ctx);
       }
-      return FallbackCodec.INSTANCE.decodeBinaryAs(data, 0, data.length, baseType, targetClass, ctx);
+      return FallbackCodec.INSTANCE.decodeBinaryAs(data, offset, length, baseType, targetClass, ctx);
     } finally {
       CodecDepth.exit();
     }
