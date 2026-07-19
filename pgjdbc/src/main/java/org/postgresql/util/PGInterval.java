@@ -160,8 +160,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
           Double.parseDouble(compoundMatcher.group(6) + compoundMatcher.group(9)));
       return true;
     } catch (NumberFormatException e) {
-      throw new PSQLException(GT.tr("Conversion of interval failed"),
-          PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE, e);
+      throw new PSQLException(GT.tr("Cannot convert value to {0}: {1}", "interval", value),
+          PSQLState.BAD_DATETIME_FORMAT, e);
     }
   }
 
@@ -207,8 +207,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     }
     if (SQL_STANDARD_YEAR_MONTH_CANDIDATE.matcher(value).matches()
         || SQL_STANDARD_DAY_TIME_CANDIDATE.matcher(value).matches()) {
-      throw new PSQLException(GT.tr("Conversion of interval failed"),
-          PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE);
+      throw new PSQLException(GT.tr("Cannot convert value to {0}: {1}", "interval", value),
+          PSQLState.BAD_DATETIME_FORMAT);
     }
     // Just a simple '0'
     if (!postgresFormat && value.length() == 3 && value.charAt(2) == '0') {

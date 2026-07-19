@@ -6,6 +6,7 @@
 package org.postgresql.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
@@ -91,12 +92,26 @@ class PGIntervalTest {
 
   @Test
   void rejectsMalformedSqlStandardInterval() {
-    assertThrows(SQLException.class, () -> new PGInterval("1-"));
+    PSQLException error = assertThrows(PSQLException.class, () -> new PGInterval("1-"));
+
+    assertEquals(PSQLState.BAD_DATETIME_FORMAT.getState(), error.getSQLState());
+    assertEquals("Cannot convert value to interval: 1-", error.getMessage());
   }
 
   @Test
   void rejectsMalformedSqlStandardDayTimeInterval() {
     assertThrows(SQLException.class, () -> new PGInterval("1 2:3"));
+  }
+
+  @Test
+  void rejectsOutOfRangeSqlStandardInterval() {
+    String value = "999999999999999999999-1";
+
+    PSQLException error = assertThrows(PSQLException.class, () -> new PGInterval(value));
+
+    assertEquals(PSQLState.BAD_DATETIME_FORMAT.getState(), error.getSQLState());
+    assertEquals("Cannot convert value to interval: " + value, error.getMessage());
+    assertInstanceOf(NumberFormatException.class, error.getCause());
   }
 
   @ParameterizedTest
