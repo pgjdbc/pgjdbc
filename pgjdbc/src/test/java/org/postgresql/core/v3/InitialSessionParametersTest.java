@@ -30,56 +30,56 @@ import java.util.stream.Stream;
 class InitialSessionParametersTest {
 
   static Stream<Arguments> matrix() {
-    int v8_3 = ServerVersion.v8_3.getVersionNum();
-    int v8_4 = ServerVersion.v8_4.getVersionNum();
-    int v9_0 = ServerVersion.v9_0.getVersionNum();
-    int v9_4 = ServerVersion.v9_4.getVersionNum();
-    int v11 = ServerVersion.v11.getVersionNum();
-    int v12 = ServerVersion.v12.getVersionNum();
-    int v14 = ServerVersion.v14.getVersionNum();
+    int pg83 = ServerVersion.v8_3.getVersionNum();
+    int pg84 = ServerVersion.v8_4.getVersionNum();
+    int pg90 = ServerVersion.v9_0.getVersionNum();
+    int pg94 = ServerVersion.v9_4.getVersionNum();
+    int pg11 = ServerVersion.v11.getVersionNum();
+    int pg12 = ServerVersion.v12.getVersionNum();
+    int pg14 = ServerVersion.v14.getVersionNum();
 
     return Stream.of(
         // --- no application_name: extra_float_digits is decided from the real server version alone
-        arguments("no-app, server 8.4", null, v8_4, null, "[]",
+        arguments("no-app, server 8.4", null, pg84, null, "[]",
             "SET extra_float_digits = 2"),
-        arguments("no-app, server 9.0", null, v9_0, null, "[]",
+        arguments("no-app, server 9.0", null, pg90, null, "[]",
             "SET extra_float_digits = 3"),
-        arguments("no-app, server 11", null, v11, null, "[]",
+        arguments("no-app, server 11", null, pg11, null, "[]",
             "SET extra_float_digits = 3"),
-        arguments("no-app, server 12", null, v12, null, "[]", ""),
-        arguments("no-app, server 14", null, v14, null, "[]", ""),
+        arguments("no-app, server 12", null, pg12, null, "[]", ""),
+        arguments("no-app, server 14", null, pg14, null, "[]", ""),
 
-        // #4306, current behavior. With 9.0 <= assumeMinServerVersion < 12 the driver knows before
-        // connecting that extra_float_digits belongs in the startup packet, yet it still sends the
-        // value as a post-authentication SET, which a restricted session (Greenplum retrieve mode)
-        // rejects. The fix will move it into the packet: this row then becomes packet
-        // "[extra_float_digits=3]" and an empty SET.
-        arguments("#4306: assume 9.3, server 9.4", "9.3", v9_4, null, "[]",
-            "SET extra_float_digits = 3"),
+        // #4306: with 9.0 <= assumeMinServerVersion < 12 the driver knows before connecting that
+        // extra_float_digits belongs in the startup packet, so it sends it there instead of as a
+        // post-authentication SET that a restricted session (Greenplum retrieve mode) would reject.
+        arguments("#4306: assume 9.3, server 9.4", "9.3", pg94, null,
+            "[extra_float_digits=3]", ""),
 
-        // --- application_name delivered in the startup packet (assumed version >= 9.0)
-        arguments("app in packet, server 14", "9.0", v14, "myapp",
+        // --- application_name delivered in the startup packet (assumed version >= 9.0);
+        //     extra_float_digits joins it there when the assumed version is also below 12
+        arguments("app in packet, server 14", "9.0", pg14, "myapp",
+            "[extra_float_digits=3, application_name=myapp]", ""),
+        arguments("app in packet, server 11", "9.0", pg11, "myapp",
+            "[extra_float_digits=3, application_name=myapp]", ""),
+        arguments("app in packet, assume 14, server 14", "14", pg14, "myapp",
             "[application_name=myapp]", ""),
-        arguments("app in packet, server 11", "9.0", v11, "myapp",
-            "[application_name=myapp]", "SET extra_float_digits = 3"),
-        arguments("app in packet, assume 14, server 14", "14", v14, "myapp",
-            "[application_name=myapp]", ""),
-        // assumed version above the real one: the packet still carries application_name, and the
-        // real 8.x version drives extra_float_digits. Documents current (asymmetric) behavior.
-        arguments("app in packet, assume 9.4, server 8.4", "9.4", v8_4, "myapp",
-            "[application_name=myapp]", "SET extra_float_digits = 2"),
+        // assumed version above the real one: the assumed 9.4 puts extra_float_digits=3 in the
+        // packet, so the real 8.x server receives 3 rather than 2. This matches 42.7.3, where any
+        // assumeMinServerVersion >= 9.0 pinned extra_float_digits=3 in the startup packet.
+        arguments("app in packet, assume 9.4, server 8.4", "9.4", pg84, "myapp",
+            "[extra_float_digits=3, application_name=myapp]", ""),
 
         // --- application_name delivered via SET (assumed version < 9.0 but real server supports it)
-        arguments("app via set, server 14", null, v14, "myapp", "[]",
+        arguments("app via set, server 14", null, pg14, "myapp", "[]",
             "SET application_name = 'myapp'"),
-        arguments("app via set + efd, server 11", null, v11, "myapp", "[]",
+        arguments("app via set + efd, server 11", null, pg11, "myapp", "[]",
             "SET extra_float_digits = 3;SET application_name = 'myapp'"),
-        arguments("app via set + efd, assume 8.4, server 9.0", "8.4", v9_0, "myapp", "[]",
+        arguments("app via set + efd, assume 8.4, server 9.0", "8.4", pg90, "myapp", "[]",
             "SET extra_float_digits = 3;SET application_name = 'myapp'"),
         // real server too old for application_name: only extra_float_digits is sent
-        arguments("app dropped, server 8.4", null, v8_4, "myapp", "[]",
+        arguments("app dropped, server 8.4", null, pg84, "myapp", "[]",
             "SET extra_float_digits = 2"),
-        arguments("app dropped, assume 8.4, server 8.3", "8.4", v8_3, "myapp", "[]",
+        arguments("app dropped, assume 8.4, server 8.3", "8.4", pg83, "myapp", "[]",
             "SET extra_float_digits = 2")
     );
   }

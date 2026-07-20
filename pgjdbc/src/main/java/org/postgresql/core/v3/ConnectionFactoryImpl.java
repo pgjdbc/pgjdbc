@@ -136,12 +136,27 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
 
     /**
+     * Whether {@code extra_float_digits} is delivered in the startup packet. It can be only when the
+     * assumed version is in [9.0, 12): 8.x uses a different value (2), and from v12 the parameter is
+     * a no-op. Delivering it in the packet avoids a post-authentication {@code SET} that a
+     * restricted session (for example, Greenplum retrieve mode) would reject (issue #4306).
+     */
+    private boolean extraFloatDigitsInStartupPacket() {
+      int assumeVersionNum = assumeVersion.getVersionNum();
+      return assumeVersionNum >= ServerVersion.v9_0.getVersionNum()
+          && assumeVersionNum < ServerVersion.v12.getVersionNum();
+    }
+
+    /**
      * The version-sensitive parameters to place in the startup packet, decided from the assumed
-     * version alone. Setting {@code application_name} this early makes it available for connection
-     * logging from the first message.
+     * version alone. Setting them this early avoids a post-authentication round trip and makes
+     * {@code application_name} available for connection logging from the first message.
      */
     List<StartupParam> startupPacketParameters() {
-      List<StartupParam> params = new ArrayList<>(1);
+      List<StartupParam> params = new ArrayList<>(2);
+      if (extraFloatDigitsInStartupPacket()) {
+        params.add(new StartupParam("extra_float_digits", "3"));
+      }
       if (applicationNameInStartupPacket()) {
         params.add(new StartupParam("application_name", castNonNull(applicationName)));
       }
@@ -159,10 +174,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         throws SQLException {
       StringBuilder sb = new StringBuilder();
 
-      // extra_float_digits is never placed in the startup packet, so it is decided purely from the
-      // real server version. Before v12 the driver pins it so float text round-trips; from v12 the
-      // server already uses shortest-round-trip output, so nothing is sent.
-      if (serverVersionNum < ServerVersion.v12.getVersionNum()) {
+      // Before v12 the driver pins extra_float_digits so float text round-trips; from v12 the
+      // server already uses shortest-round-trip output, so nothing is sent. When the assumed
+      // version already placed it in the startup packet there is nothing to do here; otherwise it
+      // is decided from the real server version.
+      if (!extraFloatDigitsInStartupPacket() && serverVersionNum < ServerVersion.v12.getVersionNum()) {
         if (serverVersionNum < ServerVersion.v9_0.getVersionNum()) {
           // server version < 9.0 so 8.x or less
           sb.append("SET extra_float_digits = 2");

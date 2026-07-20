@@ -2,6 +2,11 @@
 Notable changes since version 42.0.0, read the complete [History of Changes](https://jdbc.postgresql.org/documentation/changelog.html).
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
+## [Unreleased]
+
+### Fixed
+* fix: send `extra_float_digits` in the startup packet when `assumeMinServerVersion` is at least 9.0 and below 12, instead of a post-authentication `SET`, so sessions that reject arbitrary SQL connect and the parameter costs no extra round trip. This restores the 42.7.3 behavior of pinning `extra_float_digits=3` for `assumeMinServerVersion` from 9.0 to 11.x [Discussion #4306](https://github.com/pgjdbc/pgjdbc/discussions/4306)
+
 ## [42.7.13] (2026-07-06)
 
 ### Added
