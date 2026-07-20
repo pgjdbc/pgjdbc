@@ -23,8 +23,7 @@ import java.util.stream.Stream;
  * most one channel: the startup packet, decided before connecting from
  * {@code assumeMinServerVersion}, or a post-authentication {@code SET}, decided from the version
  * the server reports. A parameter goes through neither when the connected server needs no value
- * or has no such parameter. Only {@code application_name} takes the packet;
- * {@code extra_float_digits} takes the {@code SET} whenever the server needs it.
+ * or has no such parameter.
  *
  * <p>{@link #matrix()} states that placement as a table. A row fixes an assumed version, a server
  * version, and an {@code application_name}, and gives both outcomes: what the startup packet
@@ -61,19 +60,24 @@ class InitialSessionParametersTest {
         argumentSet("no assumed version, server 14", null, pg14, null,
             "[]", ""),
 
-        // Discussion #4306. An assumeMinServerVersion between 9.0 and 12 tells the driver before it
-        // connects that extra_float_digits will be needed, and the value still goes out as a
-        // post-authentication SET, which a restricted session such as Greenplum retrieve mode
-        // rejects. The next commit moves it into the packet, and this row becomes a packet of
-        // "[extra_float_digits=3]" with an empty SET.
+        // Discussion #4306: with assumeMinServerVersion at least 9.0 and below 12, the driver
+        // knows before it connects that extra_float_digits belongs in the startup packet, and
+        // sends it there rather than in a SET that a restricted session, such as Greenplum
+        // retrieve mode, cannot run.
         argumentSet("#4306: assumed 9.3, server 9.4", "9.3", pg94, null,
-            "[]", "SET extra_float_digits = 3"),
+            "[extra_float_digits=3]", ""),
 
-        // --- application_name goes in the startup packet from an assumed 9.0 up
+        // --- application_name goes in the startup packet from an assumed 9.0 up;
+        //     extra_float_digits joins it there while the assumed version is also below 12
         argumentSet("assumed 9.0, server 11", "9.0", pg11, "myapp",
-            "[application_name=myapp]", "SET extra_float_digits = 3"),
+            "[extra_float_digits=3, application_name=myapp]", ""),
         argumentSet("assumed 9.0, server 14", "9.0", pg14, "myapp",
-            "[application_name=myapp]", ""),
+            "[extra_float_digits=3, application_name=myapp]", ""),
+        // An assumed 11 is the last major version that puts extra_float_digits in the packet, and
+        // an assumed 12 the first that keeps it out, so a pre-v12 server then gets it through the
+        // SET.
+        argumentSet("assumed 11, server 14", "11", pg14, null,
+            "[extra_float_digits=3]", ""),
         argumentSet("assumed 12, server 11", "12", pg11, "myapp",
             "[application_name=myapp]", "SET extra_float_digits = 3"),
         argumentSet("assumed 14, server 14", "14", pg14, "myapp",
@@ -81,12 +85,13 @@ class InitialSessionParametersTest {
         // The startup packet carries a value verbatim, so a quote and a backslash in
         // application_name reach the server as typed.
         argumentSet("assumed 9.0, server 14, quoted application_name", "9.0", pg14, "a'\\b",
-            "[application_name=a'\\b]", ""),
+            "[extra_float_digits=3, application_name=a'\\b]", ""),
         // The assumed version can overstate the real one, and the packet is built before the real
-        // one is known. The packet still carries application_name, while the real 8.x version
-        // drives extra_float_digits.
+        // one is known. An 8.x server accepts no more than 2, so it refuses this packet. 42.7.3
+        // built the same packet: any assumeMinServerVersion >= 9.0 pinned extra_float_digits=3
+        // there.
         argumentSet("assumed 9.4, server 8.4", "9.4", pg84, "myapp",
-            "[application_name=myapp]", "SET extra_float_digits = 2"),
+            "[extra_float_digits=3, application_name=myapp]", ""),
 
         // --- application_name goes in the SET below an assumed 9.0, where the real server has it
         argumentSet("no assumed version, server 14, application_name", null, pg14, "myapp",
