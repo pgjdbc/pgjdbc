@@ -97,6 +97,112 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
+  /**
+   * Pure decision for the two version-sensitive session parameters — {@code extra_float_digits} and
+   * {@code application_name} — whose delivery has historically been fragile (see issues #3446,
+   * #3475, #3491, #3509, #3678). Each parameter reaches the server through exactly one channel:
+   *
+   * <ul>
+   * <li>the <b>startup packet</b>, chosen from {@code assumeMinServerVersion}, which is all the
+   * driver knows before the connection is established, or</li>
+   * <li>a post-authentication {@code SET}, chosen from the real server version once it is known.</li>
+   * </ul>
+   *
+   * <p>Holding the choice in one place is what keeps a parameter from being sent twice or dropped:
+   * {@link #startupPacketParameters()} and {@link #initialQuerySql(int, boolean)} read the same
+   * decision, so whatever the packet already carries the {@code SET} skips. The class is pure so the
+   * whole placement matrix can be pinned by a unit test rather than rediscovered on every edit.</p>
+   */
+  static final class InitialSessionParameters {
+    private final Version assumeVersion;
+    private final @Nullable String applicationName;
+
+    private InitialSessionParameters(Version assumeVersion, @Nullable String applicationName) {
+      this.assumeVersion = assumeVersion;
+      this.applicationName = applicationName;
+    }
+
+    static InitialSessionParameters of(Version assumeVersion, @Nullable String applicationName) {
+      return new InitialSessionParameters(assumeVersion, applicationName);
+    }
+
+    /**
+     * Whether {@code application_name} is delivered in the startup packet. It can be only when the
+     * assumed version is at least 9.0, since older servers reject the parameter.
+     */
+    private boolean applicationNameInStartupPacket() {
+      return applicationName != null
+          && assumeVersion.getVersionNum() >= ServerVersion.v9_0.getVersionNum();
+    }
+
+    /**
+     * Whether {@code extra_float_digits} is delivered in the startup packet. It can be only when the
+     * assumed version is in [9.0, 12): 8.x uses a different value (2), and from v12 the parameter is
+     * a no-op. Delivering it in the packet avoids a post-authentication {@code SET} that a
+     * restricted session (for example, Greenplum retrieve mode) would reject (issue #4306).
+     */
+    private boolean extraFloatDigitsInStartupPacket() {
+      int assumeVersionNum = assumeVersion.getVersionNum();
+      return assumeVersionNum >= ServerVersion.v9_0.getVersionNum()
+          && assumeVersionNum < ServerVersion.v12.getVersionNum();
+    }
+
+    /**
+     * The version-sensitive parameters to place in the startup packet, decided from the assumed
+     * version alone. Setting them this early avoids a post-authentication round trip and makes
+     * {@code application_name} available for connection logging from the first message.
+     */
+    List<StartupParam> startupPacketParameters() {
+      List<StartupParam> params = new ArrayList<>(2);
+      if (extraFloatDigitsInStartupPacket()) {
+        params.add(new StartupParam("extra_float_digits", "3"));
+      }
+      if (applicationNameInStartupPacket()) {
+        params.add(new StartupParam("application_name", castNonNull(applicationName)));
+      }
+      return params;
+    }
+
+    /**
+     * The {@code SET} statement to run after authentication for whatever the startup packet did not
+     * already deliver, given the real server version, or an empty string when nothing is needed.
+     *
+     * @param serverVersionNum the real server version reported once connected
+     * @param standardConformingStrings escaping context for {@code application_name}
+     */
+    String initialQuerySql(int serverVersionNum, boolean standardConformingStrings)
+        throws SQLException {
+      StringBuilder sb = new StringBuilder();
+
+      // Before v12 the driver pins extra_float_digits so float text round-trips; from v12 the
+      // server already uses shortest-round-trip output, so nothing is sent. When the assumed
+      // version already placed it in the startup packet there is nothing to do here; otherwise it
+      // is decided from the real server version.
+      if (!extraFloatDigitsInStartupPacket() && serverVersionNum < ServerVersion.v12.getVersionNum()) {
+        if (serverVersionNum < ServerVersion.v9_0.getVersionNum()) {
+          // server version < 9.0 so 8.x or less
+          sb.append("SET extra_float_digits = 2");
+        } else {
+          // server version 9.0 - 11.x
+          sb.append("SET extra_float_digits = 3");
+        }
+      }
+
+      // application_name is sent here only when it could not go in the startup packet (assumed
+      // version < 9.0) yet the real server does support it.
+      if (applicationName != null && !applicationNameInStartupPacket()
+          && serverVersionNum >= ServerVersion.v9_0.getVersionNum()) {
+        if (sb.length() != 0) {
+          sb.append(';');
+        }
+        sb.append("SET application_name = '");
+        Utils.escapeLiteral(sb, applicationName, standardConformingStrings);
+        sb.append("'");
+      }
+      return sb.toString();
+    }
+  }
+
   private static final Logger LOGGER = Logger.getLogger(ConnectionFactoryImpl.class.getName());
   private static final int AUTH_REQ_OK = 0;
   @SuppressWarnings("unused")
@@ -464,16 +570,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     paramList.add(new StartupParam("TimeZone", createPostgresTimeZone()));
 
     Version assumeVersion = ServerVersion.from(PGProperty.ASSUME_MIN_SERVER_VERSION.getOrDefault(info));
-
-    // assumeMinServerVersion implies a minimum, not an exact version, so we will set the decimal
-    // digits in runInitialQueries when we know the exact version, if needed.
-
-    // application name is important to set as early as possible for connection logging, we set it immediately
-    // if we can assume the minimum version supports doing so
-    String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
-    if ( appName != null && assumeVersion.getVersionNum() >= ServerVersion.v9_0.getVersionNum() ) {
-      paramList.add(new StartupParam("application_name", appName));
-    }
+    paramList.addAll(InitialSessionParameters
+        .of(assumeVersion, PGProperty.APPLICATION_NAME.getOrDefault(info))
+        .startupPacketParameters());
 
     // probably no need to make sure the assumeVersion is 9.4 or greater. The user really wants replication.
     String replication = PGProperty.REPLICATION.getOrDefault(info);
@@ -1076,36 +1175,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   private static void runInitialQueries(QueryExecutor queryExecutor, Properties info)
       throws SQLException {
 
-    // The version we assumed the server would be prior to connecting, to determine what we have already sent
     Version assumeVersion = ServerVersion.from(PGProperty.ASSUME_MIN_SERVER_VERSION.getOrDefault(info));
-    // The actual version we connected to
-    final int dbVersion = queryExecutor.getServerVersionNum();
-    StringBuilder sb = new StringBuilder();
-
-    if (dbVersion < ServerVersion.v12.getVersionNum()) {
-      if (dbVersion < ServerVersion.v9_0.getVersionNum()) {
-        // server version < 9 so 8.x or less
-        sb.append("SET extra_float_digits = 2");
-      } else {
-        // server version < 12 so 9.0 - 11.x
-        sb.append("SET extra_float_digits = 3");
-      }
-    }
-
-    // Only need to send the application name if it's defined and wasn't already sent as a
-    // startup parameter
-    String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
-    if (appName != null && assumeVersion.getVersionNum() < ServerVersion.v9_0.getVersionNum()
-        && dbVersion >= ServerVersion.v9_0.getVersionNum()) {
-      if (sb.length() != 0) {
-        sb.append(';');
-      }
-      sb.append("SET application_name = '");
-      Utils.escapeLiteral(sb, appName,
-          queryExecutor.getStandardConformingStrings());
-      sb.append("'");
-    }
-    if (sb.length() == 0) {
+    String sql = InitialSessionParameters
+        .of(assumeVersion, PGProperty.APPLICATION_NAME.getOrDefault(info))
+        .initialQuerySql(queryExecutor.getServerVersionNum(),
+            queryExecutor.getStandardConformingStrings());
+    if (sql.isEmpty()) {
       // All the necessary parameters were set in the startup packet
       return;
     }
@@ -1113,11 +1188,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       LOGGER.log(Level.FINEST, " FE: Replication protocol does not allow ''set ...'' commands,"
           + " so skipping the following initial queries: ({0})."
           + " Consider configuring assumeMinServerVersion property so the driver"
-          + " propagates the needed parameters in the startup packet", sb);
+          + " propagates the needed parameters in the startup packet", sql);
       return;
     }
 
-    SetupQueryRunner.run(queryExecutor, sb.toString(), false);
+    SetupQueryRunner.run(queryExecutor, sql, false);
   }
 
   /**
