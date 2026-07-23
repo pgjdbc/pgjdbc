@@ -11,24 +11,21 @@ permissions:
 
 jobs:
   build:
-    name: Submit a Copr build
+    name: Copr build
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out proper version of sources
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
-      - name: Submit the build
-        # See https://github.com/orgs/community/discussions/15452
-        # continue-on-error on the job level still marks the CI checks as failed,
-        # so we use continue-on-error on the step level.
-        # The drawback is that the step and the job display as "fully successful", so it is hard to tell
-        # if it failed or not without digging into the log.
+      - name: Copr build
+        # Keep the Copr check non-blocking (step-level continue-on-error; see
+        # https://github.com/orgs/community/discussions/15452) so it does not block merges,
+        # e.g. while the @pgjdbc/pgjdbc config is outdated. The step still prints the failure
+        # log inline, so a green check no longer hides the details.
         continue-on-error: true
         env:
           COPR_PR_WEBHOOK: https://copr.fedorainfracloud.org/webhooks/custom/55296/cf449c12-03b4-4f5b-ae84-3f5aa1d2b462/postgresql-jdbc/
           COPR_PUSH_WEBHOOK: ${{ secrets.COPR_PUSH_WEBHOOK }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          curl https://raw.githubusercontent.com/praiskup/copr-ci-tooling/main/copr-gh-actions-submit > submit
-          bash submit "$PR_NUMBER"
+        run: bash packaging/rpm/setup-copr/submit-copr.sh "$PR_NUMBER"
