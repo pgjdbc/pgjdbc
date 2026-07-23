@@ -7,11 +7,13 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Field;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
+import org.postgresql.core.TransactionState;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.util.GT;
@@ -88,7 +90,7 @@ public class BatchResultHandler extends ResultHandlerBase {
       resultIndex--;
       // If exception thrown, no need to collect generated keys
       // Note: some generated keys might be secured in generatedKeys
-      if (updateCount > 0 && (getException() == null || isAutoCommit())) {
+      if (updateCount > 0 && (getException() == null || isProgressDurable())) {
         List<List<Tuple>> allGeneratedRows = castNonNull(this.allGeneratedRows, "allGeneratedRows");
         allGeneratedRows.add(latestGeneratedRows);
         if (generatedKeys == null) {
@@ -108,20 +110,33 @@ public class BatchResultHandler extends ResultHandlerBase {
     longUpdateCounts[resultIndex++] = updateCount;
   }
 
-  private boolean isAutoCommit() {
+  /**
+   * Batch progress may be secured — recorded as committed so that a later error reports the earlier
+   * rows as succeeded rather than {@code EXECUTE_FAILED} — only when each statement commits on its
+   * own, that is, the connection is in auto-commit mode with no open transaction. An XA branch keeps
+   * {@code autoCommit=true} while a server-side transaction is open (see
+   * <a href="https://github.com/pgjdbc/pgjdbc/issues/4309">issue #4309</a>), so the flag alone would
+   * secure rows that the transaction manager can still roll back. Requiring
+   * {@link TransactionState#IDLE} also covers a manual {@code BEGIN} issued under auto-commit.
+   *
+   * @return true when progress made so far is durable and can be secured
+   */
+  private boolean isProgressDurable() {
     try {
-      return pgStatement.getConnection().getAutoCommit();
+      BaseConnection connection = pgStatement.getPGConnection();
+      return connection.getAutoCommit()
+          && connection.getTransactionState() == TransactionState.IDLE;
     } catch (SQLException e) {
       // getAutoCommit() throws when the connection is already closed (for instance, the server
-      // terminated the connection in the middle of a batch). There is nothing to commit in that
-      // case, so treat the connection as not auto-committing rather than failing with an assertion.
+      // terminated the connection in the middle of a batch). There is nothing to secure in that
+      // case, so treat progress as not durable rather than failing with an assertion.
       return false;
     }
   }
 
   @Override
   public void secureProgress() {
-    if (isAutoCommit()) {
+    if (isProgressDurable()) {
       committedRows = resultIndex;
       updateGeneratedKeys();
     }
@@ -178,7 +193,7 @@ public class BatchResultHandler extends ResultHandlerBase {
     updateGeneratedKeys();
     SQLException batchException = getException();
     if (batchException != null) {
-      if (isAutoCommit()) {
+      if (isProgressDurable()) {
         // Re-create batch exception since rows after exception might indeed succeed.
         BatchUpdateException newException;
         newException = new BatchUpdateException(
