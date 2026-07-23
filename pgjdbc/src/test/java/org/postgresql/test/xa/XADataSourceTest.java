@@ -7,6 +7,7 @@ package org.postgresql.test.xa;
 
 import static javax.transaction.xa.XAException.XA_RDONLY;
 import static javax.transaction.xa.XAResource.XA_OK;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -14,8 +15,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.TransactionState;
+import org.postgresql.largeobject.LargeObject;
+import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.annotations.tags.Xa;
 import org.postgresql.test.jdbc2.optional.BaseDataSourceTest;
@@ -29,6 +33,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -316,6 +321,41 @@ public class XADataSourceTest {
     xaRes.start(xid, XAResource.TMNOFLAGS);
     xaRes.end(xid, XAResource.TMSUCCESS);
     xaRes.rollback(xid);
+  }
+
+  /**
+   * Large object operations must work inside an active XA branch. Before 42.7.13 {@code start()}
+   * forced {@code autoCommit=false} for the duration of the branch and restored it afterwards, so
+   * {@code LargeObjectManager} saw a transaction. Since #4114 {@code start()} no longer changes
+   * {@code autoCommit}, so it stays {@code true} here even though a transaction is open, and the
+   * manager must look at the transaction state rather than {@code autoCommit} alone.
+   *
+   * @see <a href="https://github.com/pgjdbc/pgjdbc/issues/4309">Issue #4309</a>
+   */
+  @Test
+  void largeObjectWithinXaBranch() throws Exception {
+    Xid xid = new CustomXid(7);
+    byte[] payload = "XA large object payload".getBytes(StandardCharsets.UTF_8);
+
+    xaRes.start(xid, XAResource.TMNOFLAGS);
+    try {
+      // Regression precondition (#4309): the XA branch is active, yet autoCommit stays true, so
+      // LargeObjectManager can no longer rely on getAutoCommit() to detect the surrounding transaction.
+      assertTrue(conn.getAutoCommit(), "XA start() must leave autoCommit unchanged");
+
+      LargeObjectManager lom = ((PGConnection) conn).getLargeObjectAPI();
+      long oid = lom.createLO();
+      try (LargeObject lo = lom.open(oid, LargeObjectManager.READWRITE)) {
+        lo.write(payload);
+        lo.seek(0);
+        assertArrayEquals(payload, lo.read(payload.length),
+            "Large object written and read back within the XA branch must round-trip");
+      }
+    } finally {
+      xaRes.end(xid, XAResource.TMSUCCESS);
+      // Roll back so the large object created above never leaks past the test.
+      xaRes.rollback(xid);
+    }
   }
 
   @Test

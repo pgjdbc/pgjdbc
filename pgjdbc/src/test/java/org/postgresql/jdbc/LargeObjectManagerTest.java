@@ -6,6 +6,8 @@
 package org.postgresql.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -175,6 +177,32 @@ class LargeObjectManagerTest {
       throw t;
     } finally {
       lom.delete(loId);
+    }
+  }
+
+  /**
+   * A genuine auto-commit connection (autoCommit=true and no open transaction) must still refuse
+   * large object operations: the {@code lo_*} handles would be scoped to a transaction that gets
+   * committed away immediately. This pins the negative side of the {@code requireTransaction()}
+   * guard so a future refactoring cannot silently drop it.
+   *
+   * @see <a href="https://github.com/pgjdbc/pgjdbc/issues/4309">Issue #4309</a>
+   */
+  @Test
+  void refusesInAutoCommitModeWithoutTransaction() throws Exception {
+    try (PgConnection con = (PgConnection) TestUtil.openDB()) {
+      assertTrue(con.getAutoCommit(), "Connection is expected to start in auto-commit mode");
+
+      LargeObjectManager lom = con.getLargeObjectAPI();
+
+      PSQLException createException =
+          assertThrows(PSQLException.class, lom::createLO,
+              "createLO() must be refused in auto-commit mode with no open transaction");
+      assertEquals(PSQLState.NO_ACTIVE_SQL_TRANSACTION.getState(), createException.getSQLState(),
+          "SQLState of the auto-commit refusal");
+
+      assertThrows(PSQLException.class, () -> lom.open(1L, LargeObjectManager.READWRITE),
+          "open() must be refused in auto-commit mode with no open transaction");
     }
   }
 

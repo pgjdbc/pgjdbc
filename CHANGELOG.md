@@ -2,6 +2,11 @@
 Notable changes since version 42.0.0, read the complete [History of Changes](https://jdbc.postgresql.org/documentation/changelog.html).
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
+## [Unreleased]
+
+### Fixed
+* fix: `LargeObjectManager` operations now work inside an active XA transaction. Since 42.7.13 an XA branch keeps the caller's `autoCommit=true`, and the guard rejected large objects as if the connection were idle. It now checks the server transaction state (`getTransactionState()`) instead of `autoCommit`, so a genuine auto-commit connection with no open transaction is still refused [Issue #4309](https://github.com/pgjdbc/pgjdbc/issues/4309) [PR #4310](https://github.com/pgjdbc/pgjdbc/pull/4310)
+
 ## [42.7.13] (2026-07-06)
 
 ### Added
