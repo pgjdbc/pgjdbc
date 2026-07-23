@@ -2,6 +2,11 @@
 Notable changes since version 42.0.0, read the complete [History of Changes](https://jdbc.postgresql.org/documentation/changelog.html).
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
+## [Unreleased]
+
+### Fixed
+* fix: batch update counts are no longer secured as committed inside an XA transaction. `BatchResultHandler` treated per-statement progress as durable whenever `autoCommit=true`, but an XA branch keeps `autoCommit=true` while the transaction is open, so a batch that flushed mid-way and then failed could report rolled-back statements as succeeded. Progress is now secured only when no server transaction is open [Issue #4309](https://github.com/pgjdbc/pgjdbc/issues/4309) [PR #4311](https://github.com/pgjdbc/pgjdbc/pull/4311)
+
 ## [42.7.13] (2026-07-06)
 
 ### Added

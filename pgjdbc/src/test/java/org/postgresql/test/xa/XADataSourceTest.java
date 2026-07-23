@@ -29,6 +29,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -316,6 +317,51 @@ public class XADataSourceTest {
     xaRes.start(xid, XAResource.TMNOFLAGS);
     xaRes.end(xid, XAResource.TMSUCCESS);
     xaRes.rollback(xid);
+  }
+
+  /**
+   * A failing batch inside an XA branch must not report any statement as committed. The driver
+   * forces a mid-batch {@code Sync} once its estimated receive buffer (64 KB) fills, and that is the
+   * only path that reaches {@code BatchResultHandler.secureProgress()} while an XA branch is active.
+   * Because the branch keeps {@code autoCommit=true}, the handler used to treat the flushed rows as
+   * committed and leak their update counts as {@code 1} instead of {@code EXECUTE_FAILED}. Nothing is
+   * durable until the transaction manager commits, so every entry must be {@code EXECUTE_FAILED}.
+   *
+   * <p>Each unprepared statement is estimated at 250 bytes, so a few hundred statements guarantee at
+   * least one forced Sync before the failing entry.</p>
+   *
+   * @see <a href="https://github.com/pgjdbc/pgjdbc/issues/4309">Issue #4309</a>
+   */
+  @Test
+  void batchProgressNotSecuredWithinXaBranch() throws Exception {
+    int rows = 400;
+
+    Xid xid = new CustomXid(8);
+    xaRes.start(xid, XAResource.TMNOFLAGS);
+    try {
+      assertTrue(conn.getAutoCommit(), "XA start() must leave autoCommit unchanged");
+
+      Statement stmt = conn.createStatement();
+      for (int i = 1; i <= rows; i++) {
+        stmt.addBatch("INSERT INTO testxa2 VALUES (" + i + ")");
+      }
+      // A duplicate primary key fails after the forced Sync has already flushed earlier rows.
+      stmt.addBatch("INSERT INTO testxa2 VALUES (1)");
+
+      try {
+        stmt.executeBatch();
+        fail("Batch with a duplicate primary key must fail");
+      } catch (BatchUpdateException e) {
+        for (int count : e.getUpdateCounts()) {
+          assertEquals(Statement.EXECUTE_FAILED, count,
+              "No batch entry may be reported as committed inside an XA branch");
+        }
+      }
+      stmt.close();
+    } finally {
+      xaRes.end(xid, XAResource.TMFAIL);
+      xaRes.rollback(xid);
+    }
   }
 
   @Test
