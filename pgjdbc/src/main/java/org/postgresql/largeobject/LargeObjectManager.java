@@ -6,6 +6,7 @@
 package org.postgresql.largeobject;
 
 import org.postgresql.core.BaseConnection;
+import org.postgresql.core.TransactionState;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.fastpath.FastpathArg;
 import org.postgresql.util.GT;
@@ -135,6 +136,24 @@ public class LargeObjectManager {
   }
 
   /**
+   * Large objects can only be manipulated inside a transaction, because the lo_* fastpath calls
+   * return handles that are scoped to the surrounding transaction. Normally that transaction is
+   * signalled by {@code autoCommit=false}, but an XA branch keeps {@code autoCommit=true} while a
+   * server-side transaction is open (see
+   * <a href="https://github.com/pgjdbc/pgjdbc/issues/4309">issue #4309</a>). So we refuse only when
+   * we are genuinely in auto-commit mode with no transaction open; when a transaction is already
+   * running we proceed regardless of the JDBC {@code autoCommit} flag.
+   *
+   * @throws SQLException if there is no transaction the large object could take part in
+   */
+  private void requireTransaction() throws SQLException {
+    if (conn.getAutoCommit() && conn.getTransactionState() == TransactionState.IDLE) {
+      throw new PSQLException(GT.tr("Large Objects may not be used in auto-commit mode."),
+          PSQLState.NO_ACTIVE_SQL_TRANSACTION);
+    }
+  }
+
+  /**
    * This opens an existing large object, based on its OID. This method assumes that READ and WRITE
    * access is required (the default).
    *
@@ -240,10 +259,7 @@ public class LargeObjectManager {
    * @throws SQLException on error
    */
   public LargeObject open(long oid, int mode, boolean commitOnClose) throws SQLException {
-    if (conn.getAutoCommit()) {
-      throw new PSQLException(GT.tr("Large Objects may not be used in auto-commit mode."),
-          PSQLState.NO_ACTIVE_SQL_TRANSACTION);
-    }
+    requireTransaction();
     return new LargeObject(fp, oid, mode, conn, commitOnClose);
   }
 
@@ -281,10 +297,7 @@ public class LargeObjectManager {
    * @throws SQLException on error
    */
   public long createLO(int mode) throws SQLException {
-    if (conn.getAutoCommit()) {
-      throw new PSQLException(GT.tr("Large Objects may not be used in auto-commit mode."),
-          PSQLState.NO_ACTIVE_SQL_TRANSACTION);
-    }
+    requireTransaction();
     FastpathArg[] args = new FastpathArg[1];
     args[0] = new FastpathArg(mode);
     return fp.getOID("lo_creat", args);
