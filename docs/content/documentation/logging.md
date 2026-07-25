@@ -4,6 +4,8 @@ date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 11
 toc: true
+aliases:
+    - "/documentation/head/logging.html"
 ---
 
 The PostgreSQL® JDBC Driver supports the use of logging (or tracing) to help resolve issues with the

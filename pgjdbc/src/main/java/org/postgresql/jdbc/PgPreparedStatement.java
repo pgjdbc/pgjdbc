@@ -14,6 +14,7 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.ResultHandler;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.v3.BatchedQuery;
@@ -131,7 +132,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    *
    * @return a ResultSet that contains the data produced by the * query - never null
    *
-   * @exception SQLException if a database access error occurs
+   * @throws SQLException if a database access error occurs
    */
   @Override
   public ResultSet executeQuery() throws SQLException {
@@ -461,7 +462,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // handling very large values. Thus the implementation ends up calling
     // setString() since there is no current way to stream the value to the server
     try {
-      InputStreamReader inStream = new InputStreamReader(x, encoding);
+      InputStreamReader inStream = new InputStreamReader(x, Charset.forName(encoding));
       char[] chars = new char[length];
       int charsRead = 0;
       while (true) {
@@ -1203,6 +1204,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
       int flags = QueryExecutor.QUERY_DESCRIBE_ONLY
           | QueryExecutor.QUERY_SUPPRESS_BEGIN;
+      if (isOneShotQuery(null)) {
+        flags |= QueryExecutor.QUERY_ONESHOT;
+      }
       StatementResultHandler handler = new StatementResultHandler();
       connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
           flags);
@@ -1796,7 +1800,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   public ParameterMetaData getParameterMetaData() throws SQLException {
     int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY
         | QueryExecutor.QUERY_SUPPRESS_BEGIN;
-    StatementResultHandler handler = new StatementResultHandler();
+    ResultHandler handler = new DiscardResultHandler();
     connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
         flags);
 
@@ -1812,16 +1816,26 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return;
     }
     BatchedQuery originalQuery = (BatchedQuery) preparedQuery.query;
-    // Single query cannot have more than {@link Short#MAX_VALUE} binds, thus
-    // the number of multi-values blocks should be capped.
-    // Typically, it does not make much sense to batch more than 128 rows: performance
-    // does not improve much after updating 128 statements with 1 multi-valued one, thus
-    // we cap maximum batch size and split there.
+    // Cap the rows merged into one multi-values INSERT. deriveForMultiBatch only accepts power-of-two
+    // blocks up to BatchedQuery.MAX_VALUE_BLOCK, so that is the row ceiling in every query mode.
+    // The extended protocol additionally limits a statement to maximumNumberOfParameters() (65535)
+    // bind values, hence min(.../bindCount, ceiling); the simple protocol inlines parameters and has
+    // no such limit (maximumNumberOfParameters() is Integer.MAX_VALUE there), so only the ceiling
+    // applies. reWriteBatchedInsertsSize lowers the ceiling. The result is rounded down to a power of
+    // two, and the batch is split into that many rows per statement.
     final int bindCount = originalQuery.getBindCount();
-    final int highestBlockCount = 128;
-    final int maxValueBlocks = bindCount == 0 ? 1024 /* if no binds, use 1024 rows */
-        : Integer.highestOneBit( // deriveForMultiBatch supports powers of two only
-            Math.min(Math.max(1, maximumNumberOfParameters() / bindCount), highestBlockCount));
+    final int configuredSize = connection.getQueryExecutor().getReWriteBatchedInsertsSize();
+    final int rowCeiling = configuredSize > 0
+        ? Math.min(configuredSize, BatchedQuery.MAX_VALUE_BLOCK)
+        : BatchedQuery.MAX_VALUE_BLOCK;
+    final int maxValueBlocks;
+    if (bindCount == 0) {
+      // No binds means no protocol limit; default to 1024 rows unless a smaller cap is configured.
+      maxValueBlocks = Integer.highestOneBit(Math.max(1, configuredSize > 0 ? rowCeiling : 1024));
+    } else {
+      maxValueBlocks = Integer.highestOneBit(
+          Math.max(1, Math.min(maximumNumberOfParameters() / bindCount, rowCeiling)));
+    }
     int unprocessedBatchCount = batchParameters.size();
     final int fullValueBlocksCount = unprocessedBatchCount / maxValueBlocks;
     final int partialValueBlocksCount = Integer.bitCount(unprocessedBatchCount % maxValueBlocks);

@@ -31,13 +31,13 @@ public class KerberosTicket {
     public AppConfigurationEntry[] getAppConfigurationEntry(String name) {
       if (CONFIG_ITEM_NAME.equals(name)) {
         Map<String, String> options = new HashMap<>();
-        options.put("refreshKrb5Config", Boolean.FALSE.toString());
-        options.put("useTicketCache", Boolean.TRUE.toString());
-        options.put("doNotPrompt", Boolean.TRUE.toString());
-        options.put("useKeyTab", Boolean.TRUE.toString());
-        options.put("isInitiator", Boolean.FALSE.toString());
-        options.put("renewTGT", Boolean.FALSE.toString());
-        options.put("debug", Boolean.FALSE.toString());
+        options.put("refreshKrb5Config", String.valueOf(false));
+        options.put("useTicketCache", String.valueOf(true));
+        options.put("doNotPrompt", String.valueOf(true));
+        options.put("useKeyTab", String.valueOf(true));
+        options.put("isInitiator", String.valueOf(false));
+        options.put("renewTGT", String.valueOf(false));
+        options.put("debug", String.valueOf(false));
         return new AppConfigurationEntry[]{
             new AppConfigurationEntry(KRBLOGIN_MODULE,
                 AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, options)};

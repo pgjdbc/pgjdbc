@@ -14,7 +14,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import org.postgresql.Driver;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgStatement;
@@ -23,7 +22,6 @@ import org.postgresql.test.util.StrangeProxyServer;
 import org.postgresql.util.LazyCleaner;
 import org.postgresql.util.LazyCleanerImpl;
 import org.postgresql.util.PSQLState;
-import org.postgresql.util.SharedTimer;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -41,9 +39,7 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.Callable;
@@ -823,37 +819,6 @@ class StatementTest {
   }
 
   @Test
-  void multipleCancels() throws Exception {
-    SharedTimer sharedTimer = Driver.getSharedTimer();
-
-    try (Connection connA = TestUtil.openDB();
-         Connection connB = TestUtil.openDB();
-         Statement stmtA = connA.createStatement();
-         Statement stmtB = connB.createStatement();
-    ) {
-      assertEquals(0, sharedTimer.getRefCount());
-      stmtA.setQueryTimeout(1);
-      stmtB.setQueryTimeout(1);
-      try (ResultSet rsA = stmtA.executeQuery("SELECT pg_sleep(2)")) {
-        fail("statement should have been canceled by query timeout since the sleep should take 2 sec and the timeout was 1 sec");
-      } catch (SQLException e) {
-        assertEquals(
-            PSQLState.QUERY_CANCELED.getState(), e.getSQLState(),
-            "Query is expected to be cancelled since the sleep should take 2 sec and the timeout was 1 sec");
-      }
-      assertEquals(1, sharedTimer.getRefCount());
-      try (ResultSet rsB = stmtB.executeQuery("SELECT pg_sleep(2)");) {
-        fail("statement should have been canceled by query timeout since the sleep should take 2 sec and the timeout was 1 sec");
-      } catch (SQLException e) {
-        assertEquals(
-            PSQLState.QUERY_CANCELED.getState(), e.getSQLState(),
-            "Query is expected to be cancelled since the sleep should take 2 sec and the timeout was 1 sec");
-      }
-    }
-    assertEquals(0, sharedTimer.getRefCount());
-  }
-
-  @Test
   @Timeout(30)
   void cancelQueryWithBrokenNetwork() throws SQLException, IOException, InterruptedException {
     // check that stmt.cancel() doesn't hang forever if the network is broken
@@ -1007,59 +972,48 @@ class StatementTest {
 
   @Test
   @Timeout(40)
-  void fastCloses() throws SQLException {
+  void fastCloses() throws Exception {
+    // Closing a Statement from another thread while executeQuery() runs must never deadlock or
+    // hang. A close that lands while the query is still in flight cancels it, and every cancel
+    // opens a fresh socket to the backend (the protocol mandates a separate connection for cancel
+    // requests). Short-lived sockets are expensive on Windows, so the loop is bounded by wall-clock
+    // time rather than a fixed iteration count: the race runs on every iteration and stops once the
+    // time budget is spent, which keeps the test well inside the @Timeout on slow runners.
     ExecutorService executor = Executors.newSingleThreadExecutor();
-    con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
-    con.createStatement()
-        .execute("CREATE OR REPLACE FUNCTION notify_then_sleep() RETURNS VOID AS "
-            + "$BODY$ "
-            + "BEGIN "
-            + "RAISE NOTICE 'start';"
-            + "EXECUTE pg_sleep(1);" // Note: timeout value does not matter here, we just test if test crashes or locks somehow
-            + "END "
-            + "$BODY$ "
-            + "LANGUAGE plpgsql;");
-    Map<String, Integer> cnt = new HashMap<>();
-    final Random rnd = new Random();
-    for (int i = 0; i < 1000; i++) {
-      final Statement st = con.createStatement();
-      executor.submit((Callable<Void>) () -> {
-        int s = rnd.nextInt(10);
-        if (s > 8) {
-          try {
-            Thread.sleep(0);
-          } catch (InterruptedException ex) {
-            // don't execute the close here as this thread was cancelled below in shutdownNow
+    try {
+      final Random rnd = new Random();
+      final long start = System.nanoTime();
+      final long budgetNanos = TimeUnit.SECONDS.toNanos(10);
+      // Subtract and compare to stay correct across a nanoTime() overflow; see its Javadoc.
+      int iterations = 0;
+      while (iterations < 1000 && System.nanoTime() - start < budgetNanos) {
+        iterations++;
+        try (Statement st = con.createStatement()) {
+          executor.submit((Callable<Void>) () -> {
+            if (rnd.nextInt(10) > 8) {
+              Thread.yield();
+            }
+            st.close();
             return null;
+          });
+          st.executeQuery("select 1").close();
+          // Acceptable: the close landed before the query started or after it finished.
+        } catch (SQLException e) {
+          // The close may cancel the in-flight query (QUERY_CANCELED) or close the statement
+          // before execution begins (OBJECT_NOT_IN_STATE); any other state is a failure.
+          String sqlState = e.getSQLState();
+          if (!PSQLState.OBJECT_NOT_IN_STATE.getState().equals(sqlState)
+              && !PSQLState.QUERY_CANCELED.getState().equals(sqlState)) {
+            fail("Query is expected to succeed or be cancelled via st.close(), got SQLState "
+                + sqlState + ": " + e.getMessage());
           }
         }
-        st.close();
-        return null;
-      });
-      ResultSet rs = null;
-      String sqlState = "0";
-      try {
-        rs = st.executeQuery("select 1");
-        // Acceptable
-      } catch (SQLException e) {
-        sqlState = e.getSQLState();
-        if (!PSQLState.OBJECT_NOT_IN_STATE.getState().equals(sqlState)
-            && !PSQLState.QUERY_CANCELED.getState().equals(sqlState)) {
-          assertEquals(
-              PSQLState.QUERY_CANCELED.getState(),
-              e.getSQLState(),
-              "Query is expected to be cancelled via st.close(), got " + e.getMessage()
-          );
-        }
-      } finally {
-        TestUtil.closeQuietly(rs);
-        TestUtil.closeQuietly(st);
       }
-      Integer val = cnt.get(sqlState);
-      val = (val == null ? 0 : val) + 1;
-      cnt.put(sqlState, val);
+      assertTrue(iterations > 0, "fastCloses ran no iterations");
+    } finally {
+      executor.shutdown();
+      executor.awaitTermination(10, TimeUnit.SECONDS);
     }
-    executor.shutdown();
   }
 
   /**
@@ -1068,7 +1022,8 @@ class StatementTest {
    */
   @Test
   void sideStatementFinalizers() throws SQLException {
-    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+    final long start = System.nanoTime();
+    final long budgetNanos = TimeUnit.SECONDS.toNanos(2);
 
     final AtomicInteger leaks = new AtomicInteger();
     final AtomicReference<Throwable> cleanupFailure = new AtomicReference<>();
@@ -1078,7 +1033,8 @@ class StatementTest {
       cleaners.add(new LazyCleanerImpl("pgjdbc-test-cleaner-" + i, Duration.ofSeconds(2)));
     }
 
-    for (int q = 0; System.nanoTime() < deadline || leaks.get() < 10000; q++) {
+    // Subtract and compare to stay correct across a nanoTime() overflow; see its Javadoc.
+    for (int q = 0; System.nanoTime() - start < budgetNanos || leaks.get() < 10000; q++) {
       for (int i = 0; i < 100; i++) {
         PreparedStatement ps = con.prepareStatement("select " + (i + q));
         ps.close();

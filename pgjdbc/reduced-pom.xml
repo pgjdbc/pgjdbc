@@ -163,17 +163,42 @@
                 <jdk>[11,)</jdk>
             </activation>
             <build>
-                <pluginManagement>
-                    <plugins>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-compiler-plugin</artifactId>
-                            <configuration>
-                                <release>${java.target.release}</release>
-                            </configuration>
-                        </plugin>
-                    </plugins>
-                </pluginManagement>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <executions>
+                            <!-- The base classes target Java 8 bytecode -->
+                            <execution>
+                                <id>default-compile</id>
+                                <configuration>
+                                    <release>${java.target.release}</release>
+                                </configuration>
+                            </execution>
+                            <!--
+                              On Java 11+ additionally compile the java.lang.ref.Cleaner-based
+                              implementation from src/main/java11 into META-INF/versions/11, so the
+                              resulting jar is a multi-release jar. multiReleaseOutput places the
+                              classes under META-INF/versions/11; the Multi-Release: true manifest
+                              entry comes from src/main/resources/META-INF/MANIFEST.MF.
+                              -->
+                            <execution>
+                                <id>compile-java11</id>
+                                <phase>compile</phase>
+                                <goals>
+                                    <goal>compile</goal>
+                                </goals>
+                                <configuration>
+                                    <release>11</release>
+                                    <compileSourceRoots>
+                                        <compileSourceRoot>${project.basedir}/src/main/java11</compileSourceRoot>
+                                    </compileSourceRoots>
+                                    <multiReleaseOutput>true</multiReleaseOutput>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
             </build>
         </profile>
         <!--

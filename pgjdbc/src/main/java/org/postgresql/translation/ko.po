@@ -20,8 +20,9 @@ msgid "Error loading default settings from driverconfig.properties"
 msgstr "driverconfig.properties에서 기본 설정을 로드하는 중 오류 발생"
 
 #: src/main/java/org/postgresql/Driver.java:271
-msgid "Properties for the driver contains a non-string value for the key "
-msgstr "드라이버의 속성에 문자열이 아닌 값이 포함되어 있습니다. 키: "
+#, java-format
+msgid "Properties for the driver contains a non-string value for the key {0}"
+msgstr "드라이버의 속성에 문자열이 아닌 값이 포함되어 있습니다. 키: {0}"
 
 #: src/main/java/org/postgresql/Driver.java:281
 #, java-format
@@ -39,38 +40,38 @@ msgstr ""
 "다."
 
 #: src/main/java/org/postgresql/Driver.java:322
-#: src/main/java/org/postgresql/Driver.java:402
+#: src/main/java/org/postgresql/Driver.java:404
 msgid ""
 "Something unusual has occurred to cause the driver to fail. Please report "
 "this exception."
 msgstr ""
 "드라이버가 실패하는 비정상적인 현상이 발생했습니다. 이 예외를 보고해 주세요."
 
-#: src/main/java/org/postgresql/Driver.java:410
+#: src/main/java/org/postgresql/Driver.java:412
 msgid "Connection attempt timed out."
 msgstr "연결 시도가 시간 초과되었습니다."
 
-#: src/main/java/org/postgresql/Driver.java:423
+#: src/main/java/org/postgresql/Driver.java:425
 msgid "Interrupted while attempting to connect."
 msgstr "연결 시도 중 중단되었습니다."
 
-#: src/main/java/org/postgresql/Driver.java:742
+#: src/main/java/org/postgresql/Driver.java:744
 #, java-format
 msgid "Method {0} is not yet implemented."
 msgstr "메서드 {0} 이(가) 아직 구현되지 않았습니다."
 
-#: src/main/java/org/postgresql/PGConnection.java:279
+#: src/main/java/org/postgresql/PGConnection.java:298
 msgid "Expected a row when reading password_encryption but none was found"
 msgstr ""
 "password_encryption을 읽을 때 행이 예상되었으나 아무 것도 발견되지 않았습니"
 "다."
 
-#: src/main/java/org/postgresql/PGConnection.java:284
+#: src/main/java/org/postgresql/PGConnection.java:303
 msgid "SHOW password_encryption returned null value"
 msgstr "SHOW password_encryption이 null 값을 반환했습니다."
 
-#: src/main/java/org/postgresql/PGProperty.java:947
-#: src/main/java/org/postgresql/PGProperty.java:967
+#: src/main/java/org/postgresql/PGProperty.java:1070
+#: src/main/java/org/postgresql/PGProperty.java:1090
 #, java-format
 msgid "{0} parameter value must be an integer but was: {1}"
 msgstr "{0} 매개 변수 값은 정수여야 하지만 실제로는: {1} 입니다."
@@ -109,43 +110,59 @@ msgstr "복사에서 읽기 실패."
 msgid "Cannot write to copy a byte of value {0}"
 msgstr "값 {0} 의 바이트를 복사에 쓸 수 없습니다."
 
+#: src/main/java/org/postgresql/core/AuthMethod.java:30
+#, fuzzy, java-format
+msgid "Invalid authentication method: {0}"
+msgstr "잘못된 가져오기 방향 상수: {0}."
+
+#: src/main/java/org/postgresql/core/AuthMethod.java:51
+msgid "requireAuth cannot mix positive and negative authentication methods"
+msgstr ""
+
+#: src/main/java/org/postgresql/core/AuthMethod.java:56
+msgid "requireAuth contains duplicate authentication method"
+msgstr ""
+
+#: src/main/java/org/postgresql/core/AuthMethod.java:73
+msgid "Authentication method is not allowed by requireAuth"
+msgstr ""
+
 #: src/main/java/org/postgresql/core/CommandCompleteParser.java:74
 #, java-format
 msgid "Unable to parse the count in command completion tag: {0}."
 msgstr "명령 완료 태그의 카운트를 파싱할 수 없습니다: {0}."
 
-#: src/main/java/org/postgresql/core/ConnectionFactory.java:62
+#: src/main/java/org/postgresql/core/ConnectionFactory.java:60
 #, java-format
 msgid "A connection could not be made using the requested protocol {0}."
 msgstr "요청된 프로토콜 {0} 을(를) 사용하여 연결할 수 없습니다."
 
-#: src/main/java/org/postgresql/core/Oid.java:142
+#: src/main/java/org/postgresql/core/Oid.java:143
 #, java-format
 msgid "oid type {0} not known and not a number"
 msgstr "oid 유형 {0} 이(가) 알려지지 않았고 숫자가 아닙니다."
 
-#: src/main/java/org/postgresql/core/PGStream.java:697
-#: src/main/java/org/postgresql/util/PGbytea.java:199
-#, java-format
-msgid "Premature end of input stream, expected {0} bytes, but only read {1}."
-msgstr "입력 스트림의 조기 종료, 예상 {0} 바이트 중 {1} 바이트만 읽었습니다."
-
-#: src/main/java/org/postgresql/core/PGStream.java:738
+#: src/main/java/org/postgresql/core/PGStream.java:732
 #, java-format
 msgid "Expected an EOF from server, got: {0}"
 msgstr "서버로부터 EOF를 기대했지만, 대신: {0} 을(를) 받았습니다."
 
-#: src/main/java/org/postgresql/core/PGStream.java:838
+#: src/main/java/org/postgresql/core/PGStream.java:840
 #, java-format
 msgid ""
 "Result set exceeded maxResultBuffer limit. Received:  {0}; Current limit: {1}"
 msgstr ""
 "결과 집합이 maxResultBuffer 한도를 초과했습니다. 받은 값: {0}; 현재 한도: {1}"
 
-#: src/main/java/org/postgresql/core/Parser.java:1201
+#: src/main/java/org/postgresql/core/Parser.java:1200
 #, java-format
 msgid "Malformed function or procedure escape syntax at offset {0}."
 msgstr "오프셋 {0} 에서 잘못된 함수 또는 절차 이스케이프 구문입니다."
+
+#: src/main/java/org/postgresql/core/ProtocolVersion.java:53
+#, java-format
+msgid "Invalid version number major: {0}, minor: {1}"
+msgstr ""
 
 #: src/main/java/org/postgresql/core/SetupQueryRunner.java:68
 msgid "An unexpected result was returned by a query."
@@ -180,7 +197,7 @@ msgstr "식별자에 0 바이트가 발생할 수 없습니다."
 msgid "Unable to load Authentication Plugin {0}"
 msgstr "인증 플러그인 {0} 을(를) 로드할 수 없습니다."
 
-#: src/main/java/org/postgresql/core/v3/AuthenticationPluginManager.java:111
+#: src/main/java/org/postgresql/core/v3/AuthenticationPluginManager.java:113
 #, java-format
 msgid ""
 "The server requested password-based authentication, but no password was "
@@ -189,30 +206,35 @@ msgstr ""
 "서버가 비밀번호 기반 인증을 요청했으나, 플러그인 {0} 에서 비밀번호를 제공하"
 "지 않았습니다."
 
+#: src/main/java/org/postgresql/core/v3/ChannelBinding.java:40
+#, fuzzy, java-format
+msgid "Invalid channelBinding value: {0}"
+msgstr "잘못된 sslmode 값: {0}"
+
 #: src/main/java/org/postgresql/core/v3/CompositeParameterList.java:38
 #: src/main/java/org/postgresql/core/v3/SimpleParameterList.java:60
 #: src/main/java/org/postgresql/core/v3/SimpleParameterList.java:71
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:225
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3258
-#: src/main/java/org/postgresql/jdbc/PgResultSetMetaData.java:420
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:228
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3379
+#: src/main/java/org/postgresql/jdbc/PgResultSetMetaData.java:428
 #, java-format
 msgid "The column index is out of range: {0}, number of columns: {1}."
 msgstr "열 인덱스가 범위를 벗어났습니다: {0}, 열 수: {1}."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:130
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:212
 msgid "User cannot be null"
 msgstr "사용자는 null일 수 없습니다."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:133
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:215
 msgid "Database cannot be null"
 msgstr "데이터베이스는 null일 수 없습니다."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:227
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:330
 #, java-format
 msgid "Invalid targetServerType value: {0}"
 msgstr "잘못된 targetServerType 값: {0}"
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:347
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:426
 #, java-format
 msgid ""
 "Connection to {0} refused. Check that the hostname and port are correct and "
@@ -221,58 +243,70 @@ msgstr ""
 "{0} 에 대한 연결이 거부되었습니다. 호스트 이름과 포트가 올바른지, 그리고 "
 "postmaster가 TCP/IP 연결을 수락하고 있는지 확인하십시오."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:358
-#: src/main/java/org/postgresql/core/v3/replication/V3ReplicationProtocol.java:139
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:437
+#: src/main/java/org/postgresql/core/v3/replication/V3ReplicationProtocol.java:140
 msgid "The connection attempt failed."
 msgstr "연결 시도가 실패했습니다."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:373
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:452
 #, java-format
 msgid "Could not find a server with specified targetServerType: {0}"
 msgstr "지정된 targetServerType을 가진 서버를 찾을 수 없습니다: {0}"
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:517
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:594
 msgid "The server does not support GSS Encoding."
 msgstr "서버가 GSS 인코딩을 지원하지 않습니다."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:530
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:609
 msgid "The server does not support GSS Encryption."
 msgstr "서버가 GSS 암호화를 지원하지 않습니다."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:558
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:639
 msgid "An error occurred while setting up the GSS Encoded connection."
 msgstr "GSS 인코딩된 연결을 설정하는 동안 오류가 발생했습니다."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:603
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:615
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:689
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:701
 msgid "The server does not support SSL."
 msgstr "서버가 SSL을 지원하지 않습니다."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:629
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:715
 msgid "An error occurred while setting up the SSL connection."
 msgstr "SSL 연결을 설정하는 동안 오류가 발생했습니다."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:844
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:849
+msgid ""
+"Channel binding is required, but server skipped authentication. Channel "
+"binding is only supported with SCRAM authentication over encrypted "
+"connections."
+msgstr ""
+
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:855
+#, java-format
+msgid ""
+"Channel binding is required, but server requested ''{0}'' authentication. "
+"Channel binding is only supported with SCRAM authentication over encrypted "
+"connections."
+msgstr ""
+
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:1002
+#, fuzzy, java-format
+msgid "{0} must be a non-negative integer, but was: {1}"
+msgstr "{0} 매개 변수 값은 정수여야 하지만 실제로는: {1} 입니다."
+
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:1010
 msgid ""
 "The server requested SCRAM-based authentication, but no password was "
 "provided."
 msgstr "서버가 SCRAM 기반 인증을 요청했지만, 비밀번호가 제공되지 않았습니다."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:850
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:1016
 msgid ""
 "The server requested SCRAM-based authentication, but the password is an "
 "empty string."
 msgstr "서버가 SCRAM 기반 인증을 요청했지만, 비밀번호가 빈 문자열입니다."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:862
-msgid ""
-"SCRAM authentication is not supported by this driver. You need JDK >= 8 and "
-"pgjdbc >= 42.2.0 (not \".jre\" versions)"
-msgstr ""
-"이 드라이버는 SCRAM 인증을 지원하지 않습니다. JDK >= 8 및 pgjdbc >= "
-"42.2.0( \".jre\" 버전이 아님)이 필요합니다."
-
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:883
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:1051
 #, java-format
 msgid ""
 "The authentication type {0} is not supported. Check that you have configured "
@@ -283,12 +317,11 @@ msgstr ""
 "소 또는 서브넷이 포함되어 있고, 드라이버가 지원하는 인증 방식을 사용하고 있는"
 "지 확인하십시오."
 
-#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:890
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2821
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2854
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2858
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2934
-#: src/main/java/org/postgresql/gss/GssAction.java:156
+#: src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java:1058
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:3087
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:3091
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:3167
+#: src/main/java/org/postgresql/gss/GssAction.java:165
 msgid "Protocol error.  Session setup failed."
 msgstr "프로토콜 오류. 세션 설정 실패."
 
@@ -297,153 +330,154 @@ msgid "CopyIn copy direction can't receive data"
 msgstr "CopyIn 복사 방향은 데이터를 수신할 수 없습니다."
 
 #: src/main/java/org/postgresql/core/v3/CopyOperationImpl.java:65
-msgid "CommandComplete expected COPY but got: "
-msgstr "CommandComplete는 COPY를 예상했으나 대신 다음을 받았습니다: "
+#, java-format
+msgid "CommandComplete expected COPY but got: {0}"
+msgstr "CommandComplete는 COPY를 예상했으나 대신 다음을 받았습니다: {0}"
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:205
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:274
 msgid "Tried to obtain lock while already holding it"
 msgstr "이미 잠금을 보유한 상태에서 잠금을 얻으려고 시도했습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:221
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:290
 msgid "Tried to break lock on database connection"
 msgstr "데이터베이스 연결에서 잠금을 해제하려고 시도했습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:239
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:308
 msgid "Interrupted while waiting to obtain lock on database connection"
 msgstr "데이터베이스 연결에서 잠금을 얻기 위해 대기하는 동안 중단되었습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:392
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:459
 msgid "Unable to bind parameter values for statement."
 msgstr "문에 대한 매개 변수 값을 바인딩할 수 없습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:398
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:585
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:671
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:721
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:852
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2615
-#: src/main/java/org/postgresql/util/StreamWrapper.java:85
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:465
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:692
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:784
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:834
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:965
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2835
+#: src/main/java/org/postgresql/util/StreamWrapper.java:86
 msgid "An I/O error occurred while sending to the backend."
 msgstr "백엔드로 전송하는 동안 I/O 오류가 발생했습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:451
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:544
 msgid "Error releasing savepoint"
 msgstr "세이브포인트 해제 오류"
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:642
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:690
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:749
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:803
 #, java-format
 msgid "Expected command status BEGIN, got {0}."
 msgstr "예상한 명령 상태 BEGIN 대신 {0} 을(를) 받았습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:695
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2200
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:808
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2204
 #, java-format
 msgid "Unexpected command status: {0}."
 msgstr "예상치 못한 명령 상태: {0}."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:810
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:923
 msgid "An error occurred while trying to get the socket timeout."
 msgstr "소켓 시간 초과를 가져오는 동안 오류가 발생했습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:845
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:935
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:958
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1049
 #, java-format
 msgid "Unknown Response Type {0}."
 msgstr "알 수 없는 응답 유형 {0}."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:869
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:982
 msgid "An error occurred while trying to reset the socket timeout."
 msgstr "소켓 시간 초과를 재설정하는 동안 오류가 발생했습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:982
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1102
 msgid "Database connection failed when starting copy"
 msgstr "복사 시작 시 데이터베이스 연결 실패"
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1020
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1140
 msgid "Tried to cancel an inactive copy operation"
 msgstr "비활성 복사 작업을 취소하려고 시도했습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1059
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1179
 msgid "Database connection failed when canceling copy operation"
 msgstr "복사 작업을 취소하는 동안 데이터베이스 연결 실패"
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1075
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1195
 msgid "Missing expected error response to copy cancel request"
 msgstr "복사 취소 요청에 대한 예상 오류 응답이 누락되었습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1079
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1199
 #, java-format
 msgid "Got {0} error responses to single copy cancel request"
 msgstr "단일 복사 취소 요청에 대해 {0} 오류 응답을 받았습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1095
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1215
 msgid "Tried to end inactive copy"
 msgstr "비활성 복사를 끝내려고 시도했습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1110
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1230
 msgid "Database connection failed when ending copy"
 msgstr "복사를 종료하는 동안 데이터베이스 연결 실패"
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1130
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1159
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1180
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1256
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1288
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1312
 msgid "Tried to write to an inactive copy operation"
 msgstr "비활성 복사 작업에 쓰기를 시도했습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1141
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1171
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1187
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1270
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1303
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1322
 msgid "Database connection failed when writing to copy"
 msgstr "복사에 쓰는 동안 데이터베이스 연결 실패"
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1204
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1339
 msgid "Tried to read from inactive copy"
 msgstr "비활성 복사에서 읽기를 시도했습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1211
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1351
 msgid "Database connection failed when reading from copy"
 msgstr "복사에서 읽는 동안 데이터베이스 연결 실패"
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1236
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1376
 msgid "PGStream is closed"
 msgstr "PGStream이 닫혔습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1297
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1435
 #, java-format
 msgid "Received CommandComplete ''{0}'' without an active copy operation"
 msgstr "활성 복사 작업 없이 CommandComplete ''{0}'' 을(를) 받았습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1322
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1460
 #, java-format
 msgid "Got CopyInResponse from server during an active {0}"
 msgstr "활성 {0} 중 서버로부터 CopyInResponse를 받았습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1336
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1474
 #, java-format
 msgid "Got CopyOutResponse from server during an active {0}"
 msgstr "활성 {0} 중 서버로부터 CopyOutResponse를 받았습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1350
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1488
 #, java-format
 msgid "Got CopyBothResponse from server during an active {0}"
 msgstr "활성 {0} 중 서버로부터 CopyBothResponse를 받았습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1369
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1507
 msgid "Got CopyData without an active copy operation"
 msgstr "활성 복사 작업 없이 CopyData를 받았습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1373
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1511
 #, java-format
 msgid "Unexpected copydata from server for {0}"
 msgstr "{0} 에 대한 서버의 예상치 못한 copydata"
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1433
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1571
 #, java-format
 msgid "Unexpected packet type during copy: {0}"
 msgstr "복사 중 예상치 못한 패킷 유형: {0}"
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1736
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:1900
 #, java-format
 msgid ""
 "Bind message length {0} too long.  This can be caused by very large or "
@@ -452,15 +486,29 @@ msgstr ""
 "바인드 메시지 길이 {0} 이 너무 깁니다. 이는 매우 크거나 잘못된 길이 지정이 "
 "InputStream 매개 변수에 포함되어 있을 때 발생할 수 있습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2383
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2601
 msgid "Ran out of memory retrieving query results."
 msgstr "쿼리 결과를 검색하는 동안 메모리가 부족했습니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2549
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2769
 msgid "COPY commands are only supported using the CopyManager API."
 msgstr "COPY 명령은 CopyManager API를 사용하여서만 지원됩니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2891
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:3045
+#, java-format
+msgid ""
+"Protocol error. Cancel Key should be 4 bytes for protocol version {0}, but "
+"received {1} bytes. Session setup failed."
+msgstr ""
+
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:3053
+#, java-format
+msgid ""
+"Protocol error. Cancel Key cannot be greater than 256 for protocol version "
+"{0}, but received {1} bytes. Session setup failed."
+msgstr ""
+
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:3124
 #, java-format
 msgid ""
 "The server''s client_encoding parameter was changed to {0}. The JDBC driver "
@@ -469,7 +517,7 @@ msgstr ""
 "서버의 client_encoding 매개 변수가 {0} 으로 변경되었습니다. JDBC 드라이버는 "
 "올바른 작동을 위해 client_encoding이 UTF8이어야 합니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2901
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:3134
 #, java-format
 msgid ""
 "The server''s DateStyle parameter was changed to {0}. The JDBC driver "
@@ -478,7 +526,7 @@ msgstr ""
 "서버의 DateStyle 매개 변수가 {0} 으로 변경되었습니다. JDBC 드라이버는 올바른 "
 "작동을 위해 DateStyle이 ISO로 시작해야 합니다."
 
-#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:2914
+#: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:3147
 #, java-format
 msgid ""
 "The server''s standard_conforming_strings parameter was reported as {0}. The "
@@ -487,31 +535,68 @@ msgstr ""
 "서버의 standard_conforming_strings 매개 변수가 {0} 으로 보고되었습니다. JDBC "
 "드라이버는 켜짐 또는 꺼짐을 예상했습니다."
 
-#: src/main/java/org/postgresql/core/v3/SimpleParameterList.java:262
+#: src/main/java/org/postgresql/core/v3/ScramAuthenticator.java:70
+msgid "Invalid SCRAM client initialization"
+msgstr ""
+
+#: src/main/java/org/postgresql/core/v3/ScramAuthenticator.java:85
+msgid "Received AuthenticationSASL message with 0 mechanisms!"
+msgstr ""
+
+#: src/main/java/org/postgresql/core/v3/ScramAuthenticator.java:92
+msgid ""
+"Channel Binding is required, but server did not offer an authentication "
+"method that supports channel binding"
+msgstr ""
+
+#: src/main/java/org/postgresql/core/v3/ScramAuthenticator.java:121
+msgid ""
+"Channel Binding is required, but could not extract channel binding data from "
+"SSL session"
+msgstr ""
+
+#: src/main/java/org/postgresql/core/v3/ScramAuthenticator.java:128
+msgid "Channel Binding is required, but SSL is not in use"
+msgstr ""
+
+#: src/main/java/org/postgresql/core/v3/ScramAuthenticator.java:159
+#: src/main/java/org/postgresql/core/v3/ScramAuthenticator.java:190
+#, fuzzy, java-format
+msgid "SCRAM authentication failed: {0}"
+msgstr "GSS 인증 실패"
+
+#: src/main/java/org/postgresql/core/v3/ScramAuthenticator.java:166
+#, java-format
+msgid ""
+"Server requested {0} SCRAM PBKDF2 iterations, which exceeds the client-side "
+"limit of {1}. If you trust this server, raise the {2} connection property."
+msgstr ""
+
+#: src/main/java/org/postgresql/core/v3/SimpleParameterList.java:267
 #, java-format
 msgid "Unable to convert bytea parameter at position {0} to literal"
 msgstr "위치 {0} 의 bytea 매개 변수를 리터럴로 변환할 수 없습니다."
 
-#: src/main/java/org/postgresql/core/v3/SimpleParameterList.java:402
+#: src/main/java/org/postgresql/core/v3/SimpleParameterList.java:407
 #, java-format
 msgid "No value specified for parameter {0}."
 msgstr "매개 변수 {0} 에 대해 지정된 값이 없습니다."
 
-#: src/main/java/org/postgresql/core/v3/SimpleParameterList.java:607
+#: src/main/java/org/postgresql/core/v3/SimpleParameterList.java:612
 #, java-format
 msgid "Added parameters index out of range: {0}, number of columns: {1}."
 msgstr "추가된 매개 변수 인덱스가 범위를 벗어났습니다: {0}, 열 수: {1}."
 
-#: src/main/java/org/postgresql/core/v3/replication/V3PGReplicationStream.java:152
+#: src/main/java/org/postgresql/core/v3/replication/V3PGReplicationStream.java:154
 #, java-format
 msgid "Unexpected packet type during replication: {0}"
 msgstr "복제 중 예상치 못한 패킷 유형: {0}"
 
-#: src/main/java/org/postgresql/core/v3/replication/V3PGReplicationStream.java:283
+#: src/main/java/org/postgresql/core/v3/replication/V3PGReplicationStream.java:288
 msgid "This replication stream has been closed."
 msgstr "이 복제 스트림은 닫혔습니다."
 
-#: src/main/java/org/postgresql/ds/PGPooledConnection.java:129
+#: src/main/java/org/postgresql/ds/PGPooledConnection.java:130
 msgid "This PooledConnection has already been closed."
 msgstr "이 PooledConnection은 이미 닫혔습니다."
 
@@ -527,35 +612,35 @@ msgstr ""
 msgid "Connection has been closed."
 msgstr "연결이 닫혔습니다."
 
-#: src/main/java/org/postgresql/ds/PGPooledConnection.java:439
+#: src/main/java/org/postgresql/ds/PGPooledConnection.java:440
 msgid "Statement has been closed."
 msgstr "Statement가 닫혔습니다."
 
-#: src/main/java/org/postgresql/ds/PGPoolingDataSource.java:286
+#: src/main/java/org/postgresql/ds/PGPoolingDataSource.java:287
 msgid "Failed to setup DataSource."
 msgstr "DataSource 설정 실패."
 
-#: src/main/java/org/postgresql/ds/PGPoolingDataSource.java:390
+#: src/main/java/org/postgresql/ds/PGPoolingDataSource.java:393
 msgid "DataSource has been closed."
 msgstr "DataSource가 닫혔습니다."
 
-#: src/main/java/org/postgresql/ds/common/BaseDataSource.java:1442
-#: src/main/java/org/postgresql/ds/common/BaseDataSource.java:1452
+#: src/main/java/org/postgresql/ds/common/BaseDataSource.java:1558
+#: src/main/java/org/postgresql/ds/common/BaseDataSource.java:1568
 #, java-format
 msgid "Unsupported property name: {0}"
 msgstr "지원되지 않는 속성 이름: {0}"
 
-#: src/main/java/org/postgresql/fastpath/Fastpath.java:89
+#: src/main/java/org/postgresql/fastpath/Fastpath.java:83
 #, java-format
 msgid "Fastpath call {0} - No result was returned and we expected a numeric."
 msgstr "Fastpath 호출 {0} - 결과가 반환되지 않았고 숫자를 예상했습니다."
 
-#: src/main/java/org/postgresql/fastpath/Fastpath.java:167
+#: src/main/java/org/postgresql/fastpath/Fastpath.java:164
 #, java-format
 msgid "Fastpath call {0} - No result was returned and we expected an integer."
 msgstr "Fastpath 호출 {0} - 결과가 반환되지 않았고 정수를 예상했습니다."
 
-#: src/main/java/org/postgresql/fastpath/Fastpath.java:175
+#: src/main/java/org/postgresql/fastpath/Fastpath.java:172
 #, java-format
 msgid ""
 "Fastpath call {0} - No result was returned or wrong size while expecting an "
@@ -564,12 +649,12 @@ msgstr ""
 "Fastpath 호출 {0} - 결과가 반환되지 않았거나 정수를 예상하는 동안 잘못된 크기"
 "입니다."
 
-#: src/main/java/org/postgresql/fastpath/Fastpath.java:192
+#: src/main/java/org/postgresql/fastpath/Fastpath.java:189
 #, java-format
 msgid "Fastpath call {0} - No result was returned and we expected a long."
 msgstr "Fastpath 호출 {0} - 결과가 반환되지 않았고 long을 예상했습니다."
 
-#: src/main/java/org/postgresql/fastpath/Fastpath.java:200
+#: src/main/java/org/postgresql/fastpath/Fastpath.java:197
 #, java-format
 msgid ""
 "Fastpath call {0} - No result was returned or wrong size while expecting a "
@@ -578,7 +663,7 @@ msgstr ""
 "Fastpath 호출 {0} - 결과가 반환되지 않았거나 long을 예상하는 동안 잘못된 크기"
 "입니다."
 
-#: src/main/java/org/postgresql/fastpath/Fastpath.java:303
+#: src/main/java/org/postgresql/fastpath/Fastpath.java:300
 #, java-format
 msgid "The fastpath function {0} is unknown."
 msgstr "Fastpath 함수 {0} 은(는) 알려지지 않았습니다."
@@ -599,14 +684,14 @@ msgstr "유형 {0} 으로 변환 실패: {1}."
 msgid "Cannot tell if path is open or closed: {0}."
 msgstr "경로가 열려 있는지 닫혀 있는지 알 수 없습니다: {0}."
 
-#: src/main/java/org/postgresql/gss/GssAction.java:167
-#: src/main/java/org/postgresql/gss/GssEncAction.java:147
-#: src/main/java/org/postgresql/gss/MakeGSS.java:173
-#: src/main/java/org/postgresql/gss/MakeGSS.java:181
+#: src/main/java/org/postgresql/gss/GssAction.java:176
+#: src/main/java/org/postgresql/gss/GssEncAction.java:155
+#: src/main/java/org/postgresql/gss/MakeGSS.java:175
+#: src/main/java/org/postgresql/gss/MakeGSS.java:183
 msgid "GSS Authentication failed"
 msgstr "GSS 인증 실패"
 
-#: src/main/java/org/postgresql/gss/MakeGSS.java:169
+#: src/main/java/org/postgresql/gss/MakeGSS.java:171
 msgid ""
 "Neither Subject.doAs (Java before 18) nor Subject.callAs (Java 18+) method "
 "found"
@@ -638,7 +723,7 @@ msgid "free() was called on this LOB previously"
 msgstr "이 LOB에서 이전에 free()가 호출되었습니다."
 
 #: src/main/java/org/postgresql/jdbc/ArrayDecoding.java:284
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2440
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2442
 #: src/main/java/org/postgresql/util/HStoreConverter.java:46
 #: src/main/java/org/postgresql/util/HStoreConverter.java:82
 msgid ""
@@ -651,15 +736,15 @@ msgstr ""
 "대해 잘못된 문자를 포함하는 저장된 데이터로 인해 발생할 가능성이 큽니다. 가"
 "장 일반적인 예는 SQL_ASCII 데이터베이스에 8비트 데이터를 저장하는 것입니다."
 
-#: src/main/java/org/postgresql/jdbc/ArrayEncoding.java:867
-#: src/main/java/org/postgresql/jdbc/ArrayEncoding.java:904
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1181
+#: src/main/java/org/postgresql/jdbc/ArrayEncoding.java:801
+#: src/main/java/org/postgresql/jdbc/ArrayEncoding.java:835
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1212
 msgid "Unable to translate data into the desired encoding."
 msgstr "데이터를 원하는 인코딩으로 변환할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/ArrayEncoding.java:1124
-#: src/main/java/org/postgresql/jdbc/ArrayEncoding.java:1135
-#: src/main/java/org/postgresql/jdbc/ArrayEncoding.java:1161
+#: src/main/java/org/postgresql/jdbc/ArrayEncoding.java:1040
+#: src/main/java/org/postgresql/jdbc/ArrayEncoding.java:1051
+#: src/main/java/org/postgresql/jdbc/ArrayEncoding.java:1077
 #, java-format
 msgid "Invalid elements {0}"
 msgstr "잘못된 요소 {0}"
@@ -683,7 +768,7 @@ msgid "Cannot cast to boolean: \"{0}\""
 msgstr "boolean으로 캐스팅할 수 없습니다: \"{0}\""
 
 #: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:240
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:170
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:171
 #, java-format
 msgid "{0} function takes four and only four argument."
 msgstr "{0} 함수는 네 개의 인수만 받습니다."
@@ -691,9 +776,9 @@ msgstr "{0} 함수는 네 개의 인수만 받습니다."
 #: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:270
 #: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:337
 #: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:741
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:199
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:266
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:667
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:200
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:267
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:668
 #, java-format
 msgid "{0} function takes two and only two arguments."
 msgstr "{0} 함수는 두 개의 인수만 받습니다."
@@ -703,19 +788,19 @@ msgstr "{0} 함수는 두 개의 인수만 받습니다."
 #: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:467
 #: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:526
 #: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:729
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:214
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:358
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:384
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:443
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:656
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:215
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:359
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:385
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:444
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:657
 #, java-format
 msgid "{0} function takes one and only one argument."
 msgstr "{0} 함수는 한 개의 인수만 받습니다."
 
 #: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:312
 #: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:386
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:241
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:310
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:242
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:311
 #, java-format
 msgid "{0} function takes two or three arguments."
 msgstr "{0} 함수는 두 개 또는 세 개의 인수를 받습니다."
@@ -724,15 +809,15 @@ msgstr "{0} 함수는 두 개 또는 세 개의 인수를 받습니다."
 #: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:426
 #: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:694
 #: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:720
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:647
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:648
 #, java-format
 msgid "{0} function doesn''t take any argument."
 msgstr "{0} 함수는 인수를 받지 않습니다."
 
 #: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:587
 #: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:640
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:503
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:573
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:504
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:574
 #, java-format
 msgid "{0} function takes three and only three arguments."
 msgstr "{0} 함수는 세 개의 인수만 받습니다."
@@ -743,10 +828,10 @@ msgstr "{0} 함수는 세 개의 인수만 받습니다."
 #: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:657
 #: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:670
 #: src/main/java/org/postgresql/jdbc/EscapedFunctions.java:673
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:513
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:530
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:587
-#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:599
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:514
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:531
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:588
+#: src/main/java/org/postgresql/jdbc/EscapedFunctions2.java:600
 #, java-format
 msgid "Interval {0} not yet implemented"
 msgstr "구간 {0} 은(는) 아직 구현되지 않았습니다."
@@ -771,13 +856,13 @@ msgid "Cannot retrieve the name of an unnamed savepoint."
 msgstr "이름이 없는 세이브포인트의 이름을 검색할 수 없습니다."
 
 #: src/main/java/org/postgresql/jdbc/PgArray.java:153
-#: src/main/java/org/postgresql/jdbc/PgArray.java:369
+#: src/main/java/org/postgresql/jdbc/PgArray.java:371
 #, java-format
 msgid "The array index is out of range: {0}"
 msgstr "배열 인덱스가 범위를 벗어났습니다: {0}"
 
 #: src/main/java/org/postgresql/jdbc/PgArray.java:174
-#: src/main/java/org/postgresql/jdbc/PgArray.java:386
+#: src/main/java/org/postgresql/jdbc/PgArray.java:388
 #, java-format
 msgid "The array index is out of range: {0}, number of elements: {1}."
 msgstr "배열 인덱스가 범위를 벗어났습니다: {0}, 요소 수: {1}."
@@ -839,175 +924,173 @@ msgid ""
 "Results cannot be retrieved from a CallableStatement before it is executed."
 msgstr "CallableStatement가 실행되기 전에 결과를 검색할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:735
+#: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:732
 #, java-format
-msgid "Unsupported type conversion to {1}."
-msgstr "{1} 으로의 지원되지 않는 유형 변환."
+msgid "Unsupported type conversion to {0}."
+msgstr "{0} 으로의 지원되지 않는 유형 변환."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:331
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:353
 #, java-format
 msgid "Unsupported value for stringtype parameter: {0}"
 msgstr "stringtype 매개 변수에 대한 지원되지 않는 값: {0}"
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:589
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:138
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:267
-#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:303
-#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:387
-#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:529
-#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:566
-#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:653
-#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:658
-#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:703
-#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:708
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:612
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:141
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:283
+#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:305
+#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:389
+#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:531
+#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:568
+#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:655
+#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:660
+#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:705
+#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:710
 msgid "No results were returned by the query."
 msgstr "쿼리에서 반환된 결과가 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:607
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:624
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:302
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:630
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:647
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:317
 msgid "A result was returned when none was expected."
 msgstr "예상치 못한 결과가 반환되었습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:733
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:754
 msgid "Custom type maps are not supported."
 msgstr "사용자 정의 유형 맵은 지원되지 않습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:775
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:796
 #, java-format
 msgid "Failed to create object for: {0}."
 msgstr "{0} 에 대한 개체 생성 실패."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:842
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:864
 #, java-format
 msgid "Unable to load the class {0} responsible for the datatype {1}"
 msgstr "데이터 유형 {1} 을 담당하는 클래스 {0} 을(를) 로드할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:870
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:892
 msgid "Unable to close connection properly"
 msgstr "연결을 올바르게 닫을 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:913
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:935
 msgid ""
 "Cannot change transaction read-only property in the middle of a transaction."
 msgstr "트랜잭션 중간에 트랜잭션 읽기 전용 속성을 변경할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:998
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1020
 msgid "Cannot commit when autoCommit is enabled."
 msgstr "autoCommit이 활성화된 상태에서 커밋할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1009
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1568
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1612
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1031
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1611
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1655
 msgid "This connection has been closed."
 msgstr "이 연결은 닫혔습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1019
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1041
 msgid "Cannot rollback when autoCommit is enabled."
 msgstr "autoCommit이 활성화된 상태에서 롤백할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1075
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1097
 msgid ""
 "Cannot change transaction isolation level in the middle of a transaction."
 msgstr "트랜잭션 중간에 트랜잭션 격리 수준을 변경할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1081
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1103
 #, java-format
 msgid "Transaction isolation level {0} not supported."
 msgstr "트랜잭션 격리 수준 {0} 이(가) 지원되지 않습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1247
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1274
 #: src/main/java/org/postgresql/jdbc/PgResultSet.java:2242
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:1013
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:1026
 msgid "Fetch size must be a value greater than or equal to 0."
 msgstr "가져오기 크기는 0보다 크거나 같아야 합니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1493
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1290
+#, fuzzy
+msgid "Query timeout must be a value greater than or equal to 0."
+msgstr "쿼리 시간 초과는 0보다 크거나 같아야 합니다."
+
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1536
 #, java-format
 msgid "Unable to find server array type for provided name {0}."
 msgstr "제공된 이름 {0} 에 대한 서버 배열 유형을 찾을 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1519
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1562
 #, java-format
 msgid "Invalid timeout ({0}<0)."
 msgstr "잘못된 시간 초과 ({0}<0)."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1556
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1599
 msgid "Validating connection."
 msgstr "연결을 검증 중입니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1589
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1632
 #, java-format
 msgid "Failed to set ClientInfo property: {0}"
 msgstr "ClientInfo 속성 설정 실패: {0}"
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1599
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1642
 msgid "ClientInfo property not supported."
 msgstr "ClientInfo 속성이 지원되지 않습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1625
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1668
 msgid "One or more ClientInfo failed."
 msgstr "하나 이상의 ClientInfo가 실패했습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1727
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1775
 msgid "Network timeout must be a value greater than or equal to 0."
 msgstr "네트워크 시간 초과는 0보다 크거나 같아야 합니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1736
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1784
 msgid "Unable to set network timeout."
 msgstr "네트워크 시간 초과를 설정할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1761
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1809
 msgid "Unable to get network timeout."
 msgstr "네트워크 시간 초과를 가져올 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1776
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1824
 #, java-format
 msgid "Unknown ResultSet holdability setting: {0}."
 msgstr "알 수 없는 ResultSet 유지 가능성 설정: {0}."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1794
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1815
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1842
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1863
 msgid "Cannot establish a savepoint in auto-commit mode."
 msgstr "자동 커밋 모드에서는 세이브포인트를 설정할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1884
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1932
 msgid "Returning autogenerated keys is not supported."
 msgstr "자동 생성된 키 반환이 지원되지 않습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1946
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1960
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:1994
+#: src/main/java/org/postgresql/jdbc/PgConnection.java:2003
 #, java-format
 msgid "Could not instantiate xmlFactoryFactory: {0}"
 msgstr "xmlFactoryFactory를 인스턴스화할 수 없습니다: {0}"
 
-#: src/main/java/org/postgresql/jdbc/PgConnection.java:1951
-#, java-format
-msgid ""
-"Connection property xmlFactoryFactory must implement PGXmlFactoryFactory: {0}"
-msgstr ""
-"연결 속성 xmlFactoryFactory는 PGXmlFactoryFactory를 구현해야 합니다: {0}"
-
-#: src/main/java/org/postgresql/jdbc/PgConnectionCleaningAction.java:85
+#: src/main/java/org/postgresql/jdbc/PgConnectionCleaningAction.java:86
 msgid "Leak detected: Connection.close() was not called"
 msgstr "누출 감지됨: Connection.close()가 호출되지 않았습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:73
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:75
 msgid ""
 "Unable to determine a value for MaxIndexKeys due to missing system catalog "
 "data."
 msgstr ""
 "시스템 카탈로그 데이터가 누락되어 MaxIndexKeys 값을 결정할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:96
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:98
 msgid "Unable to find name datatype in the system catalogs."
 msgstr "시스템 카탈로그에서 이름 데이터 유형을 찾을 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:356
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:358
 msgid "Unable to find keywords in the system catalogs."
 msgstr "시스템 카탈로그에서 키워드를 찾을 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1080
+#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1085
 msgid ""
 "Unable to determine a value for DefaultTransactionIsolation due to missing  "
 "entry in pg_catalog.pg_settings WHERE name='default_transaction_isolation'."
@@ -1015,60 +1098,12 @@ msgstr ""
 "pg_catalog.pg_settings에 name='default_transaction_isolation' 항목이 누락되"
 "어 DefaultTransactionIsolation 값을 결정할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1265
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:3092
-msgid "oid"
-msgstr ""
-
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1265
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:3092
-msgid "proname"
-msgstr ""
-
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1267
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1737
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:3094
-#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:272
-msgid "typtype"
-msgstr ""
-
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1270
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:3097
-msgid "proargtypes"
-msgstr ""
-
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1754
-msgid "adsrc"
-msgstr ""
-
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1765
-msgid "attidentity"
-msgstr ""
-
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1767
-msgid "attgenerated"
-msgstr ""
-
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1900
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1977
-msgid "rolname"
-msgstr ""
-
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1901
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1978
-msgid "relacl"
-msgstr ""
-
-#: src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java:1907
-msgid "attacl"
-msgstr ""
-
 #: src/main/java/org/postgresql/jdbc/PgParameterMetaData.java:96
 #, java-format
 msgid "The parameter index is out of range: {0}, number of parameters: {1}."
 msgstr "매개 변수 인덱스가 범위를 벗어났습니다: {0}, 매개 변수 수: {1}."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:105
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:108
 #, java-format
 msgid ""
 "PreparedStatement can have at most {0} parameters. Please consider using "
@@ -1079,69 +1114,69 @@ msgstr ""
 "거나 쿼리를 여러 개로 나누거나 COPY를 사용하는 것을 고려하십시오. 주어진 쿼리"
 "는 {1} 개의 매개 변수를 가집니다."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:123
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:148
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:173
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1128
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:126
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:151
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:176
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1171
 msgid ""
 "Can''t use query methods that take a query string on a PreparedStatement."
 msgstr ""
 "PreparedStatement에서 쿼리 문자열을 사용하는 쿼리 메서드를 사용할 수 없습니"
 "다."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:297
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:300
 msgid "Unknown Types value."
 msgstr "알 수 없는 유형 값입니다."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:451
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1295
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1603
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1664
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:454
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1335
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1643
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1704
 #, java-format
 msgid "Invalid stream length {0}."
 msgstr "잘못된 스트림 길이 {0}."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:480
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:483
 #, java-format
 msgid "The JVM claims not to support the {0} encoding."
 msgstr "JVM이 {0} 인코딩을 지원하지 않는다고 주장합니다."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:483
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1323
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1362
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:486
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1325
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1364
 msgid "Provided InputStream failed."
 msgstr "제공된 InputStream이 실패했습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:525
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1196
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:528
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1239
 #, java-format
 msgid "Unknown type {0}."
 msgstr "알 수 없는 유형 {0}."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:547
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:550
 msgid "No hstore extension installed."
 msgstr "설치된 hstore 확장이 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:686
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:708
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:718
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:699
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:721
 #: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:731
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1059
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:744
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1084
 #, java-format
 msgid "Cannot cast an instance of {0} to type {1}"
 msgstr "{0} 의 인스턴스를 유형 {1}(으)로 캐스팅할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:749
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:762
 #, java-format
 msgid "Unsupported Types value: {0}"
 msgstr "지원되지 않는 유형 값: {0}"
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:980
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1005
 #, java-format
 msgid "Cannot convert an instance of {0} to type {1}"
 msgstr "{0} 의 인스턴스를 유형 {1} (으)로 변환할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1065
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1090
 #, java-format
 msgid ""
 "Can''t infer the SQL type to use for an instance of {0}. Use setObject() "
@@ -1150,22 +1185,27 @@ msgstr ""
 "{0} 의 인스턴스에 사용할 SQL 유형을 추론할 수 없습니다. 명시적 유형 값을 사용"
 "하여 setObject()를 사용하여 사용할 유형을 지정하십시오."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1232
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1342
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1275
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1382
 msgid "Unexpected error writing large object to database."
 msgstr "데이터베이스에 대형 객체를 쓰는 동안 예상치 못한 오류가 발생했습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1280
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1425
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1301
+#, fuzzy
+msgid "Unexpected error when closing Blob binary stream"
+msgstr "데이터베이스에 대형 객체를 쓰는 동안 예상치 못한 오류가 발생했습니다."
+
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1320
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1427
 msgid "Provided Reader failed."
 msgstr "제공된 Reader가 실패했습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1600
+#: src/main/java/org/postgresql/jdbc/PgPreparedStatement.java:1640
 #: src/main/java/org/postgresql/util/StreamWrapper.java:60
 msgid "Object is too large to send over the protocol."
 msgstr "객체가 프로토콜을 통해 보내기에는 너무 큽니다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:324
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:326
 msgid ""
 "Operation requires a scrollable ResultSet, but this ResultSet is "
 "FORWARD_ONLY."
@@ -1173,41 +1213,41 @@ msgstr ""
 "작업에는 스크롤 가능한 ResultSet이 필요하지만 이 ResultSet은 FORWARD_ONLY입니"
 "다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:543
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:586
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:636
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:696
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:719
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:742
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:773
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:796
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3522
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3600
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:545
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:588
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:638
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:698
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:721
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:744
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:775
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:798
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3643
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3721
 #, java-format
 msgid "Cannot convert the column of type {0} to requested type {1}."
 msgstr "유형 {0} 의 열을 요청된 유형 {1} (으)로 변환할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1022
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1043
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1024
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1045
 #: src/main/java/org/postgresql/jdbc/PgResultSet.java:2276
 msgid "Can''t use relative move methods while on the insert row."
 msgstr "삽입 행에 있는 동안 상대적 이동 메서드를 사용할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1067
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:1004
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1069
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:1017
 #, java-format
 msgid "Invalid fetch direction constant: {0}."
 msgstr "잘못된 가져오기 방향 상수: {0}."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1079
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1081
 msgid "Cannot call cancelRowUpdates() when on the insert row."
 msgstr "삽입 행에 있는 동안 cancelRowUpdates()를 호출할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1097
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1099
 msgid "Cannot call deleteRow() when on the insert row."
 msgstr "삽입 행에 있는 동안 deleteRow()를 호출할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1104
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1106
 msgid ""
 "Currently positioned before the start of the ResultSet.  You cannot call "
 "deleteRow() here."
@@ -1215,7 +1255,7 @@ msgstr ""
 "현재 ResultSet의 시작 이전에 위치해 있습니다. 여기에서 deleteRow()를 호출할 "
 "수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1110
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1112
 msgid ""
 "Currently positioned after the end of the ResultSet.  You cannot call "
 "deleteRow() here."
@@ -1223,74 +1263,75 @@ msgstr ""
 "현재 ResultSet의 끝 이후에 위치해 있습니다. 여기에서 deleteRow()를 호출할 수 "
 "없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1115
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1117
 msgid "There are no rows in this ResultSet."
 msgstr "이 ResultSet에는 행이 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1156
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1158
 msgid "Not on the insert row."
 msgstr "삽입 행에 있지 않습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1160
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1162
 msgid "You must specify at least one column value to insert a row."
 msgstr "행을 삽입하려면 적어도 하나의 열 값을 지정해야 합니다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1495
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1497
 msgid "Can''t refresh the insert row."
 msgstr "삽입 행을 새로 고칠 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1571
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1573
 msgid "Cannot call updateRow() when on the insert row."
 msgstr "삽입 행에 있는 동안 updateRow()를 호출할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1579
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3617
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1581
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3738
 msgid ""
 "Cannot update the ResultSet because it is either before the start or after "
 "the end of the results."
 msgstr ""
 "결과의 시작 전이나 끝 후에 있기 때문에 ResultSet을 업데이트할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1842
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1844
 msgid "ResultSets with concurrency CONCUR_READ_ONLY cannot be updated."
 msgstr "동시성 CONCUR_READ_ONLY를 가진 ResultSet은 업데이트할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1946
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:1948
 #, java-format
 msgid "No eligible primary or unique key found for table {0}."
 msgstr "테이블 {0} 에 대해 적합한 기본 키 또는 고유 키가 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2146
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2148
 #, java-format
 msgid "The JVM claims not to support the encoding: {0}"
 msgstr "JVM이 인코딩을 지원하지 않는다고 주장합니다: {0}"
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2537
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2542
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3315
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3321
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3346
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3352
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3376
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3381
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3397
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3418
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3429
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2597
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2602
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:2889
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3436
 #: src/main/java/org/postgresql/jdbc/PgResultSet.java:3442
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3571
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3581
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3592
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3605
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3467
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3473
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3497
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3502
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3518
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3539
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3550
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3563
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3692
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3702
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3713
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3726
 #, java-format
 msgid "Bad value for type {0} : {1}"
 msgstr "유형 {0} 에 대한 잘못된 값: {1}"
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3086
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3207
 #, java-format
 msgid "The column name {0} was not found in this ResultSet."
 msgstr "이 ResultSet에서 열 이름 {0} 을(를) 찾을 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3227
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3348
 msgid ""
 "ResultSet is not updateable.  The query that generated this result set must "
 "select only one table, and must select all primary keys from that table. See "
@@ -1300,43 +1341,44 @@ msgstr ""
 "블만 선택해야 하며 해당 테이블의 모든 기본 키를 선택해야 합니다. 자세한 내용"
 "은 JDBC 2.1 API 명세서 섹션 5.6을 참조하십시오."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3243
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3364
 msgid "This ResultSet is closed."
 msgstr "이 ResultSet은 닫혔습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3277
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3398
 msgid "ResultSet not positioned properly, perhaps you need to call next."
 msgstr ""
 "ResultSet이 올바르게 위치하지 않았습니다. 아마도 next를 호출해야 할 것입니다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3639
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3760
 msgid "Invalid UUID data."
 msgstr "잘못된 UUID 데이터입니다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3739
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3746
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3757
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3768
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3779
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3790
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3801
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3812
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3823
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3830
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3837
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3846
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3861
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3868
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3875
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3886
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3893
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3860
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3867
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3878
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3889
 #: src/main/java/org/postgresql/jdbc/PgResultSet.java:3900
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3937
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3911
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3922
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3933
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3944
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3951
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3958
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3967
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3982
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3989
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3996
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:4003
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:4016
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:4023
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:4030
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:4067
 #, java-format
 msgid "conversion to {0} from {1} not supported"
 msgstr "{1} 에서 {0} (으)로의 변환이 지원되지 않습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgResultSet.java:3914
+#: src/main/java/org/postgresql/jdbc/PgResultSet.java:4044
 msgid "Invalid Inet data."
 msgstr "잘못된 Inet 데이터입니다."
 
@@ -1387,49 +1429,62 @@ msgid ""
 "further."
 msgstr "이 SQLXML 객체는 이미 초기화되었으므로 더 이상 조작할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:166
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:171
 msgid "Unknown value for ResultSet type"
 msgstr "ResultSet 유형에 대한 알 수 없는 값입니다."
 
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:172
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:177
 msgid "Unknown value for ResultSet concurrency"
 msgstr "ResultSet 동시성에 대한 알 수 없는 값입니다."
 
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:181
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:187
 msgid "Unknown value for ResultSet holdability"
 msgstr "ResultSet 유지 가능성에 대한 알 수 없는 값입니다."
 
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:279
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:295
 msgid "Multiple ResultSets were returned by the query."
 msgstr "쿼리에서 여러 ResultSet이 반환되었습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:366
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:381
 msgid "Can''t use executeWithFlags(int) on a Statement."
 msgstr "문에서 executeWithFlags(int)를 사용할 수 없습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:579
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:593
 msgid "Maximum number of rows must be a value greater than or equal to 0."
 msgstr "최대 행 수는 0보다 크거나 같아야 합니다."
 
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:628
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:642
 msgid "Query timeout must be a value greater than or equals to 0."
 msgstr "쿼리 시간 초과는 0보다 크거나 같아야 합니다."
 
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:671
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:685
 msgid "The maximum field size must be a value greater than or equal to 0."
 msgstr "최대 필드 크기는 0보다 크거나 같아야 합니다."
 
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:776
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:791
 msgid "This statement has been closed."
 msgstr "이 문이 닫혔습니다."
 
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:1165
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:1303
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:1336
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:833
+msgid ""
+"Multi-statement SQL is not supported in Statement.addBatch(); call "
+"addBatch() once per statement instead."
+msgstr ""
+
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:1172
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:1313
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:1350
+#, fuzzy, java-format
+msgid "Invalid value for autoGeneratedKeys {0}"
+msgstr "잘못된 요소 {0}"
+
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:1182
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:1323
+#: src/main/java/org/postgresql/jdbc/PgStatement.java:1360
 msgid "Returning autogenerated keys by column index is not supported."
 msgstr "열 인덱스별 자동 생성 키 반환이 지원되지 않습니다."
 
-#: src/main/java/org/postgresql/jdbc/QueryExecutorTimeZoneProvider.java:32
+#: src/main/java/org/postgresql/jdbc/QueryExecutorTimeZoneProvider.java:33
 msgid ""
 "Backend timezone is not known. Backend should have returned TimeZone when "
 "establishing a connection"
@@ -1443,64 +1498,25 @@ msgid "Invalid sslmode value: {0}"
 msgstr "잘못된 sslmode 값: {0}"
 
 #: src/main/java/org/postgresql/jdbc/TimestampUtils.java:379
-#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:496
+#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:491
 #, java-format
 msgid "Bad value for type timestamp/date/time: {0}"
 msgstr "유형 타임스탬프/날짜/시간에 대한 잘못된 값: {0}"
 
-#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:511
-#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:1326
-#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:1383
-#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:1427
-#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:1480
-#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:1607
+#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:506
+#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:1313
+#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:1370
+#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:1414
+#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:1467
+#: src/main/java/org/postgresql/jdbc/TimestampUtils.java:1593
 #, java-format
 msgid "Unsupported binary encoding of {0}."
 msgstr "{0} 의 지원되지 않는 이진 인코딩."
 
-#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:307
-msgid "typname"
-msgstr ""
-
-#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:1087
+#: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:1119
 #, java-format
 msgid "Value is not an OID: {0}"
 msgstr "값이 OID가 아닙니다: {0}"
-
-#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:68
-msgid "No SCRAM mechanism(s) advertised by the server"
-msgstr "서버에서 광고한 SCRAM 메커니즘이 없습니다."
-
-#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:82
-msgid "Invalid or unsupported by client SCRAM mechanisms"
-msgstr "클라이언트에서 지원되지 않거나 잘못된 SCRAM 메커니즘"
-
-#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:125
-msgid "SCRAM session does not exist"
-msgstr "SCRAM 세션이 존재하지 않습니다."
-
-#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:135
-#, java-format
-msgid "Invalid server-first-message: {0}"
-msgstr "잘못된 서버 첫 번째 메시지: {0}"
-
-#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:171
-msgid "SCRAM client final processor does not exist"
-msgstr "SCRAM 클라이언트 최종 프로세서가 존재하지 않습니다."
-
-#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:179
-#, java-format
-msgid "Invalid server-final-message: {0}"
-msgstr "잘못된 서버 최종 메시지: {0}"
-
-#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:185
-#, java-format
-msgid "SCRAM authentication failed, server returned error: {0}"
-msgstr "SCRAM 인증 실패, 서버에서 오류를 반환했습니다: {0}"
-
-#: src/main/java/org/postgresql/jre7/sasl/ScramAuthenticator.java:192
-msgid "Invalid server SCRAM signature"
-msgstr "잘못된 서버 SCRAM 서명"
 
 #: src/main/java/org/postgresql/largeobject/BlobInputStream.java:138
 #: src/main/java/org/postgresql/largeobject/BlobInputStream.java:231
@@ -1532,12 +1548,17 @@ msgstr "대형 객체 {0} 에 데이터를 쓸 수 없습니다. 요청된 쓰�
 msgid "Can not flush large object {0}"
 msgstr "대형 객체 {0} 을(를) 플러시할 수 없습니다."
 
+#: src/main/java/org/postgresql/largeobject/LargeObject.java:85
+#, fuzzy
+msgid "This large object has been closed."
+msgstr "이 문이 닫혔습니다."
+
 #: src/main/java/org/postgresql/largeobject/LargeObjectManager.java:244
 #: src/main/java/org/postgresql/largeobject/LargeObjectManager.java:285
 msgid "Large Objects may not be used in auto-commit mode."
 msgstr "대형 객체는 자동 커밋 모드에서 사용할 수 없습니다."
 
-#: src/main/java/org/postgresql/osgi/PGDataSourceFactory.java:89
+#: src/main/java/org/postgresql/osgi/PGDataSourceFactory.java:86
 #, java-format
 msgid "Unsupported properties: {0}"
 msgstr "지원되지 않는 속성: {0}"
@@ -1546,34 +1567,44 @@ msgstr "지원되지 않는 속성: {0}"
 msgid "Server does not support temporary replication slots"
 msgstr "서버가 임시 복제 슬롯을 지원하지 않습니다."
 
-#: src/main/java/org/postgresql/replication/fluent/logical/LogicalCreateSlotBuilder.java:72
-#: src/main/java/org/postgresql/replication/fluent/physical/PhysicalCreateSlotBuilder.java:55
-msgid "slot_name"
-msgstr ""
-
-#: src/main/java/org/postgresql/replication/fluent/logical/LogicalCreateSlotBuilder.java:74
-#: src/main/java/org/postgresql/replication/fluent/physical/PhysicalCreateSlotBuilder.java:57
-msgid "consistent_point"
-msgstr ""
-
-#: src/main/java/org/postgresql/replication/fluent/logical/LogicalCreateSlotBuilder.java:75
-#: src/main/java/org/postgresql/replication/fluent/physical/PhysicalCreateSlotBuilder.java:58
-msgid "snapshot_name"
-msgstr ""
-
-#: src/main/java/org/postgresql/replication/fluent/logical/LogicalCreateSlotBuilder.java:76
-#: src/main/java/org/postgresql/replication/fluent/physical/PhysicalCreateSlotBuilder.java:59
-msgid "output_plugin"
-msgstr ""
-
 #: src/main/java/org/postgresql/replication/fluent/logical/LogicalCreateSlotBuilder.java:79
 #: src/main/java/org/postgresql/replication/fluent/physical/PhysicalCreateSlotBuilder.java:62
 #, java-format
 msgid "{0} returned no results"
 msgstr "{0} 반환된 결과가 없습니다."
 
-#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:152
-#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:141
+#: src/main/java/org/postgresql/ssl/BaseX509KeyManager.java:132
+#, java-format
+msgid "Unable to retrieve the permissions of the private key file \"{0}\""
+msgstr ""
+
+#: src/main/java/org/postgresql/ssl/BaseX509KeyManager.java:153
+#, java-format
+msgid ""
+"private key file \"{0}\" has group or world access; file must have "
+"permissions u=rw (0600) or less if owned by the current user, or permissions "
+"u=rw,g=r (0640) or less if owned by root. Current permissions: {1}"
+msgstr ""
+
+#: src/main/java/org/postgresql/ssl/BaseX509KeyManager.java:166
+#, fuzzy, java-format
+msgid "Could not read permissions for private key file \"{0}\""
+msgstr "SSL 루트 인증서 파일 {0} 을(를) 읽을 수 없습니다."
+
+#: src/main/java/org/postgresql/ssl/BaseX509KeyManager.java:242
+#, java-format
+msgid ""
+"Private key file \"{0}\" has insecure permissions. Non-owner principal "
+"\"{1}\" has read access."
+msgstr ""
+
+#: src/main/java/org/postgresql/ssl/BaseX509KeyManager.java:255
+#, fuzzy, java-format
+msgid "Could not read ACL permissions for private key file \"{0}\""
+msgstr "SSL 루트 인증서 파일 {0} 을(를) 읽을 수 없습니다."
+
+#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:153
+#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:63
 msgid ""
 "Could not find a java cryptographic algorithm: X.509 CertificateFactory not "
 "available."
@@ -1581,94 +1612,108 @@ msgstr ""
 "Java 암호화 알고리즘을 찾을 수 없습니다: X.509 CertificateFactory를 사용할 "
 "수 없습니다."
 
-#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:164
+#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:165
 #, java-format
 msgid "Could not open SSL certificate file {0}."
 msgstr "SSL 인증서 파일 {0} 을(를) 열 수 없습니다."
 
-#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:169
+#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:170
 #, java-format
 msgid "Loading the SSL certificate {0} into a KeyManager failed."
 msgstr "SSL 인증서 {0} 을(를) KeyManager로 로드하지 못했습니다."
 
-#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:179
+#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:180
 #, java-format
 msgid "Could not close SSL certificate file {0}."
 msgstr "SSL 인증서 파일 {0} 을(를) 닫을 수 없습니다."
 
-#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:245
-#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:151
-#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:174
+#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:246
+#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:73
+#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:96
 msgid "Enter SSL password: "
 msgstr "SSL 비밀번호 입력: "
 
-#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:252
-#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:181
+#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:253
+#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:103
 msgid "Could not read password for SSL key file, console is not available."
 msgstr "SSL 키 파일의 비밀번호를 읽을 수 없습니다. 콘솔을 사용할 수 없습니다."
 
-#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:257
-#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:186
+#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:258
+#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:108
 #, java-format
 msgid "Could not read password for SSL key file by callbackhandler {0}."
 msgstr ""
 "콜백 핸들러 {0} 을(를) 사용하여 SSL 키 파일의 비밀번호를 읽을 수 없습니다."
 
-#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:277
+#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:278
 #, java-format
 msgid "Could not decrypt SSL key file {0}."
 msgstr "SSL 키 파일 {0} 을(를) 해독할 수 없습니다."
 
-#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:284
-#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:162
+#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:285
+#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:84
 #, java-format
 msgid "Could not read SSL key file {0}."
 msgstr "SSL 키 파일 {0} 을(를) 읽을 수 없습니다."
 
-#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:287
-#: src/main/java/org/postgresql/ssl/LibPQFactory.java:194
+#: src/main/java/org/postgresql/ssl/LazyKeyManager.java:288
+#: src/main/java/org/postgresql/ssl/LibPQFactory.java:215
 #, java-format
 msgid "Could not find a java cryptographic algorithm: {0}."
 msgstr "Java 암호화 알고리즘을 찾을 수 없습니다: {0}."
 
-#: src/main/java/org/postgresql/ssl/LibPQFactory.java:63
+#: src/main/java/org/postgresql/ssl/LibPQFactory.java:64
 #, java-format
 msgid "The password callback class provided {0} could not be instantiated."
 msgstr "제공된 비밀번호 콜백 클래스 {0} 을(를) 인스턴스화할 수 없습니다."
 
-#: src/main/java/org/postgresql/ssl/LibPQFactory.java:151
+#: src/main/java/org/postgresql/ssl/LibPQFactory.java:110
+#, fuzzy
+msgid "Could not initialize PEMKeyManager."
+msgstr "SSL 컨텍스트를 초기화할 수 없습니다."
+
+#: src/main/java/org/postgresql/ssl/LibPQFactory.java:172
 #, java-format
 msgid "Could not open SSL root certificate file {0}."
 msgstr "SSL 루트 인증서 파일 {0} 을(를) 열 수 없습니다."
 
-#: src/main/java/org/postgresql/ssl/LibPQFactory.java:166
+#: src/main/java/org/postgresql/ssl/LibPQFactory.java:187
 #, java-format
 msgid "Could not read SSL root certificate file {0}."
 msgstr "SSL 루트 인증서 파일 {0} 을(를) 읽을 수 없습니다."
 
-#: src/main/java/org/postgresql/ssl/LibPQFactory.java:170
+#: src/main/java/org/postgresql/ssl/LibPQFactory.java:191
 #, java-format
 msgid "Loading the SSL root certificate {0} into a TrustManager failed."
 msgstr "SSL 루트 인증서 {0} 을(를) TrustManager로 로드하지 못했습니다."
 
-#: src/main/java/org/postgresql/ssl/LibPQFactory.java:188
+#: src/main/java/org/postgresql/ssl/LibPQFactory.java:209
 msgid "Could not initialize SSL context."
 msgstr "SSL 컨텍스트를 초기화할 수 없습니다."
 
-#: src/main/java/org/postgresql/ssl/MakeSSL.java:45
+#: src/main/java/org/postgresql/ssl/MakeSSL.java:53
 #, java-format
 msgid "SSL error: {0}"
 msgstr "SSL 오류: {0}"
 
-#: src/main/java/org/postgresql/ssl/MakeSSL.java:74
+#: src/main/java/org/postgresql/ssl/MakeSSL.java:82
 #, java-format
 msgid "The HostnameVerifier class provided {0} could not be instantiated."
 msgstr "제공된 HostnameVerifier 클래스 {0} 을(를) 인스턴스화할 수 없습니다."
 
-#: src/main/java/org/postgresql/ssl/MakeSSL.java:85
+#: src/main/java/org/postgresql/ssl/MakeSSL.java:93
 #, java-format
 msgid "The hostname {0} could not be verified by hostnameverifier {1}."
 msgstr "hostnameverifier {1} 이(가) 호스트 이름 {0}을(를) 확인할 수 없습니다."
+
+#: src/main/java/org/postgresql/ssl/PEMKeyManager.java:80
+msgid "Could not load the private key"
+msgstr ""
+
+#: src/main/java/org/postgresql/ssl/PEMKeyManager.java:101
+#, fuzzy
+msgid "Could not load cert chain"
+msgstr "SSL 인증서 파일 {0} 을(를) 닫을 수 없습니다."
 
 #: src/main/java/org/postgresql/ssl/PGjdbcHostnameVerifier.java:87
 #, java-format
@@ -1731,7 +1776,7 @@ msgstr ""
 "서버 이름 유효성 검사 실패: 호스트 이름 {0} 이(가) 공통 이름 {1} 과(와) 일치"
 "하지 않습니다."
 
-#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:47
+#: src/main/java/org/postgresql/ssl/PKCS12KeyManager.java:42
 msgid "Unable to find pkcs12 keystore."
 msgstr "pkcs12 키 저장소를 찾을 수 없습니다."
 
@@ -1779,7 +1824,7 @@ msgstr "인증서를 읽는 동안 오류가 발생했습니다."
 msgid "No X509TrustManager found"
 msgstr "X509TrustManager를 찾을 수 없습니다."
 
-#: src/main/java/org/postgresql/sspi/SSPIClient.java:67
+#: src/main/java/org/postgresql/sspi/SSPIClient.java:68
 msgid "Unable to instantiate SecBufferDesc, so SSPI is unavailable"
 msgstr "SecBufferDesc을 인스턴스화할 수 없어 SSPI를 사용할 수 없습니다."
 
@@ -1787,11 +1832,16 @@ msgstr "SecBufferDesc을 인스턴스화할 수 없어 SSPI를 사용할 수 없
 msgid "hstore key must not be null"
 msgstr "hstore 키는 null일 수 없습니다."
 
-#: src/main/java/org/postgresql/util/PGInterval.java:221
+#: src/main/java/org/postgresql/util/PGInterval.java:220
 msgid "Conversion of interval failed"
 msgstr "간격 변환 실패"
 
-#: src/main/java/org/postgresql/util/PGPropertyMaxResultBufferParser.java:201
+#: src/main/java/org/postgresql/util/PGPropertyMaxResultBufferParser.java:153
+#, java-format
+msgid "Could not parse maxResultBuffer value {0}; percent values require {1}."
+msgstr ""
+
+#: src/main/java/org/postgresql/util/PGPropertyMaxResultBufferParser.java:236
 #, java-format
 msgid ""
 "WARNING! Required to allocate {0} bytes, which exceeded possible heap memory "
@@ -1800,7 +1850,13 @@ msgstr ""
 "경고! {0} 바이트를 할당해야 하는데 이는 가능한 힙 메모리 크기를 초과했습니"
 "다. {1} 바이트를 한도로 할당했습니다."
 
-#: src/main/java/org/postgresql/util/PGbytea.java:233
+#: src/main/java/org/postgresql/util/PGbytea.java:222
+#: src/main/java/org/postgresql/util/internal/PgBufferedOutputStream.java:149
+#, java-format
+msgid "Premature end of input stream, expected {0} bytes, but only read {1}."
+msgstr "입력 스트림의 조기 종료, 예상 {0} 바이트 중 {1} 바이트만 읽었습니다."
+
+#: src/main/java/org/postgresql/util/PGbytea.java:256
 msgid "Can't convert {0} to {1} literal"
 msgstr "{0} 을(를) {1} 리터럴로 변환할 수 없습니다."
 
@@ -1865,39 +1921,45 @@ msgstr ""
 "StreamWrapper 누수가 감지되었습니다. StreamWrapper.close()가 호출되지 않았습"
 "니다."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:133
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:138
 msgid ""
-"Transaction control methods setAutoCommit(true), commit, rollback and "
-"setSavePoint not allowed while an XA transaction is active."
+"Transaction control methods setAutoCommit, commit, rollback and setSavepoint "
+"are not allowed while an XA transaction is active."
 msgstr ""
-"XA 트랜잭션이 활성 상태인 동안 트랜잭션 제어 메서드 setAutoCommit(true), "
-"commit, rollback 및 setSavePoint가 허용되지 않습니다."
+"XA 트랜잭션이 활성 상태인 동안 트랜잭션 제어 메서드 setAutoCommit, commit, "
+"rollback 및 setSavepoint가 허용되지 않습니다."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:191
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:277
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:386
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:196
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:286
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:407
 #, java-format
 msgid "Invalid flags {0}"
 msgstr "잘못된 플래그 {0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:195
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:281
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:496
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:200
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:290
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:524
 msgid "xid must not be null"
 msgstr "xid는 null일 수 없습니다."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:199
-msgid "Connection is busy with another transaction"
-msgstr "연결이 다른 트랜잭션으로 바쁩니다."
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:205
+#, java-format
+msgid ""
+"Connection is already associated with an active XA branch. End the current "
+"branch before starting a new one. start xid={0}, currentXid={1}, state={2}, "
+"flags={3}"
+msgstr ""
+"연결이 이미 활성 XA 분기와 연관되어 있습니다. 새 분기를 시작하기 전에 현재 분"
+"기를 종료하십시오. start xid={0}, currentXid={1}, state={2}, flags={3}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:208
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:291
-msgid "suspend/resume not implemented"
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:215
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:301
+msgid "Suspend/resume not implemented"
 msgstr "일시 중지/다시 시작이 구현되지 않았습니다."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:216
 #: src/main/java/org/postgresql/xa/PGXAConnection.java:223
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:227
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:230
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:234
 #, java-format
 msgid ""
 "Invalid protocol state requested. Attempted transaction interleaving is not "
@@ -1906,63 +1968,79 @@ msgstr ""
 "잘못된 프로토콜 상태 요청됨. 트랜잭션 교차 시도는 지원되지 않습니다. "
 "xid={0}, currentXid={1}, state={2}, flags={3}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:238
-msgid "Error disabling autocommit"
-msgstr "자동 커밋 비활성화 오류"
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:246
+#, java-format
+msgid "Error opening transaction. start xid={0}"
+msgstr "트랜잭션 열기 오류. start xid={0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:285
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:294
 #, java-format
 msgid ""
-"tried to call end without corresponding start call. state={0}, start "
-"xid={1}, currentXid={2}, preparedXid={3}"
+"end() called without a matching start(). end xid={0}, currentXid={1}, "
+"state={2}, preparedXid={3}"
 msgstr ""
-"해당 시작 호출 없이 end를 호출하려고 했습니다. state={0}, start xid={1}, "
-"currentXid={2}, preparedXid={3}"
-
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:331
-#, java-format
-msgid ""
-"Preparing already prepared transaction, the prepared xid {0}, prepare xid={1}"
-msgstr "이미 준비된 트랜잭션 준비, 준비된 xid {0}, prepare xid={1}"
-
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:334
-#, java-format
-msgid "Current connection does not have an associated xid. prepare xid={0}"
-msgstr "현재 연결에는 연결된 xid가 없습니다. prepare xid={0}"
+"일치하는 start() 호출 없이 end()가 호출되었습니다. end xid={0}, "
+"currentXid={1}, state={2}, preparedXid={3}"
 
 #: src/main/java/org/postgresql/xa/PGXAConnection.java:341
 #, java-format
 msgid ""
-"Not implemented: Prepare must be issued using the same connection that "
-"started the transaction. currentXid={0}, prepare xid={1}"
+"Transaction was already prepared on this connection. prepare xid={0}, "
+"preparedXid={1}"
 msgstr ""
-"구현되지 않음: Prepare는 트랜잭션을 시작한 동일한 연결을 사용하여 발행해야 합"
-"니다. currentXid={0}, prepare xid={1}"
+"이 연결에서 트랜잭션이 이미 준비되었습니다. prepare xid={0}, preparedXid={1}"
 
 #: src/main/java/org/postgresql/xa/PGXAConnection.java:345
 #, java-format
-msgid "Prepare called before end. prepare xid={0}, state={1}"
-msgstr "end 이전에 호출 준비. prepare xid={0}, state={1}"
+msgid "Current connection does not have an associated xid. prepare xid={0}"
+msgstr "현재 연결에는 연결된 xid가 없습니다. prepare xid={0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:365
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:352
+#, java-format
+msgid ""
+"Prepare must be issued on the connection that started the branch. "
+"Transaction interleaving is not supported. prepare xid={0}, currentXid={1}"
+msgstr ""
+"Prepare는 분기를 시작한 연결에서 발행해야 합니다. 트랜잭션 교차는 지원되지 않"
+"습니다. prepare xid={0}, currentXid={1}"
+
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:356
+#, java-format
+msgid "Prepare called before end(). prepare xid={0}, state={1}"
+msgstr "end() 호출 전에 Prepare가 호출되었습니다. prepare xid={0}, state={1}"
+
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:368
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:382
 #, java-format
 msgid "Error preparing transaction. prepare xid={0}"
 msgstr "트랜잭션 준비 오류. prepare xid={0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:421
-msgid "Error during recover"
-msgstr "복구 중 오류"
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:441
+#, java-format
+msgid "Error during recover. flag={0}"
+msgstr "복구 중 오류. flag={0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:485
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:487
 #, java-format
 msgid ""
-"Error rolling back prepared transaction. rollback xid={0}, preparedXid={1}, "
+"Cannot rollback prepared transaction while a local transaction is in "
+"progress on this connection. Commit or rollback the local transaction first. "
+"rollback xid={0}, transactionState={1}"
+msgstr ""
+"이 연결에서 로컬 트랜잭션이 진행 중인 동안에는 준비된 트랜잭션을 롤백할 수 없"
+"습니다. 먼저 로컬 트랜잭션을 커밋하거나 롤백하십시오. rollback xid={0}, "
+"transactionState={1}"
+
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:513
+#, java-format
+msgid ""
+"Error rolling back transaction. rollback xid={0}, preparedXid={1}, "
 "currentXid={2}"
 msgstr ""
-"준비된 트랜잭션을 롤백하는 중 오류가 발생했습니다. 롤백 xid={0}, "
+"트랜잭션을 롤백하는 중 오류가 발생했습니다. rollback xid={0}, "
 "preparedXid={1}, currentXid={2}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:526
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:553
 #, java-format
 msgid ""
 "One-phase commit called for xid {0} but connection was prepared with xid {1}"
@@ -1970,39 +2048,49 @@ msgstr ""
 "1단계 커밋이 xid {0} 에 대해 호출되었으나 연결이 xid {1}(으)로 준비되었습니"
 "다."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:534
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:561
+#, java-format
 msgid ""
-"Not implemented: one-phase commit must be issued using the same connection "
-"that was used to start it"
-msgstr ""
-"구현되지 않음: 1단계 커밋은 시작하는 데 사용된 동일한 연결을 사용하여 발행해"
-"야 합니다."
+"One-phase commit must be issued on the connection that started the branch. "
+"commit xid={0}"
+msgstr "1단계 커밋은 분기를 시작한 연결에서 발행해야 합니다. commit xid={0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:538
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:565
 #, java-format
 msgid "One-phase commit with unknown xid. commit xid={0}, currentXid={1}"
 msgstr "알 수 없는 xid와 1단계 커밋. commit xid={0}, currentXid={1}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:542
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:569
 #, java-format
-msgid "commit called before end. commit xid={0}, state={1}"
-msgstr "end 이전에 호출 커밋. commit xid={0}, state={1}"
+msgid "commit() called before end(). commit xid={0}, state={1}"
+msgstr "end() 호출 전에 commit()이 호출되었습니다. commit xid={0}, state={1}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:553
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:581
 #, java-format
 msgid "Error during one-phase commit. commit xid={0}"
 msgstr "1단계 커밋 중 오류 발생. commit xid={0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:581
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:614
 #, java-format
 msgid ""
-"Not implemented: 2nd phase commit must be issued using an idle connection. "
-"commit xid={0}, currentXid={1}, state={2}, transactionState={3}"
+"2nd phase commit cannot be issued while an XA branch is active on this "
+"connection. commit xid={0}, currentXid={1}, state={2}"
 msgstr ""
-"구현되지 않음: 2단계 커밋은 유휴 연결을 사용하여 발행해야 합니다. commit "
-"xid={0}, currentXid={1}, state={2}, transactionState={3}"
+"이 연결에서 XA 분기가 활성 상태인 동안에는 2단계 커밋을 발행할 수 없습니다. "
+"commit xid={0}, currentXid={1}, state={2}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:614
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:627
+#, java-format
+msgid ""
+"Cannot 2nd phase commit prepared transaction while a local transaction is in "
+"progress on this connection. Commit or rollback the local transaction first. "
+"commit xid={0}, transactionState={1}"
+msgstr ""
+"이 연결에서 로컬 트랜잭션이 진행 중인 동안에는 준비된 트랜잭션의 2단계 커밋"
+"을 수행할 수 없습니다. 먼저 로컬 트랜잭션을 커밋하거나 롤백하십시오. commit "
+"xid={0}, transactionState={1}"
+
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:654
 #, java-format
 msgid ""
 "Error committing prepared transaction. commit xid={0}, preparedXid={1}, "
@@ -2011,7 +2099,7 @@ msgstr ""
 "준비된 트랜잭션을 커밋하는 중 오류가 발생했습니다. commit xid={0}, "
 "preparedXid={1}, currentXid={2}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:631
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:671
 #, java-format
 msgid "Heuristic commit/rollback not supported. forget xid={0}"
 msgstr "휴리스틱 커밋/롤백이 지원되지 않습니다. forget xid={0}"

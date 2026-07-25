@@ -1,4 +1,6 @@
 import org.gradle.kotlin.dsl.dependencies
+import org.gradle.accessors.dm.LibrariesForLibs
+import org.gradle.kotlin.dsl.the
 
 plugins {
     id("build-logic.build-params")
@@ -17,7 +19,7 @@ dependencies {
                 "checkerFrameworkAnnotatedJDK"("org.checkerframework:jdk8:$checkerframeworkVersion")
             }
         } ?: run {
-            val checkerframeworkVersion = "3.52.0"
+            val checkerframeworkVersion = "3.55.1"
             "checkerFramework"("org.checkerframework:checker:$checkerframeworkVersion")
             if (buildParameters.buildJdkVersion == 8) {
                 // only needed for JDK 8
@@ -27,7 +29,7 @@ dependencies {
 }
 
 checkerFramework {
-    skipVersionCheck = true
+    version = the<LibrariesForLibs>().checkerframework.map { it.version }
     excludeTests = true
     // See https://checkerframework.org/manual/#introduction
     checkers.add("org.checkerframework.checker.nullness.NullnessChecker")

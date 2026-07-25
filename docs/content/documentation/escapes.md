@@ -4,6 +4,55 @@ date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 7
 toc: true
+aliases:
+    - "/documentation/head/escapes.html"
+    - "/documentation/head/escapes-datetime.html"
+    - "/documentation/head/escaped-functions.html"
+    - "/documentation/head/outer-joins-escape.html"
+    - "/documentation/80/escapes.html"
+    - "/documentation/80/escapes-datetime.html"
+    - "/documentation/80/escaped-functions.html"
+    - "/documentation/80/outer-joins-escape.html"
+    - "/documentation/81/escapes.html"
+    - "/documentation/81/escapes-datetime.html"
+    - "/documentation/81/escaped-functions.html"
+    - "/documentation/81/outer-joins-escape.html"
+    - "/documentation/82/escapes.html"
+    - "/documentation/82/escapes-datetime.html"
+    - "/documentation/82/escaped-functions.html"
+    - "/documentation/82/outer-joins-escape.html"
+    - "/documentation/83/escapes.html"
+    - "/documentation/83/escapes-datetime.html"
+    - "/documentation/83/escaped-functions.html"
+    - "/documentation/83/outer-joins-escape.html"
+    - "/documentation/84/escapes.html"
+    - "/documentation/84/escapes-datetime.html"
+    - "/documentation/84/escaped-functions.html"
+    - "/documentation/84/outer-joins-escape.html"
+    - "/documentation/85/escapes.html"
+    - "/documentation/85/escapes-datetime.html"
+    - "/documentation/85/escaped-functions.html"
+    - "/documentation/85/outer-joins-escape.html"
+    - "/documentation/90/escapes.html"
+    - "/documentation/90/escapes-datetime.html"
+    - "/documentation/90/escaped-functions.html"
+    - "/documentation/90/outer-joins-escape.html"
+    - "/documentation/91/escapes.html"
+    - "/documentation/91/escapes-datetime.html"
+    - "/documentation/91/escaped-functions.html"
+    - "/documentation/91/outer-joins-escape.html"
+    - "/documentation/92/escapes.html"
+    - "/documentation/92/escapes-datetime.html"
+    - "/documentation/92/escaped-functions.html"
+    - "/documentation/92/outer-joins-escape.html"
+    - "/documentation/93/escapes.html"
+    - "/documentation/93/escapes-datetime.html"
+    - "/documentation/93/escaped-functions.html"
+    - "/documentation/93/outer-joins-escape.html"
+    - "/documentation/94/escapes.html"
+    - "/documentation/94/escapes-datetime.html"
+    - "/documentation/94/escaped-functions.html"
+    - "/documentation/94/outer-joins-escape.html"
 ---
 
 The JDBC specification (like the ODBC specification) acknowledges the fact that some vendor specific SQL may be required
@@ -147,8 +196,8 @@ see the translated SQL requires more parameters than before the translation but 
 |second(arg1)|yes| extract(second from arg1)                                          ||
 |week(arg1)|yes| extract(week from arg1)                                            ||
 |year(arg1)|yes| extract(year from arg1)                                            ||
-|timestampadd(argIntervalType, argCount, argTimeStamp)|yes| ((interval according to argIntervalType and argCount)+argTimeStamp)| an argIntervalType value of SQL_TSI_FRAC_SECOND is not implemented since backend does not support it |
-|timestampdiff(argIntervalType, argTimeStamp1, argTimeStamp2)|not| extract((interval according to argIntervalType) from argTimeStamp2-argTimeStamp1 ) | only an argIntervalType value of SQL_TSI_FRAC_SECOND, SQL_TSI_FRAC_MINUTE, SQL_TSI_FRAC_HOUR or SQL_TSI_FRAC_DAY is supported |
+|timestampadd(argIntervalType, argCount, argTimeStamp)|yes| ((interval according to argIntervalType and argCount)+argTimeStamp)| an argIntervalType value of SQL_TSI_FRAC_SECOND is rejected with an explicit error: the unit has no portable size (nanoseconds in ODBC/SQL Server, microseconds in MySQL), so it is not mapped. Use SQL_TSI_SECOND with a fractional value instead. |
+|timestampdiff(argIntervalType, argTimeStamp1, argTimeStamp2)|not| extract((interval according to argIntervalType) from argTimeStamp2-argTimeStamp1 ) | supported for SQL_TSI_SECOND, SQL_TSI_MINUTE, SQL_TSI_HOUR and SQL_TSI_DAY; SQL_TSI_FRAC_SECOND is rejected with an explicit error, as for timestampadd |
 
 ##### Table 8.4. Supported escaped misc functions
 

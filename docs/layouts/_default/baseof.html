@@ -14,6 +14,9 @@
     {{ $sass := resources.Get "sass/main.scss" }}
     {{ $style := $sass | css.Sass | resources.Fingerprint }}
     <link rel="stylesheet" href="{{ $style.Permalink }}" integrity="{{ $style.Data.Integrity }}">
+    {{- with .OutputFormats.Get "rss" }}
+    <link rel="{{ .Rel }}" type="{{ .MediaType.Type }}" href="{{ .Permalink }}" title="{{ with $.Title }}{{ . }} | {{ end }}{{ $.Site.Title }}">
+    {{- end }}
     {{ partial "site-manifest.html" . }}
     {{ partial "scripts.html" . }}
 

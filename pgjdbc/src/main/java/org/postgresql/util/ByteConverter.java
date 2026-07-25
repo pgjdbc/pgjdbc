@@ -27,7 +27,7 @@ public class ByteConverter {
     PositiveShorts() {
     }
 
-    public void push(short s) {
+    void push(short s) {
       if (s < 0) {
         throw new IllegalArgumentException("only non-negative values accepted: " + s);
       }
@@ -37,15 +37,15 @@ public class ByteConverter {
       shorts[idx++] = s;
     }
 
-    public int size() {
+    int size() {
       return idx;
     }
 
-    public boolean isEmpty() {
+    boolean isEmpty() {
       return idx == 0;
     }
 
-    public short pop() {
+    short pop() {
       return idx > 0 ? shorts[--idx] : -1;
     }
 

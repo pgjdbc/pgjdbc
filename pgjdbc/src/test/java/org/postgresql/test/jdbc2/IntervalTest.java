@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.test.TestUtil;
@@ -171,6 +172,48 @@ class IntervalTest {
     pgi.setSeconds(-0.6006);
     pgi.add(cal);
     assertEquals(origTime, cal.getTime().getTime());
+  }
+
+  @Test
+  void setSecondsAtWholeSecondsBoundary() {
+    PGInterval pgi = new PGInterval();
+
+    pgi.setSeconds((double) Integer.MAX_VALUE);
+    assertEquals(Integer.MAX_VALUE, pgi.getWholeSeconds());
+    assertEquals(0, pgi.getMicroSeconds());
+
+    pgi.setSeconds((double) Integer.MIN_VALUE);
+    assertEquals(Integer.MIN_VALUE, pgi.getWholeSeconds());
+    assertEquals(0, pgi.getMicroSeconds());
+
+    pgi.setSeconds(Integer.MIN_VALUE - .456);
+    assertEquals(Integer.MIN_VALUE, pgi.getWholeSeconds());
+    assertEquals(-456000, pgi.getMicroSeconds());
+
+    pgi.setSeconds(Integer.MAX_VALUE + .456);
+    assertEquals(Integer.MAX_VALUE, pgi.getWholeSeconds());
+    assertEquals(456000, pgi.getMicroSeconds());
+  }
+
+  @Test
+  void setSecondsRejectsValuesBeyondWholeSecondsRange() {
+    PGInterval pgi = new PGInterval();
+
+    assertThrows(IllegalArgumentException.class, () -> pgi.setSeconds(Integer.MAX_VALUE + 1.0));
+    assertThrows(IllegalArgumentException.class, () -> pgi.setSeconds(Integer.MIN_VALUE - 1.0));
+    assertThrows(IllegalArgumentException.class, () -> pgi.setSeconds(3_000_000_000.0));
+    assertThrows(IllegalArgumentException.class, () -> pgi.setSeconds(-3_000_000_000.0));
+    assertThrows(IllegalArgumentException.class,
+        () -> new PGInterval(0, 0, 0, 0, 0, 3_000_000_000.0));
+  }
+
+  @Test
+  void setSecondsRejectsNonFiniteValues() {
+    PGInterval pgi = new PGInterval();
+
+    assertThrows(IllegalArgumentException.class, () -> pgi.setSeconds(Double.NaN));
+    assertThrows(IllegalArgumentException.class, () -> pgi.setSeconds(Double.POSITIVE_INFINITY));
+    assertThrows(IllegalArgumentException.class, () -> pgi.setSeconds(Double.NEGATIVE_INFINITY));
   }
 
   @Test

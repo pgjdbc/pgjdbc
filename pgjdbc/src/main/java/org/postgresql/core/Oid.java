@@ -78,19 +78,30 @@ public class Oid {
   public static final int JSONB_ARRAY = 3807;
   public static final int JSON = 114;
   public static final int JSON_ARRAY = 199;
-  public static final int REF_CURSOR = 1790;
-  public static final int REF_CURSOR_ARRAY = 2201;
+  public static final int REFCURSOR = 1790;
+  public static final int REFCURSOR_ARRAY = 2201;
+  // backward compatibility
+  public static final int REF_CURSOR = REFCURSOR;
+  // backward compatibility
+  public static final int REF_CURSOR_ARRAY = REFCURSOR_ARRAY;
   public static final int LINE = 628;
+  public static final int LINE_ARRAY = 629;
   public static final int LSEG = 601;
+  public static final int LSEG_ARRAY = 1018;
   public static final int PATH = 602;
+  public static final int PATH_ARRAY = 1019;
   public static final int POLYGON = 604;
+  public static final int POLYGON_ARRAY = 1027;
   public static final int CIRCLE = 718;
+  public static final int CIRCLE_ARRAY = 719;
   public static final int CIDR = 650;
   public static final int INET = 869;
   public static final int MACADDR = 829;
   public static final int MACADDR8 = 774;
   public static final int TSVECTOR = 3614;
   public static final int TSQUERY = 3615;
+  public static final int RECORD = 2249;
+  public static final int RECORD_ARRAY = 2287;
 
   private static final Map<Integer, String> OID_TO_NAME = new HashMap<>(100);
   private static final Map<String, Integer> NAME_TO_OID = new HashMap<>(100);

@@ -5,7 +5,42 @@ draft: false
 weight: 3
 toc: true
 aliases:
+    - "/documentation/head/ssl.html"
     - "/documentation/head/ssl-client.html"
+    - "/documentation/head/ssl-factory.html"
+    - "/documentation/80/ssl.html"
+    - "/documentation/80/ssl-client.html"
+    - "/documentation/80/ssl-factory.html"
+    - "/documentation/81/ssl.html"
+    - "/documentation/81/ssl-client.html"
+    - "/documentation/81/ssl-factory.html"
+    - "/documentation/82/ssl.html"
+    - "/documentation/82/ssl-client.html"
+    - "/documentation/82/ssl-factory.html"
+    - "/documentation/83/ssl.html"
+    - "/documentation/83/ssl-client.html"
+    - "/documentation/83/ssl-factory.html"
+    - "/documentation/84/ssl.html"
+    - "/documentation/84/ssl-client.html"
+    - "/documentation/84/ssl-factory.html"
+    - "/documentation/85/ssl.html"
+    - "/documentation/85/ssl-client.html"
+    - "/documentation/85/ssl-factory.html"
+    - "/documentation/90/ssl.html"
+    - "/documentation/90/ssl-client.html"
+    - "/documentation/90/ssl-factory.html"
+    - "/documentation/91/ssl.html"
+    - "/documentation/91/ssl-client.html"
+    - "/documentation/91/ssl-factory.html"
+    - "/documentation/92/ssl.html"
+    - "/documentation/92/ssl-client.html"
+    - "/documentation/92/ssl-factory.html"
+    - "/documentation/93/ssl.html"
+    - "/documentation/93/ssl-client.html"
+    - "/documentation/93/ssl-factory.html"
+    - "/documentation/94/ssl.html"
+    - "/documentation/94/ssl-client.html"
+    - "/documentation/94/ssl-factory.html"
 ---
 
 Configuring the PostgreSQL® server for SSL is covered in the [main documentation](https://www.postgresql.org/docs/current/ssl-tcp.html), so it will not be repeated here. There are also instructions in the source [certdir](https://github.com/pgjdbc/pgjdbc/tree/master/certdir)
@@ -86,14 +121,21 @@ The location of the client certificate, the PKCS-12 client key and root certific
 and `/defaultdir/root.crt` respectively where defaultdir is `${user.home}/.postgresql/` in *nix systems and `%appdata%/postgresql/` 
 on windows.
 
-As of version 42.2.9 PKCS-12 is also supported. In this archive format the client key and the client certificate are in 
-one file, which needs to be set with the `sslkey` parameter. For the PKCS-12 format to be recognized, the file extension 
+As of version 42.2.9 PKCS-12 is also supported. In this archive format the client key and the client certificate are in
+one file, which needs to be set with the `sslkey` parameter. For the PKCS-12 format to be recognized, the file extension
 must be ".p12" (supported since 42.2.9) or ".pfx" (since 42.2.16). (In this case the `sslcert` parameter is ignored.)
+
+The key format follows the file extension (case-insensitive): ".p12"/".pfx" for PKCS-12, ".pem" for PEM, ".der" for DER/PKCS-8.
+For any other extension (including ".key"), the driver inspects the first 64 KiB of the file: it reads the key as PEM if that prefix contains the `-----BEGIN PRIVATE KEY-----` header, otherwise as DER/PKCS-8. The scan is bounded to avoid excessive work on malformed files. This preserves libpq's preference for PEM before DER, although libpq detects the format by attempting to load the key as PEM before falling back to DER.
 
 > **NOTE**
 >
 > When using a PKCS-12 client certificate the name or alias *MUST* be `user` when using `openssl pkcs12 -export -name user ...`
 There are complete examples of how to export the certificate in the [certdir](https://raw.githubusercontent.com/pgjdbc/pgjdbc/master/certdir/Makefile) Makefile
+
+> **NOTE**
+>
+> The `.p12` archive must hold the full client certificate chain. When the client certificate is signed by one or more intermediate CAs, add `-certfile <intermediate-chain>.crt` to the `openssl pkcs12 -export` command. Without the intermediates the server rejects the connection with `connection requires a valid client certificate`.
 
 Finer control of the SSL connection can be achieved using the `sslmode` connection parameter.
 This parameter is the same as the libpq `sslmode` parameter and currently implements the

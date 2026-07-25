@@ -6,7 +6,9 @@
 package org.postgresql.replication;
 
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.core.IsEqual.equalTo;
 
 import org.postgresql.PGConnection;
@@ -30,6 +32,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 @Replication
 @EnabledForServerVersionRange(gte = "9.4")
@@ -90,11 +93,15 @@ class LogicalReplicationStatusTest {
     LogSequenceNumber lastReceivedLSN = stream.getLastReceiveLSN();
     stream.forceUpdateStatus();
 
-    LogSequenceNumber sentByServer = getLSNFromView(sentColumnName(), lastReceivedLSN);
+    LogSequenceNumber sentByServer = getLSNFromViewAtLeast(sentColumnName(), lastReceivedLSN);
 
-    assertThat("When changes absent on server last receive by stream LSN "
-            + "should be equal to last sent by server LSN",
-        sentByServer, equalTo(lastReceivedLSN)
+    assertThat(
+        "The server cannot send less than the stream received, so the sent LSN is at least the "
+            + "last received LSN. It may be greater: with no decodable data pending, the walsender "
+            + "advances the sent LSN with keepalive messages to the current end of WAL, and "
+            + "unrelated activity (other databases, autovacuum) keeps that position moving, so "
+            + "strict equality would be racy",
+        sentByServer, greaterThanOrEqualTo(lastReceivedLSN)
     );
   }
 
@@ -517,44 +524,71 @@ class LogicalReplicationStatusTest {
   }
 
   /**
-   * Reads an LSN column from pg_stat_replication, polling until a non-null value appears.
-   * If {@code expected} is non-null, keeps polling until the column matches that value
-   * (or a timeout expires).  This is necessary because {@code forceUpdateStatus()} only
+   * Reads an LSN column from pg_stat_replication, polling until {@code accept} is satisfied
+   * (or a timeout expires).  Polling is necessary because {@code forceUpdateStatus()} only
    * flushes data to the TCP socket; the server needs a short time to process the standby
    * status update and reflect it in pg_stat_replication.
+   *
+   * @param accept predicate the column value must satisfy to stop polling early
+   * @return the value that satisfied {@code accept}; on timeout, the last value seen, or null
+   *         if the column never produced one
+   */
+  private LogSequenceNumber pollLSNFromView(String columnName,
+      Predicate<LogSequenceNumber> accept) throws Exception {
+    long start = System.nanoTime();
+    long timeout = TimeUnit.SECONDS.toNanos(2);
+
+    LogSequenceNumber last = null;
+    while (System.nanoTime() - start < timeout) {
+      LogSequenceNumber current = readLSNFromView(columnName);
+      if (current != null) {
+        last = current;
+        if (accept.test(current)) {
+          return current;
+        }
+      }
+      TimeUnit.MILLISECONDS.sleep(10L);
+    }
+    return last;
+  }
+
+  private LogSequenceNumber readLSNFromView(String columnName) throws SQLException {
+    try (
+        PreparedStatement st = sqlConnection.prepareStatement(
+            "select r.* from pg_stat_replication r"
+                + " join pg_replication_slots s on r.pid = s.active_pid"
+                + " where s.slot_name = ?")
+    ) {
+      st.setString(1, SLOT_NAME);
+      try (ResultSet rs = st.executeQuery()) {
+        String result = rs.next() ? rs.getString(columnName) : null;
+        return result != null && !result.isEmpty() ? LogSequenceNumber.valueOf(result) : null;
+      }
+    }
+  }
+
+  /**
+   * Polls an LSN column until it equals {@code expected}, or returns the last value seen on
+   * timeout. Use when the column is expected to settle on an exact value the client set.
    *
    * @param expected if non-null, poll until the column equals this value; if null, return
    *                 the first non-null value seen (or null on timeout)
    */
   private LogSequenceNumber getLSNFromView(String columnName,
       LogSequenceNumber expected) throws Exception {
-    long start = System.nanoTime();
-    long timeout = TimeUnit.SECONDS.toNanos(2);
+    return pollLSNFromView(columnName, lsn -> expected == null || lsn.equals(expected));
+  }
 
-    LogSequenceNumber last = null;
-    while (System.nanoTime() - start < timeout) {
-      try (
-          PreparedStatement st = sqlConnection.prepareStatement(
-              "select r.* from pg_stat_replication r"
-                  + " join pg_replication_slots s on r.pid = s.active_pid"
-                  + " where s.slot_name = ?")
-      ) {
-        st.setString(1, SLOT_NAME);
-        try (ResultSet rs = st.executeQuery()) {
-          String result = null;
-          if (rs.next()) {
-            result = rs.getString(columnName);
-          }
-          if (result != null && !result.isEmpty()) {
-            last = LogSequenceNumber.valueOf(result);
-            if (expected == null || last.equals(expected)) {
-              return last;
-            }
-          }
-        }
-      }
-      TimeUnit.MILLISECONDS.sleep(10L);
-    }
+  /**
+   * Polls an LSN column until it reaches at least {@code atLeast}, or returns the last value
+   * seen on timeout. Use for columns the server may advance past the client's position, such
+   * as sent_lsn driven by keepalive messages.
+   */
+  private LogSequenceNumber getLSNFromViewAtLeast(String columnName,
+      LogSequenceNumber atLeast) throws Exception {
+    LogSequenceNumber last = pollLSNFromView(columnName, lsn -> lsn.compareTo(atLeast) >= 0);
+    assertThat("pg_stat_replication has no row for slot " + SLOT_NAME + " within the poll timeout",
+        last, notNullValue());
     return last;
   }
 

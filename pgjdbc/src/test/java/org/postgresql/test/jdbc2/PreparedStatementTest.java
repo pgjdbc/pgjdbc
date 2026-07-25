@@ -26,6 +26,7 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.annotations.EnabledForServerVersionRange;
 import org.postgresql.test.util.BrokenInputStream;
 import org.postgresql.util.GT;
+import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.AfterAll;
@@ -389,6 +390,59 @@ public class PreparedStatementTest extends BaseTest4 {
       assertEquals("INSERT INTO streamtable VALUES ('\\x000102'::bytea,('line2'))", assertDoesNotThrow(
           pstmt::toString,
           "PreparedStatement#toString call should succeed even after executeBatch()"), "PreparedStatement#toString after executeBatch() seem to equal to the latest parameter row");
+    }
+  }
+
+  @Test
+  public void PGobject_bytea_hex_toString() throws SQLException {
+    // Regression test for https://github.com/pgjdbc/pgjdbc/issues/3757:
+    // PreparedStatement#toString must not fail for a bytea value supplied as a
+    // hex-format string via PGobject.
+    try (PreparedStatement pstmt =
+             con.prepareStatement("INSERT INTO streamtable VALUES (?,?)")) {
+
+      PGobject bytea = new PGobject();
+      bytea.setType("bytea");
+      bytea.setValue("\\x00010203");
+      pstmt.setObject(1, bytea);
+      pstmt.setString(2, "test");
+
+      String expected = "INSERT INTO streamtable VALUES ('\\x00010203'::bytea,('test'))";
+      assertEquals(expected, assertDoesNotThrow(
+          pstmt::toString,
+          "PreparedStatement#toString must not fail for a bytea PGobject"),
+          "bytea PGobject should be rendered as a hex literal");
+
+      pstmt.execute();
+
+      assertEquals(expected, assertDoesNotThrow(
+          pstmt::toString,
+          "PreparedStatement#toString must not fail after execute()"),
+          "bytea PGobject should be rendered as a hex literal after execute()");
+    }
+  }
+
+  @Test
+  public void PGobject_bytea_escape_toString() throws SQLException {
+    // A bytea value supplied in the escape format is quoted and cast like any
+    // other text literal, so a stray quote cannot break out of the literal.
+    try (PreparedStatement pstmt =
+             con.prepareStatement("INSERT INTO streamtable VALUES (?,?)")) {
+
+      PGobject bytea = new PGobject();
+      bytea.setType("bytea");
+      bytea.setValue("a'b");
+      pstmt.setObject(1, bytea);
+      pstmt.setString(2, "test");
+
+      assertEquals(
+          "INSERT INTO streamtable VALUES (('a''b'::bytea),('test'))",
+          assertDoesNotThrow(
+              pstmt::toString,
+              "PreparedStatement#toString must not fail for an escape-format bytea PGobject"),
+          "escape-format bytea PGobject should be quoted and cast");
+
+      pstmt.execute();
     }
   }
 
@@ -1018,14 +1072,14 @@ public class PreparedStatementTest extends BaseTest4 {
       fail();
     } catch (SQLException e) {
       assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-      assertEquals("Cannot cast to boolean: \"this is not boolean\"", e.getMessage());
+      assertEquals(GT.tr("Cannot cast to boolean: \"{0}\"", "this is not boolean"), e.getMessage());
     }
     try {
       pstmt.setObject(1, 'X', Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
       assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-      assertEquals("Cannot cast to boolean: \"X\"", e.getMessage());
+      assertEquals(GT.tr("Cannot cast to boolean: \"{0}\"", "X"), e.getMessage());
     }
     try {
       java.io.File obj = new java.io.File("");
@@ -1040,35 +1094,35 @@ public class PreparedStatementTest extends BaseTest4 {
       fail();
     } catch (SQLException e) {
       assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-      assertEquals("Cannot cast to boolean: \"1.0\"", e.getMessage());
+      assertEquals(GT.tr("Cannot cast to boolean: \"{0}\"", "1.0"), e.getMessage());
     }
     try {
       pstmt.setObject(1, "-1", Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
       assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-      assertEquals("Cannot cast to boolean: \"-1\"", e.getMessage());
+      assertEquals(GT.tr("Cannot cast to boolean: \"{0}\"", "-1"), e.getMessage());
     }
     try {
       pstmt.setObject(1, "ok", Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
       assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-      assertEquals("Cannot cast to boolean: \"ok\"", e.getMessage());
+      assertEquals(GT.tr("Cannot cast to boolean: \"{0}\"", "ok"), e.getMessage());
     }
     try {
       pstmt.setObject(1, 0.99f, Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
       assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-      assertEquals("Cannot cast to boolean: \"0.99\"", e.getMessage());
+      assertEquals(GT.tr("Cannot cast to boolean: \"{0}\"", "0.99"), e.getMessage());
     }
     try {
       pstmt.setObject(1, -0.01d, Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
       assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-      assertEquals("Cannot cast to boolean: \"-0.01\"", e.getMessage());
+      assertEquals(GT.tr("Cannot cast to boolean: \"{0}\"", "-0.01"), e.getMessage());
     }
     try {
       pstmt.setObject(1, new java.sql.Date(0), Types.BOOLEAN);
@@ -1082,14 +1136,14 @@ public class PreparedStatementTest extends BaseTest4 {
       fail();
     } catch (SQLException e) {
       assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-      assertEquals("Cannot cast to boolean: \"1000\"", e.getMessage());
+      assertEquals(GT.tr("Cannot cast to boolean: \"{0}\"", "1000"), e.getMessage());
     }
     try {
       pstmt.setObject(1, Math.PI, Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
       assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-      assertEquals("Cannot cast to boolean: \"3.141592653589793\"", e.getMessage());
+      assertEquals(GT.tr("Cannot cast to boolean: \"{0}\"", "3.141592653589793"), e.getMessage());
     }
     pstmt.close();
   }
@@ -1248,11 +1302,37 @@ public class PreparedStatementTest extends BaseTest4 {
     assertTrue(rs.wasNull(), "rs.getBigDecimal after rs.getLong");
     assertEquals(BigDecimal.valueOf(maxInt).setScale(1, RoundingMode.HALF_EVEN), rs.getBigDecimal(1, 1), "maxInt as rs.getBigDecimal(scale=1)");
     assertEquals(BigDecimal.valueOf(minInt).setScale(1, RoundingMode.HALF_EVEN), rs.getBigDecimal(2, 1), "minInt as rs.getBigDecimal(scale=1)");
+    assertEquals(BigDecimal.valueOf(maxInt).setScale(-1, RoundingMode.HALF_EVEN), rs.getBigDecimal(1, -1), "maxInt as rs.getBigDecimal(scale=-1)");
+    assertEquals(BigDecimal.valueOf(minInt).setScale(-1, RoundingMode.HALF_EVEN), rs.getBigDecimal(2, -1), "minInt as rs.getBigDecimal(scale=-1)");
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
     pstmt.close();
 
+  }
+
+  @Test
+  public void testNegativeNumericScale() throws SQLException {
+    assumeMinimumServerVersion("numeric with a negative scale typmod requires v15",
+        ServerVersion.v15);
+    try (PreparedStatement pstmt = con.prepareStatement("select 1500::numeric(2,-2)");
+         ResultSet rs = pstmt.executeQuery()) {
+      assertTrue(rs.next());
+      BigDecimal expected = new BigDecimal("1500").setScale(-2, RoundingMode.HALF_EVEN);
+      assertEquals(expected, rs.getObject(1), "1500::numeric(2,-2) as rs.getObject");
+    }
+  }
+
+  @Test
+  @SuppressWarnings("deprecation")
+  public void testBigDecimalWithScale() throws SQLException {
+    final String bigDecimalString = "1.1234";
+    try (PreparedStatement pstmt = con.prepareStatement("select " + bigDecimalString);
+         ResultSet rs = pstmt.executeQuery()) {
+      assertTrue(rs.next());
+      assertEquals(new BigDecimal(bigDecimalString).setScale(2, RoundingMode.HALF_EVEN),
+          rs.getBigDecimal(1, 2), "rs.getBigDecimal(scale=2) should round to the requested scale");
+    }
   }
 
   @Test
@@ -1653,6 +1733,40 @@ public class PreparedStatementTest extends BaseTest4 {
     assertFalse(((PGStatement) pstmt).isUseServerPrepare(), "prepareThreshold=0, so the statement should not be server-prepared");
 
     assertEquals(0, getNumberOfServerPreparedStatements("SELECT 42"), "prepareThreshold=0, so the statement should not be server-prepared");
+  }
+
+  @Test
+  public void testGetMetaDataWithPrepareThreshold0() throws SQLException {
+    assumeBinaryModeRegular();
+    assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE, "simple protocol only does not support prepared statement requests");
+
+    PreparedStatement pstmt = null;
+    try {
+      pstmt = con.prepareStatement("SELECT 43");
+      ((PgStatement) pstmt).setPrepareThreshold(0);
+      assertNotNull(pstmt.getMetaData(), "getMetaData() should describe the statement");
+    } finally {
+      TestUtil.closeQuietly(pstmt);
+    }
+
+    assertEquals(0, getNumberOfServerPreparedStatements("SELECT 43"), "prepareThreshold=0, so getMetaData() should not server-prepare the statement");
+  }
+
+  @Test
+  public void testGetMetaDataDoesNotBypassPrepareThreshold() throws SQLException {
+    assumeBinaryModeRegular();
+    assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE, "simple protocol only does not support prepared statement requests");
+
+    PreparedStatement pstmt = null;
+    try {
+      pstmt = con.prepareStatement("SELECT 44");
+      ((PgStatement) pstmt).setPrepareThreshold(5);
+      assertNotNull(pstmt.getMetaData(), "getMetaData() should describe the statement");
+    } finally {
+      TestUtil.closeQuietly(pstmt);
+    }
+
+    assertEquals(0, getNumberOfServerPreparedStatements("SELECT 44"), "prepareThreshold=5 and the statement was never executed, so describing it should not server-prepare it");
   }
 
   @Test

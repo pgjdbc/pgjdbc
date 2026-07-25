@@ -528,7 +528,31 @@ public final class EscapedFunctions2 {
       buf.append("CAST((").append(value).append("::int * 3) || ' month' as interval)");
       return;
     }
+    if (areSameTsi(SQL_TSI_FRAC_SECOND, type)) {
+      throw fracSecondNotSupported(type);
+    }
     throw new PSQLException(GT.tr("Interval {0} not yet implemented", type),
+        PSQLState.NOT_IMPLEMENTED);
+  }
+
+  /**
+   * Builds the error for the JDBC {@code SQL_TSI_FRAC_SECOND} interval, which pgjdbc intentionally
+   * does not map. The unit has no portable size: ODBC and SQL Server define it as nanoseconds, while
+   * MySQL treats it as microseconds. Mapping it to any fixed multiplier would silently produce
+   * values that are off by a factor of 1000 for part of the ecosystem, so an explicit error is
+   * raised instead of returning wrong data.
+   *
+   * @param type the interval name as written in the escape
+   * @return the exception explaining why the interval is rejected
+   */
+  private static PSQLException fracSecondNotSupported(String type) {
+    return new PSQLException(
+        GT.tr("Interval {0} is not supported: the JDBC fractional-second unit has no portable size "
+                + "(ODBC and SQL Server treat it as nanoseconds, MySQL as microseconds), so pgjdbc "
+                + "does not map it to avoid silently producing values that are off by a factor of "
+                + "1000. Use SQL_TSI_SECOND with a fractional value instead, since PostgreSQL "
+                + "intervals have microsecond resolution.",
+            type),
         PSQLState.NOT_IMPLEMENTED);
   }
 
@@ -596,6 +620,8 @@ public final class EscapedFunctions2 {
       return "hour";
     } else if (areSameTsi(SQL_TSI_MINUTE, type)) {
       return "minute";
+    } else if (areSameTsi(SQL_TSI_FRAC_SECOND, type)) {
+      throw fracSecondNotSupported(type);
     } else {
       throw new PSQLException(GT.tr("Interval {0} not yet implemented", type),
           PSQLState.SYNTAX_ERROR);

@@ -81,6 +81,9 @@ public class DatabaseMetaDataTest {
       TestUtil.createTable(con, "\"a'\"", "a int4");
       TestUtil.createTable(con, "arraytable", "a numeric(5,2)[], b varchar(100)[]");
       TestUtil.createTable(con, "intarraytable", "a int4[], b int4[][]");
+      TestUtil.createTable(con, "char_octet_test",
+          "c_int integer, c_intarray integer[], c_numeric numeric(8,3), "
+              + "c_varchar varchar(100), c_char char(10), c_text text, c_bytea bytea");
       TestUtil.dropType(con, "custom");
       TestUtil.dropType(con, "_custom");
       TestUtil.createCompositeType(con, "custom", "i int", false);
@@ -154,6 +157,7 @@ public class DatabaseMetaDataTest {
       TestUtil.dropTable(con, "\"a'\"");
       TestUtil.dropTable(con, "arraytable");
       TestUtil.dropTable(con, "intarraytable");
+      TestUtil.dropTable(con, "char_octet_test");
       TestUtil.dropTable(con, "customtable");
       TestUtil.dropType(con, "custom");
       TestUtil.dropType(con, "_custom");
@@ -2002,6 +2006,44 @@ public class DatabaseMetaDataTest {
     assertFalse(rs.next());
 
     rs.close();
+  }
+
+  @Test
+  void getColumnsCharOctetLength() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+
+    // Character types report CHAR_OCTET_LENGTH equal to COLUMN_SIZE.
+    assertEquals(Integer.valueOf(100), charOctetLength(dbmd, "c_varchar"),
+        "CHAR_OCTET_LENGTH for varchar(100)");
+    assertEquals(Integer.valueOf(10), charOctetLength(dbmd, "c_char"),
+        "CHAR_OCTET_LENGTH for char(10)");
+    // Unbounded character and binary types still report a value, equal to COLUMN_SIZE.
+    assertEquals(columnSize(dbmd, "c_text"), charOctetLength(dbmd, "c_text"),
+        "CHAR_OCTET_LENGTH for text should match COLUMN_SIZE");
+    assertEquals(columnSize(dbmd, "c_bytea"), charOctetLength(dbmd, "c_bytea"),
+        "CHAR_OCTET_LENGTH for bytea should match COLUMN_SIZE");
+
+    // Non-character types report no CHAR_OCTET_LENGTH.
+    assertNull(charOctetLength(dbmd, "c_int"), "CHAR_OCTET_LENGTH for integer");
+    assertNull(charOctetLength(dbmd, "c_intarray"), "CHAR_OCTET_LENGTH for integer[]");
+    assertNull(charOctetLength(dbmd, "c_numeric"), "CHAR_OCTET_LENGTH for numeric(8,3)");
+  }
+
+  private Integer charOctetLength(DatabaseMetaData dbmd, String column) throws SQLException {
+    return intColumn(dbmd, column, "CHAR_OCTET_LENGTH");
+  }
+
+  private Integer columnSize(DatabaseMetaData dbmd, String column) throws SQLException {
+    return intColumn(dbmd, column, "COLUMN_SIZE");
+  }
+
+  private Integer intColumn(DatabaseMetaData dbmd, String column, String metadataColumn)
+      throws SQLException {
+    try (ResultSet rs = dbmd.getColumns(null, null, "char_octet_test", column)) {
+      assertTrue(rs.next(), () -> "dbmd.getColumns returned no row for column " + column);
+      int value = rs.getInt(metadataColumn);
+      return rs.wasNull() ? null : value;
+    }
   }
 
   @Test

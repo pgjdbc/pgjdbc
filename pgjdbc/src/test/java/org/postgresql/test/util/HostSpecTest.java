@@ -87,6 +87,26 @@ class HostSpecTest {
   }
 
   @Test
+  void shouldResolveLocalhostIpWhenNonProxyHostsSetWithoutIt() throws Exception {
+    // Reproduces the macOS scenario: socksNonProxyHosts is set by the JVM
+    // (e.g. "local|*.local|169.254/16|*.169.254/16") but does NOT include 127.0.0.1.
+    // DefaultProxySelector always appends its built-in defaults (localhost, 127.*, etc.),
+    // so HostSpec must do the same to avoid an UnknownHostException from unresolved addresses.
+    System.setProperty("socksProxyHost", "127.0.0.1");
+    System.setProperty("socksNonProxyHosts", "local|*.local|169.254/16|*.169.254/16");
+    HostSpec hostSpec = new HostSpec("127.0.0.1", 5432);
+    assertTrue(hostSpec.shouldResolve());
+  }
+
+  @Test
+  void shouldResolveLocalhostWhenNonProxyHostsSetWithoutIt() throws Exception {
+    System.setProperty("socksProxyHost", "127.0.0.1");
+    System.setProperty("socksNonProxyHosts", "local|*.local");
+    HostSpec hostSpec = new HostSpec("localhost", 5432);
+    assertTrue(hostSpec.shouldResolve());
+  }
+
+  @Test
   void shouldReturnEmptyLocalAddressBind() throws Exception {
     HostSpec hostSpec = new HostSpec("example.org", 5432);
     assertNull(hostSpec.getLocalSocketAddress());

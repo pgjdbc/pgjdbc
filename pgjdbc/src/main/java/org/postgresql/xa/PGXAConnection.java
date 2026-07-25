@@ -24,7 +24,6 @@ import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -43,6 +42,18 @@ import javax.transaction.xa.Xid;
  *
  * <p>Two-phase commit requires PostgreSQL server version 8.1 or higher.</p>
  *
+ * <p>XA-protocol SQL (BEGIN, PREPARE TRANSACTION, COMMIT, ROLLBACK, COMMIT PREPARED,
+ * ROLLBACK PREPARED, and the recover() SELECT) is sent through
+ * {@link org.postgresql.core.BaseConnection#execSQLUpdate(String) execSQLUpdate} /
+ * {@link org.postgresql.core.BaseConnection#execSQLQuery(String) execSQLQuery}, both of which set
+ * {@code QueryExecutor.QUERY_SUPPRESS_BEGIN}. As a result, the caller's JDBC {@code autoCommit}
+ * flag is invariant across every {@code XAResource} call; the driver never prepends a {@code BEGIN}
+ * of its own around XA SQL.</p>
+ *
+ * <p>{@link #getConnection()} is the exception: when {@code state == IDLE} it sets
+ * {@code autoCommit=true} on the returned handle, because that path returns a JDBC handle in the
+ * JDBC default state to the caller and is not part of the XA protocol.</p>
+ *
  * @author Heikki Linnakangas (heikki.linnakangas@iki.fi)
  */
 public class PGXAConnection extends PGPooledConnection implements XAConnection, XAResource {
@@ -60,13 +71,6 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   private State state;
   private @Nullable Xid preparedXid;
   private boolean committedOrRolledBack;
-
-  /*
-   * When an XA transaction is started, we put the underlying connection into non-autocommit mode.
-   * The old setting is saved in localAutoCommitMode, so that we can restore it when the XA
-   * transaction ends and the connection returns into local transaction mode.
-   */
-  private boolean localAutoCommitMode = true;
 
   private void debug(String s) {
     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -127,11 +131,11 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         String methodName = method.getName();
         if ("commit".equals(methodName)
             || "rollback".equals(methodName)
-            || "setSavePoint".equals(methodName)
-            || ("setAutoCommit".equals(methodName) && castNonNull((Boolean) args[0]))) {
+            || "setSavepoint".equals(methodName)
+            || "setAutoCommit".equals(methodName)) {
           throw new PSQLException(
               GT.tr(
-                  "Transaction control methods setAutoCommit(true), commit, rollback and setSavePoint not allowed while an XA transaction is active."),
+                  "Transaction control methods setAutoCommit, commit, rollback and setSavepoint are not allowed while an XA transaction is active."),
               PSQLState.OBJECT_NOT_IN_STATE);
         }
       }
@@ -197,7 +201,9 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     }
 
     if (state == State.ACTIVE) {
-      throw new PGXAException(GT.tr("Connection is busy with another transaction"),
+      throw new PGXAException(
+          GT.tr("Connection is already associated with an active XA branch. End the current branch before starting a new one. start xid={0}, currentXid={1}, state={2}, flags={3}",
+              xid, currentXid, state, flags),
           XAException.XAER_PROTO);
     }
 
@@ -206,7 +212,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
     // Check implementation deficiency preconditions
     if (flags == TMRESUME) {
-      throw new PGXAException(GT.tr("suspend/resume not implemented"), XAException.XAER_RMERR);
+      throw new PGXAException(GT.tr("Suspend/resume not implemented"), XAException.XAER_RMERR);
     }
 
     // It's ok to join an ended transaction. WebLogic does that.
@@ -229,14 +235,16 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
           XAException.XAER_RMERR);
     }
 
-    // Only need save localAutoCommitMode for NOFLAGS, TMRESUME and TMJOIN already saved old
-    // localAutoCommitMode.
+    // TMNOFLAGS opens a fresh server-side transaction with an explicit BEGIN sent below
+    // QUERY_SUPPRESS_BEGIN so the JDBC autoCommit flag is left alone. TMJOIN attaches to an existing
+    // (ended) branch, where BEGIN was already sent at the prior start(TMNOFLAGS) call, so no SQL is
+    // issued here.
     if (flags == TMNOFLAGS) {
       try {
-        localAutoCommitMode = conn.getAutoCommit();
-        conn.setAutoCommit(false);
+        conn.execSQLUpdate("BEGIN");
       } catch (SQLException ex) {
-        throw new PGXAException(GT.tr("Error disabling autocommit"), ex, XAException.XAER_RMERR);
+        throw new PGXAException(GT.tr("Error opening transaction. start xid={0}", xid), ex,
+            XAException.XAER_RMERR);
       }
     }
 
@@ -283,13 +291,14 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     }
 
     if (state != State.ACTIVE || !xid.equals(currentXid)) {
-      throw new PGXAException(GT.tr("tried to call end without corresponding start call. state={0}, start xid={1}, currentXid={2}, preparedXid={3}", state, xid, currentXid, preparedXid),
+      throw new PGXAException(GT.tr("end() called without a matching start(). end xid={0}, currentXid={1}, state={2}, preparedXid={3}",
+              xid, currentXid, state, preparedXid),
           XAException.XAER_PROTO);
     }
 
     // Check implementation deficiency preconditions
     if (flags == XAResource.TMSUSPEND) {
-      throw new PGXAException(GT.tr("suspend/resume not implemented"), XAException.XAER_RMERR);
+      throw new PGXAException(GT.tr("Suspend/resume not implemented"), XAException.XAER_RMERR);
     }
 
     // We ignore TMFAIL. It's just a hint to the RM. We could roll back immediately
@@ -329,7 +338,8 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
             + " while it was prepared in past with prepared xid " + preparedXid);
       }
       throw new PGXAException(GT.tr(
-          "Preparing already prepared transaction, the prepared xid {0}, prepare xid={1}", preparedXid, xid), XAException.XAER_PROTO);
+          "Transaction was already prepared on this connection. prepare xid={0}, preparedXid={1}", xid, preparedXid),
+          XAException.XAER_PROTO);
     } else if (currentXid == null) {
       throw new PGXAException(GT.tr(
           "Current connection does not have an associated xid. prepare xid={0}", xid), XAException.XAER_NOTA);
@@ -339,11 +349,23 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         debug("Error to prepare xid " + xid + ", the current connection already bound with xid " + currentXid);
       }
       throw new PGXAException(GT.tr(
-          "Not implemented: Prepare must be issued using the same connection that started the transaction. currentXid={0}, prepare xid={1}", currentXid, xid),
+          "Prepare must be issued on the connection that started the branch. Transaction interleaving is not supported. prepare xid={0}, currentXid={1}", xid, currentXid),
           XAException.XAER_RMERR);
     }
     if (state != State.ENDED) {
-      throw new PGXAException(GT.tr("Prepare called before end. prepare xid={0}, state={1}", xid), XAException.XAER_INVAL);
+      throw new PGXAException(GT.tr("Prepare called before end(). prepare xid={0}, state={1}", xid, state),
+          XAException.XAER_INVAL);
+    }
+
+    try {
+      String s = RecoveredXid.xidToString(xid);
+      conn.execSQLUpdate("PREPARE TRANSACTION '" + s + "'");
+    } catch (SQLException ex) {
+      // Mutate XA state only after PREPARE TRANSACTION succeeds. On failure state stays ENDED with
+      // currentXid set, so the transaction manager can recover by calling rollback(xid) — which
+      // takes the active-branch path and issues a plain ROLLBACK against the still-open server
+      // transaction.
+      throw new PGXAException(GT.tr("Error preparing transaction. prepare xid={0}", xid), ex, mapSQLStateToXAErrorCode(ex));
     }
 
     state = State.IDLE;
@@ -351,12 +373,6 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     currentXid = null;
 
     try {
-      String s = RecoveredXid.xidToString(xid);
-
-      try (Statement stmt = conn.createStatement()) {
-        stmt.executeUpdate("PREPARE TRANSACTION '" + s + "'");
-      }
-      conn.setAutoCommit(localAutoCommitMode);
       if (conn.isReadOnly()) {
         return XA_RDONLY;
       } else {
@@ -381,6 +397,10 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    */
   @Override
   public Xid[] recover(int flag) throws XAException {
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      debug("recover called with flag=" + flag);
+    }
+
     // Check preconditions
     if (flag != TMSTARTRSCAN && flag != TMENDRSCAN && flag != TMNOFLAGS
         && flag != (TMSTARTRSCAN | TMENDRSCAN)) {
@@ -394,36 +414,31 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     // an empty array otherwise.
     if ((flag & TMSTARTRSCAN) == 0) {
       return new Xid[0];
-    } else {
-      try {
-        Statement stmt = conn.createStatement();
-        try {
-          // If this connection is simultaneously used for a transaction,
-          // this query gets executed inside that transaction. It's OK,
-          // except if the transaction is in abort-only state and the
-          // backed refuses to process new queries. Hopefully not a problem
-          // in practise.
-          // PostgreSQL requires the user to own the transaction in order to successfully execute
-          // commit prepared or rollback prepared
-          // See https://github.com/postgres/postgres/blob/15afb7d61c142a9254a6612c6774aff4f358fb69/src/backend/access/transam/twophase.c#L583C32-L599
-          ResultSet rs = stmt.executeQuery(
-              "SELECT gid FROM pg_prepared_xacts where database = current_database() and pg_has_role(current_user, owner, 'member')");
-          List<Xid> l = new ArrayList<>();
-          while (rs.next()) {
-            Xid recoveredXid = RecoveredXid.stringToXid(castNonNull(rs.getString(1)));
-            if (recoveredXid != null) {
-              l.add(recoveredXid);
-            }
-          }
-          rs.close();
+    }
 
-          return l.toArray(new Xid[0]);
-        } finally {
-          stmt.close();
+    // execSQLQuery passes QUERY_SUPPRESS_BEGIN, so this SELECT never causes pgjdbc to prepend a
+    // BEGIN regardless of the caller's autoCommit setting. If the caller has a local transaction
+    // already open on this connection, the SELECT runs inside it as a metadata read; it does not
+    // extend or close the caller's transaction.
+    //
+    // PostgreSQL requires the user to own the transaction in order to successfully execute COMMIT
+    // PREPARED or ROLLBACK PREPARED, so the WHERE clause filters by current_user.
+    // See https://github.com/postgres/postgres/blob/15afb7d61c142a9254a6612c6774aff4f358fb69/src/backend/access/transam/twophase.c#L583C32-L599
+    try (ResultSet rs = conn.execSQLQuery(
+        "SELECT gid FROM pg_prepared_xacts where database = current_database() and pg_has_role(current_user, owner, 'member')")) {
+      List<Xid> l = new ArrayList<>();
+      while (rs.next()) {
+        Xid recoveredXid = RecoveredXid.stringToXid(castNonNull(rs.getString(1)));
+        if (recoveredXid != null) {
+          l.add(recoveredXid);
         }
-      } catch (SQLException ex) {
-        throw new PGXAException(GT.tr("Error during recover"), ex, XAException.XAER_RMERR);
       }
+      if (LOGGER.isLoggable(Level.FINEST)) {
+        debug("recover returning " + l.size() + " prepared xid(s)");
+      }
+      return l.toArray(new Xid[0]);
+    } catch (SQLException ex) {
+      throw new PGXAException(GT.tr("Error during recover. flag={0}", flag), ex, XAException.XAER_RMERR);
     }
   }
 
@@ -453,20 +468,29 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
     try {
       if (currentXid != null && currentXid.equals(xid)) {
+        // Active branch: ROLLBACK closes the server transaction that start() opened. Use the
+        // QUERY_SUPPRESS_BEGIN path so it works regardless of the caller's autoCommit, and so it
+        // accepts a connection that is in TransactionState.FAILED (PG accepts ROLLBACK there).
+        conn.execSQLUpdate("ROLLBACK");
         state = State.IDLE;
         currentXid = null;
-        conn.rollback();
-        conn.setAutoCommit(localAutoCommitMode);
       } else {
-        String s = RecoveredXid.xidToString(xid);
-
-        conn.setAutoCommit(true);
-        Statement stmt = conn.createStatement();
-        try {
-          stmt.executeUpdate("ROLLBACK PREPARED '" + s + "'");
-        } finally {
-          stmt.close();
+        // Prepared branch: ROLLBACK PREPARED is not allowed inside a transaction block. Refuse
+        // upfront rather than commit/rollback the caller's local transaction silently. XAER_RMFAIL
+        // lets the transaction manager retry on a fresh XAResource.
+        if (conn.getTransactionState() != TransactionState.IDLE) {
+          if (LOGGER.isLoggable(Level.FINEST)) {
+            debug("rollback prepared rejected: local transaction in progress. rollback xid=" + xid
+                + ", transactionState=" + conn.getTransactionState());
+          }
+          throw new PGXAException(
+              GT.tr("Cannot rollback prepared transaction while a local transaction is in progress on this connection. "
+                  + "Commit or rollback the local transaction first. rollback xid={0}, transactionState={1}",
+                  xid, conn.getTransactionState()),
+              XAException.XAER_RMFAIL);
         }
+        String s = RecoveredXid.xidToString(xid);
+        conn.execSQLUpdate("ROLLBACK PREPARED '" + s + "'");
       }
       committedOrRolledBack = true;
     } catch (SQLException ex) {
@@ -486,7 +510,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         }
         errorCode = XAException.XAER_RMFAIL;
       }
-      throw new PGXAException(GT.tr("Error rolling back prepared transaction. rollback xid={0}, preparedXid={1}, currentXid={2}", xid, preparedXid, currentXid), ex, errorCode);
+      throw new PGXAException(GT.tr("Error rolling back transaction. rollback xid={0}, preparedXid={1}, currentXid={2}", xid, preparedXid, currentXid), ex, errorCode);
     }
   }
 
@@ -524,38 +548,42 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    * </ol>
    */
   private void commitOnePhase(Xid xid) throws XAException {
+    // Check preconditions
+    if (xid.equals(preparedXid)) { // TODO: check if the condition should be negated
+      throw new PGXAException(GT.tr("One-phase commit called for xid {0} but connection was prepared with xid {1}",
+          xid, preparedXid), XAException.XAER_PROTO);
+    }
+    if (currentXid == null && !committedOrRolledBack) {
+      // We cannot tell whether xid is unknown to this resource manager or whether the caller
+      // routed the commit to the wrong connection. Treat it as the latter, which is the typical
+      // application-server bug.
+      throw new PGXAException(GT.tr(
+          "One-phase commit must be issued on the connection that started the branch. commit xid={0}", xid),
+          XAException.XAER_RMERR);
+    }
+    if (!xid.equals(currentXid) || committedOrRolledBack) {
+      throw new PGXAException(GT.tr("One-phase commit with unknown xid. commit xid={0}, currentXid={1}",
+          xid, currentXid), XAException.XAER_NOTA);
+    }
+    if (state != State.ENDED) {
+      throw new PGXAException(GT.tr("commit() called before end(). commit xid={0}, state={1}", xid, state),
+          XAException.XAER_PROTO);
+    }
+
+    // Send COMMIT through QUERY_SUPPRESS_BEGIN so it works regardless of the caller's autoCommit.
+    // Cannot use conn.commit() because PgConnection.commit() throws when autoCommit=true, and the
+    // new contract leaves autoCommit at whatever the caller set.
     try {
-      // Check preconditions
-      if (xid.equals(preparedXid)) { // TODO: check if the condition should be negated
-        throw new PGXAException(GT.tr("One-phase commit called for xid {0} but connection was prepared with xid {1}",
-            xid, preparedXid), XAException.XAER_PROTO);
-      }
-      if (currentXid == null && !committedOrRolledBack) {
-        // In fact, we don't know if xid is bogus, or if it just wasn't associated with this connection.
-        // Assume it's our fault.
-        // TODO: pick proper error message. Current one does not clarify what went wrong
-        throw new PGXAException(GT.tr(
-            "Not implemented: one-phase commit must be issued using the same connection that was used to start it", xid),
-            XAException.XAER_RMERR);
-      }
-      if (!xid.equals(currentXid) || committedOrRolledBack) {
-        throw new PGXAException(GT.tr("One-phase commit with unknown xid. commit xid={0}, currentXid={1}",
-            xid, currentXid), XAException.XAER_NOTA);
-      }
-      if (state != State.ENDED) {
-        throw new PGXAException(GT.tr("commit called before end. commit xid={0}, state={1}", xid, state), XAException.XAER_PROTO);
-      }
-
-      // Preconditions are met. Commit
-      state = State.IDLE;
-      currentXid = null;
-      committedOrRolledBack = true;
-
-      conn.commit();
-      conn.setAutoCommit(localAutoCommitMode);
+      conn.execSQLUpdate("COMMIT");
     } catch (SQLException ex) {
+      // Mutate XA state only after COMMIT succeeds. On failure state stays ENDED with currentXid
+      // set, so the transaction manager can recover by calling rollback(xid).
       throw new PGXAException(GT.tr("Error during one-phase commit. commit xid={0}", xid), ex, mapSQLStateToXAErrorCode(ex));
     }
+
+    state = State.IDLE;
+    currentXid = null;
+    committedOrRolledBack = true;
   }
 
   /**
@@ -575,28 +603,36 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    * </ol>
    */
   private void commitPrepared(Xid xid) throws XAException {
+    // The XA state of this XAResource must be IDLE — we cannot commit a prepared transaction while
+    // a different XA branch is still active on this connection.
+    if (state != State.IDLE) {
+      if (LOGGER.isLoggable(Level.FINEST)) {
+        debug("2-phase commit rejected: XA branch active. commit xid=" + xid
+            + ", currentXid=" + currentXid + ", state=" + state);
+      }
+      throw new PGXAException(
+          GT.tr("2nd phase commit cannot be issued while an XA branch is active on this connection. "
+              + "commit xid={0}, currentXid={1}, state={2}", xid, currentXid, state),
+          XAException.XAER_PROTO);
+    }
+    // The underlying connection must also be outside any local transaction. COMMIT PREPARED is not
+    // allowed inside a transaction block, and we must not silently commit or roll back the caller's
+    // local work. XAER_RMFAIL lets the transaction manager retry on a fresh XAResource.
+    if (conn.getTransactionState() != TransactionState.IDLE) {
+      if (LOGGER.isLoggable(Level.FINEST)) {
+        debug("2-phase commit rejected: local transaction in progress. commit xid=" + xid
+            + ", transactionState=" + conn.getTransactionState());
+      }
+      throw new PGXAException(
+          GT.tr("Cannot 2nd phase commit prepared transaction while a local transaction is in progress on this connection. "
+              + "Commit or rollback the local transaction first. commit xid={0}, transactionState={1}",
+              xid, conn.getTransactionState()),
+          XAException.XAER_RMFAIL);
+    }
+
     try {
-      // Check preconditions. The connection mustn't be used for another
-      // other XA or local transaction, or the COMMIT PREPARED command
-      // would mess it up.
-      if (state != State.IDLE
-          || conn.getTransactionState() != TransactionState.IDLE) {
-        throw new PGXAException(
-            GT.tr("Not implemented: 2nd phase commit must be issued using an idle connection. commit xid={0}, currentXid={1}, state={2}, transactionState={3}", xid, currentXid, state, conn.getTransactionState()),
-            XAException.XAER_RMERR);
-      }
-
       String s = RecoveredXid.xidToString(xid);
-
-      localAutoCommitMode = conn.getAutoCommit();
-      conn.setAutoCommit(true);
-      Statement stmt = conn.createStatement();
-      try {
-        stmt.executeUpdate("COMMIT PREPARED '" + s + "'");
-      } finally {
-        stmt.close();
-        conn.setAutoCommit(localAutoCommitMode);
-      }
+      conn.execSQLUpdate("COMMIT PREPARED '" + s + "'");
       committedOrRolledBack = true;
     } catch (SQLException ex) {
       int errorCode = XAException.XAER_RMERR;

@@ -5,15 +5,26 @@
 
 package org.postgresql.util;
 
+import org.postgresql.util.internal.JvmHeapAccess;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.lang.management.ManagementFactory;
+import java.util.function.LongSupplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class PGPropertyMaxResultBufferParser {
 
   private static final Logger LOGGER = Logger.getLogger(PGPropertyMaxResultBufferParser.class.getName());
+
+  /**
+   * Used only as a human-readable identifier in {@link PSQLException} messages — keep as a
+   * string constant so this class never has a verifier-visible reference to
+   * {@code java.lang.management.ManagementFactory}.
+   */
+  private static final String MANAGEMENT_FACTORY_CLASS_NAME = "java.lang.management.ManagementFactory";
+
+  private static final double MAX_RESULT_BUFFER_HEAP_FRACTION = 0.9;
 
   private static final String[] PERCENT_PHRASES = new String[]{
     "p",
@@ -30,16 +41,21 @@ public class PGPropertyMaxResultBufferParser {
    * @throws PSQLException Exception when given value can't be parsed.
    */
   public static long parseProperty(@Nullable String value) throws PSQLException {
+    return parseProperty(value, PGPropertyMaxResultBufferParser::defaultMaxHeapBytesOrNegativeOne);
+  }
+
+  static long parseProperty(@Nullable String value, LongSupplier maxHeapBytesSupplier)
+      throws PSQLException {
     long result = -1;
     //noinspection StatementWithEmptyBody
     if (value == null) {
       // default branch
     } else if (checkIfValueContainsPercent(value)) {
-      result = parseBytePercentValue(value);
+      result = parseBytePercentValue(value, maxHeapBytesSupplier);
     } else if (!value.isEmpty()) {
       result = parseByteValue(value);
     }
-    result = adjustResultSize(result);
+    result = adjustResultSize(result, maxHeapBytesSupplier);
     return result;
   }
 
@@ -61,7 +77,8 @@ public class PGPropertyMaxResultBufferParser {
    * @return percent value of max result buffer size.
    * @throws PSQLException Exception when given value can't be parsed.
    */
-  private static long parseBytePercentValue(String value) throws PSQLException {
+  private static long parseBytePercentValue(String value, LongSupplier maxHeapBytesSupplier)
+      throws PSQLException {
     long result = -1;
     int length;
 
@@ -74,7 +91,7 @@ public class PGPropertyMaxResultBufferParser {
             value);
       }
 
-      result = calculatePercentOfMemory(value, length);
+      result = calculatePercentOfMemory(value, length, maxHeapBytesSupplier);
     }
     return result;
   }
@@ -125,10 +142,18 @@ public class PGPropertyMaxResultBufferParser {
    * @param percentPhraseLength Length of percent phrase inside given value.
    * @return Size of byte buffer based on percent of max heap memory.
    */
-  private static long calculatePercentOfMemory(String value, int percentPhraseLength) {
+  private static long calculatePercentOfMemory(
+      String value, int percentPhraseLength, LongSupplier maxHeapBytesSupplier)
+      throws PSQLException {
     String realValue = value.substring(0, value.length() - percentPhraseLength);
     double percent = Double.parseDouble(realValue) / 100;
-    return (long) (percent * ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax());
+    long maxHeapMemory = maxHeapBytesSupplier.getAsLong();
+    if (maxHeapMemory < 0) {
+      throw new PSQLException(GT.tr(
+          "Could not parse maxResultBuffer value {0}; percent values require {1}.",
+          value, MANAGEMENT_FACTORY_CLASS_NAME), PSQLState.INVALID_PARAMETER_VALUE);
+    }
+    return (long) (percent * maxHeapMemory);
   }
 
   /**
@@ -193,9 +218,19 @@ public class PGPropertyMaxResultBufferParser {
    * @param value Size to be adjusted.
    * @return Adjusted size (original size or 90% of max heap memory)
    */
-  private static long adjustResultSize(long value) {
-    if (value > 0.9 * ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax()) {
-      long newResult = (long) (0.9 * ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax());
+  private static long adjustResultSize(long value, LongSupplier maxHeapBytesSupplier) {
+    if (value <= 0) {
+      return value;
+    }
+
+    long maxHeapMemory = maxHeapBytesSupplier.getAsLong();
+    if (maxHeapMemory < 0) {
+      return value;
+    }
+
+    long maxResultBuffer = (long) (MAX_RESULT_BUFFER_HEAP_FRACTION * maxHeapMemory);
+    if (value > maxResultBuffer) {
+      long newResult = maxResultBuffer;
 
       LOGGER.log(Level.WARNING, GT.tr(
           "WARNING! Required to allocate {0} bytes, which exceeded possible heap memory size. Assigned {1} bytes as limit.",
@@ -204,6 +239,21 @@ public class PGPropertyMaxResultBufferParser {
       value = newResult;
     }
     return value;
+  }
+
+  /**
+   * Default heap-bytes source: routes through {@link JvmHeapAccess}, which lives in its own class
+   * so the verifier does not need to resolve {@code java.lang.management.ManagementFactory}
+   * unless this method is actually invoked. On runtimes without {@code java.lang.management}
+   * (e.g., Android ART), loading {@link JvmHeapAccess} throws {@link NoClassDefFoundError} on
+   * the INVOKESTATIC below; we map that to {@code -1} to signal "max heap unavailable".
+   */
+  private static long defaultMaxHeapBytesOrNegativeOne() {
+    try {
+      return JvmHeapAccess.maxHeapBytes();
+    } catch (LinkageError e) {
+      return -1;
+    }
   }
 
   /**

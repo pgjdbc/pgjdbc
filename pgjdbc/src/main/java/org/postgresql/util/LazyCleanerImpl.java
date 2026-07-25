@@ -29,7 +29,6 @@ import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.time.Duration;
 import java.util.concurrent.ForkJoinPool;
-import java.util.function.BooleanSupplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -126,23 +125,24 @@ public class LazyCleanerImpl implements LazyCleaner {
     private final String threadName;
     private @Nullable Reference<? extends T> ref;
     private final long blockTimeoutMillis;
-    private final BooleanSupplier shouldTerminate;
 
-    RefQueueBlocker(ReferenceQueue<T> queue, String threadName, Duration blockTimeout, BooleanSupplier shouldTerminate) {
+    RefQueueBlocker(ReferenceQueue<T> queue, String threadName, Duration blockTimeout) {
       this.queue = queue;
       this.threadName = threadName;
-      this.blockTimeoutMillis = blockTimeout.toMillis();
-      this.shouldTerminate = shouldTerminate;
+      // ReferenceQueue.remove(0) blocks indefinitely; clamp to a small positive timeout so a
+      // user-configured threadTtl of 0/negative still yields a quickly-terminating cleanup task
+      // rather than a thread that parks forever waiting for the next reference.
+      long millis = blockTimeout.toMillis();
+      this.blockTimeoutMillis = millis > 0 ? millis : 1;
     }
 
     @Override
     public boolean isReleasable() {
-      if (ref != null || shouldTerminate.getAsBoolean()) {
+      if (ref != null) {
         return true; // already have a ref from a previous call
       }
       // non-blocking check
       ref = queue.poll();
-      // no need to block if we already have a ref from a previous call
       return ref != null;
     }
 
@@ -156,15 +156,16 @@ public class LazyCleanerImpl implements LazyCleaner {
       String oldName = currentThread.getName();
       try {
         currentThread.setName(threadName);
-        // Perform blocking operation
+        // Wait the full blockTimeoutMillis for a reference. Returning true unconditionally lets
+        // managedBlock exit so the outer loop can decide whether to terminate the cleanup task.
         ref = queue.remove(blockTimeoutMillis);
       } finally {
         currentThread.setName(oldName);
       }
-      return false;
+      return true;
     }
 
-    public @Nullable Reference<? extends T> drainOne() {
+    @Nullable Reference<? extends T> drainOne() {
       Reference<? extends T> ref = this.ref;
       this.ref = null;
       return ref;
@@ -175,39 +176,61 @@ public class LazyCleanerImpl implements LazyCleaner {
     // We use ForkJoinPool to work around Thread.inheritedAccessControlContext memory leak
     // Java creates FJP threads without caller's access control context, thus we reduce
     // the surface for the leak.
-    ForkJoinPool.commonPool().execute(
-        () -> {
-          // ForkJoinPool does not inherit contextClassLoader from the submitting thread,
-          // however custom thread factories might, so we try nullifying it to avoid
-          // classloader leaks. InnocuousForkJoinWorkerThread forbids setContextClassLoader,
-          // so we catch SecurityException to avoid crashing the cleanup thread.
-          // See https://github.com/pgjdbc/pgjdbc/issues/3953
-          try {
-            Thread.currentThread().setContextClassLoader(null);
-          } catch (SecurityException ignore) {
-            // InnocuousForkJoinWorkerThread or a SecurityManager forbids setContextClassLoader
-          }
-          RefQueueBlocker<Object> blocker =
-              new RefQueueBlocker<>(queue, threadName, threadTtl, this::checkEmpty);
-          while (!checkEmpty()) {
-            try {
-              ForkJoinPool.managedBlock(blocker);
-              Node<?> ref = (Node<?>) blocker.drainOne();
-              if (ref != null) {
-                ref.onClean(true);
+    //
+    // Null this (submitting) thread's contextClassLoader around execute(): if the common pool
+    // spawns a fresh worker to run the cleanup task, the worker inherits the submitter's
+    // contextClassLoader at birth. Leaving that classloader (which may be a web application's)
+    // on a worker that lives for the JVM's lifetime would pin it and leak it
+    // (https://github.com/pgjdbc/pgjdbc/issues/3953). We restore the value right after, so the
+    // change is scoped to our own call: we never mutate a shared common-pool worker, whose
+    // contextClassLoader unrelated tasks rely on (https://github.com/pgjdbc/pgjdbc/issues/4155).
+    Thread current = Thread.currentThread();
+    ClassLoader prevContextCL = current.getContextClassLoader();
+    try {
+      current.setContextClassLoader(null);
+    } catch (SecurityException ignore) {
+      // setContextClassLoader can be denied even without a SecurityManager: when this is an
+      // InnocuousForkJoinWorkerThread (a registration made from a common-pool task), it throws
+      // unconditionally. This is best-effort, so submit anyway with the original loader.
+    }
+    try {
+      ForkJoinPool.commonPool().execute(
+          () -> {
+            RefQueueBlocker<Object> blocker =
+                new RefQueueBlocker<>(queue, threadName, threadTtl);
+            while (true) {
+              try {
+                ForkJoinPool.managedBlock(blocker);
+                Node<?> ref = (Node<?>) blocker.drainOne();
+                if (ref != null) {
+                  ref.onClean(true);
+                } else if (checkEmpty()) {
+                  // The blocker waited the full threadTtl without receiving a ref, and there are
+                  // no pending registrations, so the cleanup task can terminate. Keeping the task
+                  // alive across transient empties amortizes ForkJoinPool submit/compensation
+                  // overhead under bursty workloads.
+                  break;
+                }
+              } catch (InterruptedException e) {
+                if (checkEmpty()) {
+                  LOGGER.log(Level.FINE, "Got interrupt and the cleanup queue is empty, will terminate the cleanup thread");
+                  break;
+                }
+                LOGGER.log(Level.FINE, "Got interrupt and the cleanup queue is NOT empty. Will ignore the interrupt");
+              } catch (Throwable e) {
+                LOGGER.log(Level.WARNING, "Unexpected exception while executing onClean", e);
               }
-            } catch (InterruptedException e) {
-              if (!blocker.isReleasable()) {
-                LOGGER.log(Level.FINE, "Got interrupt and the cleanup queue is empty, will terminate the cleanup thread");
-                break;
-              }
-              LOGGER.log(Level.FINE, "Got interrupt and the cleanup queue is NOT empty. Will ignore the interrupt");
-            } catch (Throwable e) {
-              LOGGER.log(Level.WARNING, "Unexpected exception while executing onClean", e);
             }
           }
-        }
-    );
+      );
+    } finally {
+      try {
+        current.setContextClassLoader(prevContextCL);
+      } catch (SecurityException ignore) {
+        // Denied by an InnocuousForkJoinWorkerThread or a SecurityManager, as above; the loader
+        // was never changed, so there is nothing to restore.
+      }
+    }
     return true;
   }
 

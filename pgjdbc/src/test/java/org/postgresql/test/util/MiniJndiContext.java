@@ -5,6 +5,9 @@
 
 package org.postgresql.test.util;
 
+import org.postgresql.util.ClassLoaderStrategy;
+import org.postgresql.util.ClassUtils;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.rmi.MarshalledObject;
@@ -49,8 +52,9 @@ public class MiniJndiContext implements Context {
     if (o instanceof Reference) {
       Reference ref = (Reference) o;
       try {
-        Class<?> factoryClass = Class.forName(ref.getFactoryClassName());
-        ObjectFactory fac = (ObjectFactory) factoryClass.newInstance();
+        Class<? extends ObjectFactory> factoryClass = ClassUtils.forName(ref.getFactoryClassName(),
+            ObjectFactory.class, ClassLoaderStrategy.DRIVER, MiniJndiContext.class.getClassLoader());
+        ObjectFactory fac = factoryClass.newInstance();
         return fac.getObjectInstance(ref, null, this, null);
       } catch (Exception e) {
         throw new NamingException("Unable to dereference to object: " + e);

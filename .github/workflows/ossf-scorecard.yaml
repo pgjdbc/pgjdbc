@@ -10,6 +10,10 @@ on:
     types: [created, deleted]
   # To guarantee Maintained check is occasionally updated. See
   # https://github.com/ossf/scorecard/blob/main/docs/checks.md#maintained
+  # Scheduled runs are opt-in: they only execute when the repository defines
+  # the `ENABLE_SCHEDULED_JOBS` variable with the value `true`. This keeps
+  # forks (which inherit the workflow but rarely want the recurring runs)
+  # from burning CI minutes and producing failure notifications by default.
   schedule:
     - cron: '26 20 * * 5'
   push:
@@ -24,7 +28,10 @@ jobs:
     name: Scorecard analysis
     runs-on: ubuntu-latest
     # `publish_results: true` only works when run from the default branch. conditional can be removed if disabled.
-    if: github.event.repository.default_branch == github.ref_name || github.event_name == 'pull_request'
+    # Skip scheduled runs unless the repo opts in via `ENABLE_SCHEDULED_JOBS=true`.
+    if: |
+      (github.event.repository.default_branch == github.ref_name || github.event_name == 'pull_request')
+      && (github.event_name != 'schedule' || vars.ENABLE_SCHEDULED_JOBS == 'true')
     permissions:
       # Needed to upload the results to code-scanning dashboard.
       security-events: write
@@ -36,7 +43,7 @@ jobs:
 
     steps:
       - name: "Checkout code"
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
 
@@ -66,7 +73,7 @@ jobs:
       # Upload the results as artifacts (optional). Commenting out will disable uploads of run results in SARIF
       # format to the repository Actions tab.
       - name: "Upload artifact"
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: SARIF file
           path: results.sarif
@@ -75,6 +82,6 @@ jobs:
       # Upload the results to GitHub's code scanning dashboard (optional).
       # Commenting out will disable upload of results to your repo's Code Scanning dashboard
       - name: "Upload to code-scanning"
-        uses: github/codeql-action/upload-sarif@4bdb89f48054571735e3792627da6195c57459e2 # v3.31.10
+        uses: github/codeql-action/upload-sarif@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4.36.3
         with:
           sarif_file: results.sarif

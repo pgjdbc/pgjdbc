@@ -5,6 +5,7 @@
 
 package org.postgresql.core.v3;
 
+import org.postgresql.PGProperty;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.PgMessageType;
 import org.postgresql.util.GT;
@@ -14,6 +15,7 @@ import org.postgresql.util.PSQLState;
 import com.ongres.scram.client.ScramClient;
 import com.ongres.scram.common.ClientFinalMessage;
 import com.ongres.scram.common.ClientFirstMessage;
+import com.ongres.scram.common.ServerFirstMessage;
 import com.ongres.scram.common.StringPreparation;
 import com.ongres.scram.common.exception.ScramException;
 import com.ongres.scram.common.util.TlsServerEndpoint;
@@ -38,9 +40,12 @@ final class ScramAuthenticator {
 
   private final PGStream pgStream;
   private final ScramClient scramClient;
+  private final int maxIterations;
 
-  ScramAuthenticator(char[] password, PGStream pgStream, ChannelBinding channelBinding) throws PSQLException {
+  ScramAuthenticator(char[] password, PGStream pgStream, ChannelBinding channelBinding,
+      int maxIterations) throws PSQLException {
     this.pgStream = pgStream;
+    this.maxIterations = maxIterations;
     this.scramClient = initializeScramClient(password, pgStream, channelBinding);
   }
 
@@ -56,6 +61,15 @@ final class ScramAuthenticator {
           .channelBinding(TlsServerEndpoint.TLS_SERVER_END_POINT, cbindData)
           .stringPreparation(StringPreparation.POSTGRESQL_PREPARATION)
           .build();
+
+      // channelBinding=require must never silently downgrade: regardless of how negotiation
+      // resolved, the selected mechanism must actually use channel binding (a -PLUS mechanism).
+      if (channelBinding == ChannelBinding.REQUIRE && !client.getScramMechanism().isPlus()) {
+        throw new PSQLException(
+            GT.tr("Channel Binding is required, but the negotiated SCRAM mechanism \"{0}\" "
+                + "does not use channel binding.", client.getScramMechanism().getName()),
+            PSQLState.CONNECTION_REJECTED);
+      }
 
       LOGGER.log(Level.FINEST, () -> " Using SCRAM mechanism: "
           + client.getScramMechanism().getName());
@@ -106,7 +120,22 @@ final class ScramAuthenticator {
           Certificate peerCert = certificates[0]; // First certificate is the peer's certificate
           if (peerCert instanceof X509Certificate) {
             X509Certificate cert = (X509Certificate) peerCert;
-            return TlsServerEndpoint.getChannelBindingData(cert);
+            byte[] cbindData = TlsServerEndpoint.getChannelBindingData(cert);
+            if (cbindData.length > 0) {
+              return cbindData;
+            }
+            // An empty result means no channel binding hash could be derived from the
+            // certificate signature algorithm: for example Ed25519 has no associated hash
+            // under RFC 5929 tls-server-end-point. Under REQUIRE this must fail rather than
+            // silently downgrade to a non-PLUS mechanism.
+            if (channelBinding == ChannelBinding.REQUIRE) {
+              throw new PSQLException(
+                  GT.tr("Channel Binding is required, but the server certificate signature "
+                      + "algorithm \"{0}\" does not support tls-server-end-point channel "
+                      + "binding (RFC 5929). Use a server certificate signed with RSA or ECDSA.",
+                      cert.getSigAlgName()),
+                  PSQLState.CONNECTION_REJECTED);
+            }
           }
         }
       } catch (CertificateEncodingException | SSLPeerUnverifiedException e) {
@@ -146,13 +175,23 @@ final class ScramAuthenticator {
   void handleAuthenticationSASLContinue(int length) throws IOException, PSQLException {
     String receivedServerFirstMessage = pgStream.receiveString(length);
     LOGGER.log(Level.FINEST, " <=BE AuthenticationSASLContinue( {0} )", receivedServerFirstMessage);
+    ServerFirstMessage serverFirstMessage;
     try {
-      scramClient.serverFirstMessage(receivedServerFirstMessage);
+      serverFirstMessage = scramClient.serverFirstMessage(receivedServerFirstMessage);
     } catch (ScramException | IllegalStateException | IllegalArgumentException e) {
       throw new PSQLException(
           GT.tr("SCRAM authentication failed: {0}", e.getMessage()),
           PSQLState.CONNECTION_REJECTED,
           e);
+    }
+    int iterations = serverFirstMessage.getIterationCount();
+    if (maxIterations > 0 && iterations > maxIterations) {
+      throw new PSQLException(
+          GT.tr("Server requested {0} SCRAM PBKDF2 iterations, which exceeds the "
+              + "client-side limit of {1}. If you trust this server, raise the "
+              + "{2} connection property.",
+              iterations, maxIterations, PGProperty.SCRAM_MAX_ITERATIONS.getName()),
+          PSQLState.CONNECTION_REJECTED);
     }
 
     ClientFinalMessage clientFinalMessage = scramClient.clientFinalMessage();

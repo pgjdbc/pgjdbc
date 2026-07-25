@@ -102,6 +102,13 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
     oidTypeNames.put("JSON_ARRAY", "_JSON");
     oidTypeNames.put("REF_CURSOR", "REFCURSOR");
     oidTypeNames.put("REF_CURSOR_ARRAY", "_REFCURSOR");
+    oidTypeNames.put("REFCURSOR_ARRAY", "_REFCURSOR");
+    oidTypeNames.put("LINE_ARRAY", "_LINE");
+    oidTypeNames.put("LSEG_ARRAY", "_LSEG");
+    oidTypeNames.put("PATH_ARRAY", "_PATH");
+    oidTypeNames.put("POLYGON_ARRAY", "_POLYGON");
+    oidTypeNames.put("CIRCLE_ARRAY", "_CIRCLE");
+    oidTypeNames.put("RECORD_ARRAY", "_RECORD");
   }
 
   public static Iterable<Object[]> data() throws IllegalAccessException {

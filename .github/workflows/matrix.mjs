@@ -3,9 +3,8 @@
 // See https://github.com/vlsi/github-actions-random-matrix
 import { appendFileSync } from 'fs';
 import { EOL } from 'os';
-import { RNG } from './rng.mjs';
-import { MatrixBuilder } from './matrix_builder.mjs';
-const matrix = new MatrixBuilder();
+import { createGitHubMatrixBuilder } from '@vlsi/github-actions-random-matrix/github';
+const { matrix, random } = createGitHubMatrixBuilder();
 
 // Some of the filter conditions might become unsatisfiable, and by default
 // the matrix would ignore that.
@@ -51,10 +50,26 @@ matrix.addAxis({
   ]
 });
 
+// The newest stable PostgreSQL major. It generates the pg_version axis (10..MAX_PG)
+// and pins the server of the coverage job below. Renovate bumps it when a new
+// `postgres:<major>` image reaches Docker Hub (see the custom manager in renovate.json),
+// which is also when we can start testing that release. A string so it compares equal to
+// the axis values, which are strings.
+// renovate: datasource=docker depName=postgres versioning=regex:^(?<major>\d+)$
+const MAX_PG = '18';
+
+// On pull requests HEAD is opt-out via the RUN_PG_HEAD_TESTS_IN_PR repository variable; branch
+// builds always test it.
+const isPullRequest = !!process.env.GITHUB_PR_NUMBER;
+const runPgHeadTests = !isPullRequest || process.env.RUN_PG_HEAD_TESTS_IN_PR !== 'false';
+
 matrix.addAxis({
   name: 'pg_version',
   title: x => 'PG ' + x,
-  // Strings allow versions like 18-ea
+  // Strings allow versions like 18-ea.
+  // PostgreSQL before 10 used an x.y major scheme, so those are listed by hand.
+  // From 10 on the major is a single number, so 10..MAX_PG is generated and adding
+  // a new major is a one-line Renovate bump of MAX_PG above.
   values: [
     '9.1',
     '9.2',
@@ -62,16 +77,15 @@ matrix.addAxis({
     '9.4',
     '9.5',
     '9.6',
-    '10',
-    '11',
-    '12',
-    '13',
-    '14',
-    '15',
-    '16',
-    '17'
+    // 10, 11, …, MAX_PG
+    ...Array.from({length: Number(MAX_PG) - 10 + 1}, (_, i) => String(10 + i)),
   ]
 });
+
+// Keep HEAD out of the axis when disabled, otherwise the random fill could still pick it.
+if (runPgHeadTests) {
+  matrix.axisByName.pg_version.values.push('HEAD');
+}
 
 matrix.addAxis({
   name: 'tz',
@@ -209,15 +223,6 @@ matrix.addAxis({
 });
 
 matrix.addAxis({
-  name: 'check_anorm_sbt',
-  values: [
-    // See https://github.com/pgjdbc/pgjdbc/issues/2537
-    // {value: 'yes', title: 'check_anorm_sbt', weight: 30},
-    {value: 'no', title: '', weight: 10},
-  ]
-});
-
-matrix.addAxis({
   name: 'adaptive_fetch',
   title: x => x.value === 'yes' ? 'adaptive_fetch' : '',
   values: [
@@ -253,6 +258,29 @@ matrix.addAxis({
   ]
 });
 
+// Occasionally constrain the JVM to a single CPU via -XX:ActiveProcessorCount=1. This shrinks
+// JVM-internal pools (ForkJoinPool common pool, GC threads, etc.) and has caught regressions
+// where bursty work cannot keep up with producers — e.g. LazyCleaner backed by FJP, see
+// https://github.com/pgjdbc/pgjdbc/issues/4037
+// Both HotSpot and OpenJ9 support the flag.
+matrix.addAxis({
+  name: 'cpu_count',
+  title: x => x.value === '1' ? 'ActiveProcessorCount=1' : '',
+  values: [
+    {value: '1', weight: 1},
+    {value: 'default', weight: 10},
+  ]
+});
+
+matrix.addAxis({
+  name: 'assertions',
+  title: x => x.value === 'yes' ? 'assertions' : '',
+  values: [
+    {value: 'yes', weight: 3},
+    {value: 'no', weight: 10},
+  ]
+});
+
 function lessThan(minVersion) {
     return value => Number(value) < Number(minVersion);
 }
@@ -260,9 +288,9 @@ function lessThan(minVersion) {
 matrix.setNamePattern([
     'java_version', 'java_distribution', 'pg_version', 'query_mode', 'scram', 'ssl', 'hash', 'os',
     'server_tz', 'tz', 'locale',
-    'check_anorm_sbt', 'gss', 'replication', 'slow_tests',
+    'gss', 'replication', 'slow_tests',
     'adaptive_fetch', 'keep_alive', 'rewrite_batch_inserts', 'query_timeout',
-    'autosave', 'cleanupSavepoints'
+    'autosave', 'cleanupSavepoints', 'cpu_count', 'assertions'
 ]);
 
 // We take EA builds from Oracle
@@ -283,53 +311,103 @@ matrix.exclude({java_distribution: {value: 'semeru'}, java_version: '21'})
 matrix.imply({gss: {value: 'yes'}}, {os: {value: 'ubuntu-latest'}})
 // ikalnytskyi/action-setup-postgres supports PostgreSQL 14+ only
 matrix.exclude({os: {value: ['windows-latest', 'macos-latest']}, pg_version: lessThan('14')});
+// HEAD is built from pgdg-snapshot inside Docker, which only runs on Linux.
+matrix.imply({pg_version: 'HEAD'}, {os: {value: 'ubuntu-latest'}});
 // cleanupSavepoints is not relevant when autosave=never
 matrix.imply({autosave: {value: 'never'}}, {cleanupSavepoints: {value: 'false'}});
 
-// The most rare features should be generated the first
-// For instance, we have a lot of PostgreSQL versions, so we generate the minimal the first
-// It would have to generate other parameters, and it might happen it would cover "most recent Java" automatically
-// Ensure at least one job with "same" hashcode exists
-matrix.generateRow({hash: {value: 'same'}});
-matrix.generateRow({scram: {value: 'yes'}});
-// Ensure there's a row for Java EA. It is at the beginning to increase chances of covering cases like ssl=yes below
-matrix.generateRow({java_version: eaJava});
-// Ensure we have a job with the minimal and maximal PostgreSQL versions
-matrix.generateRow({pg_version: matrix.axisByName.pg_version.values[0]});
-matrix.generateRow({pg_version: matrix.axisByName.pg_version.values.slice(-1)[0]});
-//Ensure at least one job with "simple" query_mode exists
-matrix.generateRow({query_mode: {value: 'simple'}});
-// Ensure there will be at least one job with minimal supported Java
-matrix.generateRow({java_version: matrix.axisByName.java_version.values[0]});
-// Ensure there will be at least one job with Java 17
-matrix.generateRow({java_version: "17"});
-// Ensure there will be at least one job with the latest Java (excluding EA)
-matrix.generateRow({java_version: matrix.axisByName.java_version.values.slice(-2)[0]});
-// Ensure we test all query_mode values
-matrix.ensureAllAxisValuesCovered('query_mode');
-matrix.ensureAllAxisValuesCovered('gss');
-matrix.ensureAllAxisValuesCovered('xa');
-matrix.ensureAllAxisValuesCovered('ssl');
-matrix.ensureAllAxisValuesCovered('replication');
-matrix.ensureAllAxisValuesCovered('os');
-// Ensure at least one job with autosave=always
-matrix.generateRow({autosave: {value: 'always'}});
-const include = matrix.generateRows(process.env.MATRIX_JOBS || 5);
+// Collect coverage from a single job that turns on every feature that moves coverage (ssl,
+// scram, xa, replication, the latest stable server, one query mode). The other flags add at
+// most a line or two to line/branch coverage, so leaving them to the random fill keeps the
+// corpus stable between builds without a fixed seed.
+// Latest non-EA Java from the axis, so this need not be bumped when Java versions change.
+const LATEST_JAVA = matrix.axisByName.java_version.values.filter(v => v !== eaJava).slice(-1)[0];
+
+// Drive the whole matrix from one batch of requirements. generateRows guarantees a row for
+// each entry, packs them into as few jobs as it can, and spends the rest of the MATRIX_JOBS
+// budget on pairwise coverage. Unlike a sequence of generateRow() calls, the job count is
+// exactly MATRIX_JOBS and the result no longer depends on the order of the list, so the
+// rarest-first ordering the imperative version relied on is gone. Requirements already met by
+// another row (e.g. the coverage job pins scram=yes and the latest Java) cost no extra job.
+const include = matrix.generateRows(Number(process.env.MATRIX_JOBS || 6), {
+  require: [
+    // Collect coverage on one pinned job. It is the most specific requirement, so the batch
+    // packer anchors a row on it; tag() flags that row without a second pass over the result.
+    {
+      filter: {
+        os: {value: 'ubuntu-latest'},        // coverage needs the Docker PostgreSQL (Linux only)
+        pg_version: MAX_PG,
+        java_version: LATEST_JAVA, java_distribution: {value: 'temurin'},
+        query_mode: {value: 'extended'},
+        ssl: {value: 'yes'}, scram: {value: 'yes'},
+        xa: {value: 'yes'}, replication: {value: 'yes'},
+        // slow tests add ~0 coverage but cost runtime; GSS exercises the driver's encryption
+        // paths and the krb5 setup runs anyway on this Linux job, so keep it on.
+        slow_tests: {value: 'no'}, gss: {value: 'yes'},
+      },
+      tag: row => { row.collectCoverage = true; },
+    },
+    // Ensure at least one job with "same" hashcode exists
+    {hash: {value: 'same'}},
+    {scram: {value: 'yes'}},
+    // Ensure there's a row for Java EA
+    {java_version: eaJava},
+    // Ensure we have a job with the minimal and maximal PostgreSQL versions
+    {pg_version: matrix.axisByName.pg_version.values[0]},
+    // Ensure we test with latest released PG
+    {pg_version: MAX_PG},
+    ...(runPgHeadTests ? [{pg_version: 'HEAD'}] : []),
+    // Ensure at least one job with "simple" query_mode exists
+    {query_mode: {value: 'simple'}},
+    // Ensure there will be at least one job with minimal supported Java
+    {java_version: matrix.axisByName.java_version.values[0]},
+    // Ensure there will be at least one job with Java 17
+    {java_version: "17"},
+    // Ensure there will be at least one job with the latest Java (excluding EA)
+    {java_version: LATEST_JAVA},
+    // Ensure at least one job with autosave=always
+    {autosave: {value: 'always'}},
+    // Ensure we test all values of the axes below
+    ...matrix.allAxisValues('query_mode'),
+    ...matrix.allAxisValues('gss'),
+    ...matrix.allAxisValues('xa'),
+    ...matrix.allAxisValues('ssl'),
+    ...matrix.allAxisValues('replication'),
+    ...matrix.allAxisValues('os'),
+    ...matrix.allAxisValues('cpu_count'),
+    ...matrix.allAxisValues('assertions'),
+  ],
+});
 if (include.length === 0) {
   throw new Error('Matrix list is empty');
 }
+if (!include.some(v => v.collectCoverage)) {
+  throw new Error('Could not generate the coverage job; check that the pinned axes are satisfiable');
+}
 include.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
 include.forEach(v => {
-    let gradleArgs = [
+    let gradleArgs = [];
+    if (v.collectCoverage) {
+        // Build the aggregate report as part of the main test run. The workflow
+        // re-runs it on its own if the tests fail (see .github/workflows/main.yml).
+        gradleArgs.push('jacocoReport');
+    }
+    gradleArgs.push(
         `-Duser.country=${v.locale.country}`,
         `-Duser.language=${v.locale.language}`,
-    ];
+    );
     v.extraGradleArgs = gradleArgs.join(' ');
-    // 8.0 is here to test a case when somebody configured assumeMinServerVersion=8.0, and forgot to update it.
-    // The idea is that everything should still work since the option is just a hint to the driver
-    // on the minimal set of features it can use when connecting to the database.
-    let assumeMinServerVersion = ['', '', '8.0', ...matrix.axisByName.pg_version.values.filter(x => Number(x) <= Number(v.pg_version))];
-    v.assumeMinServerVersion = assumeMinServerVersion[Math.floor(RNG.random() * assumeMinServerVersion.length)];
+    if (v.collectCoverage) {
+        // Pin a fixed value so the coverage corpus is stable.
+        v.assumeMinServerVersion = '';
+        v.name += ', coverage';
+    } else {
+        // 8.0 is here to test a case when somebody configured assumeMinServerVersion=8.0, and forgot to update it.
+        // The idea is that everything should still work since the option is just a hint to the driver
+        // on the minimal set of features it can use when connecting to the database.
+        let assumeMinServerVersion = ['', '', '8.0', ...matrix.axisByName.pg_version.values.filter(x => Number(x) <= Number(v.pg_version))];
+        v.assumeMinServerVersion = assumeMinServerVersion[Math.floor(random() * assumeMinServerVersion.length)];
+    }
     if (v.assumeMinServerVersion !== '') {
         v.name += ', assume min version ' + v.assumeMinServerVersion;
     }
@@ -343,8 +421,9 @@ include.forEach(v => {
   jvmArgs.push(`-Duser.language=${v.locale.language}`);
 
   v.os = v.os.value;
-  v.java_distribution = v.java_distribution.value;
-  v.java_vendor = v.java_distribution.vendor;
+  const {value: javaDistribution, vendor: javaVendor} = v.java_distribution;
+  v.java_distribution = javaDistribution;
+  v.java_vendor = javaVendor;
   if (v.java_distribution === 'oracle') {
       v.oracle_java_website = v.java_version === eaJava ? 'jdk.java.net' : 'oracle.com';
   }
@@ -355,12 +434,10 @@ include.forEach(v => {
   v.gss = v.gss.value;
   v.ssl = v.ssl.value;
   v.scram = v.scram.value;
-  v.check_anorm_sbt = v.check_anorm_sbt.value;
   v.query_mode = v.query_mode.value;
   v.adaptive_fetch = v.adaptive_fetch.value;
   v.keep_alive = v.keep_alive.value;
   v.rewrite_batch_inserts = v.rewrite_batch_inserts.value;
-  v.query_timeout = v.query_timeout.value;
   v.autosave = v.autosave.value;
   v.cleanupSavepoints = v.cleanupSavepoints.value;
 
@@ -380,9 +457,6 @@ include.forEach(v => {
 
   v.includeTestTags = includeTestTags.join(' | ');
 
-  if (v.gss === 'yes' || v.check_anorm_sbt === 'yes') {
-      v.deploy_to_maven_local = true
-  }
   if (v.hash.value === 'same') {
     // "same hashcode" causes issue for javac, and kotlinc,
     // so we pass it to test execution only
@@ -393,7 +467,7 @@ include.forEach(v => {
   jvmArgs.push(`-Duser.country=${v.locale.country}`);
   jvmArgs.push(`-Duser.language=${v.locale.language}`);
   let jit = v.java_distribution === 'semeru' ? 'open9j' : 'hotspot';
-  if (jit === 'hotspot' && RNG.random() > 0.5) {
+  if (jit === 'hotspot' && random() > 0.5) {
     // The following options randomize instruction selection in JIT compiler
     // so it might reveal missing synchronization in TestNG code
     v.name += ', stress JIT';
@@ -443,6 +517,17 @@ include.forEach(v => {
   if (v.gss === 'no') {
       testJvmArgs.push('-DskipGssEncryption=true');
   }
+  if (v.cpu_count.value === '1') {
+      // Constrains ForkJoinPool common pool to a single worker, exposing FJP submit/compensation
+      // overhead in code paths like LazyCleaner. See https://github.com/pgjdbc/pgjdbc/issues/4037
+      // Both HotSpot and OpenJ9 support -XX:ActiveProcessorCount.
+      testJvmArgs.push('-XX:ActiveProcessorCount=1');
+  }
+  delete v.cpu_count;
+  if (v.assertions.value === 'yes') {
+      testJvmArgs.push('-ea');
+  }
+  delete v.assertions;
   v.extraJvmArgs = jvmArgs.join(' ');
   v.testExtraJvmArgs = testJvmArgs.join(' ::: ');
   delete v.hash;

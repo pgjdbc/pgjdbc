@@ -21,6 +21,8 @@ jobs:
       pull-requests: read
     steps:
       - name: Validate input parameters
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         # language=bash
         run: |
           # Ensure we release from master or release/** branches, ensure version number follows semver
@@ -31,22 +33,24 @@ jobs:
           fi
 
           # Validate version follows semver or is empty
-          VERSION="${{ inputs.version }}"
+          VERSION="$INPUT_VERSION"
           if [[ -n "$VERSION" && ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Error: Version must be blank or follow semantic versioning format (x.y.z). Got '$VERSION'"
             exit 1
           fi
 
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Get the release version
         id: release_version
         shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         # language=bash
         run: |
-          if [[ -n "${{ inputs.version }}" ]]; then
-            VERSION="${{ inputs.version }}"
+          if [[ -n "$INPUT_VERSION" ]]; then
+            VERSION="$INPUT_VERSION"
             echo "Got release version from workflow input: $VERSION"
           else
             VERSION=$(grep "^pgjdbc.version=" gradle.properties | cut -d'=' -f2)
@@ -55,7 +59,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Check if tag exists
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         env:
           VERSION: ${{ steps.release_version.outputs.version }}
         with:
@@ -80,7 +84,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         id: app_token
         with:
           app-id: ${{ vars.GH_BUMP_VERSION_APP_ID }}
@@ -93,7 +97,7 @@ jobs:
           version: ${{ steps.release_version.outputs.version }}
 
       - name: Set up JDK 21
-        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
+        uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5.4.0
         with:
           distribution: zulu
           java-version: 21
@@ -101,10 +105,13 @@ jobs:
 
       # Publish to Central before generating a tag, so we don't need to drop the tag if
       # Central deployment fails.
+      # publishAllPublicationsToTmp-mavenRepository stages the signed artifacts under
+      # pgjdbc/build/local-maven-repo in the same Gradle run, so the jar and signature attached to
+      # the GitHub release below are byte-for-byte the ones uploaded to Central.
       - name: Publish to Central Portal
-        uses: burrunan/gradle-cache-action@663fbad34e03c8f12b27f4999ac46e3d90f87eca # v3.0.1
+        uses: burrunan/gradle-cache-action@4b67497abd37a511d6c1dc6299bdd84ff39f7bf5 # v3.0.2
         with:
-          arguments: publishAggregationToCentralPortal
+          arguments: publishAggregationToCentralPortal :postgresql:publishAllPublicationsToTmp-mavenRepository
           # language=properties
           properties: |
             release=true
@@ -116,7 +123,7 @@ jobs:
           SIGNING_PGP_PASSPHRASE: ${{ secrets.RELEASE_PGP_PASSPHRASE }}
 
       - name: Publish GitHub release
-        uses: release-drafter/release-drafter@267d2e0268deae5d44f3ba5029dd4d6e85f9d52d # v6.1.1
+        uses: release-drafter/release-drafter@693d20e7c1ce1a81d3a41962f85914253b518449 # v7.3.1
         id: publish_release
         with:
           disable-autolabeler: true
@@ -126,12 +133,70 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Must run after "Publish GitHub release" (the release has to exist) and before the version
+      # bump below, whose push triggers release-drafter for the next version's draft.
+      - name: Attach files to the release
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          # https://github.com/release-drafter/release-drafter#action-outputs
+          RELEASE_ID: ${{ steps.publish_release.outputs.id }}
+          VERSION: ${{ steps.release_version.outputs.version }}
+        with:
+          # language=JavaScript
+          script: |
+            const fs = require('fs');
+            const {RELEASE_ID, VERSION} = process.env;
+            // The jar and its detached PGP signature staged by the publish step. Paths are fixed,
+            // so a missing file means the publish step failed to produce it.
+            const artifactDir = `pgjdbc/build/local-maven-repo/org/postgresql/postgresql/${VERSION}`;
+            const artifactName = `postgresql-${VERSION}.jar`;
+            const uploadFiles = [
+                [artifactName, `${artifactDir}/${artifactName}`],
+                [`${artifactName}.asc`, `${artifactDir}/${artifactName}.asc`],
+            ];
+            for (const [name, filePath] of uploadFiles) {
+                if (!fs.existsSync(filePath)) {
+                    core.setFailed(`Release artifact ${name} not found at ${filePath}. Check that the publish step ran publishAllPublicationsToTmp-mavenRepository.`);
+                    return;
+                }
+            }
+            // Drop any stale jar/signature assets (e.g. a SNAPSHOT jar carried over on an older
+            // draft) before re-uploading. This assumes the release ships exactly uploadFiles; widen
+            // the filter if more jars are ever attached.
+            const assets = await github.rest.repos.listReleaseAssets({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: RELEASE_ID
+            });
+            for (const asset of assets.data) {
+                if (asset.name.endsWith('.jar') || asset.name.endsWith('.jar.asc')) {
+                    core.info(`Deleting stale release asset ${asset.name}`);
+                    await github.rest.repos.deleteReleaseAsset({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        asset_id: asset.id
+                    });
+                }
+            }
+            for (const [name, filePath] of uploadFiles) {
+                core.info(`Uploading ${name} from ${filePath}`);
+                await github.rest.repos.uploadReleaseAsset({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name,
+                    release_id: RELEASE_ID,
+                    data: fs.readFileSync(filePath)
+                });
+            }
+
       - name: Compute the next patch version
         id: next_version
+        env:
+          RELEASE_VERSION: ${{ steps.release_version.outputs.version }}
         # language=bash
         run: |
           # Compute the next patch version
-          IFS='.' read -r major minor patch <<< "${{ steps.release_version.outputs.version }}"
+          IFS='.' read -r major minor patch <<< "$RELEASE_VERSION"
           next_version="${major}.${minor}.$((patch + 1))"
           echo "Next version: $next_version"
           echo "version=$next_version" >> "$GITHUB_OUTPUT"

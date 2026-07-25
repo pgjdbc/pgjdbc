@@ -4,6 +4,70 @@ date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 8
 toc: true
+aliases:
+    - "/documentation/head/server-prepare.html"
+    - "/documentation/head/ext.html"
+    - "/documentation/head/geometric.html"
+    - "/documentation/head/largeobjects.html"
+    - "/documentation/head/listennotify.html"
+    - "/documentation/head/arrays.html"
+    - "/documentation/head/parameterstatus.html"
+    - "/documentation/head/replication.html"
+    - "/documentation/80/server-prepare.html"
+    - "/documentation/80/ext.html"
+    - "/documentation/80/geometric.html"
+    - "/documentation/80/largeobjects.html"
+    - "/documentation/80/listennotify.html"
+    - "/documentation/81/server-prepare.html"
+    - "/documentation/81/ext.html"
+    - "/documentation/81/geometric.html"
+    - "/documentation/81/largeobjects.html"
+    - "/documentation/81/listennotify.html"
+    - "/documentation/82/server-prepare.html"
+    - "/documentation/82/ext.html"
+    - "/documentation/82/geometric.html"
+    - "/documentation/82/largeobjects.html"
+    - "/documentation/82/listennotify.html"
+    - "/documentation/83/server-prepare.html"
+    - "/documentation/83/ext.html"
+    - "/documentation/83/geometric.html"
+    - "/documentation/83/largeobjects.html"
+    - "/documentation/83/listennotify.html"
+    - "/documentation/84/server-prepare.html"
+    - "/documentation/84/ext.html"
+    - "/documentation/84/geometric.html"
+    - "/documentation/84/largeobjects.html"
+    - "/documentation/84/listennotify.html"
+    - "/documentation/85/server-prepare.html"
+    - "/documentation/85/ext.html"
+    - "/documentation/85/geometric.html"
+    - "/documentation/85/largeobjects.html"
+    - "/documentation/85/listennotify.html"
+    - "/documentation/90/server-prepare.html"
+    - "/documentation/90/ext.html"
+    - "/documentation/90/geometric.html"
+    - "/documentation/90/largeobjects.html"
+    - "/documentation/90/listennotify.html"
+    - "/documentation/91/server-prepare.html"
+    - "/documentation/91/ext.html"
+    - "/documentation/91/geometric.html"
+    - "/documentation/91/largeobjects.html"
+    - "/documentation/91/listennotify.html"
+    - "/documentation/92/server-prepare.html"
+    - "/documentation/92/ext.html"
+    - "/documentation/92/geometric.html"
+    - "/documentation/92/largeobjects.html"
+    - "/documentation/92/listennotify.html"
+    - "/documentation/93/server-prepare.html"
+    - "/documentation/93/ext.html"
+    - "/documentation/93/geometric.html"
+    - "/documentation/93/largeobjects.html"
+    - "/documentation/93/listennotify.html"
+    - "/documentation/94/server-prepare.html"
+    - "/documentation/94/ext.html"
+    - "/documentation/94/geometric.html"
+    - "/documentation/94/largeobjects.html"
+    - "/documentation/94/listennotify.html"
 ---
 
 PostgreSQL® is an extensible database system. You can add your own functions to the server, which can then be called from queries, or even add your own data types. As these are facilities unique to PostgreSQL®, we support them from Java, with a set of extension APIs. Some features within the core of the standard driver actually use these extensions to implement Large Objects, etc.
@@ -316,25 +380,35 @@ The driver does understand top-level DEALLOCATE/DISCARD commands, and it invalid
 
 #### set search_path = ...
 
-PostgreSQL® allows to customize `search_path` , and it provides great power to the developer. With great power the 
-following case could happen:
+PostgreSQL® lets you customise `search_path`, which changes how unqualified table names resolve:
 
 ```sql
 set search_path='app_v1';
-SELECT * FROM mytable;
+SELECT * FROM mytable; -- resolves to app_v1.mytable
 set search_path='app_v2';
-SELECT * FROM mytable; -- Does mytable mean app_v1.mytable or app_v2.mytable here?
+SELECT * FROM mytable; -- resolves to app_v2.mytable
 ```
 
-Server side prepared statements are linked to database object IDs, so it could fetch data from "old" `app_v1.mytable` table.
-It is hard to tell which behaviour is expected, however pgJDBC tries to track `search_path` changes, and it invalidates
-prepare cache accordingly.
+The result stays correct across a `search_path` change. PostgreSQL® records the `search_path` used to build a cached
+plan and, since PostgreSQL® 9.3, re-plans the statement when that path changes, so a reused server side prepared
+statement still returns rows from the table the current `search_path` selects. (Releases before 9.3 keep the old plan
+and may read the previously resolved table.)
+
+What pgJDBC adds is a cache optimisation. It watches for `search_path` changes and invalidates its prepared statement
+cache so the next execution re-prepares against the new path: top-level `set search_path...` and `reset` commands on any
+server, and, on PostgreSQL® 18 and later that report `search_path` to the client (`GUC_REPORT`), changes made anywhere,
+including inside pl/pgsql. This avoids the `cached plan must not change result type` error when the new path resolves to
+a table with a different column layout (for example, `SELECT *` over `app_v1.mytable` and `app_v2.mytable` with
+different columns).
 
 The recommendation is:
 
-1. Avoid changing `search_path` often, as it invalidates server side prepared statements
-2. Use simple `set search_path...` commands, avoid nesting the commands into pl/pgsql or alike, otherwise pgJDBC won't
-be able to identify `search_path` change
+1. Avoid changing `search_path` often. Each change pgJDBC detects invalidates the server side prepared statement cache,
+so the affected statements have to be re-prepared.
+2. Keep `set search_path` at the top level on PostgreSQL® 17 and older. There pgJDBC detects only top-level commands, so
+a change hidden inside pl/pgsql or a function is invisible to it: it cannot re-prepare against the new path, and reusing
+a cached statement can then fail with `cached plan must not change result type`. PostgreSQL® 18 reports `search_path`
+changes to the client (`GUC_REPORT`), so pgJDBC detects them wherever they happen and re-prepares automatically.
 
 #### Re-execution of failed statements
 

@@ -251,6 +251,7 @@ class PGPropertyTest {
     excluded.add("APPLICATION_NAME"); // [A]pplicationName
     excluded.add("GSS_LIB"); // gss[l]ib
     excluded.add("REWRITE_BATCHED_INSERTS"); // re[W]riteBatchedInserts
+    excluded.add("REWRITE_BATCHED_INSERTS_SIZE"); // re[W]riteBatchedInsertsSize
 
     for (PGProperty property : PGProperty.values()) {
       if (!property.name().startsWith("PG")) { // Ignore all properties that start with PG

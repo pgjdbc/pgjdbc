@@ -114,6 +114,23 @@ If the test suite reports errors or failures that you cannot
 explain, please post the relevant parts of the output to the
 mailing list pgsql-jdbc@postgresql.org.
 
+### Code coverage
+
+The build collects JaCoCo coverage only when you ask for it, so a plain `./gradlew test` produces no coverage data. Run the tests together with the aggregate report task:
+
+```sh
+./gradlew test jacocoReport
+```
+
+Naming the `jacocoReport` task on the command line turns on instrumentation, so `-Pcoverage` is not required here. Use `-Pcoverage` when you want coverage from a plain `test` run without the report task.
+
+The aggregate report is written to:
+
+- `build/reports/jacoco/jacocoReport/html/index.html` — HTML report for browsing
+- `build/reports/jacoco/jacocoReport/jacocoReport.xml` — XML report (uploaded to Codecov in CI)
+
+`jacocoReport` writes these files; it does not print a coverage percentage to the console, so open the HTML report to read the numbers. The report reflects only the tests that ran, so configure a test database (see above) for full-suite coverage.
+
 ## 5 - Extending the test suite with new tests
 
 Most of the tests are written with JUnit4, however it is recommended to create new tests with JUnit5.
@@ -236,7 +253,27 @@ If you are not using Docker, ensure your `pg_hba.conf` includes the `scram-sha-2
 ALTER USER testscram WITH PASSWORD 'your_password';
 ```
 
-## 10 - Credits and Feedback
+## 10 - Authentication plugin tests
+
+`ObjectFactoryTest.invalidAuthenticationPlugin` and `AuthenticationPluginTest` (the MD5 and SASL cases) check how the driver loads a custom `authenticationPluginClassName`. The driver loads that plugin lazily: it instantiates the plugin class only when the server actually requests a password (see `AuthenticationPluginManager.withPassword`). Under `trust` authentication the server never requests a password, so the plugin is never loaded and these tests cannot exercise it.
+
+For these tests to run, the test user must authenticate with a password method (`md5`, `scram-sha-256`, or `password`) rather than `trust`. `invalidAuthenticationPlugin` skips itself with a pointed message when it detects `trust` authentication; the `AuthenticationPluginTest` cases fail instead.
+
+### Using Docker
+
+The provided Docker setup already requests a password for the `test` database, so no extra steps are needed. The rule lives in `certdir/server/pg_hba.conf`.
+
+### Manual setup
+
+If you are not using Docker, make sure the test user is not on a `trust` line in `pg_hba.conf`. Add or adjust a password rule for the test database and reload the server:
+
+```
+host    test    all    all    md5
+```
+
+The test user must also have a password set so the server can verify it (`ALTER USER test WITH PASSWORD 'test';`).
+
+## 11 - Credits and Feedback
 
 The parts of this document describing the PostgreSQL test suite
 were originally written by Rene Pijlman. Liam Stewart contributed

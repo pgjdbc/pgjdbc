@@ -44,15 +44,21 @@ dependencies {
 }
 
 jacoco {
-    toolVersion = "0.8.14"
+    toolVersion = "0.8.15"
     providers.gradleProperty("jacoco.version")
         .takeIf { it.isPresent }
         ?.let { toolVersion = it.get() }
 }
 
-val jacocoReport by tasks.registering(JacocoReport::class) {
+val jacocoReport = tasks.register<JacocoReport>("jacocoReport") {
     group = "Coverage reports"
     description = "Generates an aggregate report from all subprojects"
+    reports {
+        // Codecov consumes the XML report in CI (see .github/workflows/omni.yml);
+        // the HTML report is for browsing coverage locally.
+        xml.required.set(true)
+        html.required.set(true)
+    }
 }
 
 allprojects {
@@ -60,7 +66,7 @@ allprojects {
     version = buildVersion
 }
 
-val parameters by tasks.registering {
+val parameters = tasks.register("parameters") {
     group = HelpTasksPlugin.HELP_GROUP
     description = "Displays build parameters (i.e. -P flags) that can be used to customize the build"
     dependsOn(gradle.includedBuild("build-logic").task(":build-parameters:parameters"))

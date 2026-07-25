@@ -254,6 +254,15 @@ class SimpleParameterList implements V3ParameterList {
     String textValue;
     String type;
     if (paramTypes[index] == Oid.BYTEA) {
+      if (paramValue instanceof String && !((String) paramValue).startsWith("\\x")) {
+        // A bytea value supplied as text in the escape format. Quote and cast it
+        // like any other literal: quoteAndCast escapes quotes and backslashes per
+        // standard_conforming_strings, which keeps the literal valid and safe from
+        // SQL injection. Hex-format strings (\x...) and byte[] values fall through
+        // to PGbytea.toPGLiteral below.
+        return quoteAndCast((String) paramValue, "bytea",
+            context.getStandardConformingStrings());
+      }
       try {
         return PGbytea.toPGLiteral(paramValue, context);
       } catch (Throwable e) {

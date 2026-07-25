@@ -4,6 +4,7 @@
 .project
 .checkstyle
 .DS_Store
+node_modules
 .externalToolBuilders
 build
 jars
@@ -29,5 +30,12 @@ release.properties
 dependency-reduced-pom.xml
 buildNumber.properties
 
+# Ignore local scratch files
+/scratch
+
 # Ignore folders used to build binaries for old Java
 /eclipsebin/
+
+# Scratch folder used by the codex-review skill
+# https://github.com/Netcracker/qubership-ai-packages/tree/main/agent-packages/codex-review
+.codex-review

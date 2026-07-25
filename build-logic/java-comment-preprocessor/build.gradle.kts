@@ -4,5 +4,5 @@ plugins {
 
 dependencies {
     implementation("com.igormaznitsa:jcp:7.3.0")
-    implementation("com.github.vlsi.gradle-extensions:com.github.vlsi.gradle-extensions.gradle.plugin:2.0.0")
+    implementation("com.github.vlsi.gradle-extensions:com.github.vlsi.gradle-extensions.gradle.plugin:3.0.2")
 }

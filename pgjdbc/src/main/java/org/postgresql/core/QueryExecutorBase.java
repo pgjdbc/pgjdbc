@@ -50,12 +50,14 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private int serverVersionNum;
   private volatile TransactionState transactionState = TransactionState.IDLE;
   private final boolean reWriteBatchedInserts;
+  private final int reWriteBatchedInsertsSize;
   private final boolean columnSanitiserDisabled;
   private final EscapeSyntaxCallMode escapeSyntaxCallMode;
   private final boolean quoteReturningIdentifiers;
   private PreferQueryMode preferQueryMode;
   private AutoSave autoSave;
   private boolean flushCacheOnDeallocate = true;
+  private boolean flushCacheOnDdl = true;
   protected final boolean logServerErrorDetail;
 
   // default value for server versions that don't report standard_conforming_strings
@@ -82,6 +84,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.database = PGProperty.PG_DBNAME.getOrDefault(info);
     this.cancelSignalTimeout = cancelSignalTimeout;
     this.reWriteBatchedInserts = PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(info);
+    this.reWriteBatchedInsertsSize = Math.max(0, PGProperty.REWRITE_BATCHED_INSERTS_SIZE.getInt(info));
     this.columnSanitiserDisabled = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
     String callMode = PGProperty.ESCAPE_SYNTAX_CALL_MODE.getOrDefault(info);
     this.escapeSyntaxCallMode = EscapeSyntaxCallMode.of(callMode);
@@ -325,6 +328,11 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   }
 
   @Override
+  public int getReWriteBatchedInsertsSize() {
+    return this.reWriteBatchedInsertsSize;
+  }
+
+  @Override
   public final CachedQuery borrowQuery(String sql) throws SQLException {
     return statementCache.borrow(sql);
   }
@@ -460,6 +468,16 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   @Override
   public void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate) {
     this.flushCacheOnDeallocate = flushCacheOnDeallocate;
+  }
+
+  @Override
+  public boolean isFlushCacheOnDdl() {
+    return flushCacheOnDdl;
+  }
+
+  @Override
+  public void setFlushCacheOnDdl(boolean flushCacheOnDdl) {
+    this.flushCacheOnDdl = flushCacheOnDdl;
   }
 
   protected boolean hasNotifications() {

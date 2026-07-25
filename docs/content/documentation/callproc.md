@@ -4,6 +4,19 @@ date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 5
 toc: true
+aliases:
+    - "/documentation/head/callproc.html"
+    - "/documentation/80/callproc.html"
+    - "/documentation/81/callproc.html"
+    - "/documentation/82/callproc.html"
+    - "/documentation/83/callproc.html"
+    - "/documentation/84/callproc.html"
+    - "/documentation/85/callproc.html"
+    - "/documentation/90/callproc.html"
+    - "/documentation/91/callproc.html"
+    - "/documentation/92/callproc.html"
+    - "/documentation/93/callproc.html"
+    - "/documentation/94/callproc.html"
 ---
 
 PostgreSQL® supports two types of stored objects, functions that can return a result value and - starting from v11 - procedures

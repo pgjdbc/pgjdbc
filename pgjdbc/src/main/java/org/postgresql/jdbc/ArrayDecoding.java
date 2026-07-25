@@ -297,9 +297,6 @@ final class ArrayDecoding {
   private static final ArrayDecoder<byte[][]> BYTE_ARRAY_ARRAY = new AbstractObjectArrayDecoder<byte[][]>(
       byte[].class) {
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     Object parseValue(int length, ByteBuffer bytes, BaseConnection connection) throws SQLException {
       final byte[] array = new byte[length];

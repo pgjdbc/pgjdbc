@@ -14,10 +14,14 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.annotations.EnabledForServerVersionRange;
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -28,6 +32,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.NumberFormat;
 import java.util.Properties;
 import java.util.stream.Stream;
 
@@ -116,7 +121,81 @@ class ScramTest {
         () -> DriverManager.getConnection(TestUtil.getURL(), ROLE_NAME, password),
         "SCRAM connection attempt with invalid password should fail");
 
-    assertEquals(expectedMessage, e.getMessage());
+    // The driver localises messages via GT.tr, so compare against the translated form
+    // rather than the English source to keep the test locale-independent.
+    assertEquals(GT.tr(expectedMessage), e.getMessage());
+  }
+
+  private PSQLException scramAuthExpectingFailure(String scramMaxIterations, int serverScramIterations, String password) throws SQLException {
+    createRoleWithCustomScramIters(serverScramIterations);
+    Properties props = new Properties();
+    PGProperty.USER.set(props, ROLE_NAME);
+    PGProperty.PASSWORD.set(props, password);
+    if (scramMaxIterations != null) {
+      PGProperty.SCRAM_MAX_ITERATIONS.set(props, scramMaxIterations);
+    }
+    return assertThrows(PSQLException.class, () -> TestUtil.openDB(props));
+  }
+
+  @Test
+  void rejectIterationCountAboveDefaultCap() throws SQLException {
+    int serverScramIterations = 789_123_456;
+    PSQLException ex = scramAuthExpectingFailure(null, serverScramIterations, "does-not-matter");
+    // The iteration-cap message is the only SCRAM error that references the property name,
+    // so checking for it pins the test to the right error path without depending on locale.
+    assertTrue(ex.getMessage().contains("scramMaxIterations"),
+        "expected iteration-cap error referencing the connection property name, got: " + ex.getMessage());
+    // The message is formatted through MessageFormat, which applies locale-aware grouping
+    // to integer arguments; format the expected numbers the same way.
+    NumberFormat nf = NumberFormat.getNumberInstance();
+    assertTrue(ex.getMessage().contains(nf.format(serverScramIterations)),
+        "error should include the server-supplied iteration count, got: " + ex.getMessage());
+  }
+
+  @Test
+  void rejectIterationCountAboveCustomCap() throws SQLException {
+    int scramMaxIterations = 123_456;
+    int serverScramIterations = 789_123_456;
+    PSQLException ex = scramAuthExpectingFailure(Integer.toString(scramMaxIterations), serverScramIterations, "does-not-matter");
+    // The message is formatted through MessageFormat, which applies locale-aware grouping
+    // to integer arguments; format the expected numbers the same way.
+    NumberFormat nf = NumberFormat.getNumberInstance();
+    assertTrue(ex.getMessage().contains(nf.format(scramMaxIterations)),
+        "error should include the configured cap, got: " + ex.getMessage());
+    assertTrue(ex.getMessage().contains(nf.format(serverScramIterations)),
+        "error should include the server-supplied iteration count, got: " + ex.getMessage());
+  }
+
+  @Test
+  void rejectValidCredentialsAboveCustomCap() throws SQLException {
+    String password = "t0pSecret";
+    createRole(password);
+    Properties props = new Properties();
+    PGProperty.USER.set(props, ROLE_NAME);
+    PGProperty.PASSWORD.set(props, password);
+    PGProperty.SCRAM_MAX_ITERATIONS.set(props, "1234");
+    PSQLException ex = assertThrows(PSQLException.class, () -> TestUtil.openDB(props));
+    // The message is formatted through MessageFormat, which applies locale-aware grouping
+    // to integer arguments; format the expected numbers the same way.
+    NumberFormat nf = NumberFormat.getNumberInstance();
+    assertTrue(ex.getMessage().contains(nf.format(1234)),
+        "error should include the configured cap, got: " + ex.getMessage());
+  }
+
+  @Test
+  @EnabledForServerVersionRange(gte = "16")
+  void acceptsValidCredentialsBelowCustomCap() throws SQLException {
+    int serverScramIterations = Integer.parseInt(TestUtil.queryForString(con, "SHOW scram_iterations"));
+    String password = "t0pSecret";
+    createRole(password);
+    Properties props = new Properties();
+    PGProperty.USER.set(props, ROLE_NAME);
+    PGProperty.PASSWORD.set(props, password);
+    PGProperty.SCRAM_MAX_ITERATIONS.set(props, Integer.toString(serverScramIterations));
+    try (Connection conn = TestUtil.openDB(props)) {
+      String username = TestUtil.queryForString(conn, "SELECT USER");
+      assertEquals(ROLE_NAME, username);
+    }
   }
 
   private static void createRole(String passwd) throws SQLException {
@@ -127,4 +206,18 @@ class ScramTest {
     }
   }
 
+  private static void createRoleWithCustomScramIters(int iters) throws SQLException {
+    TestUtil.execute(con, "DROP ROLE IF EXISTS " + ROLE_NAME);
+    TestUtil.execute(con, "CREATE ROLE " + ROLE_NAME + " WITH LOGIN");
+    // SCRAM-SHA-256$<iter>:<salt-base64>$<StoredKey-base64>:<ServerKey-base64>
+    // salt: 16 zero bytes, StoredKey and ServerKey: 32 zero bytes each.
+    String encodedPassword = "SCRAM-SHA-256$" + iters
+        + ":AAAAAAAAAAAAAAAAAAAAAA=="
+        + "$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+        + ":AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    // NOTE: We must directly update the system catalog to prevent the server from trying to
+    // verify the password at creation time. Otherwise it will try to hash empty string with
+    // our huge number of iterations to ensure the password is not an empty string.
+    TestUtil.execute(con, "UPDATE pg_authid SET rolpassword = '" + encodedPassword + "' WHERE rolname = '" + ROLE_NAME + "'");
+  }
 }

@@ -62,7 +62,7 @@ public abstract class CopyOperationImpl implements CopyOperation {
       int i = status.lastIndexOf(' ');
       handledRowCount = i > 3 ? Long.parseLong(status.substring(i + 1)) : -1;
     } else {
-      throw new PSQLException(GT.tr("CommandComplete expected COPY but got: " + status),
+      throw new PSQLException(GT.tr("CommandComplete expected COPY but got: {0}", status),
           PSQLState.COMMUNICATION_ERROR);
     }
   }

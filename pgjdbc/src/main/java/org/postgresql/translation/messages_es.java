@@ -3,46 +3,80 @@ package org.postgresql.translation;
 public class messages_es extends java.util.ResourceBundle {
   private static final java.lang.String[] table;
   static {
-    java.lang.String[] t = new java.lang.String[74];
+    java.lang.String[] t = new java.lang.String[178];
     t[0] = "";
     t[1] = "Project-Id-Version: JDBC PostgreSQL Driver\nReport-Msgid-Bugs-To: \nPO-Revision-Date: 2004-10-22 16:51-0300\nLast-Translator: Diego Gil <diego@adminsa.com>\nLanguage-Team: \nLanguage: \nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Poedit-Language: Spanish\n";
-    t[4] = "The column index is out of range: {0}, number of columns: {1}.";
-    t[5] = "El índice de la columna está fuera de rango: {0}, número de columnas: {1}.";
-    t[12] = "Unknown Response Type {0}.";
-    t[13] = "Tipo de respuesta desconocida {0}.";
-    t[16] = "Protocol error.  Session setup failed.";
-    t[17] = "Error de protocolo. Falló el inicio de la sesión.";
-    t[20] = "The server requested password-based authentication, but no password was provided.";
-    t[21] = "El servidor requiere autenticación basada en contraseña, pero no se ha provisto ninguna contraseña.";
-    t[26] = "A result was returned when none was expected.";
-    t[27] = "Se retornó un resultado cuando no se esperaba ninguno.";
-    t[28] = "Server SQLState: {0}";
-    t[29] = "SQLState del servidor: {0}.";
-    t[30] = "The array index is out of range: {0}, number of elements: {1}.";
-    t[31] = "El índice del arreglo esta fuera de rango: {0}, número de elementos: {1}.";
-    t[32] = "Premature end of input stream, expected {0} bytes, but only read {1}.";
-    t[33] = "Final prematuro del flujo de entrada, se esperaban {0} bytes, pero solo se leyeron {1}.";
-    t[36] = "The connection attempt failed.";
-    t[37] = "El intento de conexión falló.";
-    t[38] = "Failed to create object for: {0}.";
-    t[39] = "Fallo al crear objeto: {0}.";
-    t[42] = "An error occurred while setting up the SSL connection.";
-    t[43] = "Ha ocorrido un error mientras se establecía la conexión SSL.";
-    t[48] = "No value specified for parameter {0}.";
-    t[49] = "No se ha especificado un valor para el parámetro {0}.";
-    t[50] = "The server does not support SSL.";
-    t[51] = "Este servidor no soporta SSL.";
-    t[52] = "An unexpected result was returned by a query.";
-    t[53] = "Una consulta retornó un resultado inesperado.";
-    t[60] = "Something unusual has occurred to cause the driver to fail. Please report this exception.";
-    t[61] = "Algo inusual ha ocurrido que provocó un fallo en el controlador. Por favor reporte esta excepción.";
-    t[64] = "No results were returned by the query.";
-    t[65] = "La consulta no retornó ningún resultado.";
+    t[2] = "Server SQLState: {0}";
+    t[3] = "SQLState del servidor: {0}.";
+    t[4] = "Unknown Response Type {0}.";
+    t[5] = "Tipo de respuesta desconocida {0}.";
+    t[6] = "The column index is out of range: {0}, number of columns: {1}.";
+    t[7] = "El índice de la columna está fuera de rango: {0}, número de columnas: {1}.";
+    t[12] = "Cannot rollback prepared transaction while a local transaction is in progress on this connection. Commit or rollback the local transaction first. rollback xid={0}, transactionState={1}";
+    t[13] = "No se puede deshacer una transacción preparada mientras hay una transacción local en curso en esta conexión. Confirme o deshaga primero la transacción local. rollback xid={0}, transactionState={1}";
+    t[40] = "Premature end of input stream, expected {0} bytes, but only read {1}.";
+    t[41] = "Final prematuro del flujo de entrada, se esperaban {0} bytes, pero solo se leyeron {1}.";
+    t[56] = "Prepare called before end(). prepare xid={0}, state={1}";
+    t[57] = "Se llamó a Prepare antes de end(). prepare xid={0}, state={1}";
+    t[66] = "end() called without a matching start(). end xid={0}, currentXid={1}, state={2}, preparedXid={3}";
+    t[67] = "Se llamó a end() sin una llamada start() correspondiente. end xid={0}, currentXid={1}, state={2}, preparedXid={3}";
+    t[68] = "commit() called before end(). commit xid={0}, state={1}";
+    t[69] = "Se llamó a commit() antes de end(). commit xid={0}, state={1}";
+    t[72] = "An error occurred while setting up the SSL connection.";
+    t[73] = "Ha ocorrido un error mientras se establecía la conexión SSL.";
+    t[78] = "Failed to create object for: {0}.";
+    t[79] = "Fallo al crear objeto: {0}.";
+    t[80] = "Something unusual has occurred to cause the driver to fail. Please report this exception.";
+    t[81] = "Algo inusual ha ocurrido que provocó un fallo en el controlador. Por favor reporte esta excepción.";
+    t[82] = "Transaction control methods setAutoCommit, commit, rollback and setSavepoint are not allowed while an XA transaction is active.";
+    t[83] = "Los métodos de control de transacción setAutoCommit, commit, rollback y setSavepoint no están permitidos mientras una transacción XA está activa.";
+    t[84] = "No results were returned by the query.";
+    t[85] = "La consulta no retornó ningún resultado.";
+    t[92] = "Prepare must be issued on the connection that started the branch. Transaction interleaving is not supported. prepare xid={0}, currentXid={1}";
+    t[93] = "Prepare debe emitirse en la conexión que inició la rama. El entrelazado de transacciones no está soportado. prepare xid={0}, currentXid={1}";
+    t[96] = "Error rolling back transaction. rollback xid={0}, preparedXid={1}, currentXid={2}";
+    t[97] = "Error al deshacer la transacción. rollback xid={0}, preparedXid={1}, currentXid={2}";
+    t[98] = "The array index is out of range: {0}, number of elements: {1}.";
+    t[99] = "El índice del arreglo esta fuera de rango: {0}, número de elementos: {1}.";
+    t[102] = "A result was returned when none was expected.";
+    t[103] = "Se retornó un resultado cuando no se esperaba ninguno.";
+    t[104] = "Protocol error.  Session setup failed.";
+    t[105] = "Error de protocolo. Falló el inicio de la sesión.";
+    t[106] = "Error during recover. flag={0}";
+    t[107] = "Error durante la recuperación. flag={0}";
+    t[108] = "One-phase commit must be issued on the connection that started the branch. commit xid={0}";
+    t[109] = "El commit de una fase debe emitirse en la conexión que inició la rama. commit xid={0}";
+    t[118] = "The connection attempt failed.";
+    t[119] = "El intento de conexión falló.";
+    t[122] = "Cannot 2nd phase commit prepared transaction while a local transaction is in progress on this connection. Commit or rollback the local transaction first. commit xid={0}, transactionState={1}";
+    t[123] = "No se puede confirmar (segunda fase) una transacción preparada mientras hay una transacción local en curso en esta conexión. Confirme o deshaga primero la transacción local. commit xid={0}, transactionState={1}";
+    t[128] = "Connection is already associated with an active XA branch. End the current branch before starting a new one. start xid={0}, currentXid={1}, state={2}, flags={3}";
+    t[129] = "La conexión ya está asociada a una rama XA activa. Finalice la rama actual antes de iniciar una nueva. start xid={0}, currentXid={1}, state={2}, flags={3}";
+    t[130] = "One-phase commit called for xid {0} but connection was prepared with xid {1}";
+    t[131] = "Se invocó commit de una fase para xid {0} pero la conexión fue preparada con xid {1}";
+    t[132] = "The server does not support SSL.";
+    t[133] = "Este servidor no soporta SSL.";
+    t[134] = "Current connection does not have an associated xid. prepare xid={0}";
+    t[135] = "La conexión actual no tiene un xid asociado. prepare xid={0}";
+    t[140] = "Transaction was already prepared on this connection. prepare xid={0}, preparedXid={1}";
+    t[141] = "La transacción ya había sido preparada en esta conexión. prepare xid={0}, preparedXid={1}";
+    t[144] = "No value specified for parameter {0}.";
+    t[145] = "No se ha especificado un valor para el parámetro {0}.";
+    t[156] = "Error opening transaction. start xid={0}";
+    t[157] = "Error al abrir la transacción. start xid={0}";
+    t[158] = "Suspend/resume not implemented";
+    t[159] = "Este método aún no ha sido implementado.";
+    t[162] = "An unexpected result was returned by a query.";
+    t[163] = "Una consulta retornó un resultado inesperado.";
+    t[172] = "One-phase commit with unknown xid. commit xid={0}, currentXid={1}";
+    t[173] = "Commit de una fase con xid desconocido. commit xid={0}, currentXid={1}";
+    t[174] = "2nd phase commit cannot be issued while an XA branch is active on this connection. commit xid={0}, currentXid={1}, state={2}";
+    t[175] = "No se puede emitir el commit de segunda fase mientras hay una rama XA activa en esta conexión. commit xid={0}, currentXid={1}, state={2}";
     table = t;
   }
   public java.lang.Object handleGetObject (java.lang.String msgid) throws java.util.MissingResourceException {
     int hash_val = msgid.hashCode() & 0x7fffffff;
-    int idx = (hash_val % 37) << 1;
+    int idx = (hash_val % 89) << 1;
     {
       java.lang.Object found = table[idx];
       if (found == null)
@@ -50,11 +84,11 @@ public class messages_es extends java.util.ResourceBundle {
       if (msgid.equals(found))
         return table[idx + 1];
     }
-    int incr = ((hash_val % 35) + 1) << 1;
+    int incr = ((hash_val % 87) + 1) << 1;
     for (;;) {
       idx += incr;
-      if (idx >= 74)
-        idx -= 74;
+      if (idx >= 178)
+        idx -= 178;
       java.lang.Object found = table[idx];
       if (found == null)
         return null;
@@ -66,13 +100,13 @@ public class messages_es extends java.util.ResourceBundle {
     return
       new java.util.Enumeration() {
         private int idx = 0;
-        { while (idx < 74 && table[idx] == null) idx += 2; }
+        { while (idx < 178 && table[idx] == null) idx += 2; }
         public boolean hasMoreElements () {
-          return (idx < 74);
+          return (idx < 178);
         }
         public java.lang.Object nextElement () {
           java.lang.Object key = table[idx];
-          do idx += 2; while (idx < 74 && table[idx] == null);
+          do idx += 2; while (idx < 178 && table[idx] == null);
           return key;
         }
       };

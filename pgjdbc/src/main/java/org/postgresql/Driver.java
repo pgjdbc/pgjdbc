@@ -14,6 +14,7 @@ import org.postgresql.jdbcurlresolver.PgServiceConfParser;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
+import org.postgresql.util.ObjectFactory;
 import org.postgresql.util.PGPropertyUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -36,10 +37,16 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.Objects;
 import java.util.Properties;
+import java.util.ResourceBundle;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -125,7 +132,8 @@ public class Driver implements java.sql.Driver {
 
   private static <T> T doPrivileged(PrivilegedExceptionAction<T> action) throws Throwable {
     try {
-      Class<?> accessControllerClass = Class.forName("java.security.AccessController");
+      Class<?> accessControllerClass = Class.forName("java.security.AccessController", true,
+          Driver.class.getClassLoader());
       Method doPrivileged = accessControllerClass.getMethod("doPrivileged",
           PrivilegedExceptionAction.class);
       //noinspection unchecked
@@ -238,8 +246,8 @@ public class Driver implements java.sql.Driver {
    * @param url the URL of the database to connect to
    * @param info a list of arbitrary tag/value pairs as connection arguments
    * @return a connection to the URL or null if it isnt us
-   * @exception SQLException if a database access error occurs or the url is
-   *            {@code null}
+   * @throws SQLException if a database access error occurs or the url is
+   *         {@code null}
    * @see java.sql.Driver#connect
    */
   @Override
@@ -268,8 +276,8 @@ public class Driver implements java.sql.Driver {
         String propValue = info.getProperty(propName);
         if (propValue == null) {
           throw new PSQLException(
-              GT.tr("Properties for the driver contains a non-string value for the key ")
-                  + propName,
+              GT.tr("Properties for the driver contains a non-string value for the key {0}",
+                  propName),
               PSQLState.UNEXPECTED_ERROR);
         }
         props.setProperty(propName, propValue);
@@ -285,23 +293,21 @@ public class Driver implements java.sql.Driver {
 
       LOGGER.log(Level.FINE, "Connecting with URL: {0}", url);
 
-      // Enforce login timeout, if specified, by running the connection
-      // attempt in a separate thread. If we hit the timeout without the
-      // connection completing, we abandon the connection attempt in
-      // the calling thread, but the separate thread will keep trying.
-      // Eventually, the separate thread will either fail or complete
-      // the connection; at that point we clean up the connection if
-      // we managed to establish one after all. See ConnectThread for
-      // more details.
+      // Enforce login timeout, if specified, by handing the connection
+      // attempt to an Executor, which must run it on a thread other than
+      // this one. If we hit the timeout without the connection completing,
+      // we abandon the connection attempt in the calling thread and try to
+      // cancel the worker thread. If cancellation does not take effect
+      // immediately, the worker cleans up any connection it manages to
+      // establish after abandonment. See ConnectTask for more details.
       long timeout = timeout(props);
       if (timeout <= 0) {
         return makeConnection(url, props);
       }
 
-      ConnectThread ct = new ConnectThread(url, props);
-      Thread thread = new Thread(ct, "PostgreSQL JDBC driver connection thread");
-      thread.setDaemon(true); // Don't prevent the VM from shutting down
-      thread.start();
+      ConnectTask ct = new ConnectTask(url, props);
+      Executor executor = resolveConnectExecutor(props);
+      executor.execute(ct);
       return ct.getResult(timeout);
     } catch (PSQLException ex1) {
       LOGGER.log(Level.FINE, "Connection error: ", ex1);
@@ -337,102 +343,85 @@ public class Driver implements java.sql.Driver {
   /**
    * Perform a connect in a separate thread; supports getting the results from the original thread
    * while enforcing a login timeout.
+   *
+   * <p>If the caller times out or is interrupted, we mark the attempt as abandoned and try to
+   * cancel the worker thread. Cancellation is best-effort: if the connection attempt does not stop
+   * immediately, the worker closes any connection it manages to establish after abandonment so that
+   * it does not leak.</p>
    */
-  private static class ConnectThread implements Runnable {
-    private final ResourceLock lock = new ResourceLock();
-    private final Condition lockCondition = lock.newCondition();
+  private static class ConnectTask implements Runnable {
+    private volatile boolean abandoned;
+    private final AtomicReference<@Nullable Connection> establishedConnection = new AtomicReference<>();
+    private final FutureTask<Connection> futureTask;
 
-    ConnectThread(String url, Properties props) {
-      this.url = url;
-      this.props = props;
+    ConnectTask(String url, Properties props) {
+      this.futureTask = new FutureTask<>(() -> {
+        Connection conn = makeConnection(url, props);
+        establishedConnection.set(conn);
+        if (abandoned && establishedConnection.compareAndSet(conn, null)) {
+          closeConnection(conn);
+        }
+        return conn;
+      });
     }
 
     @Override
     public void run() {
-      Connection conn;
-      Throwable error;
-
-      try {
-        conn = makeConnection(url, props);
-        error = null;
-      } catch (Throwable t) {
-        conn = null;
-        error = t;
-      }
-
-      try (ResourceLock ignore = lock.obtain()) {
-        if (abandoned) {
-          if (conn != null) {
-            try {
-              conn.close();
-            } catch (SQLException ignored) {
-              // TODO: should we rethrow it?
-            }
-          }
-        } else {
-          result = conn;
-          resultException = error;
-          lockCondition.signal();
-        }
-      }
+      futureTask.run();
     }
 
     /**
-     * Get the connection result from this (assumed running) thread. If the timeout is reached
+     * Get the connection result from this (assumed running) task. If the timeout is reached
      * without a result being available, a SQLException is thrown.
      *
      * @param timeout timeout in milliseconds
      * @return the new connection, if successful
      * @throws SQLException if a connection error occurs or the timeout is reached
      */
-    public Connection getResult(long timeout) throws SQLException {
-      long expiry = TimeUnit.NANOSECONDS.toMillis(System.nanoTime()) + timeout;
-      try (ResourceLock ignore = lock.obtain()) {
-        while (true) {
-          if (result != null) {
-            return result;
-          }
+    Connection getResult(long timeout) throws SQLException {
+      try {
+        return futureTask.get(timeout, TimeUnit.MILLISECONDS);
+      } catch (TimeoutException te) {
+        abandon();
+        throw new PSQLException(GT.tr("Connection attempt timed out."),
+            PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+      } catch (InterruptedException ie) {
+        abandon();
 
-          Throwable resultException = this.resultException;
-          if (resultException != null) {
-            if (resultException instanceof SQLException) {
-              resultException.fillInStackTrace();
-              throw (SQLException) resultException;
-            } else {
-              throw new PSQLException(
-                  GT.tr(
-                      "Something unusual has occurred to cause the driver to fail. Please report this exception."),
-                  PSQLState.UNEXPECTED_ERROR, resultException);
-            }
-          }
+        // reset the interrupt flag
+        Thread.currentThread().interrupt();
 
-          long delay = expiry - TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
-          if (delay <= 0) {
-            abandoned = true;
-            throw new PSQLException(GT.tr("Connection attempt timed out."),
-                PSQLState.CONNECTION_UNABLE_TO_CONNECT);
-          }
-
-          try {
-            lockCondition.await(delay, TimeUnit.MILLISECONDS);
-          } catch (InterruptedException ie) {
-
-            // reset the interrupt flag
-            Thread.currentThread().interrupt();
-            abandoned = true;
-
-            // throw an unchecked exception which will hopefully not be ignored by the calling code
-            throw new RuntimeException(GT.tr("Interrupted while attempting to connect."));
-          }
+        // throw an unchecked exception which will hopefully not be ignored by the calling code
+        throw new RuntimeException(GT.tr("Interrupted while attempting to connect."));
+      } catch (ExecutionException ee) {
+        Throwable resultException = ee.getCause();
+        if (resultException instanceof SQLException) {
+          resultException.fillInStackTrace();
+          throw (SQLException) resultException;
+        } else {
+          throw new PSQLException(
+              GT.tr(
+                  "Something unusual has occurred to cause the driver to fail. Please report this exception."),
+              PSQLState.UNEXPECTED_ERROR, resultException);
         }
       }
     }
 
-    private final String url;
-    private final Properties props;
-    private @Nullable Connection result;
-    private @Nullable Throwable resultException;
-    private boolean abandoned;
+    private void abandon() {
+      abandoned = true;
+      futureTask.cancel(true);
+      closeConnection(establishedConnection.getAndSet(null));
+    }
+
+    private static void closeConnection(@Nullable Connection conn) {
+      if (conn != null) {
+        try {
+          conn.close();
+        } catch (SQLException ignored) {
+          // best-effort cleanup after abandonment
+        }
+      }
+    }
   }
 
   /**
@@ -459,6 +448,7 @@ public class Driver implements java.sql.Driver {
    */
   @Override
   public boolean acceptsURL(String url) {
+    Objects.requireNonNull(url, "url");
     return parseURL(url, null) != null;
   }
 
@@ -712,6 +702,28 @@ public class Driver implements java.sql.Driver {
     return hostSpecs;
   }
 
+  private static final Executor DEFAULT_EXECUTOR = r -> {
+    Thread thread = new Thread(r, "PostgreSQL JDBC driver connection thread");
+    thread.setDaemon(true); // Don't prevent the VM from shutting down
+    thread.start();
+  };
+
+  private static Executor resolveConnectExecutor(Properties props)
+      throws PSQLException {
+    String className = PGProperty.CONNECT_EXECUTOR.getOrDefault(props);
+    if (className == null || className.isEmpty()) {
+      return DEFAULT_EXECUTOR;
+    }
+    try {
+      return ObjectFactory.instantiate(Executor.class, className, props, true,
+          PGProperty.CONNECT_EXECUTOR_ARG.getOrDefault(props));
+    } catch (Exception ex) {
+      throw new PSQLException(
+          GT.tr("Could not instantiate connectExecutor: {0}", className),
+          PSQLState.INVALID_PARAMETER_VALUE, ex);
+    }
+  }
+
   /**
    * @return the timeout from the URL, in milliseconds
    */
@@ -787,6 +799,11 @@ public class Driver implements java.sql.Driver {
     }
     DriverManager.deregisterDriver(registeredDriver);
     registeredDriver = null;
+    // Release the cached localized message bundle. A class-based translation bundle (for example
+    // messages_tr) otherwise keeps this classloader alive through the JVM-wide ResourceBundle cache,
+    // which defeats the very purpose of deregistering the driver. The no-arg clearCache() clears the
+    // entries for this caller's classloader, which is the one GT used to load the bundle.
+    ResourceBundle.clearCache();
   }
 
   /**

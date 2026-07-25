@@ -1,0 +1,8 @@
+package java.security.cert;
+
+import org.checkerframework.checker.nullness.qual.*;
+
+class TrustAnchor {
+    // nameConstraints is documented as optional: "Specify null to omit the parameter."
+    TrustAnchor(X509Certificate trustedCert, byte @Nullable [] nameConstraints);
+}

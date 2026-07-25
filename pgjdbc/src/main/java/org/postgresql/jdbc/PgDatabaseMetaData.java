@@ -666,7 +666,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    *
    * @return true
    *
-   * @exception SQLException if a database access error occurs
+   * @throws SQLException if a database access error occurs
    */
   @Override
   public boolean supportsIntegrityEnhancementFacility() throws SQLException {
@@ -1731,7 +1731,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[12] = new Field("COLUMN_DEF", Oid.VARCHAR);
     f[13] = new Field("SQL_DATA_TYPE", Oid.INT4);
     f[14] = new Field("SQL_DATETIME_SUB", Oid.INT4);
-    f[15] = new Field("CHAR_OCTET_LENGTH", Oid.VARCHAR);
+    f[15] = new Field("CHAR_OCTET_LENGTH", Oid.INT4);
     f[16] = new Field("ORDINAL_POSITION", Oid.INT4);
     f[17] = new Field("IS_NULLABLE", Oid.VARCHAR);
     f[18] = new Field("SCOPE_CATALOG", Oid.VARCHAR);
@@ -1910,7 +1910,27 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       tuple[12] = rs.getBytes("adsrc"); // Column default
       tuple[13] = null; // sql data type (unused)
       tuple[14] = null; // sql datetime sub (unused)
-      tuple[15] = tuple[6]; // char octet length
+      // CHAR_OCTET_LENGTH applies to character and binary types only; it equals COLUMN_SIZE
+      // there and is null for every other type (for example integer, numeric, or integer[]).
+      switch (sqlType) {
+        case Types.CHAR:
+        case Types.VARCHAR:
+        case Types.LONGVARCHAR:
+        case Types.NCHAR:
+        case Types.NVARCHAR:
+        case Types.LONGNVARCHAR:
+        case Types.CLOB:
+        case Types.NCLOB:
+        case Types.BINARY:
+        case Types.VARBINARY:
+        case Types.LONGVARBINARY:
+        case Types.BLOB:
+          tuple[15] = tuple[6]; // char octet length, same as column size
+          break;
+        default:
+          tuple[15] = null; // char octet length, not applicable
+          break;
+      }
       tuple[16] = connection.encodeString(String.valueOf(rs.getInt("attnum"))); // ordinal position
       // Is nullable
       tuple[17] = connection.encodeString(rs.getBoolean("attnotnull") ? "NO" : "YES");
@@ -2422,10 +2442,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if (catalog != null && !catalog.equals(currentCatalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
-    // Version 11 added "include columns" in index hence we need to filter only the key attributes
-    // when returning primary keys.
-    String keyCountColumn = connection.haveMinimumServerVersion(ServerVersion.v11) ? "i.indnkeyatts" : "i.indnatts";
-
     StringBuilder sql = new StringBuilder();
     sql.append(
         // language=sql
@@ -2439,18 +2455,19 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + "FROM "
             + "     (");
     sql.append(
+        // pg_constraint.conkey lists the primary-key columns only: it excludes INCLUDE columns,
+        // which live in the backing index but are not part of the key, so no extra filtering by
+        // key count is needed.
         // language=sql
         "SELECT current_database() AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
           + "  ct.relname AS TABLE_NAME, a.attname AS COLUMN_NAME, "
-          + "  (information_schema._pg_expandarray(i.indkey)).n AS KEY_SEQ, ci.relname AS PK_NAME, "
-          + "  information_schema._pg_expandarray(i.indkey) AS KEYS, a.attnum AS A_ATTNUM, "
-          + keyCountColumn + " as KEY_COUNT "
-          + "FROM pg_catalog.pg_class ct "
-          + "  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) "
+          + "  (information_schema._pg_expandarray(con.conkey)).n AS KEY_SEQ, con.conname AS PK_NAME, "
+          + "  information_schema._pg_expandarray(con.conkey) AS KEYS, a.attnum AS A_ATTNUM "
+          + "FROM pg_catalog.pg_constraint con "
+          + "  JOIN pg_catalog.pg_class ct ON (con.conrelid = ct.oid) "
           + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
-          + "  JOIN pg_catalog.pg_index i ON ( a.attrelid = i.indrelid) "
-          + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
-          + "WHERE true ");
+          + "  JOIN pg_catalog.pg_attribute a ON (a.attrelid = ct.oid) "
+          + "WHERE con.contype = 'p' ");
 
     List<String> args = new ArrayList<>(2);
     if (schema != null) {
@@ -2463,11 +2480,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       args.add(table);
     }
 
-    sql.append(" AND i.indisprimary ");
     sql.append(
         " ) result"
             + " where "
-            + " result.A_ATTNUM = (result.KEYS).x AND result.KEY_SEQ <= KEY_COUNT ");
+            + " result.A_ATTNUM = (result.KEYS).x ");
     sql.append(" ORDER BY result.table_name, result.pk_name, result.key_seq");
 
     return executeMetadataStatement(sql.toString(), args);
@@ -2519,6 +2535,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if (schema != null && !schema.isEmpty()) {
       sql.append(" AND n.nspname = ?");
       args.add(schema);
+    } else {
+      // The table name carries no schema qualifier, so it resolves through the session's
+      // search_path. pg_table_is_visible() applies the same visibility rules the server uses,
+      // so only the relation the query actually references is matched. Without it, identically
+      // named tables in other schemas are matched too, which can mis-classify a result set as
+      // updatable when those tables share a constraint name but differ in their key columns.
+      // pg_table_is_visible() has existed since PostgreSQL 7.3.
+      sql.append(" AND pg_catalog.pg_table_is_visible(ct.oid)");
     }
 
     if (table != null && !table.isEmpty()) {

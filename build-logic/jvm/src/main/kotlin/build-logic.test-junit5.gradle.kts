@@ -8,14 +8,14 @@ plugins {
 }
 
 dependencies {
-    testImplementation(platform("org.junit:junit-bom:5.14.3"))
+    testImplementation(platform("org.junit:junit-bom:5.14.4"))
     testImplementation("org.junit.jupiter:junit-jupiter-api")
     if (buildParameters.testJdkVersion >= 11) {
         // system-stubs 2.0+ requires Java 11+
         testImplementation("uk.org.webcompere:system-stubs-jupiter:2.1.8")
         // system-stubs-jupiter might come with an outdated byte-buddy version, so we mention
         // the latest one so it would be updated by the bots even if system-stubs-jupiter does not update
-        testImplementation(platform("net.bytebuddy:byte-buddy-parent:1.18.2"))
+        testImplementation(platform("net.bytebuddy:byte-buddy-parent:1.18.11"))
     } else {
         testImplementation("uk.org.webcompere:system-stubs-jupiter:1.2.1") // renovate:ignore
     }

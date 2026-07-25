@@ -25,14 +25,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
+import java.security.cert.PKIXBuilderParameters;
+import java.security.cert.TrustAnchor;
+import java.security.cert.X509Certificate;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.Set;
 
+import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -99,6 +103,34 @@ public class LibPQFactory extends WrappedFactory {
     km = new PKCS12KeyManager(sslkeyfile, getCallbackHandler(info));
   }
 
+  /**
+   * Case-insensitive {@link String#endsWith(String)}, so {@code .PEM} and {@code .pem}
+   * map to the same format on case-insensitive filesystems. Returns {@code false} when
+   * {@code value} is shorter than {@code suffix}.
+   */
+  private static boolean endsWithIgnoreCase(String value, String suffix) {
+    return value.regionMatches(true, value.length() - suffix.length(), suffix, 0, suffix.length());
+  }
+
+  private void initPk8OrPem(
+      @UnderInitialization(WrappedFactory.class)LibPQFactory this,
+      String sslkeyfile, String defaultdir, Properties info) throws PSQLException {
+    try {
+      String sslcertfile = getCertFilePath(defaultdir, info);
+      String algorithm = castNonNull(PGProperty.PEM_KEY_ALGORITHM.getOrDefault(info));
+      PEMKeyManager pem = new PEMKeyManager(sslkeyfile, sslcertfile, algorithm);
+      LazyKeyManager pk8 = new LazyKeyManager(
+          ("".equals(sslcertfile) ? null : sslcertfile),
+          ("".equals(sslkeyfile) ? null : sslkeyfile),
+          getCallbackHandler(info), defaultfile);
+      km = new Pk8OrPemKeyManager(sslkeyfile, pem, pk8);
+    } catch (Exception ex) {
+      throw new PSQLException(
+          GT.tr("Could not initialize key manager."),
+          PSQLState.CONNECTION_FAILURE, ex);
+    }
+  }
+
   private void initPEM(
       @UnderInitialization(WrappedFactory.class)LibPQFactory this,
       String sslKeyFile, String defaultdir, Properties info) throws PSQLException {
@@ -136,12 +168,14 @@ public class LibPQFactory extends WrappedFactory {
         sslkeyfile = defaultdir + "postgresql.pk8";
       }
 
-      if (sslkeyfile.endsWith(".p12") || sslkeyfile.endsWith(".pfx")) {
+      if (endsWithIgnoreCase(sslkeyfile, ".p12") || endsWithIgnoreCase(sslkeyfile, ".pfx")) {
         initP12(sslkeyfile, info);
-      } else if (sslkeyfile.endsWith(".key") || sslkeyfile.endsWith(".pem")) {
+      } else if (endsWithIgnoreCase(sslkeyfile, ".pem")) {
         initPEM(sslkeyfile, defaultdir, info);
-      } else {
+      } else if (endsWithIgnoreCase(sslkeyfile, ".der")) {
         initPk8(sslkeyfile, defaultdir, info);
+      } else {
+        initPk8OrPem(sslkeyfile, defaultdir, info);
       }
 
       TrustManager[] tm;
@@ -153,13 +187,6 @@ public class LibPQFactory extends WrappedFactory {
         // Load the server certificate
 
         TrustManagerFactory tmf = TrustManagerFactory.getInstance("PKIX");
-        KeyStore ks;
-        try {
-          ks = KeyStore.getInstance("jks");
-        } catch (KeyStoreException e) {
-          // this should never happen
-          throw new NoSuchAlgorithmException("jks KeyStore not available");
-        }
         String sslrootcertfile = PGProperty.SSL_ROOT_CERT.getOrDefault(info);
         if (sslrootcertfile == null) { // Fall back to default
           sslrootcertfile = defaultdir + "root.crt";
@@ -174,18 +201,19 @@ public class LibPQFactory extends WrappedFactory {
         }
         try {
           CertificateFactory cf = CertificateFactory.getInstance("X.509");
-          // Certificate[] certs = cf.generateCertificates(is).toArray(new Certificate[]{}); //Does
-          // not work in java 1.4
-          Object[] certs = cf.generateCertificates(is).toArray(new Certificate[]{});
-          ks.load(null, null);
-          for (int i = 0; i < certs.length; i++) {
-            ks.setCertificateEntry("cert" + i, (Certificate) certs[i]);
+          // Build PKIX trust anchors straight from the certificates rather than via an
+          // intermediate KeyStore. FIPS-mode JVMs (Semeru FIPS 140-3, IBM SDK, BouncyCastle FIPS)
+          // expose no general-purpose KeyStore type -- both "jks" and the default "pkcs12" fail --
+          // yet this truststore is transient and never serialised, so a KeyStore buys nothing.
+          Set<TrustAnchor> anchors = new HashSet<>();
+          for (Certificate cert : cf.generateCertificates(is)) {
+            anchors.add(new TrustAnchor((X509Certificate) cert, null));
           }
-          tmf.init(ks);
-        } catch (IOException ioex) {
-          throw new PSQLException(
-              GT.tr("Could not read SSL root certificate file {0}.", sslrootcertfile),
-              PSQLState.CONNECTION_FAILURE, ioex);
+          PKIXBuilderParameters params = new PKIXBuilderParameters(anchors, null);
+          // Honour the same revocation toggle the KeyStore-based PKIX TrustManagerFactory read,
+          // so applications that enabled CRL/OCSP checking keep it (default off, as before).
+          params.setRevocationEnabled(Boolean.getBoolean("com.sun.net.ssl.checkRevocation"));
+          tmf.init(new CertPathTrustManagerParameters(params));
         } catch (GeneralSecurityException gsex) {
           throw new PSQLException(
               GT.tr("Loading the SSL root certificate {0} into a TrustManager failed.",
@@ -232,6 +260,9 @@ public class LibPQFactory extends WrappedFactory {
       }
       if (km instanceof PEMKeyManager) {
         ((PEMKeyManager) km).throwKeyManagerException();
+      }
+      if (km instanceof Pk8OrPemKeyManager) {
+        ((Pk8OrPemKeyManager) km).throwKeyManagerException();
       }
     }
   }

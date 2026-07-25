@@ -14,7 +14,7 @@ dependencies {
         }
     }
     jmhImplementation(projects.testkit)
-    jmhImplementation("org.roaringbitmap:RoaringBitmap:1.3.0")
+    jmhImplementation("org.roaringbitmap:RoaringBitmap:1.6.14")
     jmhImplementation("it.unimi.dsi:fastutil:8.5.18")
     jmhImplementation("org.openjdk.jmh:jmh-core:1.37")
     jmhImplementation("org.openjdk.jmh:jmh-generator-annprocess:1.37")
@@ -47,4 +47,19 @@ if ("style" in tasks.names) {
         // benchmark code with ErrorProne as well
         dependsOn(tasks.compileJmhJava)
     }
+}
+
+// The benchmarks project publishes no artifact and has an empty main source set, so a Jandex
+// index serves no purpose here. Skip Jandex entirely: it otherwise registers processJmhJandexIndex
+// as a producer of sourceSets.jmh.output, and every consumer of that output that the plugin does
+// not wire (jmhRunBytecodeGenerator, checkstyleJmh, forbiddenApisJmh) fails Gradle 9's
+// implicit-dependency validation.
+jandex {
+    skipDefaultProcessing()
+}
+
+// Build the benchmarks jar as part of `check` so build-graph regressions surface during
+// verification rather than only when someone runs the benchmarks.
+tasks.check {
+    dependsOn(tasks.jmhJar)
 }

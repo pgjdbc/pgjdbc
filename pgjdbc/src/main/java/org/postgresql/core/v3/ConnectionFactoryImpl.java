@@ -35,6 +35,8 @@ import org.postgresql.jdbc.SslNegotiation;
 import org.postgresql.plugin.AuthenticationRequestType;
 import org.postgresql.ssl.MakeSSL;
 import org.postgresql.sspi.ISSPIClient;
+import org.postgresql.util.ClassLoaderStrategy;
+import org.postgresql.util.ClassUtils;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.MD5Digest;
@@ -87,11 +89,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       return this.key + "=" + this.value;
     }
 
-    public byte[] getEncodedKey() {
+    private byte[] getEncodedKey() {
       return this.key.getBytes(StandardCharsets.UTF_8);
     }
 
-    public byte[] getEncodedValue() {
+    private byte[] getEncodedValue() {
       return this.value.getBytes(StandardCharsets.UTF_8);
     }
   }
@@ -121,8 +123,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       @Nullable String spnServiceClass,
       boolean enableNegotiate) {
     try {
-      @SuppressWarnings("unchecked")
-      Class<ISSPIClient> c = (Class<ISSPIClient>) Class.forName("org.postgresql.sspi.SSPIClient");
+      Class<? extends ISSPIClient> c = ClassUtils.forName("org.postgresql.sspi.SSPIClient",
+          ISSPIClient.class, ClassLoaderStrategy.DRIVER, ConnectionFactoryImpl.class.getClassLoader());
       return c.getDeclaredConstructor(PGStream.class, String.class, boolean.class)
           .newInstance(pgStream, spnServiceClass, enableNegotiate);
     } catch (Exception e) {
@@ -581,10 +583,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     // attempt to acquire a GSS encrypted connection
     LOGGER.log(Level.FINEST, " FE=> GSSENCRequest");
 
-    int gssTimeout = PGProperty.SSL_RESPONSE_TIMEOUT.getInt(info);
+    int gssTimeout = PGProperty.GSS_RESPONSE_TIMEOUT.getInt(info);
     int currentTimeout = pgStream.getNetworkTimeout();
 
-    // if the current timeout is less than sslTimeout then
+    // if the current timeout is less than gssTimeout then
     // use the smaller timeout. We could do something tricky
     // here to not set it in that case but this is pretty readable
     if (currentTimeout > 0 && currentTimeout < gssTimeout) {
@@ -1012,6 +1014,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
               case AUTH_REQ_SASL:
                 AuthMethod.checkAuth(authMethods, AuthMethod.SCRAM_SHA_256);
+                int scramMaxIterations = PGProperty.SCRAM_MAX_ITERATIONS.getInt(info);
+                if (scramMaxIterations < 0) {
+                  throw new PSQLException(
+                      GT.tr("{0} must be a non-negative integer, but was: {1}",
+                          PGProperty.SCRAM_MAX_ITERATIONS.getName(), scramMaxIterations),
+                      PSQLState.INVALID_PARAMETER_VALUE);
+                }
                 scramAuthenticator = AuthenticationPluginManager.<ScramAuthenticator>withPassword(AuthenticationRequestType.SASL, info, password -> {
                   if (password == null) {
                     throw new PSQLException(
@@ -1025,7 +1034,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                             "The server requested SCRAM-based authentication, but the password is an empty string."),
                         PSQLState.CONNECTION_REJECTED);
                   }
-                  return new ScramAuthenticator(password, pgStream, channelBinding);
+                  return new ScramAuthenticator(password, pgStream, channelBinding, scramMaxIterations);
                 });
                 scramAuthenticator.handleAuthenticationSASL();
                 break;

@@ -54,9 +54,10 @@ public class MakeGSS {
     MethodHandle subjectGetSubject = null;
 
     try {
-      Class<?> accessControllerClass = Class.forName("java.security.AccessController");
+      ClassLoader classLoader = MakeGSS.class.getClassLoader();
+      Class<?> accessControllerClass = Class.forName("java.security.AccessController", true, classLoader);
       Class<?> accessControlContextClass =
-          Class.forName("java.security.AccessControlContext");
+          Class.forName("java.security.AccessControlContext", true, classLoader);
       accessControllerGetContext = MethodHandles.lookup()
           .findStatic(accessControllerClass, "getContext",
               MethodType.methodType(accessControlContextClass));

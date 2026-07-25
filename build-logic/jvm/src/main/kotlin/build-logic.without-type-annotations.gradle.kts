@@ -1,7 +1,4 @@
 import org.gradle.api.tasks.Sync
-import org.gradle.kotlin.dsl.getValue
-import org.gradle.kotlin.dsl.provideDelegate
-import org.gradle.kotlin.dsl.registering
 
 // Prepares a variation of the project sources that do not depend on nullability annotations.
 // It is currently used in the source distribution, so the library can be compiled in environments
@@ -9,7 +6,7 @@ import org.gradle.kotlin.dsl.registering
 
 val withoutAnnotations = layout.buildDirectory.dir("without-annotations").get().asFile
 
-val sourceWithoutCheckerAnnotations by configurations.consumable("sourceWithoutCheckerAnnotations") {
+val sourceWithoutCheckerAnnotations = configurations.consumable("sourceWithoutCheckerAnnotations") {
     attributes {
         attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.DOCUMENTATION))
         attribute(DocsType.DOCS_TYPE_ATTRIBUTE, objects.named("sources-without-annotations"))
@@ -27,7 +24,7 @@ val hiddenAnnotation = Regex(
             "DefaultQualifier)(?:\\([^)]*\\))?")
 val hiddenImports = Regex("import org.checkerframework")
 
-val removeTypeAnnotations by tasks.registering(Sync::class) {
+val removeTypeAnnotations = tasks.register<Sync>("removeTypeAnnotations") {
     destinationDir = withoutAnnotations
     inputs.property("regexpsUpdatedOn", "2020-08-25")
     from(projectDir) {
@@ -40,8 +37,10 @@ val removeTypeAnnotations by tasks.registering(Sync::class) {
     }
 }
 
-sourceWithoutCheckerAnnotations.outgoing {
-    artifact(withoutAnnotations) {
-        builtBy(removeTypeAnnotations)
+sourceWithoutCheckerAnnotations.configure {
+    outgoing {
+        artifact(withoutAnnotations) {
+            builtBy(removeTypeAnnotations)
+        }
     }
 }

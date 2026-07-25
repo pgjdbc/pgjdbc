@@ -427,14 +427,18 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param seconds seconds to set
    */
   public void setSeconds(double seconds) {
-    isNull = false;
-
-    double micros = seconds * MICROS_IN_SECOND;
-    if (micros > Long.MAX_VALUE || micros < Long.MIN_VALUE) {
-      throw new IllegalArgumentException("Number of seconds should be within Long.MIN_VALUE/1000000...Long.MAX_VALUE/1000000");
+    if (Double.isNaN(seconds)) {
+      throw new IllegalArgumentException("Number of seconds must not be NaN");
     }
-    long totalMicros = Math.round(micros);
-    wholeSeconds = (int) (totalMicros / MICROS_IN_SECOND);
+    // Math.round saturates at Long.MAX_VALUE / Long.MIN_VALUE so the division below
+    // cannot overflow even for infinite or extremely large arguments
+    long totalMicros = Math.round(seconds * MICROS_IN_SECOND);
+    long newWholeSeconds = totalMicros / MICROS_IN_SECOND;
+    if (newWholeSeconds < Integer.MIN_VALUE || newWholeSeconds > Integer.MAX_VALUE) {
+      throw new IllegalArgumentException("Number of whole seconds should be within Integer.MIN_VALUE...Integer.MAX_VALUE");
+    }
+    isNull = false;
+    wholeSeconds = (int) newWholeSeconds;
     microSeconds = (int) (totalMicros % MICROS_IN_SECOND);
   }
 

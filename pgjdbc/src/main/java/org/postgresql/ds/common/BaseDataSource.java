@@ -60,20 +60,15 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   private Properties properties = new Properties();
 
   /*
-   * Ensure the driver is loaded as JDBC Driver might be invisible to Java's ServiceLoader.
-   * Usually, {@code Class.forName(...)} is not required as {@link DriverManager} detects JDBC drivers
-   * via {@code META-INF/services/java.sql.Driver} entries. However there might be cases when the driver
-   * is located at the application level classloader, thus it might be required to perform manual
-   * registration of the driver.
+   * Ensure the pgjdbc driver is registered with the {@link DriverManager}: {@code getConnection}
+   * relies on it. Usually explicit loading is not required as the {@link DriverManager} detects JDBC
+   * drivers via {@code META-INF/services/java.sql.Driver} entries. However there might be cases when
+   * the driver sits on the application level classloader where the ServiceLoader lookup misses it.
+   * Invoking a static method forces the {@link Driver} class to initialise, and its static
+   * initialiser self-registers with the {@link DriverManager}.
    */
   static {
-    try {
-      Class.forName("org.postgresql.Driver");
-    } catch (ClassNotFoundException e) {
-      throw new IllegalStateException(
-          "BaseDataSource is unable to load org.postgresql.Driver. Please check if you have proper PostgreSQL JDBC Driver jar on the classpath",
-          e);
-    }
+    Driver.isRegistered();
   }
 
   /**
@@ -1384,6 +1379,23 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return the order in which classloaders are searched when loading user-supplied classes
+   * @see PGProperty#CLASS_LOADER_STRATEGY
+   */
+  public @Nullable String getClassLoaderStrategy() {
+    return PGProperty.CLASS_LOADER_STRATEGY.getOrDefault(properties);
+  }
+
+  /**
+   * @param classLoaderStrategy the order in which classloaders are searched when loading
+   *     user-supplied classes
+   * @see PGProperty#CLASS_LOADER_STRATEGY
+   */
+  public void setClassLoaderStrategy(@Nullable String classLoaderStrategy) {
+    PGProperty.CLASS_LOADER_STRATEGY.set(properties, classLoaderStrategy);
+  }
+
+  /**
    * @param replication set to 'database' for logical replication or 'true' for physical replication
    * @see PGProperty#REPLICATION
    */
@@ -1486,6 +1498,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public void setChannelBinding(@Nullable String channelBinding) {
     PGProperty.CHANNEL_BINDING.set(properties, channelBinding);
+  }
+
+  /**
+   * @return maximum PBKDF2 iteration count accepted during SCRAM authentication
+   * @see PGProperty#SCRAM_MAX_ITERATIONS
+   */
+  public int getScramMaxIterations() {
+    return PGProperty.SCRAM_MAX_ITERATIONS.getIntNoCheck(properties);
+  }
+
+  /**
+   * @param scramMaxIterations maximum PBKDF2 iteration count accepted during SCRAM authentication
+   * @see PGProperty#SCRAM_MAX_ITERATIONS
+   */
+  public void setScramMaxIterations(int scramMaxIterations) {
+    PGProperty.SCRAM_MAX_ITERATIONS.set(properties, scramMaxIterations);
   }
 
   /**
@@ -1836,6 +1864,24 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return maximum number of rows merged into a single multi-values INSERT, or 0 for the protocol
+   *         limit
+   * @see PGProperty#REWRITE_BATCHED_INSERTS_SIZE
+   */
+  public int getReWriteBatchedInsertsSize() {
+    return PGProperty.REWRITE_BATCHED_INSERTS_SIZE.getIntNoCheck(properties);
+  }
+
+  /**
+   * @param size maximum number of rows merged into a single multi-values INSERT, or 0 for the
+   *        protocol limit
+   * @see PGProperty#REWRITE_BATCHED_INSERTS_SIZE
+   */
+  public void setReWriteBatchedInsertsSize(int size) {
+    PGProperty.REWRITE_BATCHED_INSERTS_SIZE.set(properties, size);
+  }
+
+  /**
    * @return boolean indicating property is enabled or not.
    * @see PGProperty#HIDE_UNPRIVILEGED_OBJECTS
    */
@@ -1849,6 +1895,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public void setHideUnprivilegedObjects(boolean hideUnprivileged) {
     PGProperty.HIDE_UNPRIVILEGED_OBJECTS.set(properties, hideUnprivileged);
+  }
+
+  /**
+   * @return boolean indicating whether DDL invalidates the prepared-statement cache
+   * @see PGProperty#FLUSH_CACHE_ON_DDL
+   */
+  public boolean getFlushCacheOnDdl() {
+    return PGProperty.FLUSH_CACHE_ON_DDL.getBoolean(properties);
+  }
+
+  /**
+   * @param flushCacheOnDdl true to invalidate prepared statements on CREATE/DROP/ALTER
+   * @see PGProperty#FLUSH_CACHE_ON_DDL
+   */
+  public void setFlushCacheOnDdl(boolean flushCacheOnDdl) {
+    PGProperty.FLUSH_CACHE_ON_DDL.set(properties, flushCacheOnDdl);
   }
 
   public @Nullable String getMaxResultBuffer() {
@@ -1894,6 +1956,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   public void setXmlFactoryFactory(@Nullable String xmlFactoryFactory) {
     PGProperty.XML_FACTORY_FACTORY.set(properties, xmlFactoryFactory);
+  }
+
+  public @Nullable String getConnectExecutor() {
+    return PGProperty.CONNECT_EXECUTOR.getOrDefault(properties);
+  }
+
+  public void setConnectExecutor(@Nullable String connectExecutor) {
+    PGProperty.CONNECT_EXECUTOR.set(properties, connectExecutor);
+  }
+
+  public @Nullable String getConnectExecutorArg() {
+    return PGProperty.CONNECT_EXECUTOR_ARG.getOrDefault(properties);
+  }
+
+  public void setConnectExecutorArg(@Nullable String connectExecutorArg) {
+    PGProperty.CONNECT_EXECUTOR_ARG.set(properties, connectExecutorArg);
   }
 
   public @Nullable String getPemKeyAlgorithm() {

@@ -17,3 +17,6 @@ java.lang.Object#notifyAll()
 @defaultMessage Use FileUtils.newBufferedInputStream()
 java.io.FileInputStream#<init>(java.io.File)
 java.io.FileInputStream#<init>(java.lang.String)
+
+@defaultMessage Use ClassUtils.forName(...) for user classes, or Class.forName(name, initialize, classLoader) with an explicit classloader
+java.lang.Class#forName(java.lang.String)

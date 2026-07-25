@@ -164,6 +164,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     Encoding.canonicalize("in_hot_standby");
   }
 
+  class DiscardResultHandler extends ResultHandlerBase {
+    @Override
+    public void handleWarning(SQLWarning warning) {
+      addWarning(warning);
+    }
+  }
+
   /**
    * TimeZone of the current connection (TimeZone backend parameter).
    */
@@ -199,6 +206,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private short deallocateEpoch;
 
   /**
+   * Number of leading characters of a {@code SET}/{@code RESET} statement that are scanned for the
+   * {@code search_path} token. Long statements are not scanned in full so the execute path stays
+   * cheap.
+   */
+  private static final int SEARCH_PATH_SCAN_LIMIT = 1024;
+
+  /**
    * This caches the latest observed {@code set search_path} query so the reset of prepared
    * statement cache can be skipped if using repeated calls for the same {@code set search_path}
    * value.
@@ -218,6 +232,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private final CommandCompleteParser commandCompleteParser = new CommandCompleteParser();
 
   private final AdaptiveFetchCache adaptiveFetchCache;
+
+  private boolean inExtendedProtocol;
 
   @SuppressWarnings({"assignment", "argument",
       "method.invocation"})
@@ -426,6 +442,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           } else {
             sendSync();
           }
+          pgStream.flush();
           processResults(handler, flags, adaptiveFetch);
           estimatedReceiveBufferBytes = 0;
         } catch (PGBindException se) {
@@ -444,6 +461,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // transaction in progress?
           //
           sendSync();
+          pgStream.flush();
           processResults(handler, flags, adaptiveFetch);
           estimatedReceiveBufferBytes = 0;
           handler
@@ -500,13 +518,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       return true;
     }
     String sql = query.getNativeSql();
-    // SET TRANSACTION ISOLATION LEVEL and SET SESSION CHARACTERISTICS cannot be called in subtransaction
+    // SET TRANSACTION ISOLATION LEVEL and SET SESSION CHARACTERISTICS cannot be called in subtransaction.
+    // The optional LOCAL/SESSION qualifier (SET LOCAL TRANSACTION, SET SESSION TRANSACTION) hits the same
+    // restriction, so all of those forms must not be preceded by an automatic SAVEPOINT either.
     // SAVEPOINT commands cannot use autosave because:
     // - SAVEPOINT: releasing the autosave would destroy the user's savepoint (created after autosave)
     // - RELEASE SAVEPOINT: same issue, plus the released savepoint might no longer exist
     // - ROLLBACK TO SAVEPOINT: destroys savepoints created after the target, including autosave
     return "COMMIT".equalsIgnoreCase(sql)
         || startsWithIgnoreCase(sql, "SET TRANSACTION")
+        || startsWithIgnoreCase(sql, "SET LOCAL TRANSACTION")
+        || startsWithIgnoreCase(sql, "SET SESSION TRANSACTION")
         || startsWithIgnoreCase(sql, "SET SESSION CHARACTERISTICS")
         || startsWithIgnoreCase(sql, "SAVEPOINT")
         || startsWithIgnoreCase(sql, "RELEASE")
@@ -519,7 +541,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   // If query has no resulting fields, it cannot fail with 'cached plan must not change result type'
   // thus no need to set a savepoint before such query
-  private boolean queryMightFail(Query query) {
+  private static boolean queryMightFail(Query query) {
     return !(query instanceof SimpleQuery)
         || ((SimpleQuery) query).getFields() != null;
   }
@@ -531,6 +553,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     try {
       sendOneQuery(releaseAutoSave, SimpleQuery.NO_PARAMETERS, 1, 0,
           QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
+      // No response processing follows, so flush the deferred cleanup before returning.
+      pgStream.flush();
     } catch (IOException ex) {
       throw new PSQLException(GT.tr("Error releasing savepoint"), PSQLState.IO_ERROR);
     }
@@ -649,7 +673,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         estimatedReceiveBufferBytes = 0;
 
         for (int i = 0; i < queries.length; i++) {
-          Query query = queries[i];
+          SimpleQuery query = (SimpleQuery) queries[i];
+          if (i == 0) {
+            estimatedReceiveBufferBytes += estimateQueryResponseBytes(query, flags);
+          } else {
+            flushIfDeadlockRisk(query, handler, batchHandler, flags);
+          }
+
           V3ParameterList parameters = (V3ParameterList) parameterLists[i];
           if (parameters == null) {
             parameters = SimpleQuery.NO_PARAMETERS;
@@ -663,12 +693,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         }
 
         if (handler.getException() == null) {
-          if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
-            // Sync message is not required for 'Q' execution as 'Q' ends with ReadyForQuery message
-            // on its own
-          } else {
+          // Sync message is not required for 'Q' execution as 'Q' ends with ReadyForQuery message
+          // on its own
+          if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
             sendSync();
           }
+          pgStream.flush();
           processResults(handler, flags, adaptiveFetch);
           estimatedReceiveBufferBytes = 0;
         }
@@ -761,7 +791,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         // from cleanupSavepoints). These responses would otherwise be misinterpreted
         // by receiveFastpathResult(). See https://github.com/pgjdbc/pgjdbc/issues/3910
         if (!pendingExecuteQueue.isEmpty()) {
-          processResults(new ResultHandlerBase(), 0);
+          processResults(new DiscardResultHandler(), 0);
         }
         sendFastpathCall(fnid, (SimpleParameterList) parameters);
         return receiveFastpathResult();
@@ -814,6 +844,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         beginFlags = updateQueryMode(beginFlags);
         sendOneQuery(beginTransactionQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
         sendSync();
+        pgStream.flush();
         processResults(handler, 0);
         estimatedReceiveBufferBytes = 0;
       } catch (IOException ioe) {
@@ -1072,7 +1103,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         // from cleanupSavepoints). These responses would otherwise be misinterpreted
         // by processCopyResults(). See https://github.com/pgjdbc/pgjdbc/issues/3910
         if (!pendingExecuteQueue.isEmpty()) {
-          processResults(new ResultHandlerBase(), 0);
+          processResults(new DiscardResultHandler(), 0);
         }
         LOGGER.log(Level.FINEST, " FE=> Query(CopyStart)");
 
@@ -1580,22 +1611,27 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
-  /*
-   * To prevent client/server protocol deadlocks, we try to manage the estimated recv buffer size
-   * and force a sync +flush and process results if we think it might be getting too full.
-   *
-   * See the comments above MAX_BUFFERED_RECV_BYTES's declaration for details.
+  /**
+   * Returns estimated number of bytes produced by a single query execution, or
+   * {@link #MAX_BUFFERED_RECV_BYTES} if no estimation can be made.
+   * @param query input query
+   * @param flags query execution flags
+   * @return estimated number of bytes produced by a single query execution or MAX_BUFFERED_RECV_BYTES
    */
-  private void flushIfDeadlockRisk(Query query, boolean disallowBatching,
-      ResultHandler resultHandler,
-      @Nullable BatchResultHandler batchHandler,
-      final int flags) throws IOException {
+  private static int estimateQueryResponseBytes(SimpleQuery query, int flags) {
     // Assume all statements need at least this much reply buffer space,
     // plus params
-    estimatedReceiveBufferBytes += NODATA_QUERY_RESPONSE_SIZE_BYTES;
+    int resultBytes = NODATA_QUERY_RESPONSE_SIZE_BYTES;
 
-    SimpleQuery sq = (SimpleQuery) query;
-    if (sq.isStatementDescribed()) {
+    // We know this is deprecated, but still respect it in case anyone's using it.
+    // PgJDBC its self no longer does.
+    @SuppressWarnings("deprecation")
+    boolean disallowBatching = (flags & QueryExecutor.QUERY_DISALLOW_BATCHING) != 0;
+    if (disallowBatching) {
+      return MAX_BUFFERED_RECV_BYTES;
+    }
+
+    if (query.isStatementDescribed()) {
       /*
        * Estimate the response size of the fields and add it to the expected response size.
        *
@@ -1603,13 +1639,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
        * case for batches and we're leaving plenty of breathing room in this approach. It's still
        * not deadlock-proof though; see pgjdbc github issues #194 and #195.
        */
-      int maxResultRowSize = sq.getMaxResultRowSize();
+      int maxResultRowSize = query.getMaxResultRowSize();
       if (maxResultRowSize >= 0) {
-        estimatedReceiveBufferBytes += maxResultRowSize;
+        resultBytes += maxResultRowSize;
       } else {
         LOGGER.log(Level.FINEST, "Couldn''t estimate result size or result size unbounded, "
             + "disabling batching for this query.");
-        disallowBatching = true;
+        return MAX_BUFFERED_RECV_BYTES;
       }
     } else {
       /*
@@ -1619,17 +1655,35 @@ public class QueryExecutorImpl extends QueryExecutorBase {
        * NODATA_QUERY_RESPONSE_SIZE_BYTES is enough to cover it.
        */
     }
+    return resultBytes;
+  }
 
-    if (disallowBatching || estimatedReceiveBufferBytes >= MAX_BUFFERED_RECV_BYTES) {
+  /*
+   * To prevent client/server protocol deadlocks, we try to manage the estimated recv buffer size
+   * and force a sync +flush and process results if we think it might be getting too full.
+   *
+   * See the comments above MAX_BUFFERED_RECV_BYTES's declaration for details.
+   */
+  private void flushIfDeadlockRisk(SimpleQuery query,
+      ResultHandler resultHandler,
+      @Nullable BatchResultHandler batchHandler,
+      final int flags) throws IOException {
+    int resultBytes = estimateQueryResponseBytes(query, flags);
+
+    int estimatedReceiveBufferBytesTotal = estimatedReceiveBufferBytes + resultBytes;
+    if (estimatedReceiveBufferBytesTotal < MAX_BUFFERED_RECV_BYTES) {
+      estimatedReceiveBufferBytes = estimatedReceiveBufferBytesTotal;
+    } else {
       LOGGER.log(Level.FINEST, "Forcing Sync, receive buffer full or batching disallowed");
       sendSync();
+      pgStream.flush();
       processResults(resultHandler, flags);
-      estimatedReceiveBufferBytes = 0;
+      // We've processed incoming bytes, and the query to be executed would consume receive buffer
+      estimatedReceiveBufferBytes = resultBytes;
       if (batchHandler != null) {
         batchHandler.secureProgress();
       }
     }
-
   }
 
   /*
@@ -1642,14 +1696,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     Query[] subqueries = query.getSubqueries();
     SimpleParameterList[] subparams = parameters.getSubparams();
 
-    // We know this is deprecated, but still respect it in case anyone's using it.
-    // PgJDBC its self no longer does.
-    @SuppressWarnings("deprecation")
-    boolean disallowBatching = (flags & QueryExecutor.QUERY_DISALLOW_BATCHING) != 0;
-
     if (subqueries == null) {
-      flushIfDeadlockRisk(query, disallowBatching, resultHandler, batchHandler, flags);
-
       // If we saw errors, don't send anything more.
       if (resultHandler.getException() == null) {
         if (fetchSize != 0) {
@@ -1660,12 +1707,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
     } else {
       for (int i = 0; i < subqueries.length; i++) {
-        final Query subquery = subqueries[i];
-        flushIfDeadlockRisk(subquery, disallowBatching, resultHandler, batchHandler, flags);
-
-        // If we saw errors, don't send anything more.
-        if (resultHandler.getException() != null) {
-          break;
+        final SimpleQuery subquery = (SimpleQuery) subqueries[i];
+        if (i == 0) {
+          estimatedReceiveBufferBytes += estimateQueryResponseBytes(subquery, flags);
+        } else {
+          flushIfDeadlockRisk(subquery, resultHandler, batchHandler, flags);
+          // If we saw errors, don't send anything more.
+          if (resultHandler.getException() != null) {
+            break;
+          }
         }
 
         // In the situation where parameters is already
@@ -1691,11 +1741,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   //
 
   private void sendSync() throws IOException {
+    inExtendedProtocol = false;
     LOGGER.log(Level.FINEST, " FE=> Sync");
 
     pgStream.sendChar(PgMessageType.SYNC_REQUEST); // Sync
     pgStream.sendInteger4(4); // Length
-    pgStream.flush();
     // Below "add queues" are likely not required at all
     pendingExecuteQueue.add(new ExecuteRequest(sync, null, true));
     pendingDescribePortalQueue.add(sync);
@@ -1708,6 +1758,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if (query.isPreparedFor(typeOIDs, deallocateEpoch)) {
       return;
     }
+
+    inExtendedProtocol = true;
 
     // Clean up any existing statement, as we can't use it.
     query.unprepare();
@@ -1778,13 +1830,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     pendingParseQueue.add(query);
+    inExtendedProtocol = true;
   }
 
   private void sendBind(SimpleQuery query, SimpleParameterList params, @Nullable Portal portal,
       boolean noBinaryTransfer) throws IOException {
-    //
-    // Send Bind.
-    //
+    inExtendedProtocol = true;
 
     String statementName = query.getStatementName();
     byte[] encodedStatementName = query.getEncodedStatementName();
@@ -1933,9 +1984,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void sendDescribePortal(SimpleQuery query, @Nullable Portal portal) throws IOException {
-    //
-    // Send Describe.
-    //
+    inExtendedProtocol = true;
 
     LOGGER.log(Level.FINEST, " FE=> Describe(portal={0})", portal);
 
@@ -1958,7 +2007,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private void sendDescribeStatement(SimpleQuery query, SimpleParameterList params,
       boolean describeOnly) throws IOException {
-    // Send Statement Describe
+    inExtendedProtocol = true;
 
     LOGGER.log(Level.FINEST, " FE=> Describe(statement={0})", query.getStatementName());
 
@@ -1986,9 +2035,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private void sendExecute(SimpleQuery query, @Nullable Portal portal, int limit)
       throws IOException {
-    //
-    // Send Execute.
-    //
+    inExtendedProtocol = true;
+
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, " FE=> Execute(portal={0},limit={1})", new Object[]{portal, limit});
     }
@@ -2009,9 +2057,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void sendClosePortal(String portalName) throws IOException {
-    //
-    // Send Close.
-    //
+    inExtendedProtocol = true;
 
     LOGGER.log(Level.FINEST, " FE=> ClosePortal({0})", portalName);
 
@@ -2029,9 +2075,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void sendCloseStatement(String statementName) throws IOException {
-    //
-    // Send Close.
-    //
+    inExtendedProtocol = true;
 
     LOGGER.log(Level.FINEST, " FE=> CloseStatement({0})", statementName);
 
@@ -2177,7 +2221,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // After this method returns, caller sends Sync and processes all responses via processResults()
   }
 
-  private int calculateRowsToFetch(boolean noResults, boolean usePortal, int maxRows, int fetchSize) {
+  private static int calculateRowsToFetch(boolean noResults, boolean usePortal, int maxRows, int fetchSize) {
     if (noResults) {
       return 1;
     }
@@ -2190,13 +2234,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return fetchSize;
   }
 
-  private boolean shouldDescribeStatement(boolean describeOnly, boolean oneShot,
+  private static boolean shouldDescribeStatement(boolean describeOnly, boolean oneShot,
       boolean queryHasUnknown, boolean paramsHasUnknown, SimpleQuery query) {
     return describeOnly
         || (!oneShot && paramsHasUnknown && queryHasUnknown && !query.isStatementDescribed());
   }
 
-  private void resolveParameterTypes(SimpleQuery query, SimpleParameterList params) {
+  private static void resolveParameterTypes(SimpleQuery query, SimpleParameterList params) {
     int[] queryOIDs = castNonNull(query.getPrepareTypes());
     int[] paramOIDs = params.getTypeOIDs();
     for (int i = 0; i < paramOIDs.length; i++) {
@@ -2207,6 +2251,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void sendSimpleQuery(SimpleQuery query, SimpleParameterList params) throws IOException {
+    if (inExtendedProtocol) {
+      // A sync message is required when switching from extended protocol to a simple query protocol
+      // See https://github.com/pgjdbc/pgjdbc/issues/3107
+      sendSync();
+    }
+
     String nativeSql = query.toString(
         params,
         SqlSerializationContext.of(getStandardConformingStrings(), false));
@@ -2219,7 +2269,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.sendInteger4(encoded.length + 4 + 1);
     pgStream.send(encoded);
     pgStream.sendChar(0);
-    pgStream.flush();
     pendingExecuteQueue.add(new ExecuteRequest(query, null, true));
     pendingDescribePortalQueue.add(query);
   }
@@ -2458,6 +2507,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               && (status.startsWith("DEALLOCATE ALL") || status.startsWith("DISCARD ALL"))) {
             deallocateEpoch++;
           }
+          if (isFlushCacheOnDdl()
+              && (status.startsWith("CREATE ")
+                  || status.startsWith("DROP ")
+                  || status.startsWith("ALTER "))) {
+            // DDL invalidates any server-side prepared plan that references
+            // the affected relation. Bump the epoch so the driver
+            // re-prepares matching statements on next use, instead of
+            // surfacing PostgreSQL's "cached plan must not change result
+            // type" to callers that don't opt into autosave=ALWAYS.
+            deallocateEpoch++;
+          }
 
           doneAfterRowDescNoData = false;
 
@@ -2476,11 +2536,27 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
           pgStream.clearMaxRowSizeBytes();
 
-          if (status.startsWith("SET")) {
+          // A successful SET/RESET that changes the session search_path makes any server-side
+          // prepared plan or catalog-name resolution cached under the previous path potentially
+          // stale, so bump the epoch to force a rebuild. The command tag is always upper-case
+          // ("SET"/"RESET"), but the user-supplied SQL may use any case, so the search_path token
+          // is matched case-insensitively.
+          // PostgreSQL 18+ reports search_path via ParameterStatus (GUC_REPORT), which
+          // receiveParameterStatus turns into a value-based invalidation covering SET, RESET,
+          // RESET ALL and changes the driver cannot see in the command tag (e.g. a SET inside
+          // PL/pgSQL). Once the server has reported search_path (it is then in the parameter status
+          // map) this scan is redundant, so skip it.
+          if ((status.startsWith("SET") || status.startsWith("RESET"))
+              && getParameterStatus("search_path") == null) {
             String nativeSql = currentQuery.getNativeQuery().nativeSql;
-            // Scan only the first 1024 characters to
-            // avoid big overhead for long queries.
-            if (nativeSql.lastIndexOf("search_path", 1024) != -1
+            // Scan only the first SEARCH_PATH_SCAN_LIMIT characters to avoid a big overhead for
+            // long queries.
+            boolean changesSearchPath =
+                containsIgnoreCase(nativeSql, "search_path", SEARCH_PATH_SCAN_LIMIT)
+                    // "RESET ALL" reverts every parameter, search_path included.
+                    || (status.startsWith("RESET")
+                        && containsIgnoreCase(nativeSql, "all", SEARCH_PATH_SCAN_LIMIT));
+            if (changesSearchPath
                 && !nativeSql.equals(lastSetSearchPathQuery)) {
               // Search path was changed, invalidate prepared statement cache
               lastSetSearchPathQuery = nativeSql;
@@ -2704,8 +2780,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           pgStream.sendInteger4(buf.length + 4 + 1);
           pgStream.send(buf);
           pgStream.sendChar(0);
-          pgStream.flush();
           sendSync(); // send sync message
+          pgStream.flush();
           skipMessage(); // skip the response message
           break;
 
@@ -2735,6 +2811,27 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
 
     }
+  }
+
+  /**
+   * Tells whether {@code needle} occurs in {@code sql} using ASCII case-insensitive matching,
+   * starting at any offset in {@code [0, scanLimit]}. The scan is bounded so long statements are not
+   * scanned in full, and it avoids allocating a lower-cased copy of the statement on the execute
+   * path.
+   *
+   * @param sql the statement text to scan
+   * @param needle the lower-case token to look for
+   * @param scanLimit the highest start offset that is examined
+   * @return {@code true} if the token is found within the scanned range
+   */
+  private static boolean containsIgnoreCase(String sql, String needle, int scanLimit) {
+    int last = Math.min(scanLimit, sql.length() - needle.length());
+    for (int i = 0; i <= last; i++) {
+      if (sql.regionMatches(true, i, needle, 0, needle.length())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -2776,6 +2873,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         sendExecute(query, portal, fetchSize);
         sendSync();
+        pgStream.flush();
 
         processResults(handler, 0, adaptiveFetch);
         estimatedReceiveBufferBytes = 0;
@@ -2849,7 +2947,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       int tableOid = pgStream.receiveInteger4();
       short positionInTable = (short) pgStream.receiveInteger2();
       int typeOid = pgStream.receiveInteger4();
-      int typeLength = pgStream.receiveInteger2();
+      short typeLength = (short) pgStream.receiveInteger2();
       int typeModifier = pgStream.receiveInteger4();
       int formatType = pgStream.receiveInteger2();
       fields[i] = new Field(columnLabel,
@@ -3055,6 +3153,20 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // if the name is empty, there is nothing to do
     if (name.isEmpty()) {
       return;
+    }
+
+    if ("search_path".equals(name)) {
+      // PostgreSQL 18 and later report search_path changes to the client (GUC_REPORT) wherever the
+      // change happens, including inside PL/pgSQL or a function. Invalidate the server-prepared
+      // statement cache only when the value actually changes -- compared against the previously
+      // reported value, which is still in the parameter status map until onParameterStatus updates
+      // it below -- so the next execution re-prepares against the new path. The first report just
+      // records the baseline; from then on the SET/RESET command-tag scan in processResults is
+      // skipped in favour of this report.
+      String previousSearchPath = getParameterStatus(name);
+      if (previousSearchPath != null && !previousSearchPath.equals(value)) {
+        deallocateEpoch++;
+      }
     }
 
     // Update client-visible parameter status map for getParameterStatuses()

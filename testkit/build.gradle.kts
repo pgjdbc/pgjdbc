@@ -4,11 +4,11 @@ plugins {
 }
 
 dependencies {
-    api(platform("org.junit:junit-bom:5.14.3"))
+    api(platform("org.junit:junit-bom:5.14.4"))
     api("org.junit.jupiter:junit-jupiter-api")
 
     // We want testkit to be compatible with both regular and shadowed variants,
     // so we use compileOnly.
     compileOnly(projects.postgresql)
-    implementation("org.checkerframework:checker-qual:3.52.0")
+    implementation("org.checkerframework:checker-qual:3.55.1")
 }

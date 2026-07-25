@@ -5,7 +5,42 @@ draft: false
 weight: 2
 toc: true
 aliases:
+    - "/documentation/head/use.html"
     - "/documentation/head/connect.html"
+    - "/documentation/head/load.html"
+    - "/documentation/80/use.html"
+    - "/documentation/80/connect.html"
+    - "/documentation/80/load.html"
+    - "/documentation/81/use.html"
+    - "/documentation/81/connect.html"
+    - "/documentation/81/load.html"
+    - "/documentation/82/use.html"
+    - "/documentation/82/connect.html"
+    - "/documentation/82/load.html"
+    - "/documentation/83/use.html"
+    - "/documentation/83/connect.html"
+    - "/documentation/83/load.html"
+    - "/documentation/84/use.html"
+    - "/documentation/84/connect.html"
+    - "/documentation/84/load.html"
+    - "/documentation/85/use.html"
+    - "/documentation/85/connect.html"
+    - "/documentation/85/load.html"
+    - "/documentation/90/use.html"
+    - "/documentation/90/connect.html"
+    - "/documentation/90/load.html"
+    - "/documentation/91/use.html"
+    - "/documentation/91/connect.html"
+    - "/documentation/91/load.html"
+    - "/documentation/92/use.html"
+    - "/documentation/92/connect.html"
+    - "/documentation/92/load.html"
+    - "/documentation/93/use.html"
+    - "/documentation/93/connect.html"
+    - "/documentation/93/load.html"
+    - "/documentation/94/use.html"
+    - "/documentation/94/connect.html"
+    - "/documentation/94/load.html"
 ---
 
 This section describes how to load and initialize the JDBC driver in your programs.
@@ -37,7 +72,7 @@ These older methods of loading the driver are still supported, but they are no l
 With JDBC, a database is represented by a URL (Uniform Resource Locator). With PostgreSQL®, this takes one of the following forms:
 
 * jdbc:postgresql:database
-* jdbc:postgresql:/
+* jdbc:postgresql://
 * jdbc:postgresql://host/database
 * jdbc:postgresql://host/
 * jdbc:postgresql://host:port/database
@@ -130,13 +165,25 @@ It can be a PEM encoded X509v3 certificate
 * **`sslkey (`*String*`)`** *Default `defaultdir/postgresql.pk8`*\
 Provide the full path for the key file. Defaults to `defaultdir/postgresql.pk8`. See sslcert for defaultdir.
 
+The driver selects the key format from the file extension (case-insensitive) where it recognises one, and otherwise from the file content:
+
+| Extension | Format |
+|---|---|
+| `.p12`, `.pfx` | [PKCS-12](https://en.wikipedia.org/wiki/PKCS_12) (42.2.9+ / 42.2.16+) |
+| `.pem` | PEM-encoded [PKCS-8](https://en.wikipedia.org/wiki/PKCS_8) |
+| `.der` | [DER](https://wiki.openssl.org/index.php/DER)-encoded PKCS-8 |
+| anything else (e.g. `.key`) | Detected from the first 64 KiB: read as PEM if that prefix contains the `-----BEGIN PRIVATE KEY-----` header, otherwise as DER/PKCS-8 |
+
+The auto-detection scan is bounded to avoid excessive work on malformed files. This preserves libpq's preference for PEM before DER, although libpq attempts to load the key as PEM before falling back to DER.
+
 > **NOTE**
 >
-> The key file **must** be in [PKCS-12](https://en.wikipedia.org/wiki/PKCS_12) or in [PKCS-8](https://en.wikipedia.org/wiki/PKCS_8) [DER format](https://wiki.openssl.org/index.php/DER). 
+> When you create a PKCS-12 key the `alias` or the `name` must be *user*. The test codes uses the following to create a .p12 key `openssl pkcs12 -export -in $< -inkey $*.key -out $@ -name user -CAfile $(SERVER_CRT_DIR)root.crt -caname local -passout pass:$(P12_PASSWORD)`
  A PEM key can be converted to DER format using the openssl command: `openssl pkcs8 -topk8 -inform PEM -in postgresql.key -outform DER -out postgresql.pk8 -v1 PBE-MD5-DES`
- When you create the key the `alias` or the `name` must be *user*. The test codes uses the following to create a .p12 key `openssl pkcs12 -export -in $< -inkey $*.key -out $@ -name user -CAfile $(SERVER_CRT_DIR)root.crt -caname local -passout pass:$(P12_PASSWORD)`
 
-PKCS-12 key files are only recognized if they have the ".p12" (42.2.9+) or the ".pfx" (42.2.16+) extension.
+> **NOTE**
+>
+> The `.p12` archive must hold the full client certificate chain. When the client certificate is signed by one or more intermediate CAs, add `-certfile <intermediate-chain>.crt` to the `openssl pkcs12 -export` command. Without the intermediates the server rejects the connection with `connection requires a valid client certificate`. The example above needs no `-certfile` because the test certificate is signed directly by the root CA.
 
 If your key has a password, provide it using the `sslpassword` connection parameter described below. Otherwise, you can add the flag `-nocrypt` to the above command to prevent the driver from requesting a password.
 
@@ -253,6 +300,15 @@ The timeout value in seconds that the driver will wait for a query to execute if
 
 * **`loginTimeout (`*int*`)`** *Default `0`*\
 Specify how long to wait for establishment of a database connection. The timeout is specified in seconds max(2147484).
+
+* **`connectExecutor (`*String*`)`** *Default `null`*\
+The fully qualified name of a class implementing `java.util.concurrent.Executor`. When `loginTimeout` is in effect, `Driver.connect(...)` hands the worker task that runs the connection attempt to the configured `Executor`.
+If the value is null, the driver runs the connection attempt on its own daemon thread named `"PostgreSQL JDBC driver connection thread"` (the name may change in future releases).
+Running the attempt on a named thread lets applications that monitor driver-created threads identify it.
+The executor **must** run the submitted task on a thread other than the caller's and it must support thread interruption.
+
+* **`connectExecutorArg (`*String*`)`** \
+An optional String argument passed to the constructor of the `connectExecutor` class.
 
 * **`connectTimeout (`*int*`)`** *Default `10`*\
 The timeout value used for socket connect operations. If connecting to the server takes longer than this value, the connection is broken. 
@@ -409,7 +465,7 @@ of suitable candidates.
 * **`socketFactory (`*String*`)`** *Default `null`*\
 The provided value is a class name to use as the `SocketFactory` when establishing a socket connection. 
 This may be used to create unix sockets instead of normal sockets. The class name specified by `socketFactory` must extend
-`javax.net.SocketFactory` and be available to the driver's classloader. This class must have a zero-argument constructor,
+`javax.net.SocketFactory` and be reachable through one of the classloaders selected by `classLoaderStrategy`. This class must have a zero-argument constructor,
 a single-argument constructor taking a String argument, or a single-argument constructor taking a Properties argument. 
 The Properties object will contain all the connection parameters. The String argument will have the value of the `socketFactoryArg`
 connection parameter.
@@ -417,8 +473,20 @@ connection parameter.
 * **`socketFactoryArg (`*String*`)`** : (deprecated)\
 This value is an optional argument to the constructor of the socket factory class provided above.
 
+* **`classLoaderStrategy (`*String*`)`** *Default `driver-first`*\
+Order in which the driver searches classloaders when loading a class named by a connection property, for example `socketFactory`.
+The driver's own classloader sees only what is on its classpath, so in a non-flat class path (an application server or an OSGi
+container) a user-supplied class may be reachable only through the thread context classloader.
+`driver-first` tries the driver's classloader and then falls back to the thread context classloader.
+`driver` uses the driver's classloader only, which matches the behaviour from before this property existed.
+`context-first` tries the thread context classloader first; use it in containers that expect their own classloader to take
+precedence even when the driver's classloader could resolve a class of the same name.
+
 * **`reWriteBatchedInserts (`*boolean*`)`** *Default `false`*\
 This will change batch inserts from insert into foo (col1, col2, col3) values (1, 2, 3) into insert into foo (col1, col2, col3) values (1, 2, 3), (4, 5, 6) this provides 2-3x performance improvement
+
+* **`reWriteBatchedInsertsSize (`*int*`)`** *Default `0`*\
+Caps how many rows `reWriteBatchedInserts` merges into a single multi-values INSERT. The merge size is rounded down to a power of two and never exceeds 32768 rows. With the extended query protocol a statement is limited to 65535 bind parameters, so the cap is `min(65535 / parametersPerRow, 32768)`; the simple query protocol (`preferQueryMode=simple`) inlines parameters and has no such limit, so the cap is 32768. A value of `0`, the default, uses that maximum; a positive value lowers it.
 
 * **`replication (`*String*`)`** *Default `false`*\
 Connection parameter passed in the startup message. This parameter accepts two values; `true` and `database` . 
@@ -475,6 +543,12 @@ value in the connection properties will be used.
 Comma-separated list of acceptable authentication methods. Use '!' prefix to reject methods (e.g., '!password' to reject cleartext). 
 Supported methods: `password`, `md5`, `gss`, `sspi`, `scram-sha-256`, `none`. Cannot mix positive and negative options.
 Examples: `requireAuth=md5,scram-sha-256` (allow only MD5 or SCRAM-SHA-256), `requireAuth=!password,!none` (reject cleartext and trust authentication).
+
+* **`scramMaxIterations (`*int*`)`** *Default `100000`*\
+Maximum PBKDF2 iteration count that pgjdbc will accept from the server during SCRAM authentication.
+During SCRAM-SHA-256 authentication, the server sends the iteration count used to derive the salted password. If the server advertises a value higher than `scramMaxIterations`, the driver rejects authentication before starting the PBKDF2 computation.
+This limits client CPU exposure if a malicious or compromised server sends an excessively large iteration count.
+A value of zero disables this check.
 
 ### Unix sockets
 

@@ -38,16 +38,18 @@ public class ObjectFactory {
    * @throws InstantiationException if something goes wrong
    * @throws IllegalAccessException if something goes wrong
    * @throws InvocationTargetException if something goes wrong
+   * @throws PSQLException if the classLoaderStrategy property holds an unknown value
    */
   public static <T> T instantiate(Class<T> expectedClass, String classname, Properties info,
       boolean tryString,
       @Nullable String stringarg)
       throws ClassNotFoundException, SecurityException, NoSuchMethodException,
           IllegalArgumentException, InstantiationException, IllegalAccessException,
-          InvocationTargetException {
+          InvocationTargetException, PSQLException {
     @Nullable Object[] args = {info};
     Constructor<? extends T> ctor = null;
-    Class<? extends T> cls = ClassUtils.forName(classname, expectedClass, ObjectFactory.class.getClassLoader());
+    Class<? extends T> cls = ClassUtils.forName(classname, expectedClass,
+        ClassLoaderStrategy.of(info), ObjectFactory.class.getClassLoader());
     try {
       ctor = cls.getConstructor(Properties.class);
     } catch (NoSuchMethodException ignored) {

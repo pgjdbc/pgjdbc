@@ -63,13 +63,13 @@ open class JavaCommentPreprocessorTask @Inject constructor(
 
     @TaskAction
     fun run() {
-        val logger = project.logger
+        val taskLogger = logger
         val context = PreprocessorContext(baseDir.get().asFile).apply {
             preprocessorLogger = object : PreprocessorLogger {
-                override fun warning(message: String?) = logger.warn(message)
-                override fun info(message: String?) = logger.info(message)
-                override fun error(message: String?) = logger.error(message)
-                override fun debug(message: String?) = logger.debug(message)
+                override fun warning(message: String?) = taskLogger.warn(message)
+                override fun info(message: String?) = taskLogger.info(message)
+                override fun error(message: String?) = taskLogger.error(message)
+                override fun debug(message: String?) = taskLogger.debug(message)
             }
             target = outputDirectory.get().asFile
             setSources(sourceFolders.get())

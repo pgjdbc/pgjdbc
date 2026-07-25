@@ -74,12 +74,4 @@ public class ResultHandlerDelegate implements ResultHandler {
     }
     return null;
   }
-
-  @Override
-  public @Nullable SQLWarning getWarning() {
-    if (delegate != null) {
-      return delegate.getWarning();
-    }
-    return null;
-  }
 }

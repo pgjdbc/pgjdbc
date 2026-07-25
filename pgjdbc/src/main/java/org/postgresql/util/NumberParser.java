@@ -17,7 +17,7 @@ public class NumberParser {
     }
   };
 
-  private static final long MAX_LONG_DIV_TEN = Long.MAX_VALUE / 10;
+  private static final long MIN_LONG_DIV_TEN = Long.MIN_VALUE / 10;
 
   /**
    * Optimised byte[] to number parser. This code does not handle null values, so the caller must do
@@ -37,6 +37,9 @@ public class NumberParser {
 
     boolean neg = bytes[0] == '-';
 
+    // Accumulate the value as negative since abs(MIN_VALUE) > abs(MAX_VALUE), so every valid
+    // input fits without overflow. Wrapped arithmetic on a positive accumulator would let
+    // overlong inputs pass the overflow guard and parse to silently wrong values.
     long val = 0;
     int start = neg ? 1 : 0;
     while (start < len) {
@@ -60,24 +63,22 @@ public class NumberParser {
         }
       }
 
-      if (val <= MAX_LONG_DIV_TEN) {
-        val *= 10;
-        val += b - '0';
-      } else {
+      if (val < MIN_LONG_DIV_TEN) {
         throw FAST_NUMBER_FAILED;
       }
+      val *= 10;
+      int digit = b - '0';
+      if (val < Long.MIN_VALUE + digit) {
+        throw FAST_NUMBER_FAILED;
+      }
+      val -= digit;
     }
 
-    if (val < 0) {
-      // It is possible to get overflow in two situations:
-      // 1. for MIN_VALUE, because abs(MIN_VALUE)=MAX_VALUE+1. In this situation thanks to
-      //    complement arithmetic we got correct result and shouldn't do anything with it.
-      // 2. for incorrect string, representing a number greater than MAX_VALUE, for example
-      //    "9223372036854775809", it this case we have to throw exception
-      if (!(neg && val == Long.MIN_VALUE)) {
+    if (!neg) {
+      if (val == Long.MIN_VALUE) {
+        // abs(MIN_VALUE) = MAX_VALUE + 1, so this magnitude is only valid when negative
         throw FAST_NUMBER_FAILED;
       }
-    } else if (neg) {
       val = -val;
     }
 

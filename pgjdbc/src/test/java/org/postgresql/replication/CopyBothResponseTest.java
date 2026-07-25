@@ -7,6 +7,7 @@ package org.postgresql.replication;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyDual;
@@ -121,9 +122,9 @@ class CopyBothResponseTest {
     copyDual.endCopy();
 
     assertThat(
-        "Keep alive message contain last lsn on server, we want that before start replication "
-            + "and get keep alive message not occurs wal modifications",
-        lastLSN, CoreMatchers.equalTo(startLsn)
+        "Keep alive message contain last lsn on server, it should be at least "
+            + "as far as the flush LSN we started replication from",
+        lastLSN, greaterThanOrEqualTo(startLsn)
     );
   }
 
@@ -176,7 +177,7 @@ class CopyBothResponseTest {
     try {
       rs = st.executeQuery("select "
           + (((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
-          ? "pg_current_wal_lsn()" : "pg_current_xlog_location()"));
+          ? "pg_current_wal_flush_lsn()" : "pg_current_xlog_flush_location()"));
 
       if (rs.next()) {
         String lsn = rs.getString(1);

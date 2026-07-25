@@ -12,13 +12,16 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.CachedQuery;
 import org.postgresql.core.Field;
+import org.postgresql.core.NativeQuery;
 import org.postgresql.core.ParameterList;
+import org.postgresql.core.Parser;
 import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.SqlCommand;
+import org.postgresql.core.TransactionState;
 import org.postgresql.core.Tuple;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -89,7 +92,7 @@ public class PgStatement implements Statement, BaseStatement {
    * {@link StatementCancelState#IN_QUERY} during execute. {@link #cancel()}
    * ignores cancel request if state is {@link StatementCancelState#IDLE}.
    * In case {@link #execute(String)} observes non-{@link StatementCancelState#IDLE} state as it
-   * completes the query, it waits till {@link StatementCancelState#CANCELLED}. Note: the field must be
+   * completes the query, it waits till {@link StatementCancelState#IDLE}. Note: the field must be
    * set/get/compareAndSet via {@link #STATE_UPDATER} as per {@link AtomicIntegerFieldUpdater}
    * javadoc.
    */
@@ -219,6 +222,16 @@ public class PgStatement implements Statement, BaseStatement {
   protected boolean wantsHoldableResultSet() {
     // FIXME: false if not supported
     return rsHoldability == ResultSet.HOLD_CURSORS_OVER_COMMIT;
+  }
+
+  /**
+   * ResultHandler that discards all results.
+   */
+  class DiscardResultHandler extends ResultHandlerBase {
+    @Override
+    public void handleWarning(SQLWarning warning) {
+      PgStatement.this.addWarning(warning);
+    }
   }
 
   /**
@@ -454,7 +467,14 @@ public class PgStatement implements Statement, BaseStatement {
     closeForNextExecution();
 
     // Enable cursor-based resultset if possible.
-    if (fetchSize > 0 && !wantsScrollableResultSet() && !connection.getAutoCommit()
+    // A server-side cursor requires an active transaction block. Without one,
+    // PostgreSQL auto-commits each statement, and the cursor is destroyed before
+    // the client can fetch subsequent batches.
+    // This is satisfied either by autoCommit=false (sendQueryPreamble will issue BEGIN)
+    // or by the server already being in a transaction (e.g. user issued START TRANSACTION / BEGIN).
+    if (fetchSize > 0 && !wantsScrollableResultSet()
+        && (!connection.getAutoCommit()
+            || connection.getQueryExecutor().getTransactionState() == TransactionState.OPEN)
         && !wantsHoldableResultSet()) {
       flags |= QueryExecutor.QUERY_FORWARD_CURSOR;
     }
@@ -502,21 +522,8 @@ public class PgStatement implements Statement, BaseStatement {
       // When binaryTransfer is forced, then we need to know resulting parameter and column types,
       // thus sending a describe request.
       int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
-      StatementResultHandler handler2 = new StatementResultHandler();
-      connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler2, 0, 0,
+      connection.getQueryExecutor().execute(queryToExecute, queryParameters, new DiscardResultHandler(), 0, 0,
           flags2);
-      // We should not create temporary ResultSet when processing "describe row" command;
-      // however, it is the way PgPreparedStatement#getMetaData() works now
-      ResultWrapper result2 = handler2.getResults();
-      if (result2 != null) {
-        // Note: if the user requested "statement.closeOnCompletion()" then we should not
-        // let the driver's internal resultset to close the user statement
-        // At best we should stop creating the intermediate ResultSet objects
-        boolean prevCloseOnCompletion = closeOnCompletion;
-        closeOnCompletion = false;
-        castNonNull(result2.getResultSet(), "result2.getResultSet()").close();
-        closeOnCompletion = prevCloseOnCompletion;
-      }
     }
 
     StatementResultHandler handler = new StatementResultHandler();
@@ -804,6 +811,29 @@ public class PgStatement implements Statement, BaseStatement {
     // Simple statements should not replace ?, ? with $1, $2
     boolean shouldUseParameterized = false;
     CachedQuery cachedQuery = connection.createQuery(sql, replaceProcessingEnabled, shouldUseParameterized);
+    // BatchResultHandler allocates one update-count slot per batch entry, but
+    // multi-statement SQL emits one CommandComplete per statement, so it fails
+    // with "Too many update results" or ClassCastException deep in the protocol.
+    // Reject at the JDBC boundary. Note: CachedQueryCreateAction only splits when
+    // isParameterized=true or preferQueryMode >= EXTENDED. Statement.addBatch(sql)
+    // always passes isParameterized=false, so SIMPLE and EXTENDED_FOR_PREPARED
+    // produce a single SimpleQuery wrapping the raw multi-statement SQL (with
+    // getSubqueries()==null). Re-parse with splitStatements=true in those modes.
+    boolean isMultiStatement = cachedQuery.query.getSubqueries() != null;
+    if (!isMultiStatement
+        && connection.getPreferQueryMode().compareTo(PreferQueryMode.EXTENDED) < 0) {
+      List<NativeQuery> parsed = Parser.parseJdbcSql(sql,
+          connection.getStandardConformingStrings(),
+          false /* withParameters */, true /* splitStatements */,
+          false /* isBatchedReWriteConfigured */, false /* quoteReturningIdentifiers */);
+      isMultiStatement = parsed.size() > 1;
+    }
+    if (isMultiStatement) {
+      throw new PSQLException(
+          GT.tr("Multi-statement SQL is not supported in Statement.addBatch(); "
+              + "call addBatch() once per statement instead."),
+          PSQLState.NOT_IMPLEMENTED);
+    }
     batchStatements.add(cachedQuery.query);
     batchParameters.add(null);
   }
@@ -883,6 +913,24 @@ public class PgStatement implements Statement, BaseStatement {
     BatchResultHandler handler;
     handler = createBatchHandler(queries, parameterLists);
 
+    // Describe the query before batching so flushIfDeadlockRisk can estimate
+    // response sizes accurately and avoid client/server TCP deadlock. See #194.
+    SqlCommand sqlCommand = queries[0].getSqlCommand();
+    boolean queryReturnsRows = wantsGeneratedKeysAlways
+        || (sqlCommand != null && sqlCommand.isReturningKeywordPresent());
+    if (queryReturnsRows
+        && !queries[0].isStatementDescribed()
+        && (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
+      int describeFlags = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
+      try {
+        connection.getQueryExecutor().execute(
+            queries[0], parameterLists[0], new DiscardResultHandler(), 0, 0, describeFlags);
+      } catch (SQLException e) {
+        handler.handleError(e);
+        handler.handleCompletion();
+      }
+    }
+
     try (ResourceLock ignore = lock.obtain()) {
       result = null;
     }
@@ -931,7 +979,7 @@ public class PgStatement implements Statement, BaseStatement {
       try {
         connection.cancelQuery();
       } finally {
-        STATE_UPDATER.set(this, StatementCancelState.CANCELLED);
+        STATE_UPDATER.set(this, StatementCancelState.IDLE);
         connection.lockCondition().signalAll(); // wake-up killTimerTask
       }
     }
@@ -1045,12 +1093,12 @@ public class PgStatement implements Statement, BaseStatement {
 
     // Being here means someone managed to call .cancel() and our connection did not receive
     // "timeout error"
-    // We wait till state becomes "cancelled"
+    // We wait till state becomes "IDLE"
     boolean interrupted = false;
     try (ResourceLock connectionLock = connection.obtainLock()) {
-      // state check is performed with connection lock so it detects "cancelled" state faster
+      // state check is performed with connection lock so it detects the "IDLE" state faster
       // In other words, it prevents unnecessary ".wait()" call
-      while (!STATE_UPDATER.compareAndSet(this, StatementCancelState.CANCELLED, StatementCancelState.IDLE)) {
+      while (STATE_UPDATER.get(this) != StatementCancelState.IDLE) {
         try {
           // Note: wait timeout here is irrelevant since connection.obtainLock() would block until
           // .cancel finishes

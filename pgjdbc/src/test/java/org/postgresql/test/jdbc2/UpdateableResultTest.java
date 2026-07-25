@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.GT;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,6 +35,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
+import java.time.ZoneOffset;
 import java.util.TimeZone;
 
 @Isolated("Uses TimeZone.setDefault")
@@ -60,6 +67,8 @@ public class UpdateableResultTest extends BaseTest4 {
       TestUtil.execute(con, "ALTER TABLE multicol ADD CONSTRAINT multicol_pk PRIMARY KEY (id1, id2)");
       TestUtil.createTable(con, "nopkmulticol", "id1 int not null, id2 int not null, val text");
       TestUtil.createTable(con, "booltable", "id int not null primary key, b boolean default false");
+      TestUtil.createTable(con, "datetimetable", "id int not null primary key, "
+          + "ttz timetz, tstz timestamptz, ts timestamp, d date, t time");
     }
   }
 
@@ -74,6 +83,7 @@ public class UpdateableResultTest extends BaseTest4 {
       TestUtil.dropTable(con, "multicol");
       TestUtil.dropTable(con, "nopkmulticol");
       TestUtil.dropTable(con, "booltable");
+      TestUtil.dropTable(con, "datetimetable");
       TestUtil.dropTable(con, "unique_null_constraint");
       TestUtil.dropTable(con, "hasdate");
       TestUtil.dropTable(con, "uniquekeys");
@@ -100,9 +110,11 @@ public class UpdateableResultTest extends BaseTest4 {
     TestUtil.execute(con, "TRUNCATE multicol CASCADE");
     TestUtil.execute(con, "TRUNCATE nopkmulticol");
     TestUtil.execute(con, "TRUNCATE booltable CASCADE");
+    TestUtil.execute(con, "TRUNCATE datetimetable");
     TestUtil.execute(con, "ALTER SEQUENCE serialtable_gen_id_seq RESTART WITH 1");
 
     TestUtil.execute(con, "insert into booltable (id) values (1)");
+    TestUtil.execute(con, "insert into datetimetable (id) values (1)");
     TestUtil.execute(con, "insert into uniquekeys(id, id2, dt) values (1, 2, now())");
     TestUtil.execute(con, "insert into second values (1,'anyvalue' )");
     TestUtil.execute(con, "insert into unique_null_constraint values (1, 'dave')");
@@ -796,7 +808,9 @@ public class UpdateableResultTest extends BaseTest4 {
       rs.updateString("name1", "bob");
       fail("Should have failed since unique column u1 is nullable");
     } catch (SQLException ex) {
-      assertEquals("No eligible primary or unique key found for table unique_null_constraint.", ex.getMessage());
+      assertEquals(
+          GT.tr("No eligible primary or unique key found for table {0}.", "unique_null_constraint"),
+          ex.getMessage());
     }
     rs.close();
     st.close();
@@ -893,7 +907,9 @@ public class UpdateableResultTest extends BaseTest4 {
       rs.updateDate("dt", Date.valueOf("1999-01-01"));
       fail("Should have failed since id2 is nullable column");
     } catch (SQLException ex) {
-      assertEquals("No eligible primary or unique key found for table uniquekeys.", ex.getMessage());
+      assertEquals(
+          GT.tr("No eligible primary or unique key found for table {0}.", "uniquekeys"),
+          ex.getMessage());
     }
     rs.close();
     st.close();
@@ -910,9 +926,170 @@ public class UpdateableResultTest extends BaseTest4 {
       rs.updateDate("dt", Date.valueOf("1999-01-01"));
       fail("Should have failed since no UK/PK are in the select statement");
     } catch (SQLException ex) {
-      assertEquals("No eligible primary or unique key found for table uniquekeys.", ex.getMessage());
+      assertEquals(
+          GT.tr("No eligible primary or unique key found for table {0}.", "uniquekeys"),
+          ex.getMessage());
     }
     rs.close();
     st.close();
+  }
+
+  /*
+   * Updating an updatable ResultSet with java.time values used to throw a ClassCastException while
+   * refreshing the in-memory row buffer, even though the UPDATE itself succeeded.
+   * See https://github.com/pgjdbc/pgjdbc/issues/3464
+   */
+
+  @Test
+  public void testUpdateRowWithOffsetTime() throws SQLException {
+    OffsetTime value = OffsetTime.of(LocalTime.of(12, 34, 56, 123_456_000), ZoneOffset.ofHours(-8));
+    OffsetTime fromDb = updateRowAndReselect("ttz", value, OffsetTime.class);
+    // timetz keeps the offset, but a binary fetch may re-express it in the session time zone,
+    // so compare the instant rather than the textual offset
+    assertTrue(value.isEqual(fromDb), "expected " + value + " to equal " + fromDb);
+  }
+
+  @Test
+  public void testUpdateRowWithOffsetDateTime() throws SQLException {
+    OffsetDateTime value =
+        OffsetDateTime.of(LocalDateTime.of(2024, 1, 31, 12, 34, 56, 123_456_000), ZoneOffset.ofHours(5));
+    OffsetDateTime fromDb = updateRowAndReselect("tstz", value, OffsetDateTime.class);
+    // timestamptz is stored as an instant and returned in the session time zone
+    assertTrue(value.isEqual(fromDb), "expected " + value + " to equal " + fromDb);
+  }
+
+  @Test
+  public void testUpdateRowWithLocalDateTime() throws SQLException {
+    LocalDateTime value = LocalDateTime.of(2024, 1, 31, 12, 34, 56, 123_456_000);
+    assertEquals(value, updateRowAndReselect("ts", value, LocalDateTime.class));
+  }
+
+  @Test
+  public void testUpdateRowWithLocalDate() throws SQLException {
+    LocalDate value = LocalDate.of(2024, 1, 31);
+    assertEquals(value, updateRowAndReselect("d", value, LocalDate.class));
+  }
+
+  @Test
+  public void testUpdateRowWithLocalTime() throws SQLException {
+    LocalTime value = LocalTime.of(12, 34, 56, 123_456_000);
+    assertEquals(value, updateRowAndReselect("t", value, LocalTime.class));
+  }
+
+  @Test
+  public void testInsertRowWithJavaTimeValues() throws SQLException {
+    OffsetTime ttz = OffsetTime.of(LocalTime.of(1, 2, 3, 456_000_000), ZoneOffset.ofHours(-8));
+    OffsetDateTime tstz =
+        OffsetDateTime.of(LocalDateTime.of(2024, 6, 1, 1, 2, 3, 456_000_000), ZoneOffset.ofHours(5));
+    LocalDateTime ts = LocalDateTime.of(2024, 6, 1, 1, 2, 3, 456_000_000);
+    LocalDate d = LocalDate.of(2024, 6, 1);
+    LocalTime t = LocalTime.of(1, 2, 3, 456_000_000);
+
+    try (Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = st.executeQuery("SELECT id, ttz, tstz, ts, d, t FROM datetimetable")) {
+      rs.moveToInsertRow();
+      rs.updateInt("id", 2);
+      rs.updateObject("ttz", ttz);
+      rs.updateObject("tstz", tstz);
+      rs.updateObject("ts", ts);
+      rs.updateObject("d", d);
+      rs.updateObject("t", t);
+      // insertRow() refreshes the same row buffer as updateRow(), so it shared the bug
+      rs.insertRow();
+    }
+
+    try (Statement st = con.createStatement();
+        ResultSet rs = st.executeQuery("SELECT ttz, tstz, ts, d, t FROM datetimetable WHERE id = 2")) {
+      assertTrue(rs.next());
+      OffsetTime ttzFromDb = rs.getObject(1, OffsetTime.class);
+      OffsetDateTime tstzFromDb = rs.getObject(2, OffsetDateTime.class);
+      assertNotNull(ttzFromDb);
+      assertNotNull(tstzFromDb);
+      assertTrue(ttz.isEqual(ttzFromDb), "expected " + ttz + " to equal " + ttzFromDb);
+      assertTrue(tstz.isEqual(tstzFromDb), "expected " + tstz + " to equal " + tstzFromDb);
+      assertEquals(ts, rs.getObject(3, LocalDateTime.class));
+      assertEquals(d, rs.getObject(4, LocalDate.class));
+      assertEquals(t, rs.getObject(5, LocalTime.class));
+    }
+  }
+
+  /**
+   * Updates {@code column} of the seeded {@code datetimetable} row through an updatable
+   * {@link ResultSet} and reads the value back with a fresh query to confirm it reached the
+   * database.
+   */
+  private <T> T updateRowAndReselect(String column, T value, Class<T> type) throws SQLException {
+    try (Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs =
+            st.executeQuery("SELECT id, " + column + " FROM datetimetable WHERE id = 1")) {
+      assertTrue(rs.next(), "datetimetable must contain the seeded row with id = 1");
+      rs.updateObject(column, value);
+      // Before the fix this threw ClassCastException while refreshing the row buffer
+      rs.updateRow();
+      // The freshly written row buffer must be parseable back into the same type
+      assertNotNull(rs.getObject(column, type), "row buffer value must not be null after updateRow()");
+    }
+    try (Statement st = con.createStatement();
+        ResultSet rs =
+            st.executeQuery("SELECT " + column + " FROM datetimetable WHERE id = 1")) {
+      assertTrue(rs.next());
+      T fromDb = rs.getObject(1, type);
+      assertNotNull(fromDb);
+      return fromDb;
+    }
+  }
+
+  @Test
+  public void testUpdateableWithSameTableNameInMultipleSchemas() throws SQLException {
+    // Two schemas hold a table with the same name and the same auto-generated primary key
+    // index name (same_name_pkey), but a different set of key columns. An unqualified query
+    // must be classified using only the table visible through search_path, not the union of
+    // both schemas' key columns. Before the fix the union made upd_schema_a's single-column
+    // key look incomplete, so the result set was wrongly rejected as not updatable.
+    //
+    // search_path puts an empty schema first, so the table resolves through a later entry
+    // (upd_schema_a). This also rules out the rejected #3400 approach of defaulting the
+    // schema to current_schema(): current_schema() is the empty schema, which holds no
+    // same_name table, so that approach would still reject the result set.
+    TestUtil.execute(con, "DROP SCHEMA IF EXISTS upd_schema_empty CASCADE");
+    TestUtil.execute(con, "DROP SCHEMA IF EXISTS upd_schema_a CASCADE");
+    TestUtil.execute(con, "DROP SCHEMA IF EXISTS upd_schema_b CASCADE");
+    TestUtil.execute(con, "CREATE SCHEMA upd_schema_empty");
+    TestUtil.execute(con, "CREATE SCHEMA upd_schema_a");
+    TestUtil.execute(con, "CREATE SCHEMA upd_schema_b");
+    String savedSearchPath;
+    try (Statement show = con.createStatement();
+         ResultSet rs = show.executeQuery("SHOW search_path")) {
+      assertTrue(rs.next());
+      String sp = rs.getString(1);
+      savedSearchPath = sp != null ? sp : "\"$user\", public";
+    }
+    try {
+      TestUtil.execute(con, "CREATE TABLE upd_schema_a.same_name (id int PRIMARY KEY, val text)");
+      TestUtil.execute(con,
+          "CREATE TABLE upd_schema_b.same_name (id int, other int, val text, PRIMARY KEY (id, other))");
+      TestUtil.execute(con, "INSERT INTO upd_schema_a.same_name (id, val) VALUES (1, 'a')");
+
+      TestUtil.execute(con, "SET search_path TO upd_schema_empty, upd_schema_a, upd_schema_b");
+      try (Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_UPDATABLE)) {
+        try (ResultSet rs = st.executeQuery("SELECT id, val FROM same_name")) {
+          assertTrue(rs.next());
+          rs.updateString("val", "updated");
+          rs.updateRow();
+        }
+        try (ResultSet rs = st.executeQuery("SELECT val FROM same_name WHERE id = 1")) {
+          assertTrue(rs.next());
+          assertEquals("updated", rs.getString("val"));
+        }
+      }
+    } finally {
+      TestUtil.execute(con, "SET search_path TO " + savedSearchPath);
+      TestUtil.execute(con, "DROP SCHEMA IF EXISTS upd_schema_empty CASCADE");
+      TestUtil.execute(con, "DROP SCHEMA IF EXISTS upd_schema_a CASCADE");
+      TestUtil.execute(con, "DROP SCHEMA IF EXISTS upd_schema_b CASCADE");
+    }
   }
 }

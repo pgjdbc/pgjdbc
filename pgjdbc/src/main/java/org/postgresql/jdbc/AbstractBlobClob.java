@@ -191,7 +191,7 @@ public abstract class AbstractBlobClob {
       getLo(false).seek((int) start);
     }
 
-    public boolean hasNext() throws SQLException {
+    boolean hasNext() throws SQLException {
       boolean result;
       if (idx < numBytes) {
         result = true;

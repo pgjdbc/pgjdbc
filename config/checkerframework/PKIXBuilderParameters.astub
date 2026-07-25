@@ -1,0 +1,8 @@
+package java.security.cert;
+
+import org.checkerframework.checker.nullness.qual.*;
+
+class PKIXBuilderParameters {
+    // targetConstraints may be null: "null to specify that there are no constraints".
+    PKIXBuilderParameters(java.util.Set<TrustAnchor> trustAnchors, @Nullable CertSelector targetConstraints);
+}
