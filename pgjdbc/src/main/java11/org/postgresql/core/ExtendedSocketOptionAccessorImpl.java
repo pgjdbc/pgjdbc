@@ -5,6 +5,10 @@
 
 package org.postgresql.core;
 
+import org.postgresql.core.v3.ConnectionFactoryImpl;
+import org.postgresql.util.ClassLoaderStrategy;
+import org.postgresql.util.ClassUtils;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
@@ -79,14 +83,17 @@ public class ExtendedSocketOptionAccessorImpl implements ExtendedSocketOptionAcc
   }
 
   private SocketOptionReference<Integer> getIntegerSocketOption(String name) {
-    return integerSocketOptionByName.computeIfAbsent(name, this::createIntegerSocketOption);
+    return integerSocketOptionByName.computeIfAbsent(name,
+        ExtendedSocketOptionAccessorImpl::createIntegerSocketOption);
   }
 
   @SuppressWarnings("unchecked")
-  private SocketOptionReference<Integer> createIntegerSocketOption(String name) {
+  private static SocketOptionReference<Integer> createIntegerSocketOption(String name) {
     try {
       SocketOption<Integer> socketOption =
-          (SocketOption<Integer>) Class.forName(EXTENDED_SOCKET_OPTIONS_CLASS_NAME)
+          (SocketOption<Integer>) ClassUtils.forName(EXTENDED_SOCKET_OPTIONS_CLASS_NAME,
+                  SocketOption.class, ClassLoaderStrategy.DRIVER,
+                  ConnectionFactoryImpl.class.getClassLoader())
               .getField(name)
               .get(null);
       return new SocketOptionReference<>(name, socketOption);
@@ -104,14 +111,14 @@ public class ExtendedSocketOptionAccessorImpl implements ExtendedSocketOptionAcc
       this.socketOption = socketOption;
     }
 
-    public @Nullable T getValue(Socket socket) throws IOException {
+    private @Nullable T getValue(Socket socket) throws IOException {
       if (socketOption == null) {
         return null;
       }
       return socket.getOption(socketOption);
     }
 
-    public void setValue(Socket socket, T value) throws IOException {
+    private void setValue(Socket socket, T value) throws IOException {
       if (socketOption == null) {
         throw new UnsupportedOperationException(
             String.format("%s#%s seems to be unsupported by the current JDK.",
@@ -121,7 +128,7 @@ public class ExtendedSocketOptionAccessorImpl implements ExtendedSocketOptionAcc
       socket.setOption(socketOption, value);
     }
 
-    public boolean isSupported() {
+    private boolean isSupported() {
       return socketOption != null;
     }
   }
