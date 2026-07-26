@@ -544,14 +544,14 @@ class ConnectionTest {
     PGStream pgStream = (PGStream) f.get(queryExecutor);
     pgStream.setNetworkTimeout(1000);
     pgStream.getSocket().setKeepAlive(true);
-    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepCountSupported()) {
-      ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepCount(pgStream.getSocket(), 80);
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepAliveCountSupported()) {
+      ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepAliveCount(pgStream.getSocket(), 80);
     }
-    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIdleSupported()) {
-      ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepIdle(pgStream.getSocket(), 900);
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepAliveIdleSupported()) {
+      ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepAliveIdle(pgStream.getSocket(), 900);
     }
-    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIntervalSupported()) {
-      ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepInterval(pgStream.getSocket(), 1000);
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepAliveIntervalSupported()) {
+      ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepAliveInterval(pgStream.getSocket(), 1000);
     }
     pgStream.getSocket().setSendBufferSize(8192);
     pgStream.getSocket().setReceiveBufferSize(2048);
@@ -560,14 +560,14 @@ class ConnectionTest {
     assertEquals(2048, newStream.getSocket().getReceiveBufferSize());
     assertEquals(8192, newStream.getSocket().getSendBufferSize());
     assertTrue(newStream.getSocket().getKeepAlive());
-    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepCountSupported()) {
-      assertEquals(80, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepCount(newStream.getSocket()));
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepAliveCountSupported()) {
+      assertEquals(80, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepAliveCount(newStream.getSocket()));
     }
-    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIdleSupported()) {
-      assertEquals(900, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepIdle(newStream.getSocket()));
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepAliveIdleSupported()) {
+      assertEquals(900, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepAliveIdle(newStream.getSocket()));
     }
-    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIntervalSupported()) {
-      assertEquals(1000, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepInterval(newStream.getSocket()));
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepAliveIntervalSupported()) {
+      assertEquals(1000, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepAliveInterval(newStream.getSocket()));
     }
 
     TestUtil.closeDB(con);
@@ -577,14 +577,14 @@ class ConnectionTest {
   void socketSettings() throws Exception {
     Properties properties = new Properties();
     PGProperty.TCP_KEEP_ALIVE.set(properties, true);
-    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepCountSupported()) {
-      PGProperty.TCP_KEEP_COUNT.set(properties, 80);
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepAliveCountSupported()) {
+      PGProperty.TCP_KEEP_ALIVE_COUNT.set(properties, 80);
     }
-    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIdleSupported()) {
-      PGProperty.TCP_KEEP_IDLE.set(properties, 900);
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepAliveIdleSupported()) {
+      PGProperty.TCP_KEEP_ALIVE_IDLE.set(properties, 900);
     }
-    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIntervalSupported()) {
-      PGProperty.TCP_KEEP_INTERVAL.set(properties, 1000);
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepAliveIntervalSupported()) {
+      PGProperty.TCP_KEEP_ALIVE_INTERVAL.set(properties, 1000);
     }
 
     con = TestUtil.openDB(properties);
@@ -596,14 +596,14 @@ class ConnectionTest {
 
     Socket socket = pgStream.getSocket();
     assertTrue(socket.getKeepAlive());
-    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepCountSupported()) {
-      assertEquals(80, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepCount(socket));
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepAliveCountSupported()) {
+      assertEquals(80, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepAliveCount(socket));
     }
-    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIdleSupported()) {
-      assertEquals(900, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepIdle(socket));
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepAliveIdleSupported()) {
+      assertEquals(900, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepAliveIdle(socket));
     }
-    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIntervalSupported()) {
-      assertEquals(1000, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepInterval(socket));
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepAliveIntervalSupported()) {
+      assertEquals(1000, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepAliveInterval(socket));
     }
 
     TestUtil.closeDB(con);

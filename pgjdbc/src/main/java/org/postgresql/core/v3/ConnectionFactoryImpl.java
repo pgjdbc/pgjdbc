@@ -234,19 +234,19 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
       newStream.getSocket().setKeepAlive(requireTCPKeepAlive);
 
-      Integer tcpKeepCount = PGProperty.TCP_KEEP_COUNT.getInteger(info);
-      if (tcpKeepCount != null) {
-        ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepCount(newStream.getSocket(), tcpKeepCount);
+      Integer tcpKeepAliveCount = PGProperty.TCP_KEEP_ALIVE_COUNT.getInteger(info);
+      if (tcpKeepAliveCount != null) {
+        ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepAliveCount(newStream.getSocket(), tcpKeepAliveCount);
       }
 
-      Integer tcpKeepIdle = PGProperty.TCP_KEEP_IDLE.getInteger(info);
-      if (tcpKeepIdle != null) {
-        ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepIdle(newStream.getSocket(), tcpKeepIdle);
+      Integer tcpKeepAliveIdle = PGProperty.TCP_KEEP_ALIVE_IDLE.getInteger(info);
+      if (tcpKeepAliveIdle != null) {
+        ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepAliveIdle(newStream.getSocket(), tcpKeepAliveIdle);
       }
 
-      Integer tcpKeepInterval = PGProperty.TCP_KEEP_INTERVAL.getInteger(info);
-      if (tcpKeepInterval != null) {
-        ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepInterval(newStream.getSocket(), tcpKeepInterval);
+      Integer tcpKeepAliveInterval = PGProperty.TCP_KEEP_ALIVE_INTERVAL.getInteger(info);
+      if (tcpKeepAliveInterval != null) {
+        ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepAliveInterval(newStream.getSocket(), tcpKeepAliveInterval);
       }
 
       // Enable TCP no delay if required

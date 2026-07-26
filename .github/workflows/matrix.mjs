@@ -500,7 +500,7 @@ include.forEach(v => {
       testJvmArgs.push('-DadaptiveFetch=true');
   }
   if (v.keep_alive === 'yes' && v.java_version >= 11) {
-      testJvmArgs.push('-DtcpKeepAlive=true', '-DtcpKeepCount=9', '-DtcpKeepIdle=30', '-DtcpKeepInterval=1');
+      testJvmArgs.push('-DtcpKeepAlive=true', '-DtcpKeepAliveCount=9', '-DtcpKeepAliveIdle=30', '-DtcpKeepAliveInterval=1');
   }
   if (v.rewrite_batch_inserts === 'yes') {
       testJvmArgs.push('-DreWriteBatchedInserts=true');

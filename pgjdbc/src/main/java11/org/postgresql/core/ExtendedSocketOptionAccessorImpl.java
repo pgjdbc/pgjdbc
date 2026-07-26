@@ -34,47 +34,47 @@ public class ExtendedSocketOptionAccessorImpl implements ExtendedSocketOptionAcc
   }
 
   @Override
-  public boolean isTcpKeepCountSupported() {
+  public boolean isTcpKeepAliveCountSupported() {
     return getIntegerSocketOption(TCP_KEEPCOUNT).isSupported();
   }
 
   @Override
-  public void setTcpKeepCount(Socket socket, int value) throws IOException {
+  public void setTcpKeepAliveCount(Socket socket, int value) throws IOException {
     getIntegerSocketOption(TCP_KEEPCOUNT).setValue(socket, value);
   }
 
   @Override
-  public @Nullable Integer getTcpKeepCount(Socket socket) throws IOException {
+  public @Nullable Integer getTcpKeepAliveCount(Socket socket) throws IOException {
     return getIntegerSocketOption(TCP_KEEPCOUNT).getValue(socket);
   }
 
   @Override
-  public boolean isTcpKeepIdleSupported() {
+  public boolean isTcpKeepAliveIdleSupported() {
     return getIntegerSocketOption(TCP_KEEPIDLE).isSupported();
   }
 
   @Override
-  public void setTcpKeepIdle(Socket socket, int value) throws IOException {
+  public void setTcpKeepAliveIdle(Socket socket, int value) throws IOException {
     getIntegerSocketOption(TCP_KEEPIDLE).setValue(socket, value);
   }
 
   @Override
-  public @Nullable Integer getTcpKeepIdle(Socket socket) throws IOException {
+  public @Nullable Integer getTcpKeepAliveIdle(Socket socket) throws IOException {
     return getIntegerSocketOption(TCP_KEEPIDLE).getValue(socket);
   }
 
   @Override
-  public boolean isTcpKeepIntervalSupported() {
+  public boolean isTcpKeepAliveIntervalSupported() {
     return getIntegerSocketOption(TCP_KEEPINTERVAL).isSupported();
   }
 
   @Override
-  public void setTcpKeepInterval(Socket socket, int value) throws IOException {
+  public void setTcpKeepAliveInterval(Socket socket, int value) throws IOException {
     getIntegerSocketOption(TCP_KEEPINTERVAL).setValue(socket, value);
   }
 
   @Override
-  public @Nullable Integer getTcpKeepInterval(Socket socket) throws IOException {
+  public @Nullable Integer getTcpKeepAliveInterval(Socket socket) throws IOException {
     return getIntegerSocketOption(TCP_KEEPINTERVAL).getValue(socket);
   }
 

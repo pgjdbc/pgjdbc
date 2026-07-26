@@ -916,24 +916,24 @@ public enum PGProperty {
   /**
    * The maximum number of keep-alive probes to be sent before a connection is considered to be broken. Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available. The default value for this keep-alive probe retransmit limit is system dependent, but is typically 8.
    */
-  TCP_KEEP_COUNT(
-      "tcpKeepCount",
+  TCP_KEEP_ALIVE_COUNT(
+      "tcpKeepAliveCount",
       null,
       "The maximum number of keep-alive probes to be sent before a connection is considered to be broken. Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available. The default value for this keep-alive probe retransmit limit is system dependent, but is typically 8."),
 
   /**
    * The number of seconds of idle time before keep-alive initiates a probe. Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available. The default value for this idle period is system dependent, but is typically 2 hours.
    */
-  TCP_KEEP_IDLE(
-      "tcpKeepIdle",
+  TCP_KEEP_ALIVE_IDLE(
+      "tcpKeepAliveIdle",
       null,
       "The number of seconds of idle time before keep-alive initiates a probe. Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available. The default value for this idle period is system dependent, but is typically 2 hours."),
 
   /**
    * The number of seconds to wait before retransmitting a keep-alive probe. Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available. The default value for this retransmission interval is system dependent, but is typically 75 seconds.
    */
-  TCP_KEEP_INTERVAL(
-      "tcpKeepInterval",
+  TCP_KEEP_ALIVE_INTERVAL(
+      "tcpKeepAliveInterval",
       null,
       "The number of seconds to wait before retransmitting a keep-alive probe. Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available. The default value for this retransmission interval is system dependent, but is typically 75 seconds."),
 

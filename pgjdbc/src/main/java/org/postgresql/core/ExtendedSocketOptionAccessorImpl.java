@@ -20,47 +20,47 @@ public class ExtendedSocketOptionAccessorImpl implements ExtendedSocketOptionAcc
   }
 
   @Override
-  public boolean isTcpKeepCountSupported() {
+  public boolean isTcpKeepAliveCountSupported() {
     return false;
   }
 
   @Override
-  public void setTcpKeepCount(Socket socket, int value) {
+  public void setTcpKeepAliveCount(Socket socket, int value) {
     throw new UnsupportedOperationException("Tuning TCP_KEEPCOUNT is only supported from JDK 11 onwards");
   }
 
   @Override
-  public @Nullable Integer getTcpKeepCount(Socket socket) {
+  public @Nullable Integer getTcpKeepAliveCount(Socket socket) {
     return null;
   }
 
   @Override
-  public boolean isTcpKeepIdleSupported() {
+  public boolean isTcpKeepAliveIdleSupported() {
     return false;
   }
 
   @Override
-  public void setTcpKeepIdle(Socket socket, int value) {
+  public void setTcpKeepAliveIdle(Socket socket, int value) {
     throw new UnsupportedOperationException("Tuning TCP_KEEPIDLE is only supported from JDK 11 onwards");
   }
 
   @Override
-  public @Nullable Integer getTcpKeepIdle(Socket socket) {
+  public @Nullable Integer getTcpKeepAliveIdle(Socket socket) {
     return null;
   }
 
   @Override
-  public boolean isTcpKeepIntervalSupported() {
+  public boolean isTcpKeepAliveIntervalSupported() {
     return false;
   }
 
   @Override
-  public void setTcpKeepInterval(Socket socket, int value) {
+  public void setTcpKeepAliveInterval(Socket socket, int value) {
     throw new UnsupportedOperationException("Tuning TCP_KEEPINTERVAL is only supported from JDK 11 onwards");
   }
 
   @Override
-  public @Nullable Integer getTcpKeepInterval(Socket socket) {
+  public @Nullable Integer getTcpKeepAliveInterval(Socket socket) {
     return null;
   }
 

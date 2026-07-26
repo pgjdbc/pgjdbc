@@ -900,19 +900,19 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   /**
    * Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available.
    * @param value the maximum number of keep-alive probes to be sent before a connection is considered to be broken.
-   * @see PGProperty#TCP_KEEP_COUNT
+   * @see PGProperty#TCP_KEEP_ALIVE_COUNT
    */
-  public void setTcpKeepCount(@Nullable Integer value) {
-    PGProperty.TCP_KEEP_COUNT.setInteger(properties, value);
+  public void setTcpKeepAliveCount(@Nullable Integer value) {
+    PGProperty.TCP_KEEP_ALIVE_COUNT.setInteger(properties, value);
   }
 
   /**
    * @return the maximum number of keep-alive probes to be sent
-   * @see PGProperty#TCP_KEEP_COUNT
+   * @see PGProperty#TCP_KEEP_ALIVE_COUNT
    */
-  public @Nullable Integer getTcpKeepCount() {
+  public @Nullable Integer getTcpKeepAliveCount() {
     try {
-      return PGProperty.TCP_KEEP_COUNT.getInteger(properties);
+      return PGProperty.TCP_KEEP_ALIVE_COUNT.getInteger(properties);
     } catch (PSQLException e) {
       return null;
     }
@@ -921,19 +921,19 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   /**
    * Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available.
    * @param value the number of seconds of idle time before keep-alive initiates a probe.
-   * @see PGProperty#TCP_KEEP_IDLE
+   * @see PGProperty#TCP_KEEP_ALIVE_IDLE
    */
-  public void setTcpKeepIdle(@Nullable Integer value) {
-    PGProperty.TCP_KEEP_IDLE.setInteger(properties, value);
+  public void setTcpKeepAliveIdle(@Nullable Integer value) {
+    PGProperty.TCP_KEEP_ALIVE_IDLE.setInteger(properties, value);
   }
 
   /**
    * @return the number of seconds of idle time before keep-alive initiates a probe
-   * @see PGProperty#TCP_KEEP_IDLE
+   * @see PGProperty#TCP_KEEP_ALIVE_IDLE
    */
-  public @Nullable Integer getTcpKeepIdle() {
+  public @Nullable Integer getTcpKeepAliveIdle() {
     try {
-      return PGProperty.TCP_KEEP_IDLE.getInteger(properties);
+      return PGProperty.TCP_KEEP_ALIVE_IDLE.getInteger(properties);
     } catch (PSQLException e) {
       return null;
     }
@@ -942,19 +942,19 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   /**
    * Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available.
    * @param value the number of seconds to wait before retransmitting a keep-alive probe.
-   * @see PGProperty#TCP_KEEP_INTERVAL
+   * @see PGProperty#TCP_KEEP_ALIVE_INTERVAL
    */
-  public void setTcpKeepInterval(@Nullable Integer value) {
-    PGProperty.TCP_KEEP_INTERVAL.setInteger(properties, value);
+  public void setTcpKeepAliveInterval(@Nullable Integer value) {
+    PGProperty.TCP_KEEP_ALIVE_INTERVAL.setInteger(properties, value);
   }
 
   /**
    * @return the number of seconds to wait before retransmitting a keep-alive probe
-   * @see PGProperty#TCP_KEEP_INTERVAL
+   * @see PGProperty#TCP_KEEP_ALIVE_INTERVAL
    */
-  public @Nullable Integer getTcpKeepInterval() {
+  public @Nullable Integer getTcpKeepAliveInterval() {
     try {
-      return PGProperty.TCP_KEEP_INTERVAL.getInteger(properties);
+      return PGProperty.TCP_KEEP_ALIVE_INTERVAL.getInteger(properties);
     } catch (PSQLException e) {
       return null;
     }
