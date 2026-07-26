@@ -18,24 +18,24 @@ import java.net.Socket;
  */
 public interface ExtendedSocketOptionAccessor {
 
-  boolean isTcpKeepAliveCountSupported();
+  boolean isTcpKeepCountSupported();
 
-  void setTcpKeepAliveCount(Socket socket, int value) throws IOException;
-
-  @Nullable
-  Integer getTcpKeepAliveCount(Socket socket) throws IOException;
-
-  boolean isTcpKeepAliveIdleSupported();
-
-  void setTcpKeepAliveIdle(Socket socket, int value) throws IOException;
+  void setTcpKeepCount(Socket socket, int value) throws IOException;
 
   @Nullable
-  Integer getTcpKeepAliveIdle(Socket socket) throws IOException;
+  Integer getTcpKeepCount(Socket socket) throws IOException;
 
-  boolean isTcpKeepAliveIntervalSupported();
+  boolean isTcpKeepIdleSupported();
 
-  void setTcpKeepAliveInterval(Socket socket, int value) throws IOException;
+  void setTcpKeepIdle(Socket socket, int value) throws IOException;
 
   @Nullable
-  Integer getTcpKeepAliveInterval(Socket socket) throws IOException;
+  Integer getTcpKeepIdle(Socket socket) throws IOException;
+
+  boolean isTcpKeepIntervalSupported();
+
+  void setTcpKeepInterval(Socket socket, int value) throws IOException;
+
+  @Nullable
+  Integer getTcpKeepInterval(Socket socket) throws IOException;
 }

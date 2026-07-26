@@ -236,17 +236,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
       Integer tcpKeepAliveCount = PGProperty.TCP_KEEP_ALIVE_COUNT.getInteger(info);
       if (tcpKeepAliveCount != null) {
-        ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepAliveCount(newStream.getSocket(), tcpKeepAliveCount);
+        ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepCount(newStream.getSocket(), tcpKeepAliveCount);
       }
 
       Integer tcpKeepAliveIdle = PGProperty.TCP_KEEP_ALIVE_IDLE.getInteger(info);
       if (tcpKeepAliveIdle != null) {
-        ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepAliveIdle(newStream.getSocket(), tcpKeepAliveIdle);
+        ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepIdle(newStream.getSocket(), tcpKeepAliveIdle);
       }
 
       Integer tcpKeepAliveInterval = PGProperty.TCP_KEEP_ALIVE_INTERVAL.getInteger(info);
       if (tcpKeepAliveInterval != null) {
-        ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepAliveInterval(newStream.getSocket(), tcpKeepAliveInterval);
+        ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepInterval(newStream.getSocket(), tcpKeepAliveInterval);
       }
 
       // Enable TCP no delay if required

@@ -156,9 +156,9 @@ public class PGStream implements Closeable, Flushable {
       receiveBufferSize = pgStream.getSocket().getReceiveBufferSize();
       soTimeout = pgStream.getSocket().getSoTimeout();
       keepAlive = pgStream.getSocket().getKeepAlive();
-      keepCount = ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepAliveCount(pgStream.getSocket());
-      keepIdle = ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepAliveIdle(pgStream.getSocket());
-      keepInterval = ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepAliveInterval(pgStream.getSocket());
+      keepCount = ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepCount(pgStream.getSocket());
+      keepIdle = ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepIdle(pgStream.getSocket());
+      keepInterval = ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepInterval(pgStream.getSocket());
       tcpNoDelay = pgStream.getSocket().getTcpNoDelay();
 
     } catch ( SocketException ex ) {
@@ -180,13 +180,13 @@ public class PGStream implements Closeable, Flushable {
     setNetworkTimeout(soTimeout);
     socket.setKeepAlive(keepAlive);
     if (keepCount != null) {
-      ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepAliveCount(socket, keepCount);
+      ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepCount(socket, keepCount);
     }
     if (keepIdle != null) {
-      ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepAliveIdle(socket, keepIdle);
+      ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepIdle(socket, keepIdle);
     }
     if (keepInterval != null) {
-      ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepAliveInterval(socket, keepInterval);
+      ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepInterval(socket, keepInterval);
     }
     socket.setTcpNoDelay(tcpNoDelay);
   }
