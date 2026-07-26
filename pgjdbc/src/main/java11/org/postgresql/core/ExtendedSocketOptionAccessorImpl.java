@@ -5,7 +5,6 @@
 
 package org.postgresql.core;
 
-import org.postgresql.core.v3.ConnectionFactoryImpl;
 import org.postgresql.util.ClassLoaderStrategy;
 import org.postgresql.util.ClassUtils;
 
@@ -93,7 +92,7 @@ public class ExtendedSocketOptionAccessorImpl implements ExtendedSocketOptionAcc
       SocketOption<Integer> socketOption =
           (SocketOption<Integer>) ClassUtils.forName(EXTENDED_SOCKET_OPTIONS_CLASS_NAME,
                   SocketOption.class, ClassLoaderStrategy.DRIVER,
-                  ConnectionFactoryImpl.class.getClassLoader())
+                  ExtendedSocketOptionAccessorImpl.class.getClassLoader())
               .getField(name)
               .get(null);
       return new SocketOptionReference<>(name, socketOption);
