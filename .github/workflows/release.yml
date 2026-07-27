@@ -123,7 +123,7 @@ jobs:
           SIGNING_PGP_PASSPHRASE: ${{ secrets.RELEASE_PGP_PASSPHRASE }}
 
       - name: Publish GitHub release
-        uses: release-drafter/release-drafter@693d20e7c1ce1a81d3a41962f85914253b518449 # v7.3.1
+        uses: release-drafter/release-drafter@eada3c96a64734dd381cfbda23511034e328ddb0 # v7.6.0
         id: publish_release
         with:
           disable-autolabeler: true
