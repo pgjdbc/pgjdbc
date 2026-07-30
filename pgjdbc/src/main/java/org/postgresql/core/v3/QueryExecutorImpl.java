@@ -1362,7 +1362,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       } catch (IOException ioe) {
         // Release the lock if still held after a connection failure,
         // otherwise future operations will hang indefinitely in waitOnLock()
-        if (hasLock(op)) {
+        // except for SocketTimeoutException
+        if (!(ioe instanceof SocketTimeoutException) && hasLock(op)) {
           unlock(op);
         }
         throw new PSQLException(GT.tr("Database connection failed when reading from copy"),
