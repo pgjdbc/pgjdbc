@@ -298,7 +298,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           PSQLState.OBJECT_NOT_IN_STATE);
     }
     lockedFor = null;
-    lockCondition.signal();
+    // Threads park in waitOnLock() without taking the lock, so waking one of them would leave
+    // the rest waiting for a copy that is already over
+    lockCondition.signalAll();
   }
 
   /**
@@ -307,6 +309,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private void waitOnLock() throws PSQLException {
     while (lockedFor != null) {
+      if (isClosed()) {
+        // The copy holding the lock died with the connection, so it will never release it
+        throw new PSQLException(GT.tr("This connection has been closed."),
+            PSQLState.CONNECTION_DOES_NOT_EXIST);
+      }
       try {
         lockCondition.await();
       } catch (InterruptedException ie) {
@@ -315,6 +322,24 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             GT.tr("Interrupted while waiting to obtain lock on database connection"),
             PSQLState.OBJECT_NOT_IN_STATE, ie);
       }
+    }
+  }
+
+  /**
+   * Gives up on the connection after an I/O failure during COPY. A copy that holds the lock keeps
+   * it, since a desynchronized protocol stream is not free for anyone else to use; closing the
+   * connection is what lets threads waiting in {@link #waitOnLock()} fail instead of waiting for a
+   * copy that can no longer end.
+   *
+   * <p>The COPY methods call this for every I/O failure except one: a read timeout in
+   * {@link #readFromCopy}, the only failure a caller can resume from by reading again. A failed
+   * send has already put part of a message on the wire, and neither {@link #startCopy} nor
+   * {@link #endCopy} can be retried, since that would send the query or CopyDone a second time.</p>
+   */
+  private void abortAfterCopyFailure() {
+    abort();
+    try (ResourceLock ignore = lock.obtain()) {
+      lockCondition.signalAll();
     }
   }
 
@@ -1116,6 +1141,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         return castNonNull(processCopyResults(null, true));
         // expect a CopyInResponse or CopyOutResponse to our query above
       } catch (IOException ioe) {
+        abortAfterCopyFailure();
         throw new PSQLException(GT.tr("Database connection failed when starting copy"),
             PSQLState.CONNECTION_FAILURE, ioe);
       }
@@ -1193,13 +1219,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
 
     } catch (IOException ioe) {
+      abortAfterCopyFailure();
       throw new PSQLException(GT.tr("Database connection failed when canceling copy operation"),
           PSQLState.CONNECTION_FAILURE, ioe);
     } finally {
-      // Need to ensure the lock isn't held anymore, or else
-      // future operations, rather than failing due to the
-      // broken connection, will simply hang waiting for this
-      // lock.
+      // Canceling ends the copy either way, so the lock has to go back. Otherwise later
+      // operations would wait for a copy that is already over.
       try (ResourceLock ignore = lock.obtain()) {
         if (hasLock(op)) {
           unlock(op);
@@ -1244,14 +1269,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         } while (hasLock(op));
         return op.getHandledRowCount();
       } catch (IOException ioe) {
+        abortAfterCopyFailure();
         throw new PSQLException(GT.tr("Database connection failed when ending copy"),
             PSQLState.CONNECTION_FAILURE, ioe);
-      } finally {
-        // Release the lock if still held, otherwise future operations
-        // will hang indefinitely in waitOnLock()
-        if (hasLock(op)) {
-          unlock(op);
-        }
       }
     }
   }
@@ -1281,9 +1301,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         pgStream.sendInteger4(siz + 4);
         pgStream.send(data, off, siz);
       } catch (IOException ioe) {
-        if (hasLock(op)) {
-          unlock(op);
-        }
+        abortAfterCopyFailure();
         throw new PSQLException(GT.tr("Database connection failed when writing to copy"),
             PSQLState.CONNECTION_FAILURE, ioe);
       }
@@ -1314,9 +1332,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         pgStream.sendInteger4(siz + 4);
         pgStream.send(from);
       } catch (IOException ioe) {
-        if (hasLock(op)) {
-          unlock(op);
-        }
+        abortAfterCopyFailure();
         throw new PSQLException(GT.tr("Database connection failed when writing to copy"),
             PSQLState.CONNECTION_FAILURE, ioe);
       }
@@ -1333,9 +1349,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       try {
         pgStream.flush();
       } catch (IOException ioe) {
-        if (hasLock(op)) {
-          unlock(op);
-        }
+        abortAfterCopyFailure();
         throw new PSQLException(GT.tr("Database connection failed when writing to copy"),
             PSQLState.CONNECTION_FAILURE, ioe);
       }
@@ -1359,12 +1373,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
       try {
         processCopyResults(op, block); // expect a call to handleCopydata() to store the data
+      } catch (SocketTimeoutException ste) {
+        // A read timeout leaves the socket usable, so the copy stays active and the caller can
+        // read again. Replication depends on that: the stream sets the socket timeout to the
+        // status interval and treats the timeout as its wake-up to send a standby status update.
+        throw new PSQLException(GT.tr("Database connection failed when reading from copy"),
+            PSQLState.CONNECTION_FAILURE, ste);
       } catch (IOException ioe) {
-        // Release the lock if still held after a connection failure,
-        // otherwise future operations will hang indefinitely in waitOnLock()
-        if (hasLock(op)) {
-          unlock(op);
-        }
+        abortAfterCopyFailure();
         throw new PSQLException(GT.tr("Database connection failed when reading from copy"),
             PSQLState.CONNECTION_FAILURE, ioe);
       }
