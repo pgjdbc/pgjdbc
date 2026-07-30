@@ -49,6 +49,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
@@ -56,6 +57,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -881,6 +883,87 @@ class CopyTest {
   }
 
   /**
+   * The {@link CopyIn#writeToCopy(org.postgresql.util.ByteStreamWriter)} overload has to give the
+   * connection up on an I/O failure just like the byte-array one.
+   *
+   * @see <a href="https://github.com/pgjdbc/pgjdbc/issues/3957">Issue 3957</a>
+   */
+  @Test
+  @Timeout(value = 30, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+  void writeToCopyFromByteStreamWriterFailureClosesConnection() throws Exception {
+    try (StrangeProxyServer proxyServer = new StrangeProxyServer(TestUtil.getServer(),
+        TestUtil.getPort())) {
+      Properties props = new Properties();
+      TestUtil.setTestUrlProperty(props, PGProperty.PG_HOST, "localhost");
+      TestUtil.setTestUrlProperty(props, PGProperty.PG_PORT,
+          String.valueOf(proxyServer.getServerPort()));
+
+      try (Connection proxyCon = TestUtil.openDB(props)) {
+        TestUtil.createTempTable(proxyCon, "copytest_writer", "data text");
+
+        CopyManager manager = proxyCon.unwrap(PGConnection.class).getCopyAPI();
+        CopyIn copyIn = manager.copyIn("COPY copytest_writer (data) FROM STDIN WITH (FORMAT CSV)");
+        byte[] row = "somedata\n".getBytes(StandardCharsets.UTF_8);
+        copyIn.writeToCopy(new ByteBufferByteStreamWriter(ByteBuffer.wrap(row)));
+        copyIn.flushCopy();
+
+        proxyServer.closeAllClients();
+
+        // A payload this large outgrows the output buffer, so it has to reach the socket within
+        // writeToCopy itself rather than waiting for the flush
+        byte[] bigRow = new byte[1024 * 1024];
+        Arrays.fill(bigRow, (byte) 'x');
+        bigRow[bigRow.length - 1] = '\n';
+        assertThrows(SQLException.class,
+            () -> copyIn.writeToCopy(new ByteBufferByteStreamWriter(ByteBuffer.wrap(bigRow))),
+            "Expected SQLException from broken connection during writeToCopy");
+
+        assertTrue(proxyCon.isClosed(),
+            "A COPY that failed to send should give the connection up");
+      }
+    }
+  }
+
+  /**
+   * Interrupting a thread that waits for a COPY to finish fails its query and leaves the interrupt
+   * flag set, rather than swallowing the interrupt.
+   */
+  @Test
+  @Timeout(value = 30, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+  void interruptingAThreadWaitingForTheCopyKeepsTheInterruptFlag() throws Exception {
+    CopyIn copyIn = copyAPI.copyIn("COPY copytest FROM STDIN");
+    byte[] row = origData[0].getBytes(StandardCharsets.UTF_8);
+    copyIn.writeToCopy(row, 0, row.length);
+    copyIn.flushCopy();
+
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    try {
+      AtomicReference<Thread> waiter = new AtomicReference<>();
+      AtomicBoolean stillInterrupted = new AtomicBoolean();
+      Future<SQLException> failure = executor.submit(() -> {
+        waiter.set(Thread.currentThread());
+        try (Statement stmt = con.createStatement()) {
+          stmt.execute("SELECT 1");
+          return null;
+        } catch (SQLException e) {
+          stillInterrupted.set(Thread.currentThread().isInterrupted());
+          return e;
+        }
+      });
+      awaitWaitingForCopyLock(waiter).interrupt();
+
+      SQLException e = failure.get(10, TimeUnit.SECONDS);
+      assertNotNull(e, "The interrupted query should fail instead of waiting for the COPY");
+      assertEquals(PSQLState.OBJECT_NOT_IN_STATE.getState(), e.getSQLState(),
+          () -> "Unexpected failure: " + e);
+      assertTrue(stillInterrupted.get(), "The interrupt flag should survive the failure");
+    } finally {
+      executor.shutdownNow();
+      copyIn.endCopy();
+    }
+  }
+
+  /**
    * Every thread waiting for a COPY to finish has to be woken when it does, not just one of them.
    */
   @Test
@@ -919,18 +1002,18 @@ class CopyTest {
   }
 
   /**
-   * Waits until the helper thread parks on the COPY lock.
+   * Waits until the helper thread parks on the COPY lock. Fails the test if it never does.
    */
-  private static void awaitWaitingForCopyLock(AtomicReference<Thread> waiter) {
+  private static Thread awaitWaitingForCopyLock(AtomicReference<Thread> waiter) {
     long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
     while (System.nanoTime() < deadline) {
       Thread thread = waiter.get();
       if (thread != null && thread.getState() == Thread.State.WAITING) {
-        return;
+        return thread;
       }
       Thread.yield();
     }
-    fail("The helper thread never started waiting for the COPY lock");
+    return fail("The helper thread never started waiting for the COPY lock");
   }
 
   /**
