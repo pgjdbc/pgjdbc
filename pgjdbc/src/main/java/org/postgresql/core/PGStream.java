@@ -664,9 +664,16 @@ public class PGStream implements Closeable, Flushable {
 
     increaseByteCounter(dataToReadSize);
     OutOfMemoryError oom = null;
+    int remaining = dataToReadSize;
     for (int i = 0; i < nf; i++) {
       int size = receiveInteger4();
       if (size != -1) {
+        // -1 is null. Nothing else negative is valid, and no column exceeds what is left.
+        if (size < 0 || size > remaining) {
+          throw new IOException(GT.tr("DataRow column of {0} bytes does not fit in the {1} bytes"
+              + " left of the message.", String.valueOf(size), String.valueOf(remaining)));
+        }
+        remaining -= size;
         try {
           answer[i] = new byte[size];
           receive(answer[i], 0, size);
@@ -679,6 +686,10 @@ public class PGStream implements Closeable, Flushable {
 
     if (oom != null) {
       throw oom;
+    }
+    if (remaining != 0) {
+      throw new IOException(GT.tr("DataRow of {0} bytes has {1} unread bytes.",
+          String.valueOf(messageSize), String.valueOf(remaining)));
     }
 
     return new Tuple(answer);

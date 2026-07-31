@@ -1035,9 +1035,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case PgMessageType.FUNCTION_CALL_RESPONSE:
-          @SuppressWarnings("unused")
-          int msgLen = pgStream.receiveMessageLength("FunctionCallResponse", 8, PGStream.MAX_MESSAGE_LENGTH);
+          int msgLen = pgStream.receiveMessageLength("FunctionCallResponse", 8,
+              PGStream.MAX_MESSAGE_LENGTH);
           int valueLen = pgStream.receiveInteger4();
+          // -1 is null and carries no bytes. Any other length fills the message exactly.
+          int expectedLen = valueLen == -1 ? 8 : 8 + valueLen;
+          if (valueLen < -1 || msgLen != expectedLen) {
+            throw new IOException(GT.tr("Function call result of {0} bytes does not fill a"
+                + " message of {1} bytes.", String.valueOf(valueLen), String.valueOf(msgLen)));
+          }
 
           LOGGER.log(Level.FINEST, " <=BE FunctionCallResponse({0} bytes)", valueLen);
 
