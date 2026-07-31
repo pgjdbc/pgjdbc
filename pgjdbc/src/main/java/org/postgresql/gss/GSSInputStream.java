@@ -8,6 +8,7 @@ package org.postgresql.gss;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.GT;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.ietf.jgss.GSSContext;
@@ -23,7 +24,10 @@ public class GSSInputStream extends InputStream {
   private final InputStream wrapped;
   // See https://www.postgresql.org/docs/current/protocol-flow.html#PROTOCOL-FLOW-GSSAPI
   // The server can be expected to not send encrypted packets of larger than 16kB to the client
-  private byte[] encrypted = new byte[16 * 1024];
+  private static final int MAX_PACKET_SIZE = 16 * 1024;
+  // PQ_GSS_MAX_PACKET_SIZE counts the uint32 length word.
+  private static final int MAX_PAYLOAD_SIZE = MAX_PACKET_SIZE - 4;
+  private final byte[] encrypted = new byte[MAX_PACKET_SIZE];
   private int encryptedPos;
   private int encryptedLength;
 
@@ -115,9 +119,10 @@ public class GSSInputStream extends InputStream {
       }
     }
     encryptedLength = ByteConverter.int4(int4Buf, 0);
-    if (encrypted.length < encryptedLength) {
-      // If the buffer is too small, reallocate
-      encrypted = new byte[encryptedLength];
+    // Within the payload maximum the length always fits the buffer.
+    if (encryptedLength < 1 || encryptedLength > MAX_PAYLOAD_SIZE) {
+      throw new IOException(GT.tr("Backend declared a GSS packet of {0} bytes, the maximum is {1}.",
+          String.valueOf(encryptedLength), String.valueOf(MAX_PAYLOAD_SIZE)));
     }
     return 1;
   }

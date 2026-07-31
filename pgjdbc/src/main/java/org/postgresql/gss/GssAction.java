@@ -145,7 +145,8 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
           // Error
           switch (response) {
             case PgMessageType.ERROR_RESPONSE:
-              int elen = pgStream.receiveInteger4();
+              int elen = pgStream.receiveMessageLength("ErrorResponse", 5,
+                  PGStream.MAX_BUFFERED_MESSAGE_LENGTH);
               ServerErrorMessage errorMsg
                   = new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
 
@@ -154,7 +155,10 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
               return new PSQLException(errorMsg, logServerErrorDetail);
             case PgMessageType.AUTHENTICATION_RESPONSE:
               LOGGER.log(Level.FINEST, " <=BE AuthenticationGSSContinue");
-              int len = pgStream.receiveInteger4();
+              // Server to client the token is an AP-REP, not the client's PAC bearing ticket.
+              // libpq caps this message at 2000.
+              int len = pgStream.receiveMessageLength("AuthenticationGSSContinue", 8,
+                  PGStream.MAX_SMALL_MESSAGE_LENGTH);
               @SuppressWarnings("unused")
               int type = pgStream.receiveInteger4(); // Specifies that this message contains GSSAPI or SSPI data
               // should check type = 8

@@ -31,6 +31,9 @@ import javax.security.auth.Subject;
 
 public class GssEncAction implements PrivilegedAction<@Nullable Exception>, Callable<@Nullable Exception> {
   private static final Logger LOGGER = Logger.getLogger(GssAction.class.getName());
+  // PQ_GSS_AUTH_BUFFER_SIZE, 64 kB including the length word. PQ_GSS_MAX_PACKET_SIZE only
+  // governs encrypted packets.
+  private static final int MAX_HANDSHAKE_TOKEN_SIZE = 64 * 1024 - 4;
   private final PGStream pgStream;
   private final String host;
   private final String user;
@@ -140,8 +143,13 @@ public class GssEncAction implements PrivilegedAction<@Nullable Exception>, Call
         }
 
         if (!secContext.isEstablished()) {
+          // The length here is the raw token size, not a self inclusive message length.
           int len = pgStream.receiveInteger4();
-          // should check type = 8
+          if (len < 0 || len > MAX_HANDSHAKE_TOKEN_SIZE) {
+            throw new IOException(GT.tr(
+                "Backend declared a GSS token of {0} bytes, the maximum is {1}.",
+                String.valueOf(len), String.valueOf(MAX_HANDSHAKE_TOKEN_SIZE)));
+          }
           inToken = pgStream.receive(len);
         } else {
           established = true;
