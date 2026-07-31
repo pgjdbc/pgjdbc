@@ -1036,7 +1036,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case PgMessageType.FUNCTION_CALL_RESPONSE:
           @SuppressWarnings("unused")
-          int msgLen = pgStream.receiveInteger4();
+          int msgLen = pgStream.receiveMessageLength("FunctionCallResponse", 8, PGStream.MAX_MESSAGE_LENGTH);
           int valueLen = pgStream.receiveInteger4();
 
           LOGGER.log(Level.FINEST, " <=BE FunctionCallResponse({0} bytes)", valueLen);
@@ -1515,9 +1515,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
             LOGGER.log(Level.FINEST, " <=BE CopyData");
 
-            len = pgStream.receiveInteger4() - 4;
-
-            assert len > 0 : "Copy Data length must be greater than 4";
+            len = pgStream.receiveMessageLength("CopyData", 4, PGStream.MAX_MESSAGE_LENGTH) - 4;
 
             byte[] buf = pgStream.receive(len);
             if (op == null) {
@@ -1537,7 +1535,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
             LOGGER.log(Level.FINEST, " <=BE CopyDone");
 
-            len = pgStream.receiveInteger4() - 4;
+            len = pgStream.receiveMessageLength("CopyDone", 4, PGStream.MAX_SMALL_MESSAGE_LENGTH) - 4;
             if (len > 0) {
               pgStream.receive(len); // not in specification; should never appear
             }
@@ -1574,13 +1572,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           case PgMessageType.ROW_DESCRIPTION_RESPONSE: // Row Description (response to Describe)
             LOGGER.log(Level.FINEST, " <=BE RowDescription (during copy ignored)");
 
-            skipMessage();
+            skipMessage("RowDescription", PGStream.MAX_MESSAGE_LENGTH);
             break;
 
           case PgMessageType.DATA_ROW_RESPONSE: // DataRow
             LOGGER.log(Level.FINEST, " <=BE DataRow (during copy ignored)");
 
-            skipMessage();
+            skipMessage("DataRow", PGStream.MAX_MESSAGE_LENGTH);
             break;
 
           default:
@@ -2782,13 +2780,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           pgStream.sendChar(0);
           sendSync(); // send sync message
           pgStream.flush();
-          skipMessage(); // skip the response message
+          // 4 (length) + 1 (format) + 2 (field count) + 2 per field.
+          skipMessage("CopyInResponse", 7 + 2 * Short.MAX_VALUE);
           break;
 
         case PgMessageType.COPY_OUT_RESPONSE:
           LOGGER.log(Level.FINEST, " <=BE CopyOutResponse");
 
-          skipMessage();
+          skipMessage("CopyOutResponse", 7 + 2 * Short.MAX_VALUE);
           // In case of CopyOutResponse, we cannot abort data transfer,
           // so just throw an error and ignore CopyData messages
           handler.handleError(
@@ -2797,12 +2796,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case PgMessageType.COPY_DONE:
-          skipMessage();
+          skipMessage("CopyDone", PGStream.MAX_SMALL_MESSAGE_LENGTH);
           LOGGER.log(Level.FINEST, " <=BE CopyDone");
           break;
 
         case PgMessageType.COPY_DATA:
-          skipMessage();
+          skipMessage("CopyData", PGStream.MAX_MESSAGE_LENGTH);
           LOGGER.log(Level.FINEST, " <=BE CopyData");
           break;
 
@@ -2838,10 +2837,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * Ignore the response message by reading the message length and skipping over those bytes in the
    * communication stream.
    */
-  private void skipMessage() throws IOException {
-    int len = pgStream.receiveInteger4();
-
-    assert len >= 4 : "Length from skip message must be at least 4 ";
+  private void skipMessage(String packetName, int maxLength) throws IOException {
+    int len = pgStream.receiveMessageLength(packetName, 4, maxLength);
 
     // skip len-4 (length includes the 4 bytes for message length itself
     pgStream.skip(len - 4);
@@ -2961,8 +2958,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void receiveAsyncNotify() throws IOException {
-    int len = pgStream.receiveInteger4(); // MESSAGE SIZE
-    assert len > 4 : "Length for AsyncNotify must be at least 4";
+    pgStream.receiveMessageLength("NotificationResponse", 10,
+        PGStream.MAX_BUFFERED_MESSAGE_LENGTH);
 
     int pid = pgStream.receiveInteger4();
     String msg = pgStream.receiveCanonicalString();
@@ -2980,8 +2977,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // so, append messages to a string buffer and keep processing
     // check at the bottom to see if we need to throw an exception
 
-    int elen = pgStream.receiveInteger4();
-    assert elen > 4 : "Error response length must be greater than 4";
+    int elen = pgStream.receiveMessageLength("ErrorResponse", 5,
+        PGStream.MAX_BUFFERED_MESSAGE_LENGTH);
 
     EncodingPredictor.DecodeResult totalMessage = pgStream.receiveErrorString(elen - 4);
     ServerErrorMessage errorMsg = new ServerErrorMessage(totalMessage);
@@ -3000,8 +2997,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private SQLWarning receiveNoticeResponse() throws IOException {
-    int nlen = pgStream.receiveInteger4();
-    assert nlen > 4 : "Notice Response length must be greater than 4";
+    int nlen = pgStream.receiveMessageLength("NoticeResponse", 5,
+        PGStream.MAX_BUFFERED_MESSAGE_LENGTH);
 
     ServerErrorMessage warnMsg = new ServerErrorMessage(pgStream.receiveString(nlen - 4));
 
@@ -3013,8 +3010,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private String receiveCommandStatus() throws IOException {
-    // TODO: better handle the msg len
-    int len = pgStream.receiveInteger4();
+    int len = pgStream.receiveMessageLength("CommandComplete", 5,
+        PGStream.MAX_SMALL_MESSAGE_LENGTH);
     // read len -5 bytes (-4 for len and -1 for trailing \0)
     String status = pgStream.receiveString(len - 5);
     // now read and discard the trailing \0
@@ -3084,7 +3081,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case PgMessageType.BACKEND_KEY_DATA_RESPONSE:
           // BackendKeyData
-          int msgLen = pgStream.receiveInteger4();
+          int msgLen = pgStream.receiveMessageLength("BackendKeyData", 8,
+              PGStream.MAX_SMALL_MESSAGE_LENGTH);
           int pid = pgStream.receiveInteger4();
           int keyLen = msgLen - 8;
           byte[] ckey;

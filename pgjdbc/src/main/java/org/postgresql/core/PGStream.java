@@ -46,6 +46,26 @@ import javax.net.SocketFactory;
  * at a time is accessing a particular PGStream instance.</p>
  */
 public class PGStream implements Closeable, Flushable {
+  /**
+   * Largest message the driver accepts. {@code 0x3FFFFFFF} is the backend's
+   * {@code MaxAllocSize}, the most it can allocate for an outgoing message.
+   */
+  public static final int MAX_MESSAGE_LENGTH = 0x3FFFFFFF;
+
+  /**
+   * Cap for message types that never carry bulk data. libpq's client reader uses 30000 outside
+   * {@code VALID_LONG_MESSAGE_TYPE}, and 2000 for {@code 'R'} and {@code 'v'} during setup.
+   */
+  public static final int MAX_SMALL_MESSAGE_LENGTH = 10000;
+
+  /**
+   * Cap for message types whose body is buffered whole by {@link #receiveString(int)} or
+   * {@link #receiveErrorString(int)}, where the buffer maximum is the real limit. DataRow and
+   * CopyData read straight into their destination instead.
+   */
+  public static final int MAX_BUFFERED_MESSAGE_LENGTH =
+      Math.min(MAX_MESSAGE_LENGTH, VisibleBufferedInputStream.MAX_BUFFER_SIZE);
+
   private final SocketFactory socketFactory;
   private final HostSpec hostSpec;
   private final int maxSendBufferSize;
@@ -495,6 +515,28 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
+   * Receives a message length and checks it. Everything the driver reads or allocates for the
+   * message is sized from this field. The length includes the four bytes of the field itself.
+   *
+   * @param packetName wire-protocol name of the message, used in the error
+   * @param minLength smallest length the message layout permits, at least 4
+   * @param maxLength largest length accepted for the message type
+   * @return the message length
+   * @throws IOException if the declared length is out of range
+   */
+  public int receiveMessageLength(String packetName, int minLength, int maxLength)
+      throws IOException {
+    int length = receiveInteger4();
+    if (length < minLength || length > maxLength) {
+      throw new IOException(GT.tr(
+          "Backend declared a {0} message length of {1} bytes, expected {2} to {3} bytes.",
+          packetName, String.valueOf(length), String.valueOf(minLength),
+          String.valueOf(maxLength)));
+    }
+    return length;
+  }
+
+  /**
    * Receives a two byte integer from the backend as an unsigned integer (0..65535).
    *
    * @return the integer received from the backend
@@ -606,10 +648,16 @@ public class PGStream implements Closeable, Flushable {
    * @throws SQLException if read more bytes than set maxResultBuffer
    */
   public Tuple receiveTupleV3() throws IOException, OutOfMemoryError, SQLException {
-    int messageSize = receiveInteger4(); // MESSAGE SIZE
+    // 4 (length) + 2 (field count)
+    int messageSize = receiveMessageLength("DataRow", 6, MAX_MESSAGE_LENGTH);
     int nf = receiveInteger2();
     //size = messageSize - 4 bytes of message size - 2 bytes of field count - 4 bytes for each column length
+    // Cannot overflow, nf is an unsigned int2.
     int dataToReadSize = messageSize - 4 - 2 - 4 * nf;
+    if (dataToReadSize < 0) {
+      throw new IOException(GT.tr("DataRow of {0} bytes cannot hold {1} column lengths.",
+          String.valueOf(messageSize), String.valueOf(nf)));
+    }
     setMaxRowSizeBytes(dataToReadSize);
 
     byte[][] answer = new byte[nf][];

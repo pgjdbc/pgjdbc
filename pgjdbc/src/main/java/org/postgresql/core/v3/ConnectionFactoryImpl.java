@@ -829,7 +829,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // The most common one to be thrown here is:
             // "User authentication failed"
             //
-            int elen = pgStream.receiveInteger4();
+            int elen = pgStream.receiveMessageLength("ErrorResponse", 5,
+                PGStream.MAX_BUFFERED_MESSAGE_LENGTH);
 
             ServerErrorMessage errorMsg =
                 new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
@@ -838,8 +839,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
           case PgMessageType.AUTHENTICATION_RESPONSE:
             // Authentication request.
-            // Get the message length
-            int msgLen = pgStream.receiveInteger4();
+            // Get the message length. Read before authentication, so this small limit is what
+            // bounds a hostile server's allocation.
+            int msgLen = pgStream.receiveMessageLength("AuthenticationRequest", 8,
+                PGStream.MAX_SMALL_MESSAGE_LENGTH);
 
             // Get the type of request
             int areq = pgStream.receiveInteger4();
