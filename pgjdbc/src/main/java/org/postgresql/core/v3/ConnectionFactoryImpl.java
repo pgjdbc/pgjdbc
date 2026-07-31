@@ -805,10 +805,25 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         switch (beresp) {
           case PgMessageType.NEGOTIATE_PROTOCOL_RESPONSE:  // Negotiate Protocol Version
-            // read the length and ignore it.
-            pgStream.receiveInteger4();
+            // 4 (length) + 4 (protocol version) + 4 (option count), then a terminator each.
+            int negotiateLen = pgStream.receiveMessageLength("NegotiateProtocolVersion", 12,
+                PGStream.MAX_SMALL_MESSAGE_LENGTH);
             protocol = pgStream.receiveInteger4();
             int numOptionsNotRecognized = pgStream.receiveInteger4();
+            // The count is the number of unrecognized protocol options whose NUL-terminated
+            // names follow. It cannot be negative or exceed the remaining message bytes.
+            if (numOptionsNotRecognized < 0 || numOptionsNotRecognized > negotiateLen - 12) {
+              throw new PSQLException(GT.tr(
+                  "Backend reported {0} unrecognized options in a message of {1} bytes.",
+                  String.valueOf(numOptionsNotRecognized), String.valueOf(negotiateLen)),
+                  PSQLState.PROTOCOL_VIOLATION);
+            }
+            // With no options the message is exactly its fixed part.
+            if (numOptionsNotRecognized == 0 && negotiateLen != 12) {
+              throw new PSQLException(GT.tr(
+                  "Backend sent a {0} byte NegotiateProtocolVersion with no unrecognized options.",
+                  String.valueOf(negotiateLen)), PSQLState.PROTOCOL_VIOLATION);
+            }
             if (numOptionsNotRecognized > 0) {
               // do not connect and throw an error
               String errorMessage = "Protocol error, received invalid options: ";
