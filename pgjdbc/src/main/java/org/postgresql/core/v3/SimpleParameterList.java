@@ -495,6 +495,31 @@ class SimpleParameterList implements V3ParameterList {
     return (byte) (flags[index] & INOUT);
   }
 
+  /**
+   * Cheap size estimate for logging only. Avoids encoding the value.
+   *
+   * @return estimated character/byte size, or {@code -1} when unknown / null
+   */
+  int estimateLogSize(@Positive int index) {
+    Object value = paramValues[index - 1];
+    if (value == null || value == NULL_OBJECT) {
+      return -1;
+    }
+    if (value instanceof byte[]) {
+      return ((byte[]) value).length;
+    }
+    if (value instanceof String) {
+      return ((String) value).length();
+    }
+    if (value instanceof StreamWrapper) {
+      return ((StreamWrapper) value).getLength();
+    }
+    if (value instanceof ByteStreamWriter) {
+      return ((ByteStreamWriter) value).getLength();
+    }
+    return -1;
+  }
+
   int getV3Length(@Positive int index) {
     --index;
 
