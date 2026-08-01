@@ -44,18 +44,29 @@ final class BindLog {
         break;
       }
 
-      sbuf.append(",$").append(i).append("=<");
+      // Build the parameter prefix first so we can decide whether it fits before appending.
+      // Appending ",$i=<" and then breaking leaves a dangling fragment on the truncated line.
+      String prefix = ",$" + i + "=<";
+      if (!unlimited) {
+        int remainingForPrefix = maxLogMessageLength - sbuf.length();
+        if (remainingForPrefix <= prefix.length()) {
+          break;
+        }
+      }
+      sbuf.append(prefix);
 
       if (!unlimited) {
         int remaining = maxLogMessageLength - sbuf.length();
-        if (remaining <= 0) {
-          break;
-        }
-        // Avoid materializing huge values just for logging. estimateLogSize is a lower bound for
-        // rendered size (bytea hex expands ~2x; text quoting adds a little).
+        // Avoid materializing huge values just for logging.
+        // estimateLogSize is a lower-bound for known types (bytea hex expands ~2x; text quoting
+        // adds a little). A negative estimate means an unrecognized value type — do not call
+        // toString (which can fully materialize e.g. a large custom object) and use a placeholder
+        // instead. The final truncate() still guarantees the returned line never exceeds the cap.
         int estimated = params.estimateLogSize(i);
-        if (estimated > remaining) {
-          String placeholder = "...(" + estimated + " bytes)";
+        if (estimated < 0 || estimated > remaining) {
+          String placeholder = estimated < 0
+              ? "...(unestimated)"
+              : "...(~" + estimated + " chars)";
           LogMessageUtils.appendBounded(sbuf, placeholder, maxLogMessageLength);
           sbuf.append(">,type=").append(Oid.toString(params.getTypeOID(i)));
           continue;
