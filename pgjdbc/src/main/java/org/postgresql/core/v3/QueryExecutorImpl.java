@@ -102,6 +102,7 @@ import org.postgresql.jdbc.ResourceLock;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
+import org.postgresql.util.LogMessageUtils;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
@@ -246,6 +247,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
     this.cleanupSavePoints = PGProperty.CLEANUP_SAVEPOINTS.getBoolean(info);
+    this.maxLogMessageLength = Math.max(0, PGProperty.MAX_LOG_MESSAGE_LENGTH.getInt(info));
     // assignment, argument
     this.replicationProtocol = new V3ReplicationProtocol(this, pgStream);
     readStartupMessages();
@@ -1789,16 +1791,19 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       StringBuilder sbuf = new StringBuilder(" FE=> Parse(stmt=" + statementName + ",query=\"");
-      sbuf.append(nativeSql);
+      LogMessageUtils.appendBounded(sbuf, nativeSql, maxLogMessageLength);
       sbuf.append("\",oids={");
       for (int i = 1; i <= params.getParameterCount(); i++) {
+        if (maxLogMessageLength > 0 && sbuf.length() >= maxLogMessageLength) {
+          break;
+        }
         if (i != 1) {
           sbuf.append(",");
         }
         sbuf.append(params.getTypeOID(i));
       }
       sbuf.append("})");
-      LOGGER.log(Level.FINEST, sbuf.toString());
+      LOGGER.log(Level.FINEST, LogMessageUtils.truncate(sbuf, maxLogMessageLength));
     }
 
     //
@@ -1842,14 +1847,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     byte[] encodedPortalName = portal == null ? null : portal.getEncodedPortalName();
 
     if (LOGGER.isLoggable(Level.FINEST)) {
-      StringBuilder sbuf = new StringBuilder(" FE=> Bind(stmt=" + statementName + ",portal=" + portal);
-      for (int i = 1; i <= params.getParameterCount(); i++) {
-        sbuf.append(",$").append(i).append("=<")
-            .append(params.toString(i, getStandardConformingStrings()))
-            .append(">,type=").append(Oid.toString(params.getTypeOID(i)));
-      }
-      sbuf.append(")");
-      LOGGER.log(Level.FINEST, sbuf.toString());
+      LOGGER.log(Level.FINEST, BindLog.format(statementName, portal, params,
+          getStandardConformingStrings(), maxLogMessageLength));
     }
 
     // Total size = 4 (size field) + N + 1 (destination portal)
@@ -3353,6 +3352,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private long nextUniqueID = 1;
   private final boolean allowEncodingChanges;
   private final boolean cleanupSavePoints;
+  /** Cap for FINEST protocol dump log lines; {@code 0} means unlimited. */
+  private final int maxLogMessageLength;
 
   /**
    * The estimated server response size since we last consumed the input stream from the server, in
