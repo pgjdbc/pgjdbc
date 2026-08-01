@@ -258,6 +258,38 @@ matrix.addAxis({
   ]
 });
 
+// Setting socketTimeout is the recommended production configuration, so test both branches.
+matrix.addAxis({
+  name: 'socket_timeout',
+  title: x => x == '' ? '' : 'socketTimeout ' + x,
+  values: [
+    '',
+    '60'
+  ]
+});
+
+// A non-zero loginTimeout hands the whole connect to an executor thread, so it is a different
+// code path rather than a different number.
+matrix.addAxis({
+  name: 'login_timeout',
+  title: x => x == '' ? '' : 'loginTimeout ' + x,
+  values: [
+    '',
+    '13'
+  ]
+});
+
+// connectTimeout defaults to 10, so this shortens the budget the negotiation retries and the
+// SSL handshake share, rather than switching it on. Keep it below loginTimeout.
+matrix.addAxis({
+  name: 'connect_timeout',
+  title: x => x == '' ? '' : 'connectTimeout ' + x,
+  values: [
+    '',
+    '7'
+  ]
+});
+
 // Occasionally constrain the JVM to a single CPU via -XX:ActiveProcessorCount=1. This shrinks
 // JVM-internal pools (ForkJoinPool common pool, GC threads, etc.) and has caught regressions
 // where bursty work cannot keep up with producers — e.g. LazyCleaner backed by FJP, see
@@ -289,7 +321,8 @@ matrix.setNamePattern([
     'java_version', 'java_distribution', 'pg_version', 'query_mode', 'scram', 'ssl', 'hash', 'os',
     'server_tz', 'tz', 'locale',
     'gss', 'replication', 'slow_tests',
-    'adaptive_fetch', 'keep_alive', 'rewrite_batch_inserts', 'query_timeout',
+    'adaptive_fetch', 'keep_alive', 'rewrite_batch_inserts', 'query_timeout', 'socket_timeout',
+    'login_timeout', 'connect_timeout',
     'autosave', 'cleanupSavepoints', 'cpu_count', 'assertions'
 ]);
 
@@ -507,6 +540,15 @@ include.forEach(v => {
   }
   if (v.query_timeout) {
       testJvmArgs.push(`-DqueryTimeout=${v.query_timeout}`);
+  }
+  if (v.socket_timeout) {
+      testJvmArgs.push(`-DsocketTimeout=${v.socket_timeout}`);
+  }
+  if (v.login_timeout) {
+      testJvmArgs.push(`-DloginTimeout=${v.login_timeout}`);
+  }
+  if (v.connect_timeout) {
+      testJvmArgs.push(`-DconnectTimeout=${v.connect_timeout}`);
   }
   if (v.autosave !== 'never') {
       testJvmArgs.push(`-Dautosave=${v.autosave}`);

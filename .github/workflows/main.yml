@@ -40,11 +40,11 @@ jobs:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
     steps:
-    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       with:
         fetch-depth: 50
     - name: 'Set up JDK 21'
-      uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5.4.0
+      uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
       with:
         distribution: zulu
         java-version: 21
@@ -61,11 +61,11 @@ jobs:
     name: 'CheckerFramework'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           fetch-depth: 50
       - name: 'Set up JDK 21'
-        uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5.4.0
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
         with:
           distribution: zulu
           java-version: 21
@@ -83,14 +83,14 @@ jobs:
     name: Source distribution
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           fetch-depth: 50
       - name: Start PostgreSQL
         working-directory: docker/postgres-server
         run: docker compose up -d --wait || { docker compose logs; exit 1; }
       - name: 'Set up JDK 21'
-        uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5.4.0
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
         with:
           distribution: zulu
           java-version: 21
@@ -129,7 +129,7 @@ jobs:
       # Set the repository variable to false to skip PostgreSQL HEAD tests on pull requests.
       RUN_PG_HEAD_TESTS_IN_PR: ${{ vars.RUN_PG_HEAD_TESTS_IN_PR }}
     steps:
-    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       with:
         fetch-depth: 50
     - id: set-matrix
@@ -151,7 +151,7 @@ jobs:
       ACTIONS_RUNNER_DEBUG: true
       TZ: ${{ matrix.tz }}
     steps:
-    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+    - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       with:
         fetch-depth: 50
     - name: Start PostgreSQL PGV=${{ matrix.pg_version }} TZ=${{ matrix.server_tz }} XA=${{ matrix.xa }} SSL=${{ matrix.ssl }} SCRAM=${{ matrix.scram }} CREATE_REPLICAS=${{ matrix.replication }}
@@ -249,7 +249,7 @@ jobs:
         SSL: ${{ matrix.ssl }}
         REPLICATION: ${{ matrix.replication }}
     - name: Set up Java 21 and ${{ matrix.non_ea_java_version }}, ${{ matrix.java_distribution }}, ${{ runner.arch }}
-      uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5.4.0
+      uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
       with:
         # The latest one will be the default, so we use Java 21 for launching Gradle
         # oracle-actions/setup-java below requires Java 21, so we must install Java 21 before calling oracle-actions/setup-java
@@ -272,7 +272,7 @@ jobs:
     - name: Set up Java 21 ${{ matrix.java_distribution }} as default
       # oracle-actions/setup-java above installs EA java by default, so we need to reinstall Java 21 as the default
       if: ${{ matrix.oracle_java_website != '' }}
-      uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5.4.0
+      uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
       with:
         java-version: 21
         distribution: ${{ matrix.java_distribution }}
