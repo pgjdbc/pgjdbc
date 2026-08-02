@@ -2047,6 +2047,43 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
+  void getColumnsColumnDefault() throws SQLException {
+    // getColumns() reports each column's default expression in COLUMN_DEF, as
+    // rendered by pg_get_expr, or null when the column has no default.
+    TestUtil.createTable(con, "column_def_test",
+        "no_default int, "
+            + "int_default int default 42, "
+            + "text_default text default 'hello', "
+            + "bool_default boolean default true, "
+            + "expr_default timestamptz default now()");
+    try {
+      DatabaseMetaData dbmd = con.getMetaData();
+
+      assertNull(columnDefault(dbmd, "no_default"),
+          "COLUMN_DEF for a column with no default");
+      assertEquals("42", columnDefault(dbmd, "int_default"),
+          "COLUMN_DEF for int default 42");
+      assertEquals("'hello'::text", columnDefault(dbmd, "text_default"),
+          "COLUMN_DEF for text default 'hello'");
+      assertEquals("true", columnDefault(dbmd, "bool_default"),
+          "COLUMN_DEF for boolean default true");
+      assertEquals("now()", columnDefault(dbmd, "expr_default"),
+          "COLUMN_DEF for timestamptz default now()");
+    } finally {
+      TestUtil.dropTable(con, "column_def_test");
+    }
+  }
+
+  private String columnDefault(DatabaseMetaData dbmd, String column) throws SQLException {
+    try (ResultSet rs = dbmd.getColumns(null, null, "column_def_test", column)) {
+      assertTrue(rs.next(), () -> "dbmd.getColumns returned no row for column " + column);
+      String value = rs.getString("COLUMN_DEF");
+      assertFalse(rs.next(), () -> "dbmd.getColumns returned more than one row for column " + column);
+      return value;
+    }
+  }
+
+  @Test
   void smallSerialColumns() throws SQLException {
     assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2));
     TestUtil.createTable(con, "smallserial_test", "a smallserial");
