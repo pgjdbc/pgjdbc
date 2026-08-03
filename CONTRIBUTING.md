@@ -417,6 +417,34 @@ of expected and actual).
  If using just `assertTrue(expected == actual)` all you get is a stacktrace and if such a test fails a developer
 has to reverse engineer the intention behind that code.
 
+## Writing style for docs and pull requests
+
+This is a recommendation, not a build gate. It applies to prose you write for the project:
+Javadoc, README and doc pages, error messages, commit bodies, and pull request descriptions.
+Code, tests, and identifiers are out of scope.
+
+PgJDBC has many contributors and users who do not read English as a first language. Clear,
+controlled prose is easier to review, easier to translate, and harder to misread. The goal is
+that a reader gets each sentence on the first read.
+
+Follow these rules:
+
+* Keep sentences short. Aim for 20 words or fewer in instructions, 25 or fewer in explanations.
+Split a long sentence into two.
+* Use the active voice. Write "the driver rejects the message", not "the message is rejected".
+* Use one term for one thing. Do not write "config" here and "settings" there. Pick one verb for
+the check/verify/confirm/validate concept and keep it.
+* Put a condition before the command it guards: "If the build fails, read the log."
+* Write one instruction per sentence. Use a numbered or bulleted list for a sequence of steps.
+* Do not use semicolons to join sentences. Write two sentences instead.
+* Prefer plain words: "use" over "utilize", "before" over "prior to", "to" over "in order to".
+Delete filler such as "simply", "just", "seamlessly", and "it is worth noting that".
+* Leave code, commands, identifiers, file paths, and quoted error text exactly as they are.
+
+The [`simple-english` skill](.claude/skills/simple-english) under `.claude/skills` helps AI coding
+agents apply these rules. You do not need it to contribute. See [AGENTS.md](AGENTS.md) for the full
+guidance we give AI agents that work in this repository.
+
 ## <a name="commit"></a> Git Commit Guidelines
 
 We have very precise rules over how our git commit messages can be formatted.  This leads to **more
