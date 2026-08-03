@@ -97,17 +97,25 @@ public class ExtendedSocketOptionAccessorImpl implements ExtendedSocketOptionAcc
               .get(null);
       return new SocketOptionReference<>(name, socketOption);
     } catch (NoSuchFieldException | ClassNotFoundException | IllegalAccessException e) {
-      return new SocketOptionReference<>(name, null);
+      return new SocketOptionReference<>(name, e.getMessage());
     }
   }
 
   private static class SocketOptionReference<T> {
     private final String name;
     private final @Nullable SocketOption<T> socketOption;
+    private final @Nullable String lookupFailureMessage;
 
     private SocketOptionReference(String name, @Nullable SocketOption<T> socketOption) {
       this.name = name;
       this.socketOption = socketOption;
+      this.lookupFailureMessage = null;
+    }
+
+    private SocketOptionReference(String name, String lookupFailureMessage) {
+      this.name = name;
+      this.socketOption = null;
+      this.lookupFailureMessage = lookupFailureMessage;
     }
 
     private @Nullable T getValue(Socket socket) throws IOException {
@@ -119,10 +127,18 @@ public class ExtendedSocketOptionAccessorImpl implements ExtendedSocketOptionAcc
 
     private void setValue(Socket socket, T value) throws IOException {
       if (socketOption == null) {
-        throw new UnsupportedOperationException(
-            String.format("%s#%s seems to be unsupported by the current JDK.",
-                EXTENDED_SOCKET_OPTIONS_CLASS_NAME,
-                name));
+        if (lookupFailureMessage == null) {
+          throw new UnsupportedOperationException(
+              String.format("%s#%s seems to be unsupported by the current JDK.",
+                  EXTENDED_SOCKET_OPTIONS_CLASS_NAME,
+                  name));
+        } else {
+          throw new UnsupportedOperationException(
+              String.format("%s#%s seems to be unsupported by the current JDK. Its lookup failed with <%s>.",
+                  EXTENDED_SOCKET_OPTIONS_CLASS_NAME,
+                  name,
+                  lookupFailureMessage));
+        }
       }
       socket.setOption(socketOption, value);
     }
