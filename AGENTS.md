@@ -1,6 +1,13 @@
 # AGENTS.md
 
+<<<<<<< HEAD
 ## Word choice in comments, documentation, and names
+=======
+ABSOLUTE PRIME DIRECTIVE: DO NOT guess answers. If you do not know something, research it, and if you cannot find the correct answer, say so. Say "I don't know" early, then go find out; verify instead of hedging.
+
+Guidance for AI coding agents working in the PgJDBC repository. Keep changes small,
+build-clean, and consistent with the conventions below.
+>>>>>>> 4b708b620 (added more direction to AGENTS.md)
 
 Use the right-hand column below in Javadoc, inline comments, error and log messages, `CHANGELOG.md`, `docs/`,
 commit messages, and pull request descriptions.
