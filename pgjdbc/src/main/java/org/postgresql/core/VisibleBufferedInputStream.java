@@ -357,17 +357,20 @@ public class VisibleBufferedInputStream extends InputStream {
    * @throws EOFException If the stream did not contain any null terminators.
    */
   public int scanCStringLength() throws IOException {
-    int pos = index;
+    int scanned = 0;
     while (true) {
+      // Resume where the last pass stopped, relative to index since readMore may compact.
+      // Rescanning from the start is quadratic in a length the peer chooses.
+      int pos = index + scanned;
       while (pos < endIndex) {
+        scanned++;
         if (buffer[pos++] == '\0') {
-          return pos - index;
+          return scanned;
         }
       }
       if (!readMore(STRING_SCAN_SPAN, true)) {
         throw new EOFException();
       }
-      pos = index;
     }
   }
 
