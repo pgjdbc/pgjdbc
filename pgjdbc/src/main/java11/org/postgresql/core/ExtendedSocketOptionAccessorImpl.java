@@ -8,6 +8,7 @@ package org.postgresql.core;
 import org.postgresql.util.ClassLoaderStrategy;
 import org.postgresql.util.ClassUtils;
 
+import jdk.net.ExtendedSocketOptions;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
@@ -91,7 +92,7 @@ public class ExtendedSocketOptionAccessorImpl implements ExtendedSocketOptionAcc
     try {
       SocketOption<Integer> socketOption =
           (SocketOption<Integer>) ClassUtils.forName(EXTENDED_SOCKET_OPTIONS_CLASS_NAME,
-                  SocketOption.class, ClassLoaderStrategy.DRIVER,
+                  ExtendedSocketOptions.class, ClassLoaderStrategy.DRIVER,
                   ExtendedSocketOptionAccessorImpl.class.getClassLoader())
               .getField(name)
               .get(null);
