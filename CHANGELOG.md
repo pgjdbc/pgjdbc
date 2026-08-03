@@ -9,6 +9,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * fix: `LargeObjectManager` operations now work inside an active XA transaction. Since 42.7.13 an XA branch keeps the caller's `autoCommit=true`, and the guard rejected large objects as if the connection were idle. It now checks the server transaction state (`getTransactionState()`) instead of `autoCommit`, so a genuine auto-commit connection with no open transaction is still refused [Issue #4309](https://github.com/pgjdbc/pgjdbc/issues/4309) [PR #4310](https://github.com/pgjdbc/pgjdbc/pull/4310)
 * fix: batch update counts are no longer secured as committed inside an XA transaction. `BatchResultHandler` treated per-statement progress as durable whenever `autoCommit=true`, but an XA branch keeps `autoCommit=true` while the transaction is open, so a batch that flushed mid-way and then failed could report rolled-back statements as succeeded. Progress is now secured only when no server transaction is open [Issue #4309](https://github.com/pgjdbc/pgjdbc/issues/4309) [PR #4311](https://github.com/pgjdbc/pgjdbc/pull/4311)
 
+### Changed
+* fix: backend message lengths are checked before anything is sized from them. Each length is checked against the message layout and a limit for its type, the lengths inside `DataRow` and `FunctionCallResponse` are checked against the message, and the `NegotiateProtocolVersion` option count is bounded. A hostile or out of sync backend could previously force an allocation of up to two gigabytes with a five byte header [Issue #4015](https://github.com/pgjdbc/pgjdbc/issues/4015)
+* fix: the read buffer is limited to 32 MiB and grows once per request rather than once per socket read. It previously doubled on every read while a large request was outstanding, so a peer that declared a large length and sent it slowly grew the buffer until the doubling past 1 GiB overflowed to a negative size [Issue #4015](https://github.com/pgjdbc/pgjdbc/issues/4015)
+* fix: a zero-length `CopyData` body is accepted. It is valid on the wire and was previously rejected by an assertion, so it failed only on JVMs started with `-ea` [Issue #4015](https://github.com/pgjdbc/pgjdbc/issues/4015)
+* fix: GSS packet lengths are bounded. The encrypted transport is limited to a 16380 byte payload and the handshake to a 65532 byte token, matching `PQ_GSS_MAX_PACKET_SIZE` and `PQ_GSS_AUTH_BUFFER_SIZE` [Issue #4015](https://github.com/pgjdbc/pgjdbc/issues/4015)
+
 ## [42.7.13] (2026-07-06)
 
 ### Added
