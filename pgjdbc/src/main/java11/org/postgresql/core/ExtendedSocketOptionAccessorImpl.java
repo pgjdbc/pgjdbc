@@ -92,7 +92,7 @@ public class ExtendedSocketOptionAccessorImpl implements ExtendedSocketOptionAcc
       SocketOption<Integer> socketOption =
           (SocketOption<Integer>) ClassUtils.forName(EXTENDED_SOCKET_OPTIONS_CLASS_NAME,
                   Object.class, ClassLoaderStrategy.DRIVER,
-                  ExtendedSocketOptionAccessorImpl.class.getClassLoader())
+                  ClassLoader.getPlatformClassLoader())
               .getField(name)
               .get(null);
       return new SocketOptionReference<>(name, socketOption);
@@ -112,7 +112,7 @@ public class ExtendedSocketOptionAccessorImpl implements ExtendedSocketOptionAcc
       this.lookupFailureMessage = null;
     }
 
-    private SocketOptionReference(String name, String lookupFailureMessage) {
+    private SocketOptionReference(String name, @Nullable String lookupFailureMessage) {
       this.name = name;
       this.socketOption = null;
       this.lookupFailureMessage = lookupFailureMessage;
@@ -134,7 +134,7 @@ public class ExtendedSocketOptionAccessorImpl implements ExtendedSocketOptionAcc
                   name));
         } else {
           throw new UnsupportedOperationException(
-              String.format("%s#%s seems to be unsupported by the current JDK. Its lookup failed with <%s>.",
+              String.format("%s#%s seems to be unsupported by the current JDK. Its lookup failed with message <%s>.",
                   EXTENDED_SOCKET_OPTIONS_CLASS_NAME,
                   name,
                   lookupFailureMessage));
