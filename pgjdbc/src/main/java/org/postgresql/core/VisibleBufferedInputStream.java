@@ -6,6 +6,7 @@
 package org.postgresql.core;
 
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.GT;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -31,6 +32,13 @@ public class VisibleBufferedInputStream extends InputStream {
    * In how large spans is the C string zero-byte scanned.
    */
   private static final int STRING_SCAN_SPAN = 1024;
+
+  /**
+   * The largest the buffer will grow. Only control messages and strings are buffered. Bulk data
+   * is read straight into its destination. This is therefore also the ceiling on any message body
+   * read through {@code PGStream.receiveString}, which buffers it whole.
+   */
+  static final int MAX_BUFFER_SIZE = 32 * 1024 * 1024;
 
   /**
    * The wrapped input stream.
@@ -178,13 +186,7 @@ public class VisibleBufferedInputStream extends InputStream {
     }
     int canFit = buffer.length - endIndex;
     if (canFit < wanted) {
-      // would the wanted bytes fit if we compacted the buffer
-      // and still leave some slack
-      if (index + canFit > wanted + MINIMUM_READ) {
-        compact();
-      } else {
-        doubleBuffer();
-      }
+      growBuffer(wanted);
       canFit = buffer.length - endIndex;
     }
     int read = 0;
@@ -209,10 +211,33 @@ public class VisibleBufferedInputStream extends InputStream {
   }
 
   /**
-   * Doubles the size of the buffer.
+   * Makes room for {@code wanted} more bytes, compacting if that is enough and growing if not.
+   *
+   * @param wanted how many more bytes have to fit
+   * @throws IOException if the request does not fit in {@link #MAX_BUFFER_SIZE}
    */
-  private void doubleBuffer() {
-    byte[] buf = new byte[buffer.length * 2];
+  private void growBuffer(int wanted) throws IOException {
+    if (wanted < 0) {
+      throw new IOException(GT.tr("Cannot read a negative number of bytes: {0}.",
+          String.valueOf(wanted)));
+    }
+    // The arithmetic is done in long because wanted comes from the peer.
+    long required = (long) endIndex - index + wanted;
+    if (required > MAX_BUFFER_SIZE) {
+      throw new IOException(GT.tr(
+          "Backend asked for {0} bytes of buffer, the maximum is {1} bytes.",
+          String.valueOf(required), String.valueOf(MAX_BUFFER_SIZE)));
+    }
+    // Compact only if that leaves room for a reasonably sized read, or a nearly full buffer
+    // compacts on every call and each socket read is a few bytes. At the maximum there is
+    // nothing to grow into, so compact anyway.
+    if (required + MINIMUM_READ <= buffer.length || buffer.length >= MAX_BUFFER_SIZE) {
+      compact();
+      return;
+    }
+    // Double for small reads, plus slack so a read can return more than this request.
+    long size = Math.min(Math.max(buffer.length * 2L, required + MINIMUM_READ), MAX_BUFFER_SIZE);
+    byte[] buf = new byte[(int) size];
     moveBufferTo(buf);
     buffer = buf;
   }
