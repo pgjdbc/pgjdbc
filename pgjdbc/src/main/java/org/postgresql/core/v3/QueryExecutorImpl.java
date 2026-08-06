@@ -2027,7 +2027,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // Note: statement name can change over time for the same query object
     // Thus we take a snapshot of the query name
     pendingDescribeStatementQueue.add(
-        new DescribeRequest(query, params, describeOnly, query.getStatementName()));
+        new DescribeRequest(query, params, describeOnly, query.getStatementName(),
+            params.getTypeOIDs().clone()));
     pendingDescribePortalQueue.add(query);
     query.setStatementDescribed(true);
     query.setPortalDescribed(true);
@@ -2241,12 +2242,58 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private static void resolveParameterTypes(SimpleQuery query, SimpleParameterList params) {
-    int[] queryOIDs = castNonNull(query.getPrepareTypes());
+    applyResolvedTypes(params, castNonNull(query.getPrepareTypes()));
+  }
+
+  private static void applyResolvedTypes(SimpleParameterList params, int[] resolvedTypes) {
     int[] paramOIDs = params.getTypeOIDs();
     for (int i = 0; i < paramOIDs.length; i++) {
       if (paramOIDs[i] == Oid.UNSPECIFIED) {
-        params.setResolvedType(i + 1, queryOIDs[i]);
+        params.setResolvedType(i + 1, resolvedTypes[i]);
       }
+    }
+  }
+
+  @Override
+  public boolean tryResolveParameterTypes(Query query, ParameterList parameters) {
+    if (parameters.getParameterCount() == 0) {
+      // There is no type for the server to resolve, so all of them are known already
+      return true;
+    }
+    try (ResourceLock ignore = lock.obtain()) {
+      Query[] subqueries = query.getSubqueries();
+      if (subqueries == null) {
+        SimpleQuery simpleQuery = (SimpleQuery) query;
+        int[] resolvedTypes =
+            simpleQuery.getCachedDescribeResult(((SimpleParameterList) parameters).getTypeOIDs(),
+                deallocateEpoch);
+        if (resolvedTypes == null) {
+          return false;
+        }
+        applyResolvedTypes((SimpleParameterList) parameters, resolvedTypes);
+        return true;
+      }
+
+      SimpleParameterList[] subparams = ((V3ParameterList) parameters).getSubparams();
+      // Resolve all subqueries before mutating any parameters, so a miss on a later
+      // subquery does not leave the parameters partially resolved
+      int[][] resolvedTypes = new int[subqueries.length][];
+      for (int i = 0; i < subqueries.length; i++) {
+        SimpleQuery subquery = (SimpleQuery) subqueries[i];
+        SimpleParameterList subparam =
+            subparams == null ? SimpleQuery.NO_PARAMETERS : subparams[i];
+        int[] resolved = subquery.getCachedDescribeResult(subparam.getTypeOIDs(), deallocateEpoch);
+        if (resolved == null) {
+          return false;
+        }
+        resolvedTypes[i] = resolved;
+      }
+      if (subparams != null) {
+        for (int i = 0; i < subqueries.length; i++) {
+          applyResolvedTypes(subparams[i], resolvedTypes[i]);
+        }
+      }
+      return true;
     }
   }
 
@@ -2420,10 +2467,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // sure the describe results we requested are still
           // applicable to the latest parsed query.
           //
-          if ((origStatementName == null && query.getStatementName() == null)
-              || (origStatementName != null
-                  && origStatementName.equals(query.getStatementName()))) {
+          if (Objects.equals(origStatementName, query.getStatementName())) {
             query.setPrepareTypes(params.getTypeOIDs());
+            query.addDescribeResult(describeData.requestedParameterTypes,
+                params.getTypeOIDs().clone(), deallocateEpoch);
           }
 
           if (describeOnly) {

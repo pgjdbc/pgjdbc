@@ -103,4 +103,18 @@ public interface Query {
    *         single-statement query.
    */
   Query @Nullable [] getSubqueries();
+
+  /**
+   * Estimates the number of bytes this query retains on top of its SQL text.
+   *
+   * <p>{@link CachedQuery#getSize()} derives the text estimate from the cache key, so an
+   * implementation must report only what it retains in addition: protocol state whose size follows
+   * the parameter count rather than the length of the text, such as the resolved parameter types.
+   * Reporting the text here would count it twice.</p>
+   *
+   * @return estimated retained bytes, excluding the SQL text
+   */
+  default long getRetainedSizeExcludingSql() {
+    return 0;
+  }
 }

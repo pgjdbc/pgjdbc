@@ -19,6 +19,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.ref.PhantomReference;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Map;
 import java.util.logging.Level;
@@ -218,6 +219,147 @@ class SimpleQuery implements Query {
     return this.unspecifiedParams != null && !this.unspecifiedParams.isEmpty();
   }
 
+  /**
+   * Returns the server-resolved parameter types from a cached "describe statement" result that is
+   * compatible with the given parameter types, or {@code null} if no such result is cached and a
+   * network round trip is required.
+   *
+   * <p>A cached result is compatible when every given type either equals the resolved type, or is
+   * {@link Oid#UNSPECIFIED} and the describe request was sent with that position unspecified as
+   * well. The latter restriction matters: the server infers unspecified types from the specified
+   * ones (consider overloaded functions), so a result described with a type set at some position
+   * says nothing about describing with that position unset.</p>
+   *
+   * <p>A result is reused only while {@code deallocateEpoch} still equals the one the result was
+   * captured at. The epoch is bumped whenever the server may resolve the types differently, for
+   * instance after DDL or after {@code SET search_path}. Results captured at an older epoch are
+   * discarded.</p>
+   *
+   * <p>Callers must not modify the returned array.</p>
+   *
+   * @param paramTypes current parameter type OIDs, {@link Oid#UNSPECIFIED} for unset ones
+   * @param deallocateEpoch the connection's current deallocate epoch
+   * @return parameter type OIDs resolved by the server, or {@code null} on cache miss
+   */
+  int @Nullable [] getCachedDescribeResult(int[] paramTypes, short deallocateEpoch) {
+    @Nullable DescribeResult[] results = describeResults;
+    if (results == null) {
+      return null;
+    }
+    if (describeResultsEpoch != deallocateEpoch) {
+      this.describeResults = null;
+      return null;
+    }
+    for (int i = 0; i < results.length; i++) {
+      @Nullable DescribeResult result = results[i];
+      if (result == null) {
+        break;
+      }
+      if (result.matches(paramTypes)) {
+        // Keep the results in most-recently-used order, so alternating type patterns
+        // do not evict each other
+        System.arraycopy(results, 0, results, 1, i);
+        results[0] = result;
+        return result.resolvedTypes;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Caches the result of a "describe statement" round trip for {@link #getCachedDescribeResult}.
+   * A repeated describe with the same request types replaces the old result, so a re-describe
+   * (e.g. after DDL changed the inferred types) refreshes the cache. The least recently used
+   * result is evicted when the cache is full.
+   *
+   * <p>Unlike the server-prepared statement state, the cached results survive
+   * {@link #unprepare()}: they capture how the server resolves the types for this SQL text,
+   * not the state of a server-side statement.</p>
+   *
+   * <p>The results are stamped with the given {@code deallocateEpoch} and are discarded once it
+   * changes, which covers the events after which the server may resolve the types differently
+   * (DDL, {@code SET search_path}). The epoch also changes on {@code DEALLOCATE ALL}, which the
+   * results would survive; dropping them there merely costs one extra describe.</p>
+   *
+   * @param requestTypes parameter type OIDs sent in the Parse message, cloned by the caller
+   * @param resolvedTypes parameter type OIDs from the ParameterDescription response, cloned by
+   *                      the caller
+   * @param deallocateEpoch the connection's deallocate epoch the describe was answered at
+   */
+  void addDescribeResult(int[] requestTypes, int[] resolvedTypes, short deallocateEpoch) {
+    @Nullable DescribeResult[] results = describeResults;
+    if (results == null || describeResultsEpoch != deallocateEpoch) {
+      this.describeResults = results = new DescribeResult[MAX_CACHED_DESCRIBE_RESULTS];
+      this.describeResultsEpoch = deallocateEpoch;
+    }
+    int insertionPoint = results.length - 1;
+    for (int i = 0; i < results.length; i++) {
+      @Nullable DescribeResult result = results[i];
+      if (result == null || Arrays.equals(result.requestTypes, requestTypes)) {
+        insertionPoint = i;
+        break;
+      }
+    }
+    System.arraycopy(results, 0, results, 1, insertionPoint);
+    results[0] = new DescribeResult(requestTypes, resolvedTypes);
+  }
+
+  /**
+   * The result of a single "describe statement" request: the parameter types the driver sent in
+   * the Parse message, and the types the server resolved them to.
+   */
+  private static final class DescribeResult {
+    final int[] requestTypes;
+    final int[] resolvedTypes;
+
+    DescribeResult(int[] requestTypes, int[] resolvedTypes) {
+      this.requestTypes = requestTypes;
+      this.resolvedTypes = resolvedTypes;
+    }
+
+    boolean matches(int[] paramTypes) {
+      int[] resolvedTypes = this.resolvedTypes;
+      if (paramTypes.length != resolvedTypes.length) {
+        return false;
+      }
+      // Same compatibility rule as isPreparedFor: a set type must match the resolved type,
+      // and an unset type is compatible only when the describe request had it unset as well
+      for (int i = 0; i < paramTypes.length; i++) {
+        int paramType = paramTypes[i];
+        if (paramType != resolvedTypes[i]
+            && (paramType != Oid.UNSPECIFIED || requestTypes[i] != Oid.UNSPECIFIED)) {
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+
+  /**
+   * Reports the parameter type arrays, whose size follows the parameter count rather than the
+   * length of the SQL text. A query with many parameters retains far more than its text suggests:
+   * the prepared types, plus two arrays per cached describe result.
+   */
+  @Override
+  public long getRetainedSizeExcludingSql() {
+    long size = 0;
+    int[] preparedTypes = this.preparedTypes;
+    if (preparedTypes != null) {
+      size += 4L * preparedTypes.length;
+    }
+    @Nullable DescribeResult[] results = describeResults;
+    if (results != null) {
+      for (@Nullable DescribeResult result : results) {
+        if (result == null) {
+          // The results are packed, so the first empty slot ends the used ones
+          break;
+        }
+        size += 4L * (result.requestTypes.length + result.resolvedTypes.length);
+      }
+    }
+    return size;
+  }
+
   byte @Nullable [] getEncodedStatementName() {
     return encodedStatementName;
   }
@@ -382,6 +524,25 @@ class SimpleQuery implements Query {
   private int @Nullable [] preparedTypes;
   private @Nullable BitSet unspecifiedParams;
   private short deallocateEpoch;
+
+  /**
+   * Maximum number of cached "describe statement" results per query. Real workloads use one or
+   * two type patterns per SQL text (no types set, plus the application's usual typed pattern),
+   * so a few slots avoid cache thrashing without a per-connection memory cost worth accounting.
+   */
+  private static final int MAX_CACHED_DESCRIBE_RESULTS = 4;
+
+  /**
+   * Cached "describe statement" results in most-recently-used order, lazily allocated,
+   * {@code null}-padded at the tail. See {@link #getCachedDescribeResult(int[], short)}.
+   */
+  private @Nullable DescribeResult @Nullable [] describeResults;
+
+  /**
+   * The {@code deallocateEpoch} the cached {@link #describeResults} were captured at. All the
+   * cached results share it, since a bump discards them all at once.
+   */
+  private short describeResultsEpoch;
 
   private @Nullable Integer cachedMaxResultRowSize;
 
