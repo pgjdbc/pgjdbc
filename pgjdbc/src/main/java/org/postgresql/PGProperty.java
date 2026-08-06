@@ -482,6 +482,19 @@ public enum PGProperty {
       "Maximum amount of bytes buffered before sending to the backend"),
 
   /**
+   * Specifies the maximum number of server-prepared statements kept per connection, across all
+   * SQL texts. The default of {@code 0} means no limit. When the limit is exceeded, the least
+   * recently used statements are closed at the start of a later execution; statements backing an
+   * open cursor are exempt until the cursor closes, so the limit is a soft one. Bounds the
+   * backend memory spent on prepared statements when {@code preparedStatementCacheTypeVariants}
+   * multiplies statements per SQL text.
+   */
+  MAX_SERVER_PREPARED_STATEMENTS(
+      "maxServerPreparedStatements",
+      "0",
+      "Specifies the maximum number of server-prepared statements kept per connection, across all SQL texts. A value of {@code 0}, the default, means no limit. The least recently used statements above the limit are closed at the start of a later execution; statements backing an open cursor are exempt until the cursor closes."),
+
+  /**
    * Specify 'options' connection initialization parameter.
    * The value of this parameter may contain spaces and other special characters or their URL representation.
    */
@@ -562,6 +575,20 @@ public enum PGProperty {
       "preparedStatementCacheSizeMiB",
       "5",
       "Specifies the maximum size (in megabytes) of a per-connection prepared statement cache. A value of {@code 0} disables the cache."),
+
+  /**
+   * Specifies how many server-prepared statements one SQL text may keep, one per distinct
+   * parameter-type signature, evicting the least recently used one beyond that. An application
+   * that binds the same types on every execution never allocates more than one, so the default of
+   * {@code 4} costs it nothing; one that alternates types keeps a statement (and its server-side
+   * plan) per signature instead of re-preparing on every switch. A value of {@code 1} restores the
+   * behavior of releases before 42.7.14. Each kept statement consumes backend memory for its
+   * lifetime, and {@code maxServerPreparedStatements} bounds their total per connection.
+   */
+  PREPARED_STATEMENT_CACHE_TYPE_VARIANTS(
+      "preparedStatementCacheTypeVariants",
+      "4",
+      "Specifies how many server-prepared statements one SQL text may keep, one per distinct parameter-type signature. A value of {@code 1} keeps a single statement per SQL text and re-prepares it when the parameter types change."),
 
   /**
    * Sets the default threshold for enabling server-side prepare. A value of {@code -1} stands for
