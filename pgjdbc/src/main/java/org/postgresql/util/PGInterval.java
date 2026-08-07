@@ -24,7 +24,12 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   private int years;
   private int months;
   private int days;
-  private int hours;
+  /**
+   * Hours component. Stored as {@code long} so values that PostgreSQL accepts
+   * (up to about {@code 2562047788} hours) can be represented; {@code int} only
+   * covers about {@code 2147483647} hours (~245k years of hours).
+   */
+  private long hours;
   private int minutes;
   private int wholeSeconds;
   private int microSeconds;
@@ -97,7 +102,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
         int lookAhead = lookAhead(timeValue, i, "HMS");
         if (lookAhead > 0) {
           if (timeValue.charAt(lookAhead) == 'H') {
-            setHours(Integer.parseInt(timeValue.substring(i, lookAhead)));
+            setHours(Long.parseLong(timeValue.substring(i, lookAhead)));
           } else if (timeValue.charAt(lookAhead) == 'M') {
             setMinutes(Integer.parseInt(timeValue.substring(i, lookAhead)));
           } else if (timeValue.charAt(lookAhead) == 'S') {
@@ -115,13 +120,13 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param years years
    * @param months months
    * @param days days
-   * @param hours hours
+   * @param hours hours (stored as {@code long}; see {@link #getHours()})
    * @param minutes minutes
    * @param seconds seconds
-   * @see #setValue(int, int, int, int, int, double)
+   * @see #setValue(int, int, int, long, int, double)
    */
   @SuppressWarnings("method.invocation")
-  public PGInterval(int years, int months, int days, int hours, int minutes, double seconds) {
+  public PGInterval(int years, int months, int days, long hours, int minutes, double seconds) {
     this();
     setValue(years, months, days, hours, minutes, seconds);
   }
@@ -155,7 +160,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     int years = 0;
     int months = 0;
     int days = 0;
-    int hours = 0;
+    long hours = 0;
     int minutes = 0;
     double seconds = 0;
 
@@ -176,10 +181,11 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
           }
 
           // This handles hours, minutes, seconds and microseconds for
-          // ISO intervals
+          // ISO intervals. Hours use long so values beyond Integer.MAX_VALUE
+          // (and Integer.MIN_VALUE with a leading '-') parse correctly.
           int offset = token.charAt(0) == '-' ? 1 : 0;
 
-          hours = nullSafeIntGet(token.substring(offset + 0, endHours));
+          hours = nullSafeLongGet(token.substring(offset + 0, endHours));
           minutes = nullSafeIntGet(token.substring(endHours + 1, endHours + 3));
 
           // Pre 7.4 servers do not put second information into the results
@@ -208,7 +214,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
           } else if (token.startsWith("day")) {
             days = nullSafeIntGet(valueToken);
           } else if (token.startsWith("hour")) {
-            hours = nullSafeIntGet(valueToken);
+            hours = nullSafeLongGet(valueToken);
           } else if (token.startsWith("min")) {
             minutes = nullSafeIntGet(valueToken);
           } else if (token.startsWith("sec")) {
@@ -235,11 +241,11 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param years years
    * @param months months
    * @param days days
-   * @param hours hours
+   * @param hours hours (see {@link #getHours()})
    * @param minutes minutes
    * @param seconds seconds
    */
-  public void setValue(int years, int months, int days, int hours, int minutes, double seconds) {
+  public void setValue(int years, int months, int days, long hours, int minutes, double seconds) {
     setYears(years);
     setMonths(months);
     setDays(days);
@@ -300,6 +306,10 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   private static void appendUnit(StringBuilder sb, int value, String unit) {
+    appendUnit(sb, (long) value, unit);
+  }
+
+  private static void appendUnit(StringBuilder sb, long value, String unit) {
     if (value == 0) {
       return;
     }
@@ -369,9 +379,13 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   /**
    * Returns the hours represented by this interval.
    *
+   * <p>The return type is {@code long} so intervals whose time part exceeds
+   * {@link Integer#MAX_VALUE} hours (valid PostgreSQL values; see GitHub issue 4301)
+   * can be read with {@code ResultSet#getObject} without overflow.
+   *
    * @return hours represented by this interval
    */
-  public int getHours() {
+  public long getHours() {
     return hours;
   }
 
@@ -380,7 +394,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    *
    * @param hours hours to set
    */
-  public void setHours(int hours) {
+  public void setHours(long hours) {
     isNull = false;
     this.hours = hours;
   }
@@ -456,10 +470,28 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
 
     cal.add(Calendar.MILLISECOND, milliseconds);
     cal.add(Calendar.MINUTE, getMinutes());
-    cal.add(Calendar.HOUR, getHours());
+    addCalendarField(cal, Calendar.HOUR, getHours());
     cal.add(Calendar.DAY_OF_MONTH, getDays());
     cal.add(Calendar.MONTH, getMonths());
     cal.add(Calendar.YEAR, getYears());
+  }
+
+  /**
+   * Adds a long amount to a {@link Calendar} field by applying it in {@code int}-sized chunks.
+   * {@link Calendar#add(int, int)} only accepts {@code int}, but hours may exceed that range.
+   */
+  private static void addCalendarField(Calendar cal, int field, long amount) {
+    while (amount > Integer.MAX_VALUE) {
+      cal.add(field, Integer.MAX_VALUE);
+      amount -= Integer.MAX_VALUE;
+    }
+    while (amount < Integer.MIN_VALUE) {
+      cal.add(field, Integer.MIN_VALUE);
+      amount -= Integer.MIN_VALUE;
+    }
+    if (amount != 0) {
+      cal.add(field, (int) amount);
+    }
   }
 
   /**
@@ -528,6 +560,17 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
+   * Returns long value of value or 0 if value is null.
+   *
+   * @param value long as string value
+   * @return long parsed from string value
+   * @throws NumberFormatException if the string contains invalid chars
+   */
+  private static long nullSafeLongGet(@Nullable String value) throws NumberFormatException {
+    return value == null ? 0L : Long.parseLong(value);
+  }
+
+  /**
    * Returns double value of value or 0 if value is null.
    *
    * @param value double as string value
@@ -584,7 +627,11 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     if (isNull) {
       return 0;
     }
-    return (((((((8 * 31 + microSeconds) * 31 + wholeSeconds) * 31 + minutes) * 31 + hours) * 31
+    // Preserve historical hash for values that previously fit in int hours
+    int hoursHash = (hours >= Integer.MIN_VALUE && hours <= Integer.MAX_VALUE)
+        ? (int) hours
+        : (int) (hours ^ (hours >>> 32));
+    return (((((((8 * 31 + microSeconds) * 31 + wholeSeconds) * 31 + minutes) * 31 + hoursHash) * 31
         + days) * 31 + months) * 31 + years) * 31;
   }
 

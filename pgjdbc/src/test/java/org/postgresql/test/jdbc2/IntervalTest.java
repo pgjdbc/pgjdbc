@@ -530,6 +530,54 @@ class IntervalTest {
     assertEquals(1, pgi.getMicroSeconds());
   }
 
+  /**
+   * PostgreSQL accepts intervals whose hour component exceeds {@link Integer#MAX_VALUE}.
+   * {@link PGInterval} must hold them so {@link ResultSet#getObject(int)} succeeds when
+   * {@link ResultSet#getString(int)} already returns the correct text (issue #4301).
+   */
+  @Test
+  void wideHoursGetObject() throws SQLException {
+    try (PreparedStatement ps = conn.prepareStatement(
+        "select '2562047788:00:54.775807'::interval");
+         ResultSet rs = ps.executeQuery()) {
+      assertTrue(rs.next());
+      String text = rs.getString(1);
+      assertNotNull(text);
+      PGInterval pgi = (PGInterval) rs.getObject(1);
+      assertNotNull(pgi);
+      assertEquals(2562047788L, pgi.getHours());
+      assertEquals(0, pgi.getMinutes());
+      assertEquals(54.775807, pgi.getSeconds(), 0.0000001);
+    }
+  }
+
+  @Test
+  void integerBoundaryHoursGetObject() throws SQLException {
+    String[] literals = {
+        "2147483647:00:00",
+        "2147483648:00:00",
+        "-2147483647:00:00",
+        "-2147483648:00:00",
+    };
+    long[] expectedHours = {
+        2147483647L,
+        2147483648L,
+        -2147483647L,
+        -2147483648L,
+    };
+    for (int i = 0; i < literals.length; i++) {
+      try (PreparedStatement ps = conn.prepareStatement("select ?::interval")) {
+        ps.setString(1, literals[i]);
+        try (ResultSet rs = ps.executeQuery()) {
+          assertTrue(rs.next(), literals[i]);
+          PGInterval pgi = (PGInterval) rs.getObject(1);
+          assertNotNull(pgi, literals[i]);
+          assertEquals(expectedHours[i], pgi.getHours(), literals[i]);
+        }
+      }
+    }
+  }
+
   @SuppressWarnings("deprecation")
   private static java.sql.Date makeDate(int y, int m, int d) {
     return new java.sql.Date(y - 1900, m - 1, d);
