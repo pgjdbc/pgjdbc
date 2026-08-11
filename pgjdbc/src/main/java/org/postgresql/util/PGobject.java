@@ -17,6 +17,14 @@ import java.sql.SQLException;
  * JDBC Standards.
  */
 public class PGobject implements Serializable, Cloneable {
+
+  /**
+   * Historical default {@code serialVersionUID} (measured from released 42.7.x jars).
+   * Pinned so adding public API to this superclass does not invalidate {@link PGInterval}
+   * and other subclass streams.
+   */
+  private static final long serialVersionUID = 5474290044777751620L;
+
   protected @Nullable String type;
   protected @Nullable String value;
 

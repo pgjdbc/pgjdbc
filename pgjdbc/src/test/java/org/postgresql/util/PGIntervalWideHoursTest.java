@@ -203,17 +203,53 @@ class PGIntervalWideHoursTest {
   }
 
   @Test
-  void addCalendarWithWideHoursThrowsRatherThanHang() {
+  void addCalendarWithWideHoursThrowsRatherThanHang() throws SQLException {
     Calendar cal = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
     cal.clear();
     cal.set(2000, Calendar.JANUARY, 1, 0, 0, 0);
+    cal.set(Calendar.MILLISECOND, 0);
+    long before = cal.getTimeInMillis();
+
+    // Full postgres-max interval (includes non-zero seconds) must not partially mutate cal
+    PGInterval wide = new PGInterval("2562047788:00:54.775807");
+    ArithmeticException ex = assertThrows(ArithmeticException.class, () -> wide.add(cal));
+    assertEquals(before, cal.getTimeInMillis(), "Calendar must be untouched when add throws");
+    // Message should point callers at getHoursLong()
+    org.junit.jupiter.api.Assertions.assertTrue(
+        ex.getMessage() != null && ex.getMessage().contains("getHoursLong"),
+        () -> "message was: " + ex.getMessage());
 
     PGInterval interval = new PGInterval();
     interval.setHours(Integer.MAX_VALUE + 1L);
     assertThrows(ArithmeticException.class, () -> interval.add(cal));
+    assertEquals(before, cal.getTimeInMillis());
 
     interval.setHours(Long.MAX_VALUE);
     assertThrows(ArithmeticException.class, () -> interval.add(cal));
+    assertEquals(before, cal.getTimeInMillis());
+  }
+
+  @Test
+  void addPgIntervalDoesNotHalfUpdateOnHoursOverflow() {
+    PGInterval target = new PGInterval();
+    target.setYears(1);
+    target.setMonths(2);
+    target.setDays(3);
+    target.setHours(Long.MAX_VALUE - 5);
+    target.setMinutes(4);
+    target.setSeconds(5.0);
+
+    PGInterval delta = new PGInterval();
+    delta.setYears(5);
+    delta.setHours(10); // will overflow with Long.MAX_VALUE - 5
+
+    assertThrows(ArithmeticException.class, () -> delta.add(target));
+    assertEquals(1, target.getYears(), "years must be unchanged after failed add");
+    assertEquals(2, target.getMonths());
+    assertEquals(3, target.getDays());
+    assertEquals(Long.MAX_VALUE - 5, target.getHoursLong());
+    assertEquals(4, target.getMinutes());
+    assertEquals(5.0, target.getSeconds(), 0.0);
   }
 
   @Test

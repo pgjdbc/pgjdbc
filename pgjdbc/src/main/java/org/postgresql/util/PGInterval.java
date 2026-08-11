@@ -8,8 +8,10 @@ package org.postgresql.util;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
+import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.ObjectStreamException;
 import java.io.ObjectStreamField;
 import java.io.Serializable;
 import java.sql.SQLException;
@@ -31,10 +33,9 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   private static final long serialVersionUID = -8634557111021512261L;
 
   /**
-   * Serialized shape matches historical drivers: {@code hours} remains an {@code int} so
-   * int-range values round-trip with older nodes. Wide hours are carried in optional
-   * {@code hoursLong}; readers that do not know that field keep the saturated {@code hours}
-   * int (best-effort for mixed-version clusters).
+   * Serialized shape for int-range hours matches historical drivers (no {@code hoursLong}).
+   * Values that do not fit in {@code int} hours use {@link #writeReplace()} → {@link WideHours}
+   * so older drivers fail loudly ({@code ClassNotFoundException}) instead of silently truncating.
    */
   private static final ObjectStreamField[] serialPersistentFields = {
       new ObjectStreamField("years", int.class),
@@ -45,7 +46,6 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
       new ObjectStreamField("wholeSeconds", int.class),
       new ObjectStreamField("microSeconds", int.class),
       new ObjectStreamField("isNull", boolean.class),
-      new ObjectStreamField("hoursLong", long.class),
   };
 
   private static final int MICROS_IN_SECOND = 1000000;
@@ -58,8 +58,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * (up to about {@code 2562047788} hours) can be represented; {@code int} only
    * covers about {@code 2147483647} hours (~245k years of hours).
    *
-   * <p>Serialized via {@link #serialPersistentFields}: int-range values stay wire-compatible
-   * with older drivers; see {@link #writeObject} / {@link #readObject}.
+   * <p>Int-range values serialize in the historical field shape; wider values use
+   * {@link WideHours} via {@link #writeReplace()}.
    */
   private long hours;
   private int minutes;
@@ -450,7 +450,22 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @see #getHoursLong()
    */
   public int getHours() {
-    return Math.toIntExact(hours);
+    return requireHoursAsInt();
+  }
+
+  /**
+   * Returns hours as {@code int}, or throws with a message that points at {@link #getHoursLong()}.
+   */
+  private int requireHoursAsInt() {
+    if (hours > Integer.MAX_VALUE || hours < Integer.MIN_VALUE) {
+      throw new ArithmeticException(
+          "hours value " + hours + " does not fit in int; use getHoursLong()");
+    }
+    return (int) hours;
+  }
+
+  private boolean fitsLegacyHours() {
+    return hours >= Integer.MIN_VALUE && hours <= Integer.MAX_VALUE;
   }
 
   /**
@@ -552,19 +567,21 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    *
    * @param cal Calendar instance to add to
    * @throws ArithmeticException if hours does not fit in {@code int}
-   *     ({@link Calendar#add(int, int)} only accepts {@code int})
+   *     ({@link Calendar#add(int, int)} only accepts {@code int}); the calendar is left unchanged
    */
   public void add(Calendar cal) {
     if (isNull) {
       return;
     }
 
+    // Validate before mutating the caller's Calendar
+    final int hoursInt = requireHoursAsInt();
     final int milliseconds = (microSeconds + (microSeconds < 0 ? -500 : 500)) / 1000 + wholeSeconds * 1000;
 
     cal.add(Calendar.MILLISECOND, milliseconds);
     cal.add(Calendar.MINUTE, getMinutes());
     // Calendar.add only accepts int; refuse wide hours instead of looping for billions of iterations
-    cal.add(Calendar.HOUR, Math.toIntExact(getHoursLong()));
+    cal.add(Calendar.HOUR, hoursInt);
     cal.add(Calendar.DAY_OF_MONTH, getDays());
     cal.add(Calendar.MONTH, getMonths());
     cal.add(Calendar.YEAR, getYears());
@@ -591,17 +608,26 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * this makes it match the other existing add methods.
    *
    * @param interval intval to add
+   * @throws ArithmeticException if any component addition overflows; the target is left unchanged
    */
   public void add(PGInterval interval) {
     if (isNull || interval.isNull) {
       return;
     }
-    interval.setYears(interval.getYears() + getYears());
-    interval.setMonths(interval.getMonths() + getMonths());
-    interval.setDays(interval.getDays() + getDays());
-    interval.setHours(Math.addExact(interval.getHoursLong(), getHoursLong()));
-    interval.setMinutes(interval.getMinutes() + getMinutes());
-    interval.setSeconds(interval.getSeconds() + getSeconds());
+    // Compute every field first so a late overflow cannot leave the target half-updated
+    final int years = interval.getYears() + getYears();
+    final int months = interval.getMonths() + getMonths();
+    final int days = interval.getDays() + getDays();
+    final long hoursSum = Math.addExact(interval.getHoursLong(), getHoursLong());
+    final int minutes = interval.getMinutes() + getMinutes();
+    final double seconds = interval.getSeconds() + getSeconds();
+
+    interval.setYears(years);
+    interval.setMonths(months);
+    interval.setDays(days);
+    interval.setHours(hoursSum);
+    interval.setMinutes(minutes);
+    interval.setSeconds(seconds);
   }
 
   /**
@@ -714,25 +740,32 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     return super.clone();
   }
 
+  /**
+   * Int-range intervals serialize as {@code this}; wide-hour intervals as {@link WideHours}
+   * so older drivers fail loudly instead of reading a saturated int hours field.
+   */
+  private Object writeReplace() throws ObjectStreamException {
+    return fitsLegacyHours() ? this : new WideHours(this);
+  }
+
+  /**
+   * Guard for subclasses: private {@link #writeReplace()} is not inherited, so a subclass with
+   * wide hours must not fall through to the int-hours field layout and silently truncate.
+   */
   private void writeObject(ObjectOutputStream oos) throws IOException {
+    if (!fitsLegacyHours()) {
+      throw new NotSerializableException(
+          "PGInterval hours value " + hours + " does not fit in int; cannot serialize via legacy form");
+    }
     ObjectOutputStream.PutField fields = oos.putFields();
     fields.put("years", years);
     fields.put("months", months);
     fields.put("days", days);
-    // Keep int hours wire-compatible; saturate for old readers on wide values
-    if (hours > Integer.MAX_VALUE) {
-      fields.put("hours", Integer.MAX_VALUE);
-    } else if (hours < Integer.MIN_VALUE) {
-      fields.put("hours", Integer.MIN_VALUE);
-    } else {
-      fields.put("hours", (int) hours);
-    }
+    fields.put("hours", (int) hours);
     fields.put("minutes", minutes);
     fields.put("wholeSeconds", wholeSeconds);
     fields.put("microSeconds", microSeconds);
     fields.put("isNull", isNull);
-    // Authoritative full-range value for readers that understand hoursLong
-    fields.put("hoursLong", hours);
     oos.writeFields();
   }
 
@@ -741,15 +774,56 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     years = fields.get("years", 0);
     months = fields.get("months", 0);
     days = fields.get("days", 0);
+    hours = fields.get("hours", 0);
     minutes = fields.get("minutes", 0);
     wholeSeconds = fields.get("wholeSeconds", 0);
     microSeconds = fields.get("microSeconds", 0);
     isNull = fields.get("isNull", false);
-    if (fields.defaulted("hoursLong")) {
-      // Stream from a driver that only had int hours
-      hours = fields.get("hours", 0);
-    } else {
-      hours = fields.get("hoursLong", 0L);
+  }
+
+  /**
+   * Serialization proxy for hour values outside the historical {@code int} range.
+   * Older drivers that do not know this class fail with {@code ClassNotFoundException}
+   * instead of silently saturating hours.
+   */
+  private static final class WideHours implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    private final int years;
+    private final int months;
+    private final int days;
+    private final long hours;
+    private final int minutes;
+    private final int wholeSeconds;
+    private final int microSeconds;
+    private final boolean isNull;
+
+    WideHours(PGInterval interval) {
+      this.years = interval.years;
+      this.months = interval.months;
+      this.days = interval.days;
+      this.hours = interval.hours;
+      this.minutes = interval.minutes;
+      this.wholeSeconds = interval.wholeSeconds;
+      this.microSeconds = interval.microSeconds;
+      this.isNull = interval.isNull;
+    }
+
+    private Object readResolve() {
+      PGInterval interval = new PGInterval();
+      if (isNull) {
+        return interval;
+      }
+      interval.setYears(years);
+      interval.setMonths(months);
+      interval.setDays(days);
+      interval.setHours(hours);
+      interval.setMinutes(minutes);
+      // Restore exact fractional seconds without re-rounding through double when possible
+      interval.wholeSeconds = wholeSeconds;
+      interval.microSeconds = microSeconds;
+      interval.isNull = false;
+      return interval;
     }
   }
 }
