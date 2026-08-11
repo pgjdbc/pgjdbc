@@ -2,6 +2,15 @@
 Notable changes since version 42.0.0, read the complete [History of Changes](https://jdbc.postgresql.org/documentation/changelog.html).
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
+
+## [Unreleased]
+
+### Fixed
+* fix: `PGInterval` can represent hour values beyond `Integer.MAX_VALUE` that PostgreSQL accepts (up to about `2562047788` hours), so `ResultSet#getObject` no longer fails when `getString` already returns the correct text. Also fixes text-path parsing of `-2147483648` hours (sign strip + int overflow). Existing method descriptors stay binary-compatible for Hibernate and other reflective callers: `getHours()` still returns `int` and throws `ArithmeticException` via `Math.toIntExact` when the value does not fit; use new `getHoursLong()` for the full range. `setHours(int)`, the `(int,int,int,int,int,double)` constructor, and the matching `setValue` form remain; long-hours overloads are added beside them. Internal storage is `long` with custom serialization so int-range values keep the historical stream shape (`serialVersionUID` pinned; optional `hoursLong` for wide values). [Issue #4301](https://github.com/pgjdbc/pgjdbc/issues/4301) [PR #4340](https://github.com/pgjdbc/pgjdbc/pull/4340)
+
+### Migration note
+* Call sites that need hours outside the `int` range must use `getHoursLong()` (or catch `ArithmeticException` from `getHours()`). Binary/reflection callers that used `getHours()I` and `PGInterval.<init>(IIIIID)V` continue to link. Code that multiplies hours into microseconds should use `Math.multiplyExact` once hours may be `long`. On `master`, interval still has no binary receive path, so the text/binary SQLState mismatch from #4301 item 3 is unchanged.
+
 ## [42.7.13] (2026-07-06)
 
 ### Added

@@ -545,7 +545,7 @@ class IntervalTest {
       assertNotNull(text);
       PGInterval pgi = (PGInterval) rs.getObject(1);
       assertNotNull(pgi);
-      assertEquals(2562047788L, pgi.getHours());
+      assertEquals(2562047788L, pgi.getHoursLong());
       assertEquals(0, pgi.getMinutes());
       assertEquals(54.775807, pgi.getSeconds(), 0.0000001);
     }
@@ -572,7 +572,10 @@ class IntervalTest {
           assertTrue(rs.next(), literals[i]);
           PGInterval pgi = (PGInterval) rs.getObject(1);
           assertNotNull(pgi, literals[i]);
-          assertEquals(expectedHours[i], pgi.getHours(), literals[i]);
+          assertEquals(expectedHours[i], pgi.getHoursLong(), literals[i]);
+          if (expectedHours[i] >= Integer.MIN_VALUE && expectedHours[i] <= Integer.MAX_VALUE) {
+            assertEquals((int) expectedHours[i], pgi.getHours(), literals[i]);
+          }
         }
       }
     }

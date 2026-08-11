@@ -7,6 +7,10 @@ package org.postgresql.util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.ObjectStreamField;
 import java.io.Serializable;
 import java.sql.SQLException;
 import java.util.Calendar;
@@ -19,6 +23,31 @@ import java.util.StringTokenizer;
  */
 public class PGInterval extends PGobject implements Serializable, Cloneable {
 
+  /**
+   * Historical default {@code serialVersionUID} from driver versions that stored {@code hours}
+   * as {@code int}. Declared explicitly so the field-type change of the runtime {@code hours}
+   * field does not alter the stream identity.
+   */
+  private static final long serialVersionUID = -8634557111021512261L;
+
+  /**
+   * Serialized shape matches historical drivers: {@code hours} remains an {@code int} so
+   * int-range values round-trip with older nodes. Wide hours are carried in optional
+   * {@code hoursLong}; readers that do not know that field keep the saturated {@code hours}
+   * int (best-effort for mixed-version clusters).
+   */
+  private static final ObjectStreamField[] serialPersistentFields = {
+      new ObjectStreamField("years", int.class),
+      new ObjectStreamField("months", int.class),
+      new ObjectStreamField("days", int.class),
+      new ObjectStreamField("hours", int.class),
+      new ObjectStreamField("minutes", int.class),
+      new ObjectStreamField("wholeSeconds", int.class),
+      new ObjectStreamField("microSeconds", int.class),
+      new ObjectStreamField("isNull", boolean.class),
+      new ObjectStreamField("hoursLong", long.class),
+  };
+
   private static final int MICROS_IN_SECOND = 1000000;
 
   private int years;
@@ -28,6 +57,9 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * Hours component. Stored as {@code long} so values that PostgreSQL accepts
    * (up to about {@code 2562047788} hours) can be represented; {@code int} only
    * covers about {@code 2147483647} hours (~245k years of hours).
+   *
+   * <p>Serialized via {@link #serialPersistentFields}: int-range values stay wire-compatible
+   * with older drivers; see {@link #writeObject} / {@link #readObject}.
    */
   private long hours;
   private int minutes;
@@ -120,7 +152,27 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param years years
    * @param months months
    * @param days days
-   * @param hours hours (stored as {@code long}; see {@link #getHours()})
+   * @param hours hours
+   * @param minutes minutes
+   * @param seconds seconds
+   * @see #setValue(int, int, int, int, int, double)
+   */
+  @SuppressWarnings("method.invocation")
+  public PGInterval(int years, int months, int days, int hours, int minutes, double seconds) {
+    this();
+    setValue(years, months, days, hours, minutes, seconds);
+  }
+
+  /**
+   * Initializes all values of this interval to the specified values.
+   *
+   * <p>Use this overload when {@code hours} may exceed the {@code int} range
+   * (PostgreSQL accepts values up to about {@code 2562047788} hours).
+   *
+   * @param years years
+   * @param months months
+   * @param days days
+   * @param hours hours (see {@link #getHoursLong()})
    * @param minutes minutes
    * @param seconds seconds
    * @see #setValue(int, int, int, long, int, double)
@@ -241,7 +293,21 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param years years
    * @param months months
    * @param days days
-   * @param hours hours (see {@link #getHours()})
+   * @param hours hours
+   * @param minutes minutes
+   * @param seconds seconds
+   */
+  public void setValue(int years, int months, int days, int hours, int minutes, double seconds) {
+    setValue(years, months, days, (long) hours, minutes, seconds);
+  }
+
+  /**
+   * Set all values of this interval to the specified values.
+   *
+   * @param years years
+   * @param months months
+   * @param days days
+   * @param hours hours (see {@link #getHoursLong()})
    * @param minutes minutes
    * @param seconds seconds
    */
@@ -303,10 +369,6 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
       sb.append(" secs");
     }
     return sb.toString();
-  }
-
-  private static void appendUnit(StringBuilder sb, int value, String unit) {
-    appendUnit(sb, (long) value, unit);
   }
 
   private static void appendUnit(StringBuilder sb, long value, String unit) {
@@ -377,20 +439,49 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Returns the hours represented by this interval.
+   * Returns the hours represented by this interval as an {@code int}.
    *
-   * <p>The return type is {@code long} so intervals whose time part exceeds
-   * {@link Integer#MAX_VALUE} hours (valid PostgreSQL values; see GitHub issue 4301)
-   * can be read with {@code ResultSet#getObject} without overflow.
+   * <p>Binary-compatible with previous driver versions (descriptor {@code getHours()I}).
+   * When the stored value does not fit in an {@code int}, throws {@link ArithmeticException};
+   * use {@link #getHoursLong()} for the full range that PostgreSQL accepts.
+   *
+   * @return hours represented by this interval
+   * @throws ArithmeticException if hours is outside {@link Integer#MIN_VALUE}..{@link Integer#MAX_VALUE}
+   * @see #getHoursLong()
+   */
+  public int getHours() {
+    return Math.toIntExact(hours);
+  }
+
+  /**
+   * Returns the hours represented by this interval as a {@code long}.
+   *
+   * <p>Prefer this method when the interval may exceed the {@code int} range
+   * (valid PostgreSQL values; see GitHub issue 4301).
    *
    * @return hours represented by this interval
    */
-  public long getHours() {
+  public long getHoursLong() {
     return hours;
   }
 
   /**
    * Set the hours of this interval to the specified value.
+   *
+   * @param hours hours to set
+   */
+  public void setHours(int hours) {
+    isNull = false;
+    this.hours = hours;
+  }
+
+  /**
+   * Set the hours of this interval to the specified value.
+   *
+   * <p>Values outside the range PostgreSQL accepts for the interval time component
+   * (about {@code ±2562047788} hours) are stored here and fail later at bind time with
+   * SQLState {@code 22015}. Callers that fold hours into microseconds should use
+   * {@link Math#multiplyExact(long, long)} — with {@code long} hours that product can overflow.
    *
    * @param hours hours to set
    */
@@ -460,6 +551,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * Rolls this interval on a given calendar.
    *
    * @param cal Calendar instance to add to
+   * @throws ArithmeticException if hours does not fit in {@code int}
+   *     ({@link Calendar#add(int, int)} only accepts {@code int})
    */
   public void add(Calendar cal) {
     if (isNull) {
@@ -470,28 +563,11 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
 
     cal.add(Calendar.MILLISECOND, milliseconds);
     cal.add(Calendar.MINUTE, getMinutes());
-    addCalendarField(cal, Calendar.HOUR, getHours());
+    // Calendar.add only accepts int; refuse wide hours instead of looping for billions of iterations
+    cal.add(Calendar.HOUR, Math.toIntExact(getHoursLong()));
     cal.add(Calendar.DAY_OF_MONTH, getDays());
     cal.add(Calendar.MONTH, getMonths());
     cal.add(Calendar.YEAR, getYears());
-  }
-
-  /**
-   * Adds a long amount to a {@link Calendar} field by applying it in {@code int}-sized chunks.
-   * {@link Calendar#add(int, int)} only accepts {@code int}, but hours may exceed that range.
-   */
-  private static void addCalendarField(Calendar cal, int field, long amount) {
-    while (amount > Integer.MAX_VALUE) {
-      cal.add(field, Integer.MAX_VALUE);
-      amount -= Integer.MAX_VALUE;
-    }
-    while (amount < Integer.MIN_VALUE) {
-      cal.add(field, Integer.MIN_VALUE);
-      amount -= Integer.MIN_VALUE;
-    }
-    if (amount != 0) {
-      cal.add(field, (int) amount);
-    }
   }
 
   /**
@@ -523,7 +599,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     interval.setYears(interval.getYears() + getYears());
     interval.setMonths(interval.getMonths() + getMonths());
     interval.setDays(interval.getDays() + getDays());
-    interval.setHours(interval.getHours() + getHours());
+    interval.setHours(Math.addExact(interval.getHoursLong(), getHoursLong()));
     interval.setMinutes(interval.getMinutes() + getMinutes());
     interval.setSeconds(interval.getSeconds() + getSeconds());
   }
@@ -543,7 +619,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     setYears(factor * getYears());
     setMonths(factor * getMonths());
     setDays(factor * getDays());
-    setHours(factor * getHours());
+    setHours(Math.multiplyExact((long) factor, getHoursLong()));
     setMinutes(factor * getMinutes());
     setSeconds(factor * getSeconds());
   }
@@ -627,11 +703,8 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     if (isNull) {
       return 0;
     }
-    // Preserve historical hash for values that previously fit in int hours
-    int hoursHash = (hours >= Integer.MIN_VALUE && hours <= Integer.MAX_VALUE)
-        ? (int) hours
-        : (int) (hours ^ (hours >>> 32));
-    return (((((((8 * 31 + microSeconds) * 31 + wholeSeconds) * 31 + minutes) * 31 + hoursHash) * 31
+    // Plain cast preserves the historical hash for every value that fit in int hours
+    return (((((((8 * 31 + microSeconds) * 31 + wholeSeconds) * 31 + minutes) * 31 + (int) hours) * 31
         + days) * 31 + months) * 31 + years) * 31;
   }
 
@@ -639,5 +712,44 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   public Object clone() throws CloneNotSupportedException {
     // squid:S2157 "Cloneables" should implement "clone
     return super.clone();
+  }
+
+  private void writeObject(ObjectOutputStream oos) throws IOException {
+    ObjectOutputStream.PutField fields = oos.putFields();
+    fields.put("years", years);
+    fields.put("months", months);
+    fields.put("days", days);
+    // Keep int hours wire-compatible; saturate for old readers on wide values
+    if (hours > Integer.MAX_VALUE) {
+      fields.put("hours", Integer.MAX_VALUE);
+    } else if (hours < Integer.MIN_VALUE) {
+      fields.put("hours", Integer.MIN_VALUE);
+    } else {
+      fields.put("hours", (int) hours);
+    }
+    fields.put("minutes", minutes);
+    fields.put("wholeSeconds", wholeSeconds);
+    fields.put("microSeconds", microSeconds);
+    fields.put("isNull", isNull);
+    // Authoritative full-range value for readers that understand hoursLong
+    fields.put("hoursLong", hours);
+    oos.writeFields();
+  }
+
+  private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
+    ObjectInputStream.GetField fields = ois.readFields();
+    years = fields.get("years", 0);
+    months = fields.get("months", 0);
+    days = fields.get("days", 0);
+    minutes = fields.get("minutes", 0);
+    wholeSeconds = fields.get("wholeSeconds", 0);
+    microSeconds = fields.get("microSeconds", 0);
+    isNull = fields.get("isNull", false);
+    if (fields.defaulted("hoursLong")) {
+      // Stream from a driver that only had int hours
+      hours = fields.get("hours", 0);
+    } else {
+      hours = fields.get("hoursLong", 0L);
+    }
   }
 }
