@@ -109,7 +109,7 @@ jobs:
       # pgjdbc/build/local-maven-repo in the same Gradle run, so the jar and signature attached to
       # the GitHub release below are byte-for-byte the ones uploaded to Central.
       - name: Publish to Central Portal
-        uses: burrunan/gradle-cache-action@4b67497abd37a511d6c1dc6299bdd84ff39f7bf5 # v3.0.2
+        uses: burrunan/gradle-cache-action@404534c34a2faa40430357a3183522a845b04f3b # v3.0.3
         with:
           arguments: publishAggregationToCentralPortal :postgresql:publishAllPublicationsToTmp-mavenRepository
           # language=properties

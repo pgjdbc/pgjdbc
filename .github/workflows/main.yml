@@ -48,7 +48,7 @@ jobs:
       with:
         distribution: zulu
         java-version: 21
-    - uses: burrunan/gradle-cache-action@4b67497abd37a511d6c1dc6299bdd84ff39f7bf5 # v3.0.2
+    - uses: burrunan/gradle-cache-action@404534c34a2faa40430357a3183522a845b04f3b # v3.0.3
       name: Verify code style
       env:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
@@ -69,7 +69,7 @@ jobs:
         with:
           distribution: zulu
           java-version: 21
-      - uses: burrunan/gradle-cache-action@4b67497abd37a511d6c1dc6299bdd84ff39f7bf5 # v3.0.2
+      - uses: burrunan/gradle-cache-action@404534c34a2faa40430357a3183522a845b04f3b # v3.0.3
         name: Run CheckerFramework
         env:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
@@ -94,7 +94,7 @@ jobs:
         with:
           distribution: zulu
           java-version: 21
-      - uses: burrunan/gradle-cache-action@4b67497abd37a511d6c1dc6299bdd84ff39f7bf5 # v3.0.2
+      - uses: burrunan/gradle-cache-action@404534c34a2faa40430357a3183522a845b04f3b # v3.0.3
         name: Prepare source distribution
         env:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
@@ -314,7 +314,7 @@ jobs:
         sudo sed -i '/^127\.0\.0\.1/c\127.0.0.1 auth-test-localhost.postgresql.example.com localhost' /etc/hosts
         cat /etc/hosts
 
-    - uses: burrunan/gradle-cache-action@4b67497abd37a511d6c1dc6299bdd84ff39f7bf5 # v3.0.2
+    - uses: burrunan/gradle-cache-action@404534c34a2faa40430357a3183522a845b04f3b # v3.0.3
       name: Test
       id: test
       env:
@@ -343,7 +343,7 @@ jobs:
       # `!cancelled()` is required: without a status function the `if` is implicitly
       # wrapped in success(), which never holds after the test step has failed.
       if: ${{ !cancelled() && matrix.collectCoverage && steps.test.outcome == 'failure' && github.event_name == 'pull_request' }}
-      uses: burrunan/gradle-cache-action@4b67497abd37a511d6c1dc6299bdd84ff39f7bf5 # v3.0.2
+      uses: burrunan/gradle-cache-action@404534c34a2faa40430357a3183522a845b04f3b # v3.0.3
       with:
         read-only: false
         job-id: jdk${{ matrix.java_version }}
