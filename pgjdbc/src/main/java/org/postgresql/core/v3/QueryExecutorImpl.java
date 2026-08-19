@@ -213,6 +213,26 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private static final int SEARCH_PATH_SCAN_LIMIT = 1024;
 
   /**
+   * The longest copy response is 4 (length) + 1 (overall format) + 2 (field count) + 2 per
+   * field. The count is read through {@link PGStream#receiveInteger2()}, which is unsigned, so
+   * 0xFFFF and not Short.MAX_VALUE.
+   */
+  private static final int MAX_COPY_RESPONSE_LENGTH = 7 + 2 * 0xFFFF;
+
+  /**
+   * The longest ParameterDescription is 4 (length) + 2 (parameter count) + 4 per parameter.
+   * The count is unsigned and a statement can have 65535 parameters, so the whole range is
+   * reachable.
+   */
+  private static final int MAX_PARAMETER_DESCRIPTION_LENGTH = 6 + 4 * 0xFFFF;
+
+  /**
+   * The shortest field description in a RowDescription is an empty name and its terminator,
+   * then table OID, column position, type OID, type length, type modifier and format code.
+   */
+  private static final int MIN_FIELD_DESCRIPTION_LENGTH = 1 + 4 + 2 + 4 + 2 + 4 + 2;
+
+  /**
    * This caches the latest observed {@code set search_path} query so the reset of prepared
    * statement cache can be skipped if using repeated calls for the same {@code set search_path}
    * value.
@@ -1141,9 +1161,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private void initCopy(CopyOperationImpl op) throws SQLException, IOException {
     try (ResourceLock ignore = lock.obtain()) {
-      pgStream.receiveInteger4(); // length not used
+      int len = pgStream.receiveMessageLength("CopyResponse", 7, MAX_COPY_RESPONSE_LENGTH);
       int rowFormat = pgStream.receiveChar();
       int numFields = pgStream.receiveInteger2();
+      // The formats are the whole body, so the count is determined by the length.
+      if (len != 7 + 2 * numFields) {
+        throw pgStream.protocolViolation(GT.tr(
+            "Copy response of {0} bytes does not hold exactly {1} field formats.",
+            String.valueOf(len), String.valueOf(numFields)));
+      }
       int[] fieldFormats = new int[numFields];
 
       for (int i = 0; i < numFields; i++) {
@@ -2404,7 +2430,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case PgMessageType.PARAMETER_DESCRIPTION_RESPONSE: {
-          pgStream.receiveInteger4(); // len, discarded
+          // 4 (length) + 2 (parameter count) + 4 per parameter.
+          int paramDescLen = pgStream.receiveMessageLength("ParameterDescription", 6,
+              MAX_PARAMETER_DESCRIPTION_LENGTH);
 
           LOGGER.log(Level.FINEST, " <=BE ParameterDescription");
 
@@ -2416,6 +2444,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           String origStatementName = describeData.statementName;
 
           int numParams = pgStream.receiveInteger2();
+          // The type OIDs are the whole body, so the count is determined by the length.
+          if (paramDescLen != 6 + 4 * numParams) {
+            throw pgStream.protocolViolation(GT.tr(
+                "ParameterDescription of {0} bytes does not hold exactly {1} parameter types.",
+                String.valueOf(paramDescLen), String.valueOf(numParams)));
+          }
 
           for (int i = 1; i <= numParams; i++) {
             int typeOid = pgStream.receiveInteger4();
@@ -2789,14 +2823,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           pgStream.sendChar(0);
           sendSync(); // send sync message
           pgStream.flush();
-          // 4 (length) + 1 (format) + 2 (field count) + 2 per field.
-          skipMessage("CopyInResponse", 7 + 2 * Short.MAX_VALUE);
+          skipMessage("CopyInResponse", MAX_COPY_RESPONSE_LENGTH);
           break;
 
         case PgMessageType.COPY_OUT_RESPONSE:
           LOGGER.log(Level.FINEST, " <=BE CopyOutResponse");
 
-          skipMessage("CopyOutResponse", 7 + 2 * Short.MAX_VALUE);
+          skipMessage("CopyOutResponse", MAX_COPY_RESPONSE_LENGTH);
           // In case of CopyOutResponse, we cannot abort data transfer,
           // so just throw an error and ignore CopyData messages
           handler.handleError(
@@ -2940,8 +2973,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * Receive the field descriptions from the back end.
    */
   private Field[] receiveFields() throws IOException {
-    pgStream.receiveInteger4(); // MESSAGE SIZE
+    // 4 (length) + 2 (field count), then one field description each.
+    int len = pgStream.receiveMessageLength("RowDescription", 6, PGStream.MAX_MESSAGE_LENGTH);
     int size = pgStream.receiveInteger2();
+    // Without this a short message reads its field descriptions out of what follows it.
+    if (len - 6 < MIN_FIELD_DESCRIPTION_LENGTH * size) {
+      throw pgStream.protocolViolation(GT.tr(
+          "RowDescription of {0} bytes cannot hold {1} field descriptions.",
+          String.valueOf(len), String.valueOf(size)));
+    }
     Field[] fields = new Field[size];
 
     if (LOGGER.isLoggable(Level.FINEST)) {
