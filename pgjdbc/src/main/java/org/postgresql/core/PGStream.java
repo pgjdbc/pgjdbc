@@ -62,9 +62,20 @@ public class PGStream implements Closeable, Flushable {
    * Cap for message types whose body is buffered whole by {@link #receiveString(int)} or
    * {@link #receiveErrorString(int)}, where the buffer maximum is the real limit. DataRow and
    * CopyData read straight into their destination instead.
+   *
+   * <p>The body is four bytes shorter than the message, so a message at exactly this cap still
+   * fits the buffer maximum.</p>
    */
   public static final int MAX_BUFFERED_MESSAGE_LENGTH =
       Math.min(MAX_MESSAGE_LENGTH, VisibleBufferedInputStream.MAX_BUFFER_SIZE);
+
+  /**
+   * Limit for an ErrorResponse before authentication, where a five byte header from an
+   * unauthenticated peer sets the allocation size. libpq refuses a message outside
+   * {@code VALID_LONG_MESSAGE_TYPE} whose declared length exceeds 30000, so this is the same
+   * limit.
+   */
+  public static final int MAX_PRE_AUTH_MESSAGE_LENGTH = 30000;
 
   /**
    * Limit on the round trips in the authentication loop and the two GSS handshakes. Without it
@@ -662,7 +673,7 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if an I/O error occurs, or end of file
    */
   public String receiveString() throws IOException {
-    int len = pgInput.scanCStringLength();
+    int len = scanCStringLength();
     String res = encoding.decode(pgInput.getBuffer(), pgInput.getIndex(), len - 1);
     pgInput.skip(len);
     return res;
@@ -678,7 +689,7 @@ public class PGStream implements Closeable, Flushable {
    * @see Encoding#decodeCanonicalized(byte[], int, int)
    */
   public String receiveCanonicalString() throws IOException {
-    int len = pgInput.scanCStringLength();
+    int len = scanCStringLength();
     String res = encoding.decodeCanonicalized(pgInput.getBuffer(), pgInput.getIndex(), len - 1);
     pgInput.skip(len);
     return res;
@@ -694,10 +705,30 @@ public class PGStream implements Closeable, Flushable {
    * @see Encoding#decodeCanonicalizedIfPresent(byte[], int, int)
    */
   public String receiveCanonicalStringIfPresent() throws IOException {
-    int len = pgInput.scanCStringLength();
+    int len = scanCStringLength();
     String res = encoding.decodeCanonicalizedIfPresent(pgInput.getBuffer(), pgInput.getIndex(), len - 1);
     pgInput.skip(len);
     return res;
+  }
+
+  /**
+   * Scans the next C string, no further than the end of its message. Without that the scan
+   * grows the read buffer to its maximum before failing, which an unauthenticated peer can
+   * cause by sending only a header.
+   *
+   * @return the length of the string including its terminator
+   * @throws IOException if the message holds no terminator, or on an I/O error
+   */
+  private int scanCStringLength() throws IOException {
+    if (messageEnd < 0) {
+      // The startup exchange and the GSS handshake run outside any declared message.
+      return pgInput.scanCStringLength();
+    }
+    long remaining = messageEnd - pgInput.getPosition();
+    if (remaining <= 0) {
+      throw protocolViolation(GT.tr("String starts at or past the end of its message."));
+    }
+    return pgInput.scanCStringLength((int) Math.min(remaining, Integer.MAX_VALUE));
   }
 
   /**

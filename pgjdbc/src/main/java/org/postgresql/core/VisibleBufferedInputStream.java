@@ -438,6 +438,19 @@ public class VisibleBufferedInputStream extends InputStream {
    * @throws EOFException If the stream did not contain any null terminators.
    */
   public int scanCStringLength() throws IOException {
+    return scanCStringLength(Integer.MAX_VALUE);
+  }
+
+  /**
+   * Scans the length of the next null terminated string (C-style string) from the stream, looking
+   * no further than the given number of bytes.
+   *
+   * @param maxLength the most bytes the string may occupy, including its terminator.
+   * @return The length of the next null terminated string.
+   * @throws IOException If reading of stream fails, or no terminator is within maxLength.
+   * @throws EOFException If the stream did not contain any null terminators.
+   */
+  public int scanCStringLength(int maxLength) throws IOException {
     int scanned = 0;
     while (true) {
       // Resume where the last pass stopped, relative to index since readMore may compact.
@@ -447,6 +460,11 @@ public class VisibleBufferedInputStream extends InputStream {
         scanned++;
         if (buffer[pos++] == '\0') {
           return scanned;
+        }
+        if (scanned >= maxLength) {
+          onProtocolViolation.run();
+          throw new IOException(GT.tr("No string terminator within {0} bytes.",
+              String.valueOf(maxLength)));
         }
       }
       if (!readMore(STRING_SCAN_SPAN, true)) {
