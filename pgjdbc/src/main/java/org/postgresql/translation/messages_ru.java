@@ -42,8 +42,6 @@ public class messages_ru extends java.util.ResourceBundle {
     t[85] = "Параметр сервера standard_conforming_strings установлен в {0}. JDBC-драйвер ожидал on или off.";
     t[92] = "Channel Binding is required, but server did not offer an authentication method that supports channel binding";
     t[93] = "Требуется channel binding, но сервер не предложил метод аутентификации с поддержкой channel binding";
-    t[94] = "Multi-statement SQL is not supported in Statement.addBatch(); call addBatch() once per statement instead.";
-    t[95] = "Statement.addBatch() не поддерживает SQL с несколькими запросами; вызывайте addBatch() отдельно на каждый запрос.";
     t[102] = "The parameter index is out of range: {0}, number of parameters: {1}.";
     t[103] = "Индекс параметра вне диапазона: {0}. Допустимые значения: 1..{1}";
     t[104] = "Unknown value for ResultSet type";
@@ -692,6 +690,8 @@ public class messages_ru extends java.util.ResourceBundle {
     t[1405] = "Пользовательские type maps не поддерживаются.";
     t[1406] = "Bind message length {0} too long.  This can be caused by very large or incorrect length specifications on InputStream parameters.";
     t[1407] = "Длина сообщения Bind {0} слишком велика.  Причиной может быть слишком большое или некорректное значение длины у параметров типа InputStream.";
+    t[1408] = "Multi-statement SQL is not supported in a batch. Batch each SQL statement separately.";
+    t[1409] = "Пакет не поддерживает SQL с несколькими запросами. Разделите его на отдельные запросы.";
     t[1412] = "Position: {0}";
     t[1413] = "Позиция: {0}";
     t[1414] = "Currently positioned after the end of the ResultSet.  You cannot call deleteRow() here.";
