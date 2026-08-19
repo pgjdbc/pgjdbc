@@ -1550,6 +1550,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
             LOGGER.log(Level.FINEST, " <=BE CopyData");
 
+            // CopyData keeps the MaxAllocSize limit. The protocol gives it no smaller one, and
+            // a COPY row or a logical replication message can be that large, so if the stream
+            // goes out of sync inside a COPY the driver can still make one large allocation.
+            // maxResultBuffer is documented for result sets, so it is not used here.
             len = pgStream.receiveMessageLength("CopyData", 4, PGStream.MAX_MESSAGE_LENGTH) - 4;
 
             byte[] buf = pgStream.receive(len);
