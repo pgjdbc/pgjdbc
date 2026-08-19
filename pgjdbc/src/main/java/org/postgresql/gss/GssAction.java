@@ -166,6 +166,7 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
               break;
             default:
               // Unknown/unexpected message type.
+              pgStream.setBroken();
               return new PSQLException(GT.tr("Protocol error.  Session setup failed."),
                   PSQLState.CONNECTION_UNABLE_TO_CONNECT);
           }

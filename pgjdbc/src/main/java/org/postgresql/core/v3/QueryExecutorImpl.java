@@ -972,6 +972,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               }
               break;
             default:
+              pgStream.setBroken();
               throw new PSQLException(GT.tr("Unknown Response Type {0}.", (char) c),
                   PSQLState.CONNECTION_FAILURE);
           }
@@ -1041,8 +1042,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // -1 is null and carries no bytes. Any other length fills the message exactly.
           int expectedLen = valueLen == -1 ? 8 : 8 + valueLen;
           if (valueLen < -1 || msgLen != expectedLen) {
-            throw new IOException(GT.tr("Function call result of {0} bytes does not fill a"
-                + " message of {1} bytes.", String.valueOf(valueLen), String.valueOf(msgLen)));
+            throw pgStream.protocolViolation(GT.tr("Function call result of {0} bytes does not"
+                + " fill a message of {1} bytes.", String.valueOf(valueLen),
+                String.valueOf(msgLen)));
           }
 
           LOGGER.log(Level.FINEST, " <=BE FunctionCallResponse({0} bytes)", valueLen);
@@ -1069,6 +1071,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         default:
+          pgStream.setBroken();
           throw new PSQLException(GT.tr("Unknown Response Type {0}.", (char) c),
               PSQLState.CONNECTION_FAILURE);
       }
@@ -1588,7 +1591,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             break;
 
           default:
-            throw new IOException(
+            throw pgStream.protocolViolation(
                 GT.tr("Unexpected packet type during copy: {0}", Integer.toString(c)));
         }
 
@@ -2812,7 +2815,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         default:
-          throw new IOException("Unexpected packet type: " + c);
+          throw pgStream.protocolViolation("Unexpected packet type: " + c);
       }
 
     }
@@ -3043,7 +3046,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private void receiveRFQ() throws IOException {
     if (pgStream.receiveInteger4() != 5) {
-      throw new IOException("unexpected length of ReadyForQuery message");
+      throw pgStream.protocolViolation("unexpected length of ReadyForQuery message");
     }
 
     char tStatus = (char) pgStream.receiveChar();
@@ -3065,7 +3068,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         setTransactionState(TransactionState.FAILED);
         break;
       default:
-        throw new IOException(
+        throw pgStream.protocolViolation(
             "unexpected transaction state in ReadyForQuery message: " + (int) tStatus);
     }
   }
@@ -3136,10 +3139,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, "  invalid message type={0}", (char) beresp);
           }
+          pgStream.setBroken();
           throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
               PSQLState.PROTOCOL_VIOLATION);
       }
     }
+    pgStream.setBroken();
     throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
         PSQLState.PROTOCOL_VIOLATION);
   }

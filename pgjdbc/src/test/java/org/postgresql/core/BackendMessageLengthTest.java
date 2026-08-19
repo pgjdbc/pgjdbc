@@ -96,6 +96,11 @@ class BackendMessageLengthTest {
     }
 
     @Override
+    public void setSoLinger(boolean on, int linger) {
+      // Socket.setSoLinger would create a real descriptor to set the option on.
+    }
+
+    @Override
     public void close() {
     }
   }

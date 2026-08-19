@@ -40,6 +40,12 @@ public class VisibleBufferedInputStream extends InputStream {
    */
   static final int MAX_BUFFER_SIZE = 32 * 1024 * 1024;
 
+  private static final Runnable NO_OP = new Runnable() {
+    @Override
+    public void run() {
+    }
+  };
+
   /**
    * The wrapped input stream.
    */
@@ -65,6 +71,9 @@ public class VisibleBufferedInputStream extends InputStream {
    */
   private boolean timeoutRequested;
 
+  /** Run when a read is refused, so the owner can mark itself broken. */
+  private final Runnable onProtocolViolation;
+
   /**
    * Creates a new buffer around the given stream.
    *
@@ -72,8 +81,20 @@ public class VisibleBufferedInputStream extends InputStream {
    * @param bufferSize The initial size of the buffer.
    */
   public VisibleBufferedInputStream(InputStream in, int bufferSize) {
+    this(in, bufferSize, NO_OP);
+  }
+
+  /**
+   * Creates a new buffer around the given stream.
+   *
+   * @param in The stream to buffer.
+   * @param bufferSize The initial size of the buffer.
+   * @param onProtocolViolation run when a read is refused, so the owner can mark itself broken.
+   */
+  public VisibleBufferedInputStream(InputStream in, int bufferSize, Runnable onProtocolViolation) {
     wrapped = in;
     buffer = new byte[bufferSize < MINIMUM_READ ? MINIMUM_READ : bufferSize];
+    this.onProtocolViolation = onProtocolViolation;
   }
 
   /**
@@ -218,12 +239,14 @@ public class VisibleBufferedInputStream extends InputStream {
    */
   private void growBuffer(int wanted) throws IOException {
     if (wanted < 0) {
+      onProtocolViolation.run();
       throw new IOException(GT.tr("Cannot read a negative number of bytes: {0}.",
           String.valueOf(wanted)));
     }
     // The arithmetic is done in long because wanted comes from the peer.
     long required = (long) endIndex - index + wanted;
     if (required > MAX_BUFFER_SIZE) {
+      onProtocolViolation.run();
       throw new IOException(GT.tr(
           "Backend asked for {0} bytes of buffer, the maximum is {1} bytes.",
           String.valueOf(required), String.valueOf(MAX_BUFFER_SIZE)));

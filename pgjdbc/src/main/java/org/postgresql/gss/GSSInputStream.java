@@ -27,6 +27,11 @@ public class GSSInputStream extends InputStream {
   private static final int MAX_PACKET_SIZE = 16 * 1024;
   // PQ_GSS_MAX_PACKET_SIZE counts the uint32 length word.
   private static final int MAX_PAYLOAD_SIZE = MAX_PACKET_SIZE - 4;
+  private static final Runnable NO_OP = new Runnable() {
+    @Override
+    public void run() {
+    }
+  };
   private final byte[] encrypted = new byte[MAX_PACKET_SIZE];
   private int encryptedPos;
   private int encryptedLength;
@@ -39,10 +44,19 @@ public class GSSInputStream extends InputStream {
 
   private final byte[] int1Buf = new byte[1];
 
+  /** Run when a packet length is refused, so the owner can mark itself broken. */
+  private final Runnable onProtocolViolation;
+
   public GSSInputStream(InputStream wrapped, GSSContext gssContext, MessageProp messageProp) {
+    this(wrapped, gssContext, messageProp, NO_OP);
+  }
+
+  public GSSInputStream(InputStream wrapped, GSSContext gssContext, MessageProp messageProp,
+      Runnable onProtocolViolation) {
     this.wrapped = wrapped;
     this.gssContext = gssContext;
     this.messageProp = messageProp;
+    this.onProtocolViolation = onProtocolViolation;
   }
 
   @Override
@@ -121,6 +135,7 @@ public class GSSInputStream extends InputStream {
     encryptedLength = ByteConverter.int4(int4Buf, 0);
     // Within the payload maximum the length always fits the buffer.
     if (encryptedLength < 1 || encryptedLength > MAX_PAYLOAD_SIZE) {
+      onProtocolViolation.run();
       throw new IOException(GT.tr("Backend declared a GSS packet of {0} bytes, the maximum is {1}.",
           String.valueOf(encryptedLength), String.valueOf(MAX_PAYLOAD_SIZE)));
     }

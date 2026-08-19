@@ -146,7 +146,7 @@ public class GssEncAction implements PrivilegedAction<@Nullable Exception>, Call
           // The length here is the raw token size, not a self inclusive message length.
           int len = pgStream.receiveInteger4();
           if (len < 0 || len > MAX_HANDSHAKE_TOKEN_SIZE) {
-            throw new IOException(GT.tr(
+            throw pgStream.protocolViolation(GT.tr(
                 "Backend declared a GSS token of {0} bytes, the maximum is {1}.",
                 String.valueOf(len), String.valueOf(MAX_HANDSHAKE_TOKEN_SIZE)));
           }
