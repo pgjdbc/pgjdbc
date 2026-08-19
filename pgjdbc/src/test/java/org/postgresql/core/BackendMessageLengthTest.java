@@ -7,6 +7,7 @@ package org.postgresql.core;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -18,17 +19,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.Socket;
 import java.sql.SQLException;
 import java.util.Locale;
-
-import javax.net.SocketFactory;
 
 /**
  * Boundary tests for the message length check and for the column lengths inside a DataRow, driven
@@ -52,94 +46,8 @@ class BackendMessageLengthTest {
     Locale.setDefault(defaultLocale);
   }
 
-  private static class FakeSocket extends Socket {
-    private final InputStream in;
-    private final OutputStream out = new ByteArrayOutputStream();
-    private int soTimeout;
-
-    FakeSocket(InputStream in) {
-      this.in = in;
-    }
-
-    @Override
-    public boolean isConnected() {
-      return true;
-    }
-
-    @Override
-    public InputStream getInputStream() {
-      return in;
-    }
-
-    @Override
-    public OutputStream getOutputStream() {
-      return out;
-    }
-
-    @Override
-    public void setTcpNoDelay(boolean on) {
-    }
-
-    @Override
-    public int getSendBufferSize() {
-      return 8192;
-    }
-
-    @Override
-    public void setSoTimeout(int timeout) {
-      this.soTimeout = timeout;
-    }
-
-    @Override
-    public int getSoTimeout() {
-      return soTimeout;
-    }
-
-    @Override
-    public void setSoLinger(boolean on, int linger) {
-      // Socket.setSoLinger would create a real descriptor to set the option on.
-    }
-
-    @Override
-    public void close() {
-    }
-  }
-
-  private static class FakeSocketFactory extends SocketFactory {
-    private final byte[] bytes;
-
-    FakeSocketFactory(byte[] bytes) {
-      this.bytes = bytes;
-    }
-
-    @Override
-    public Socket createSocket() {
-      return new FakeSocket(new ByteArrayInputStream(bytes));
-    }
-
-    @Override
-    public Socket createSocket(String host, int port) {
-      return createSocket();
-    }
-
-    @Override
-    public Socket createSocket(String host, int port, InetAddress localHost, int localPort) {
-      return createSocket();
-    }
-
-    @Override
-    public Socket createSocket(InetAddress host, int port) {
-      return createSocket();
-    }
-
-    @Override
-    public Socket createSocket(InetAddress address, int port, InetAddress local, int localPort) {
-      return createSocket();
-    }
-  }
-
   private static PGStream streamOf(byte[] bytes) throws IOException {
-    return new PGStream(new FakeSocketFactory(bytes), new HostSpec("localhost", 5432), 0, 8192);
+    return new PGStream(new CannedSocketFactory(bytes), new HostSpec("localhost", 5432), 0, 8192);
   }
 
   private static byte[] int4(int... values) {
@@ -230,7 +138,7 @@ class BackendMessageLengthTest {
 
   @Test
   void rejectsADataRowWhoseColumnsUnderrunItsEnvelope() throws IOException {
-    // 4 length + 2 count + 4 column length leaves 11 of column data; the column accounts for 7.
+    // 4 length + 2 count + 4 column length leaves 11 of column data. The column accounts for 7.
     byte[] message = new byte[]{0, 0, 0, 21, 0, 1, 0, 0, 0, 7, 'a', 'b', 'c', 'd', 'e', 'f', 'g'};
     PGStream stream = streamOf(message);
     IOException e = assertThrows(IOException.class, () -> stream.receiveTupleV3());
@@ -254,5 +162,111 @@ class BackendMessageLengthTest {
     PGStream stream = streamOf(message);
     IOException e = assertThrows(IOException.class, () -> stream.receiveTupleV3());
     assertTrue(e.getMessage().contains("cannot hold"), e.getMessage());
+  }
+
+  @Test
+  void marksTheStreamBrokenWhenALengthIsRefused() throws IOException {
+    PGStream stream = streamOf(int4(Integer.MAX_VALUE));
+
+    assertThrows(IOException.class,
+        () -> stream.receiveMessageLength("ErrorResponse", 5, PGStream.MAX_SMALL_MESSAGE_LENGTH));
+
+    assertTrue(stream.isBroken(), "the refusal must mark the stream broken");
+    // A pool that tests connections on borrow checks this.
+    assertTrue(stream.isClosed(), "a broken stream must report itself closed");
+  }
+
+  @Test
+  void marksTheStreamBrokenWhenADataRowIsRefused() throws IOException {
+    byte[] message = new byte[]{0, 0, 0, 10, 0, 1, 0, 16, 0, 0};
+    PGStream stream = streamOf(message);
+
+    assertThrows(IOException.class, () -> stream.receiveTupleV3());
+
+    assertTrue(stream.isBroken(), "the refusal must mark the stream broken");
+  }
+
+  @Test
+  void leavesAnAcceptedLengthAlone() throws IOException {
+    PGStream stream = streamOf(int4(PGStream.MAX_SMALL_MESSAGE_LENGTH));
+
+    stream.receiveMessageLength("ErrorResponse", 5, PGStream.MAX_SMALL_MESSAGE_LENGTH);
+
+    assertFalse(stream.isBroken());
+    assertFalse(stream.isClosed());
+  }
+
+  @Test
+  void rejectsAMessageWhoseReaderStoppedShort() throws IOException {
+    // A ten byte message, of which the reader consumes two, then the next message type.
+    byte[] message = new byte[]{0, 0, 0, 10, 1, 2, 3, 4, 5, 6, 'Z'};
+    PGStream stream = streamOf(message);
+
+    stream.receiveMessageLength("NoticeResponse", 5, 100);
+    stream.receiveInteger2();
+
+    IOException e = assertThrows(IOException.class, () -> stream.receiveMessageType());
+    assertTrue(e.getMessage().contains("stopped at byte"), e.getMessage());
+    assertTrue(stream.isBroken());
+  }
+
+  @Test
+  void acceptsAMessageConsumedExactly() throws IOException {
+    byte[] message = new byte[]{0, 0, 0, 10, 1, 2, 3, 4, 5, 6, 'Z'};
+    PGStream stream = streamOf(message);
+
+    stream.receiveMessageLength("NoticeResponse", 5, 100);
+    stream.skip(6);
+
+    assertEquals('Z', stream.receiveMessageType());
+  }
+
+  /** Reading past the end of a message is as wrong as stopping short of it. */
+  @Test
+  void rejectsAMessageWhoseReaderRanPast() throws IOException {
+    byte[] message = new byte[]{0, 0, 0, 6, 1, 2, 3, 4, 'Z'};
+    PGStream stream = streamOf(message);
+
+    stream.receiveMessageLength("NoticeResponse", 5, 100);
+    stream.skip(4);
+
+    assertThrows(IOException.class, () -> stream.receiveMessageType());
+  }
+
+  /** There is no previous message to check before the first one on a connection. */
+  @Test
+  void acceptsAMessageTypeWithNoMessageOutstanding() throws IOException {
+    assertEquals('R', streamOf(new byte[]{'R'}).receiveMessageType());
+  }
+
+  @Test
+  void rejectsAStringThatRunsPastItsMessage() throws IOException {
+    // A nine byte message holding five bytes with no terminator among them.
+    byte[] message = new byte[]{0, 0, 0, 9, 'a', 'b', 'c', 'd', 'e', 0};
+    PGStream stream = streamOf(message);
+
+    stream.receiveMessageLength("ParameterStatus", 6, 100);
+
+    IOException e = assertThrows(IOException.class, () -> stream.receiveString());
+    assertTrue(e.getMessage().contains("terminator"), e.getMessage());
+    assertTrue(stream.isBroken());
+  }
+
+  /** The terminator is the last byte of the message, so the scan succeeds at its limit. */
+  @Test
+  void acceptsAStringThatEndsOnTheLastByteOfItsMessage() throws IOException {
+    byte[] message = new byte[]{0, 0, 0, 9, 'a', 'b', 'c', 'd', 0};
+    PGStream stream = streamOf(message);
+
+    stream.receiveMessageLength("ParameterStatus", 6, 100);
+
+    assertEquals("abcd", stream.receiveString());
+  }
+
+  @Test
+  void capsThePreAuthenticationMessageBelowTheBufferedOne() {
+    assertTrue(PGStream.MAX_PRE_AUTH_MESSAGE_LENGTH < PGStream.MAX_BUFFERED_MESSAGE_LENGTH);
+    // libpq's limit is on the declared length, which counts itself.
+    assertEquals(30000, PGStream.MAX_PRE_AUTH_MESSAGE_LENGTH);
   }
 }

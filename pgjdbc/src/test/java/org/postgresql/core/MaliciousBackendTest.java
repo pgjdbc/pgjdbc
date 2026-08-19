@@ -5,6 +5,7 @@
 
 package org.postgresql.core;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -27,8 +28,10 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Connects a real driver over loopback to a backend that declares a message length and then
@@ -93,7 +96,7 @@ class MaliciousBackendTest {
           socket.setSoTimeout(30000);
           InputStream in = socket.getInputStream();
           OutputStream out = socket.getOutputStream();
-          consumeStartup(in, out);
+          Backend.consumeStartup(in, out);
           out.write(messageType);
           out.write(declaredLength >>> 24);
           out.write(declaredLength >>> 16);
@@ -112,7 +115,7 @@ class MaliciousBackendTest {
       }
     }
 
-    private void consumeStartup(InputStream in, OutputStream out) throws IOException {
+    private static void consumeStartup(InputStream in, OutputStream out) throws IOException {
       while (true) {
         int length = readInt4(in);
         byte[] body = new byte[length - 4];
@@ -266,5 +269,131 @@ class MaliciousBackendTest {
   @Timeout(value = 30, unit = TimeUnit.SECONDS)
   void rejectsAHugeAuthenticationMessage() throws IOException {
     assertConnectionRefused(PgMessageType.AUTHENTICATION_RESPONSE, PGStream.MAX_MESSAGE_LENGTH);
+  }
+
+  /** One byte above the pre-authentication limit, which is well below the buffered one. */
+  @Test
+  @Timeout(value = 30, unit = TimeUnit.SECONDS)
+  void rejectsAnErrorResponseAboveThePreAuthenticationCap() throws IOException {
+    assertConnectionRefused(PgMessageType.ERROR_RESPONSE,
+        PGStream.MAX_PRE_AUTH_MESSAGE_LENGTH + 1);
+  }
+
+  /** An ErrorResponse at the limit exactly is sent in full and must reach the caller. */
+  @Test
+  @Timeout(value = 30, unit = TimeUnit.SECONDS)
+  void acceptsAnErrorResponseAtThePreAuthenticationCap() throws IOException {
+    int bodyLength = PGStream.MAX_PRE_AUTH_MESSAGE_LENGTH - 4;
+    // The body is one 'M' field made of its tag, the text, the string terminator and the
+    // field list terminator.
+    byte[] body = new byte[bodyLength];
+    body[0] = 'M';
+    Arrays.fill(body, 1, bodyLength - 2, (byte) 'x');
+    body[bodyLength - 2] = 0;
+    body[bodyLength - 1] = 0;
+
+    try (Backend backend = new Backend(PgMessageType.ERROR_RESPONSE,
+        PGStream.MAX_PRE_AUTH_MESSAGE_LENGTH, body)) {
+      SQLException e = assertThrows(SQLException.class,
+          () -> DriverManager.getConnection(backend.getUrl()).close());
+      assertTrue(e.getMessage().startsWith("xxx"),
+          "expected the server error message, got: " + e.getMessage());
+    }
+  }
+
+  /** Every refused length reaches the caller as a protocol violation, not as a transport error. */
+  @Test
+  @Timeout(value = 30, unit = TimeUnit.SECONDS)
+  void reportsARefusedLengthAsAProtocolViolation() throws IOException {
+    try (Backend backend = new Backend(PgMessageType.ERROR_RESPONSE, Integer.MAX_VALUE,
+        new byte[0])) {
+      SQLException e = assertThrows(SQLException.class,
+          () -> DriverManager.getConnection(backend.getUrl()).close());
+      assertEquals(PSQLState.PROTOCOL_VIOLATION.getState(), e.getSQLState(), e.toString());
+    }
+  }
+
+  /**
+   * A server that keeps asking for a password keeps the client answering. Counting what the
+   * driver sent pins the cap, where merely observing that the loop ended would not.
+   */
+  @Test
+  @Timeout(value = 60, unit = TimeUnit.SECONDS)
+  void stopsAnsweringAfterTheAuthenticationMessageCap() throws IOException {
+    try (PasswordProbingBackend backend = new PasswordProbingBackend()) {
+      assertThrows(SQLException.class,
+          () -> DriverManager.getConnection(backend.getUrl()).close());
+      assertEquals(PGStream.MAX_AUTH_ROUND_TRIPS, backend.passwordsReceived(),
+          "the driver must answer exactly the capped number of requests");
+    }
+  }
+
+  /**
+   * Answers every password with another AuthenticationCleartextPassword, so the authentication
+   * loop only ends when the driver stops it.
+   */
+  private static class PasswordProbingBackend implements Closeable, Runnable {
+    private final ServerSocket serverSocket;
+    private final AtomicInteger passwords = new AtomicInteger();
+    private volatile boolean closed;
+
+    PasswordProbingBackend() throws IOException {
+      this.serverSocket = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"));
+      this.serverSocket.setSoTimeout(30000);
+      Thread thread = new Thread(this, "password-probing-backend");
+      thread.setDaemon(true);
+      thread.start();
+    }
+
+    String getUrl() {
+      return "jdbc:postgresql://127.0.0.1:" + serverSocket.getLocalPort() + "/test"
+          + "?user=test&password=test&connectTimeout=10&socketTimeout=10&loginTimeout=10";
+    }
+
+    int passwordsReceived() {
+      return passwords.get();
+    }
+
+    @Override
+    public void run() {
+      Socket socket = null;
+      try {
+        socket = serverSocket.accept();
+        socket.setSoTimeout(30000);
+        InputStream in = socket.getInputStream();
+        OutputStream out = socket.getOutputStream();
+        Backend.consumeStartup(in, out);
+        while (!closed) {
+          // AuthenticationCleartextPassword
+          out.write(PgMessageType.AUTHENTICATION_RESPONSE);
+          out.write(new byte[]{0, 0, 0, 8, 0, 0, 0, 3});
+          out.flush();
+          if (in.read() < 0) {
+            return;
+          }
+          int length = Backend.readInt4(in);
+          for (int i = 4; i < length; i++) {
+            if (in.read() < 0) {
+              return;
+            }
+          }
+          passwords.incrementAndGet();
+        }
+      } catch (Exception e) {
+        // The driver hanging up is the expected outcome.
+      } finally {
+        Backend.closeQuietly(socket);
+      }
+    }
+
+    @Override
+    public void close() {
+      closed = true;
+      try {
+        serverSocket.close();
+      } catch (IOException ignore) {
+        // nothing to do
+      }
+    }
   }
 }
