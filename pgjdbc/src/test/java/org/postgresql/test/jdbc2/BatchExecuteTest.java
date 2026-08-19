@@ -25,6 +25,7 @@ import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.BatchUpdateException;
+import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -301,6 +302,109 @@ public class BatchExecuteTest extends BaseTest4 {
           "Multi-statement addBatch() should fail with NOT_IMPLEMENTED SQLState");
       assertEquals(0, getCol1Value(),
           "Rejected addBatch() must not execute either UPDATE.");
+    }
+  }
+
+  @Test
+  public void testMultiStatementSqlInPreparedAddBatch() throws Exception {
+    // A multi-statement PreparedStatement is a CompositeQuery, and a batch reserves one
+    // update-count slot per entry, so addBatch() has to refuse it before anything runs. The refusal
+    // reaches the caller as a PSQLException, not as a ClassCastException raised while the protocol
+    // layer casts the entry to SimpleQuery (issue #4349).
+    String sql = "UPDATE testbatch SET col1 = col1 + ? WHERE pk = 1;"
+        + " UPDATE testbatch SET col1 = col1 + ? WHERE pk = 1";
+    try (PreparedStatement ps = con.prepareStatement(sql)) {
+      ps.setInt(1, 1);
+      ps.setInt(2, 2);
+      SQLException sqle = assertThrows(SQLException.class, ps::addBatch);
+      assertEquals(PSQLState.NOT_IMPLEMENTED.getState(), sqle.getSQLState(),
+          "Multi-statement PreparedStatement.addBatch() should fail with NOT_IMPLEMENTED SQLState");
+      assertEquals(0, getCol1Value(),
+          "Rejected addBatch() must not execute either UPDATE.");
+    }
+  }
+
+  @Test
+  public void testAddBatchRejectsOnlyMultiStatementSql() throws Exception {
+    // addBatch() refuses exactly the SQL that the parser splits into more than one statement, and a
+    // trailing semicolon does not make it split. That is the shape ORMs emit, so a guard that crept
+    // wider would break ordinary batches; a comment after the final semicolon does parse as a
+    // second statement, and lands on the other side of the line.
+    String update = "UPDATE testbatch SET col1 = col1 + ? WHERE pk = 1";
+    String[] singleStatement = new String[ACCEPTED_SUFFIXES.length];
+    for (int i = 0; i < ACCEPTED_SUFFIXES.length; i++) {
+      singleStatement[i] = update + ACCEPTED_SUFFIXES[i];
+    }
+    for (String sql : singleStatement) {
+      try (PreparedStatement ps = con.prepareStatement(sql)) {
+        ps.setInt(1, 1);
+        ps.addBatch();
+        assertEquals(1, ps.executeBatch()[0], "update count of " + sql);
+      }
+    }
+    assertEquals(singleStatement.length, getCol1Value(),
+        "each single-statement form should have run once");
+
+    // No parameters are set below: addBatch() has to refuse before it copies them.
+    for (String suffix : REFUSED_SUFFIXES) {
+      try (PreparedStatement ps = con.prepareStatement(update + suffix)) {
+        SQLException sqle = assertThrows(SQLException.class, ps::addBatch,
+            "addBatch() of " + update + suffix);
+        assertEquals(PSQLState.NOT_IMPLEMENTED.getState(), sqle.getSQLState(),
+            "SQLState of " + update + suffix);
+      }
+    }
+    assertEquals(singleStatement.length, getCol1Value(),
+        "a rejected addBatch() must run nothing");
+
+    // Statement.addBatch(String) has to draw the line in the same place.
+    String literal = "UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1";
+    try (Statement stmt = con.createStatement()) {
+      for (String suffix : ACCEPTED_SUFFIXES) {
+        stmt.addBatch(literal + suffix);
+      }
+      assertEquals(ACCEPTED_SUFFIXES.length, stmt.executeBatch().length,
+          "one update count per accepted entry");
+      assertRefusesMultiStatement(stmt, literal);
+    }
+    assertEquals(singleStatement.length + ACCEPTED_SUFFIXES.length, getCol1Value(),
+        "the accepted literal entries should have run, the refused ones should not");
+
+    // Statement.addBatch(String) passes isParameterized=false, so preferQueryMode >= EXTENDED is
+    // the only mode where CachedQueryCreateAction splits the SQL on its own. Below EXTENDED the
+    // rejection rests on the re-parse in addBatch(String), which the connection above never
+    // reaches. addBatch() does no I/O either way, so replay the forms without executing them.
+    Properties props = new Properties();
+    PGProperty.PREFER_QUERY_MODE.set(props, "simple");
+    try (Connection simpleCon = TestUtil.openDB(props);
+         Statement stmt = simpleCon.createStatement()) {
+      for (String suffix : ACCEPTED_SUFFIXES) {
+        stmt.addBatch(literal + suffix);
+      }
+      assertRefusesMultiStatement(stmt, literal);
+      stmt.clearBatch();
+    }
+  }
+
+  /**
+   * Suffixes that keep {@code sql} a single statement. A bare semicolon, repeated or followed by
+   * whitespace, does not split it; a comment after the final semicolon does, and belongs in
+   * {@link #REFUSED_SUFFIXES}.
+   */
+  private static final String[] ACCEPTED_SUFFIXES = {"", ";", "; ", ";\n", ";;"};
+
+  /**
+   * Suffixes that turn {@code sql} into more than one statement. The first two are the surprise:
+   * a comment after the final semicolon parses as a statement of its own.
+   */
+  private static final String[] REFUSED_SUFFIXES = {"; -- trailing", ";\n/* c */", "; SELECT 1"};
+
+  private static void assertRefusesMultiStatement(Statement stmt, String sql) {
+    for (String suffix : REFUSED_SUFFIXES) {
+      SQLException sqle = assertThrows(SQLException.class, () -> stmt.addBatch(sql + suffix),
+          "addBatch() of " + sql + suffix);
+      assertEquals(PSQLState.NOT_IMPLEMENTED.getState(), sqle.getSQLState(),
+          "SQLState of " + sql + suffix);
     }
   }
 

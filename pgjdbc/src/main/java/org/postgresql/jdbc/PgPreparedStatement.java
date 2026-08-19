@@ -1175,6 +1175,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   @Override
   public void addBatch() throws SQLException {
     checkClosed();
+    if (preparedQuery.query.getSubqueries() != null) {
+      throw multiStatementInBatch();
+    }
     ArrayList<Query> batchStatements = this.batchStatements;
     if (batchStatements == null) {
       this.batchStatements = batchStatements = new ArrayList<>();

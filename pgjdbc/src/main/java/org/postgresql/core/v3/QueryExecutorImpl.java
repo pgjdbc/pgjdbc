@@ -434,6 +434,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         try {
           handler = sendQueryPreamble(handler, flags);
           autosave = sendAutomaticSavepoint(query, flags);
+          // Nothing of this execution is buffered yet. An execution that failed before it could
+          // read its responses leaves the counter behind, and a stale value would make the first
+          // query below force a Sync that reclaims nothing.
+          estimatedReceiveBufferBytes = 0;
           sendQuery(query, (V3ParameterList) parameters, maxRows, fetchSize, flags,
               handler, null, adaptiveFetch);
           if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
@@ -673,13 +677,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         estimatedReceiveBufferBytes = 0;
 
         for (int i = 0; i < queries.length; i++) {
-          SimpleQuery query = (SimpleQuery) queries[i];
-          if (i == 0) {
-            estimatedReceiveBufferBytes += estimateQueryResponseBytes(query, flags);
-          } else {
-            flushIfDeadlockRisk(query, handler, batchHandler, flags);
-          }
-
+          // A batch entry may be a CompositeQuery, so sendQuery is what resolves the individual
+          // statements, and it is where the receive-buffer accounting belongs.
+          Query query = queries[i];
           V3ParameterList parameters = (V3ParameterList) parameterLists[i];
           if (parameters == null) {
             parameters = SimpleQuery.NO_PARAMETERS;
@@ -1671,7 +1671,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     int resultBytes = estimateQueryResponseBytes(query, flags);
 
     int estimatedReceiveBufferBytesTotal = estimatedReceiveBufferBytes + resultBytes;
-    if (estimatedReceiveBufferBytesTotal < MAX_BUFFERED_RECV_BYTES) {
+    // A Sync pays off only once this counter covers responses that are already pending. At zero it
+    // would cost a round-trip and reclaim nothing, so the first query is admitted whatever it
+    // estimates.
+    if (estimatedReceiveBufferBytesTotal < MAX_BUFFERED_RECV_BYTES
+        || estimatedReceiveBufferBytes == 0) {
       estimatedReceiveBufferBytes = estimatedReceiveBufferBytesTotal;
     } else {
       LOGGER.log(Level.FINEST, "Forcing Sync, receive buffer full or batching disallowed");
@@ -1697,25 +1701,25 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     SimpleParameterList[] subparams = parameters.getSubparams();
 
     if (subqueries == null) {
+      SimpleQuery simpleQuery = (SimpleQuery) query;
+      flushIfDeadlockRisk(simpleQuery, resultHandler, batchHandler, flags);
+
       // If we saw errors, don't send anything more.
       if (resultHandler.getException() == null) {
         if (fetchSize != 0) {
           adaptiveFetchCache.addNewQuery(adaptiveFetch, query);
         }
-        sendOneQuery((SimpleQuery) query, (SimpleParameterList) parameters, maxRows, fetchSize,
+        sendOneQuery(simpleQuery, (SimpleParameterList) parameters, maxRows, fetchSize,
             flags);
       }
     } else {
       for (int i = 0; i < subqueries.length; i++) {
         final SimpleQuery subquery = (SimpleQuery) subqueries[i];
-        if (i == 0) {
-          estimatedReceiveBufferBytes += estimateQueryResponseBytes(subquery, flags);
-        } else {
-          flushIfDeadlockRisk(subquery, resultHandler, batchHandler, flags);
-          // If we saw errors, don't send anything more.
-          if (resultHandler.getException() != null) {
-            break;
-          }
+        flushIfDeadlockRisk(subquery, resultHandler, batchHandler, flags);
+
+        // If we saw errors, don't send anything more.
+        if (resultHandler.getException() != null) {
+          break;
         }
 
         // In the situation where parameters is already
@@ -1731,7 +1735,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         if (fetchSize != 0) {
           adaptiveFetchCache.addNewQuery(adaptiveFetch, subquery);
         }
-        sendOneQuery((SimpleQuery) subquery, subparam, maxRows, fetchSize, flags);
+        sendOneQuery(subquery, subparam, maxRows, fetchSize, flags);
       }
     }
   }

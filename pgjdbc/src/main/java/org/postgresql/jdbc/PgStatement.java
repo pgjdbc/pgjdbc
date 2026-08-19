@@ -829,13 +829,25 @@ public class PgStatement implements Statement, BaseStatement {
       isMultiStatement = parsed.size() > 1;
     }
     if (isMultiStatement) {
-      throw new PSQLException(
-          GT.tr("Multi-statement SQL is not supported in Statement.addBatch(); "
-              + "call addBatch() once per statement instead."),
-          PSQLState.NOT_IMPLEMENTED);
+      throw multiStatementInBatch();
     }
     batchStatements.add(cachedQuery.query);
     batchParameters.add(null);
+  }
+
+  /**
+   * Returns the failure for a batch entry that carries more than one SQL statement.
+   *
+   * <p>{@link BatchResultHandler} reserves one update-count slot per batch entry, while the server
+   * reports one {@code CommandComplete} per statement. A multi-statement entry therefore overruns
+   * the update counts partway through execution, once the leading statements have already run.
+   * Rejecting the entry as it is added keeps it out of the batch, so no part of it is applied.</p>
+   */
+  static PSQLException multiStatementInBatch() {
+    return new PSQLException(
+        GT.tr("Multi-statement SQL is not supported in a batch. "
+            + "Batch each SQL statement separately."),
+        PSQLState.NOT_IMPLEMENTED);
   }
 
   @Override
