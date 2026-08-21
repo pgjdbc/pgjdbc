@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Fixed
+* fix: `PGReplicationStream` no longer shortens the socket timeout before the `START_REPLICATION` handshake. The status interval is the wake-up period of the streaming reads, so applying it to the handshake left the server one status interval to answer in, and `start()` failed with "Database connection failed when starting copy" on a loaded server [PR #4354](https://github.com/pgjdbc/pgjdbc/pull/4354)
 * fix: `LargeObjectManager` operations now work inside an active XA transaction. Since 42.7.13 an XA branch keeps the caller's `autoCommit=true`, and the guard rejected large objects as if the connection were idle. It now checks the server transaction state (`getTransactionState()`) instead of `autoCommit`, so a genuine auto-commit connection with no open transaction is still refused [Issue #4309](https://github.com/pgjdbc/pgjdbc/issues/4309) [PR #4310](https://github.com/pgjdbc/pgjdbc/pull/4310)
 * fix: batch update counts are no longer secured as committed inside an XA transaction. `BatchResultHandler` treated per-statement progress as durable whenever `autoCommit=true`, but an XA branch keeps `autoCommit=true` while the transaction is open, so a batch that flushed mid-way and then failed could report rolled-back statements as succeeded. Progress is now secured only when no server transaction is open [Issue #4309](https://github.com/pgjdbc/pgjdbc/issues/4309) [PR #4311](https://github.com/pgjdbc/pgjdbc/pull/4311)
 

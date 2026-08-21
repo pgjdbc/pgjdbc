@@ -58,8 +58,16 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
       throws SQLException {
     LOGGER.log(Level.FINEST, " FE=> StartReplication(query: {0})", query);
 
-    configureSocketTimeout(options);
     CopyDual copyDual = (CopyDual) queryExecutor.startCopy(query, true);
+    // The shortened timeout is the wake-up period of the streaming reads. Applying it before the
+    // handshake would leave the server one status interval to answer START_REPLICATION in.
+    try {
+      configureSocketTimeout(options);
+    } catch (PSQLException e) {
+      // The copy is active by now, and a connection whose socket rejects setSoTimeout cannot end it
+      queryExecutor.abort();
+      throw e;
+    }
 
     return new V3PGReplicationStream(
         castNonNull(copyDual),
