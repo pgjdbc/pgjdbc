@@ -18,6 +18,7 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.annotations.EnabledForServerVersionRange;
 import org.postgresql.test.annotations.tags.Replication;
+import org.postgresql.test.util.TimeoutRecordingSocketFactory;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +38,7 @@ import java.util.function.Predicate;
 @Replication
 @EnabledForServerVersionRange(gte = "9.4")
 class LogicalReplicationStatusTest {
+  private static final int SOCKET_TIMEOUT_SECONDS = 60;
   private static final String SLOT_NAME = "pgjdbc_logical_replication_slot";
 
   private Connection replicationConnection;
@@ -415,6 +417,47 @@ class LogicalReplicationStatusTest {
             + "and wait that set status on stream will be auto send to backend",
         flushLSN, equalTo(waitLSN)
     );
+  }
+
+  @Test
+  void startHandshakeUsesSocketTimeoutNotStatusInterval() throws Exception {
+    TimeoutRecordingSocketFactory.Recording recording = TimeoutRecordingSocketFactory.register();
+    try {
+      Connection conn = TestUtil.openReplicationConnection(props -> {
+        PGProperty.SOCKET_TIMEOUT.set(props, SOCKET_TIMEOUT_SECONDS);
+        PGProperty.SOCKET_FACTORY.set(props, TimeoutRecordingSocketFactory.class.getName());
+        PGProperty.SOCKET_FACTORY_ARG.set(props, recording.key());
+      });
+      try {
+        LogSequenceNumber startLSN = getCurrentLSN();
+        insertPreviousChanges(sqlConnection);
+
+        recording.reset();
+        PGReplicationStream stream =
+            ((PGConnection) conn)
+                .getReplicationAPI()
+                .replicationStream()
+                .logical()
+                .withSlotName(SLOT_NAME)
+                .withStartPosition(startLSN)
+                .withStatusInterval(1, TimeUnit.MILLISECONDS)
+                .start();
+        // The reads that follow run under the status interval, so take the reading before them
+        int handshakeTimeout = recording.minSoTimeoutOnRead();
+        stream.close();
+
+        assertThat("The status interval is the wake-up period of the streaming reads, and shortening "
+                + "the socket timeout to it before START_REPLICATION leaves the handshake with a "
+                + "millisecond to complete in. A server that answers any slower fails start() with "
+                + "\"Database connection failed when starting copy\".",
+            handshakeTimeout, equalTo(SOCKET_TIMEOUT_SECONDS * 1000)
+        );
+      } finally {
+        conn.close();
+      }
+    } finally {
+      TimeoutRecordingSocketFactory.unregister(recording);
+    }
   }
 
   private static void insertPreviousChanges(Connection sqlConnection) throws SQLException {
