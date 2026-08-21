@@ -39,6 +39,7 @@ import java.util.function.Predicate;
 @EnabledForServerVersionRange(gte = "9.4")
 class LogicalReplicationStatusTest {
   private static final int SOCKET_TIMEOUT_SECONDS = 60;
+  private static final int STATUS_INTERVAL_MS = 100;
   private static final String SLOT_NAME = "pgjdbc_logical_replication_slot";
 
   private Connection replicationConnection;
@@ -458,6 +459,74 @@ class LogicalReplicationStatusTest {
     } finally {
       TimeoutRecordingSocketFactory.unregister(recording);
     }
+  }
+
+  @Test
+  void closeRestoresTheConnectionSocketTimeout() throws Exception {
+    Connection conn = TestUtil.openReplicationConnection(props -> {
+      PGProperty.SOCKET_TIMEOUT.set(props, SOCKET_TIMEOUT_SECONDS);
+    });
+    try {
+      LogSequenceNumber startLSN = getCurrentLSN();
+      insertPreviousChanges(sqlConnection);
+
+      PGReplicationStream stream = startStream(conn, startLSN);
+      assertThat("While the stream runs, its reads wake up once per status interval to send a "
+              + "standby status update, so the connection carries the shortened socket timeout",
+          conn.getNetworkTimeout(), equalTo(STATUS_INTERVAL_MS)
+      );
+
+      stream.close();
+      assertThat("The shortened timeout belongs to the stream, so a connection that outlives the "
+              + "stream reads with its own socketTimeout again",
+          conn.getNetworkTimeout(), equalTo(SOCKET_TIMEOUT_SECONDS * 1000)
+      );
+    } finally {
+      conn.close();
+    }
+  }
+
+  @Test
+  void secondStreamHandshakeUsesSocketTimeout() throws Exception {
+    TimeoutRecordingSocketFactory.Recording recording = TimeoutRecordingSocketFactory.register();
+    try {
+      Connection conn = TestUtil.openReplicationConnection(props -> {
+        PGProperty.SOCKET_TIMEOUT.set(props, SOCKET_TIMEOUT_SECONDS);
+        PGProperty.SOCKET_FACTORY.set(props, TimeoutRecordingSocketFactory.class.getName());
+        PGProperty.SOCKET_FACTORY_ARG.set(props, recording.key());
+      });
+      try {
+        insertPreviousChanges(sqlConnection);
+        startStream(conn, getCurrentLSN()).close();
+
+        insertPreviousChanges(sqlConnection);
+        recording.reset();
+        PGReplicationStream second = startStream(conn, getCurrentLSN());
+        int handshakeTimeout = recording.minSoTimeoutOnRead();
+        second.close();
+
+        assertThat("A stream that ended leaves the connection on its own socketTimeout, so the "
+                + "next START_REPLICATION is not answered under one status interval",
+            handshakeTimeout, equalTo(SOCKET_TIMEOUT_SECONDS * 1000)
+        );
+      } finally {
+        conn.close();
+      }
+    } finally {
+      TimeoutRecordingSocketFactory.unregister(recording);
+    }
+  }
+
+  private static PGReplicationStream startStream(Connection conn, LogSequenceNumber startLSN)
+      throws SQLException {
+    return ((PGConnection) conn)
+        .getReplicationAPI()
+        .replicationStream()
+        .logical()
+        .withSlotName(SLOT_NAME)
+        .withStartPosition(startLSN)
+        .withStatusInterval(STATUS_INTERVAL_MS, TimeUnit.MILLISECONDS)
+        .start();
   }
 
   private static void insertPreviousChanges(Connection sqlConnection) throws SQLException {

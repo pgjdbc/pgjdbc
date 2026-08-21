@@ -16,11 +16,8 @@ import org.postgresql.replication.ReplicationType;
 import org.postgresql.replication.fluent.CommonOptions;
 import org.postgresql.replication.fluent.logical.LogicalReplicationOptions;
 import org.postgresql.replication.fluent.physical.PhysicalReplicationOptions;
-import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Properties;
 import java.util.logging.Level;
@@ -59,10 +56,12 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
     LOGGER.log(Level.FINEST, " FE=> StartReplication(query: {0})", query);
 
     CopyDual copyDual = (CopyDual) queryExecutor.startCopy(query, true);
-    // The shortened timeout is the wake-up period of the streaming reads. Applying it before the
-    // handshake would leave the server one status interval to answer START_REPLICATION in.
+    // Shortening the timeout before the handshake would leave the server one status interval to
+    // answer START_REPLICATION in
+    ReplicationSocketSettings connectionSettings;
     try {
-      configureSocketTimeout(options);
+      connectionSettings =
+          ReplicationSocketSettings.shorten(pgStream, options.getStatusInterval());
     } catch (PSQLException e) {
       // The copy is active by now, and a connection whose socket rejects setSoTimeout cannot end it
       queryExecutor.abort();
@@ -74,7 +73,8 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
         options.getStartLSNPosition(),
         options.getStatusInterval(),
         options.getAutomaticFlush(),
-        replicationType
+        replicationType,
+        connectionSettings
     );
   }
 
@@ -124,29 +124,5 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
     builder.append(")");
 
     return builder.toString();
-  }
-
-  private void configureSocketTimeout(CommonOptions options) throws PSQLException {
-    if (options.getStatusInterval() == 0) {
-      return;
-    }
-
-    try {
-      int previousTimeOut = pgStream.getSocket().getSoTimeout();
-
-      int minimalTimeOut;
-      if (previousTimeOut > 0) {
-        minimalTimeOut = Math.min(previousTimeOut, options.getStatusInterval());
-      } else {
-        minimalTimeOut = options.getStatusInterval();
-      }
-
-      pgStream.getSocket().setSoTimeout(minimalTimeOut);
-      // Use blocking 1ms reads for `available()` checks
-      pgStream.setMinStreamAvailableCheckDelay(0);
-    } catch (IOException ioe) {
-      throw new PSQLException(GT.tr("The connection attempt failed."),
-          PSQLState.CONNECTION_UNABLE_TO_CONNECT, ioe);
-    }
   }
 }

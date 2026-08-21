@@ -252,6 +252,10 @@ public class PGStream implements Closeable, Flushable {
     this.minStreamAvailableCheckDelay = delay;
   }
 
+  public int getMinStreamAvailableCheckDelay() {
+    return minStreamAvailableCheckDelay;
+  }
+
   private Socket createSocket(int timeout) throws IOException {
     Socket socket = null;
     try {
