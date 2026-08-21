@@ -32,6 +32,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
@@ -514,6 +517,64 @@ class LogicalReplicationStatusTest {
       }
     } finally {
       TimeoutRecordingSocketFactory.unregister(recording);
+    }
+  }
+
+  @Test
+  void blockingReadSendsStatusWithoutSocketTimeout() throws Exception {
+    Connection conn = TestUtil.openReplicationConnection(props -> {
+      PGProperty.SOCKET_TIMEOUT.set(props, 0);
+      // wal_sender_timeout=0 stops the server from asking for a status update on its own, so the
+      // only thing that can report the flushed LSN is the stream's own wake-up
+      PGProperty.OPTIONS.set(props, "-c synchronous_commit=on -c wal_sender_timeout=0");
+    });
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    try {
+      LogSequenceNumber startLSN = getCurrentLSN();
+      insertPreviousChanges(sqlConnection);
+      PGReplicationStream stream = startStream(conn, startLSN);
+      drainUntilQuiet(stream);
+      LogSequenceNumber waitLSN = stream.getLastReceiveLSN();
+      stream.setAppliedLSN(waitLSN);
+      stream.setFlushedLSN(waitLSN);
+
+      // Watch the server while the read below is blocked, then release the read with an insert
+      Future<LogSequenceNumber> flushed = executor.submit(() -> {
+        LogSequenceNumber seen = getLSNFromView(flushColumnName(), waitLSN);
+        insertPreviousChanges(sqlConnection);
+        return seen;
+      });
+      stream.read();
+      LogSequenceNumber flushLSN = flushed.get(10, TimeUnit.SECONDS);
+      stream.close();
+
+      assertThat("A blocking read wakes up once per status interval to report the flushed LSN, and "
+              + "the socket read timeout is what wakes it. A connection opened without "
+              + "socketTimeout does not ask the driver to report read timeouts, so the wake-up was "
+              + "swallowed and retried, and the server learned the flushed LSN only once it asked "
+              + "for a status update itself",
+          flushLSN, equalTo(waitLSN)
+      );
+    } finally {
+      executor.shutdownNow();
+      conn.close();
+    }
+  }
+
+  /**
+   * Reads until nothing has arrived for a while, so that a blocking read has to wait for new data
+   * rather than return what the slot still held. A message count is not a usable stopping
+   * condition: an empty transaction decodes to a BEGIN and a COMMIT of its own.
+   */
+  private static void drainUntilQuiet(PGReplicationStream stream) throws Exception {
+    long quietFor = TimeUnit.MILLISECONDS.toNanos(300);
+    long deadline = System.nanoTime() + quietFor;
+    while (System.nanoTime() < deadline) {
+      if (stream.readPending() == null) {
+        TimeUnit.MILLISECONDS.sleep(5);
+      } else {
+        deadline = System.nanoTime() + quietFor;
+      }
     }
   }
 

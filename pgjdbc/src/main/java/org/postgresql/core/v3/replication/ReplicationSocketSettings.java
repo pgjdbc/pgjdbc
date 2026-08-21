@@ -21,9 +21,11 @@ import java.io.IOException;
  * the connection: every later operation on the connection — including the
  * {@code START_REPLICATION} of a second stream — has to see the connection's own timeout again.
  *
- * <p>Both directions set the timeout on the socket rather than through
- * {@link PGStream#setNetworkTimeout(int)}, so the driver keeps reporting timeouts the way the
- * connection was opened to, whatever the status interval is.
+ * <p>Both directions go through {@link PGStream#setNetworkTimeout(int)} rather than the socket, so
+ * that the driver reports a read timeout instead of retrying through it. The stream depends on
+ * that: the timeout is what ends a blocking read often enough to send a status update, and a
+ * connection opened without {@code socketTimeout} would otherwise stay in the read until the
+ * server asks for one.
  */
 final class ReplicationSocketSettings {
   private final PGStream pgStream;
@@ -52,9 +54,9 @@ final class ReplicationSocketSettings {
       throws PSQLException {
     try {
       ReplicationSocketSettings previous = new ReplicationSocketSettings(pgStream,
-          pgStream.getSocket().getSoTimeout(), pgStream.getMinStreamAvailableCheckDelay());
+          pgStream.getNetworkTimeout(), pgStream.getMinStreamAvailableCheckDelay());
       if (statusInterval != 0) {
-        pgStream.getSocket().setSoTimeout(previous.soTimeout > 0
+        pgStream.setNetworkTimeout(previous.soTimeout > 0
             ? Math.min(previous.soTimeout, statusInterval)
             : statusInterval);
         // Use blocking 1ms reads for `available()` checks
@@ -78,7 +80,7 @@ final class ReplicationSocketSettings {
       return;
     }
     try {
-      pgStream.getSocket().setSoTimeout(soTimeout);
+      pgStream.setNetworkTimeout(soTimeout);
       pgStream.setMinStreamAvailableCheckDelay(streamAvailableCheckDelay);
     } catch (IOException ioe) {
       throw new PSQLException(GT.tr("An error occurred while trying to reset the socket timeout."),
