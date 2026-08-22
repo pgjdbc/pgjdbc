@@ -1643,8 +1643,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       if (maxResultRowSize >= 0) {
         resultBytes += maxResultRowSize;
       } else {
-        LOGGER.log(Level.FINEST, "Couldn''t estimate result size or result size unbounded, "
-            + "disabling batching for this query.");
+        LOGGER.log(Level.FINEST, "Couldn't estimate result size or result size unbounded, "
+            + "assuming it fills the receive buffer.");
         return MAX_BUFFERED_RECV_BYTES;
       }
     } else {
@@ -1667,7 +1667,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private void flushIfDeadlockRisk(SimpleQuery query,
       ResultHandler resultHandler,
       @Nullable BatchResultHandler batchHandler,
-      final int flags) throws IOException {
+      final int flags, boolean adaptiveFetch) throws IOException {
     int resultBytes = estimateQueryResponseBytes(query, flags);
 
     int estimatedReceiveBufferBytesTotal = estimatedReceiveBufferBytes + resultBytes;
@@ -1681,7 +1681,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       LOGGER.log(Level.FINEST, "Forcing Sync, receive buffer full or batching disallowed");
       sendSync();
       pgStream.flush();
-      processResults(resultHandler, flags);
+      // The results read here are the caller's own, so adaptive fetch has to be recorded for them
+      // exactly as the processResults at the end of the execution would.
+      processResults(resultHandler, flags, adaptiveFetch);
       // We've processed incoming bytes, and the query to be executed would consume receive buffer
       estimatedReceiveBufferBytes = resultBytes;
       if (batchHandler != null) {
@@ -1702,7 +1704,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     if (subqueries == null) {
       SimpleQuery simpleQuery = (SimpleQuery) query;
-      flushIfDeadlockRisk(simpleQuery, resultHandler, batchHandler, flags);
+      flushIfDeadlockRisk(simpleQuery, resultHandler, batchHandler, flags, adaptiveFetch);
 
       // If we saw errors, don't send anything more.
       if (resultHandler.getException() == null) {
@@ -1715,7 +1717,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     } else {
       for (int i = 0; i < subqueries.length; i++) {
         final SimpleQuery subquery = (SimpleQuery) subqueries[i];
-        flushIfDeadlockRisk(subquery, resultHandler, batchHandler, flags);
+        flushIfDeadlockRisk(subquery, resultHandler, batchHandler, flags, adaptiveFetch);
 
         // If we saw errors, don't send anything more.
         if (resultHandler.getException() != null) {

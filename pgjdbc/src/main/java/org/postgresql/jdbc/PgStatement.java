@@ -845,8 +845,8 @@ public class PgStatement implements Statement, BaseStatement {
    */
   static PSQLException multiStatementInBatch() {
     return new PSQLException(
-        GT.tr("Multi-statement SQL is not supported in a batch. "
-            + "Batch each SQL statement separately."),
+        GT.tr("Multi-statement SQL is not supported in Statement.addBatch(); "
+            + "call addBatch() once per statement instead."),
         PSQLState.NOT_IMPLEMENTED);
   }
 

@@ -5,6 +5,7 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -406,6 +407,41 @@ public class BatchExecuteTest extends BaseTest4 {
       assertEquals(PSQLState.NOT_IMPLEMENTED.getState(), sqle.getSQLState(),
           "SQLState of " + sql + suffix);
     }
+  }
+
+  @Test
+  public void testRefusedEntryLeavesTheRestOfTheBatchRunnable() throws Exception {
+    // The javadoc and the release note both promise that a refused entry is kept out of the batch.
+    // That is only observable when the batch survives the refusal and is then executed: the
+    // accepted entries must run and the refused one must not. Both orders are exercised, because a
+    // refusal on the very first addBatch() runs the guard before the lazy init of batchStatements
+    // and batchParameters, and a refusal after one has been added runs it after.
+    String update = "UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1";
+    String multi = update + "; " + update;
+
+    try (Statement stmt = con.createStatement()) {
+      stmt.addBatch(update);
+      assertRefused(stmt, multi);
+      stmt.addBatch(update);
+      assertArrayEquals(new int[]{1, 1}, stmt.executeBatch(),
+          "the two accepted entries run, the refused one never entered the batch");
+    }
+    assertEquals(2, getCol1Value(), "the refused entry must not have added its two updates");
+
+    try (Statement stmt = con.createStatement()) {
+      assertRefused(stmt, multi);
+      stmt.addBatch(update);
+      assertArrayEquals(new int[]{1}, stmt.executeBatch(),
+          "a batch refused on its first entry still accepts and runs the next one");
+    }
+    assertEquals(3, getCol1Value(), "only the accepted entry of the second batch ran");
+  }
+
+  private static void assertRefused(Statement stmt, String sql) {
+    SQLException sqle = assertThrows(SQLException.class, () -> stmt.addBatch(sql),
+        "addBatch() of " + sql);
+    assertEquals(PSQLState.NOT_IMPLEMENTED.getState(), sqle.getSQLState(),
+        "SQLState of " + sql);
   }
 
   private int getCol1Value() throws SQLException {
