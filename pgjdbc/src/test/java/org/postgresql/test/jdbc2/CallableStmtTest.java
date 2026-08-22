@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.sql.Array;
+import java.sql.BatchUpdateException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -307,4 +309,33 @@ public class CallableStmtTest extends BaseTest4 {
     assertFalse(rs.next());
   }
 
+  @Test
+  public void testBatchCallFailureIsChargedToItsOwnEntry() throws SQLException {
+    // A call returns rows, and until CallableBatchResultHandler stopped discarding them no entry of
+    // a callable batch ever advanced: every failure was charged to entry 0 and no progress could be
+    // committed. The message names the entry number through a translated string, so assert on the
+    // argument it quotes, which is not translated.
+    try (Statement stmt = con.createStatement()) {
+      stmt.execute("CREATE OR REPLACE FUNCTION " + pkgName + "failOnTwo(int) RETURNS int AS '"
+          + "BEGIN IF $1 = 2 THEN RAISE EXCEPTION ''boom''; END IF; RETURN $1; END;"
+          + "' LANGUAGE plpgsql");
+    }
+    try (CallableStatement call = con.prepareCall("{ call " + pkgName + "failOnTwo(?) }")) {
+      for (int i = 1; i <= 3; i++) {
+        call.setInt(1, i);
+        call.addBatch();
+      }
+      BatchUpdateException bue =
+          assertThrows(BatchUpdateException.class, call::executeBatch, "entry 1 raises");
+      assertEquals(3, bue.getUpdateCounts().length, "one update count per addBatch()");
+      assertTrue(bue.getMessage().contains("'2'"),
+          "the failure belongs to the entry called with 2: " + bue.getMessage());
+      assertFalse(bue.getMessage().contains("'1'"),
+          "the failure must not be charged to entry 0: " + bue.getMessage());
+    } finally {
+      try (Statement stmt = con.createStatement()) {
+        stmt.execute("DROP FUNCTION IF EXISTS " + pkgName + "failOnTwo(int)");
+      }
+    }
+  }
 }

@@ -112,6 +112,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
 
     // TODO: this.wantsGeneratedKeysAlways = true;
+    // Enabling that would send every statement's rows through BatchResultHandler.handleResultRows,
+    // including a plain SELECT, whose row count would then read as rows changed. See the
+    // rows-arrived branch of BatchResultHandler.handleCommandStatus before switching it on.
 
     setPoolable(true); // As per JDBC spec: prepared and callable statements are poolable by
   }

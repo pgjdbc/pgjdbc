@@ -1551,11 +1551,13 @@ msgstr "Этот Statement закрыт."
 
 #: src/main/java/org/postgresql/jdbc/PgStatement.java:833
 msgid ""
-"Multi-statement SQL is not supported in Statement.addBatch(); call "
-"addBatch() once per statement instead."
+"Multi-statement SQL in Statement.addBatch() is not supported with "
+"preferQueryMode=simple or preferQueryMode=extendedForPrepared. Set "
+"preferQueryMode=extended, or add each SQL statement to the batch separately."
 msgstr ""
-"Statement.addBatch() не поддерживает SQL с несколькими запросами; вызывайте "
-"addBatch() отдельно на каждый запрос."
+"Statement.addBatch() не поддерживает SQL с несколькими запросами при "
+"preferQueryMode=simple или preferQueryMode=extendedForPrepared. Установите "
+"preferQueryMode=extended или добавляйте каждый запрос в пакет отдельно."
 
 #: src/main/java/org/postgresql/jdbc/PgStatement.java:1172
 #: src/main/java/org/postgresql/jdbc/PgStatement.java:1313

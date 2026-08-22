@@ -13,6 +13,8 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
+import org.postgresql.core.SqlCommand;
+import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.TransactionState;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.v3.BatchedQuery;
@@ -40,6 +42,8 @@ public class BatchResultHandler extends ResultHandlerBase {
   private int resultIndex;
 
   private final Query[] queries;
+  /** Sub-statements each batch entry reports, parallel to {@link #queries}. */
+  private final int[] subStatementCounts;
   private final long[] longUpdateCounts;
   private final @Nullable ParameterList @Nullable [] parameterLists;
   private final boolean expectGeneratedKeys;
@@ -48,23 +52,99 @@ public class BatchResultHandler extends ResultHandlerBase {
   private final @Nullable List<List<Tuple>> allGeneratedRows;
   private @Nullable List<Tuple> latestGeneratedRows;
   private @Nullable PgResultSet latestGeneratedKeysRs;
+  /** Sub-statements of the entry at {@link #resultIndex} that have not reported yet. */
+  private int pendingSubResults;
+  /** Whether any sub-statement of the entry at {@link #resultIndex} changed rows. */
+  private boolean entryAffectedRows;
+  /** A sub-statement returned rows and its {@code CommandComplete} may still follow. */
+  private boolean rowsAwaitingStatus;
+  /** Whether that sub-statement can have changed rows, so a missing status leaves it unknown. */
+  private boolean rowsAwaitingStatusMayHaveChangedRows;
+  /** Whether any sub-statement of the entry at {@link #resultIndex} went unaccounted for. */
+  private boolean entryCountUnknown;
 
   BatchResultHandler(PgStatement pgStatement, Query[] queries,
       @Nullable ParameterList @Nullable [] parameterLists,
       boolean expectGeneratedKeys) {
     this.pgStatement = pgStatement;
     this.queries = queries;
+    int[] counts = pgStatement.getBatchSubStatementCounts();
+    this.subStatementCounts = counts != null ? counts : subStatementCountsOf(queries);
     this.parameterLists = parameterLists;
     this.longUpdateCounts = new long[queries.length];
     this.expectGeneratedKeys = expectGeneratedKeys;
     this.allGeneratedRows = !expectGeneratedKeys ? null : new ArrayList<List<Tuple>>();
   }
 
+  /**
+   * Counts the sub-statements of each entry the way the extended protocol splits them.
+   *
+   * <p>An entry that the extended protocol never split — {@code Statement.addBatch(String)} below
+   * {@code preferQueryMode=EXTENDED} — is counted by {@link PgStatement} at {@code addBatch} time
+   * instead, and reaches this class through
+   * {@link PgStatement#getBatchSubStatementCounts()}.</p>
+   */
+  private static int[] subStatementCountsOf(Query[] queries) {
+    int[] counts = new int[queries.length];
+    for (int i = 0; i < queries.length; i++) {
+      Query[] subqueries = queries[i].getSubqueries();
+      counts[i] = subqueries == null ? 1 : subqueries.length;
+    }
+    return counts;
+  }
+
+  /**
+   * Records one sub-statement's outcome and closes the batch entry once its last sub-statement has
+   * reported.
+   *
+   * <p>JDBC gives an entry one update count, so an entry of several statements cannot report a
+   * per-statement figure. Summing them would invent a number no statement produced. What survives
+   * is the distinction the caller can act on: an entry of several statements reports {@code 0} only
+   * when every statement of it reported a row count of its own and every one of those counts was
+   * zero, and {@link Statement#SUCCESS_NO_INFO} otherwise — including when a statement's outcome
+   * never reached the driver, which is what {@code SUCCESS_NO_INFO} says. An entry of one statement
+   * keeps reporting that statement's own count, which for {@code RETURNING} under a no-results
+   * batch has always been {@code 0}.</p>
+   *
+   * @param updateCount rows the sub-statement reported
+   * @param countUnknown whether the sub-statement's outcome never reached the driver
+   */
+  private void completeSubResult(long updateCount, boolean countUnknown) {
+    if (resultIndex >= queries.length) {
+      handleError(new PSQLException(GT.tr("Too many update results were returned."),
+          PSQLState.TOO_MANY_RESULTS));
+      return;
+    }
+    if (pendingSubResults == 0) {
+      pendingSubResults = subStatementCounts[resultIndex];
+      entryAffectedRows = false;
+      entryCountUnknown = false;
+    }
+    entryAffectedRows |= updateCount != 0;
+    entryCountUnknown |= countUnknown;
+    if (--pendingSubResults > 0) {
+      return;
+    }
+    longUpdateCounts[resultIndex] = subStatementCounts[resultIndex] == 1 ? updateCount
+        : entryAffectedRows || entryCountUnknown ? Statement.SUCCESS_NO_INFO : 0;
+    resultIndex++;
+  }
+
   @Override
   public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
       @Nullable ResultCursor cursor) {
-    // If SELECT, then handleCommandStatus call would just be missing
-    resultIndex++;
+    // If SELECT, then handleCommandStatus call would just be missing, so the sub-statement that
+    // preceded this one is only known to be over now.
+    if (rowsAwaitingStatus) {
+      completeSubResultAwaitingStatus();
+    }
+    rowsAwaitingStatus = true;
+    // A SELECT changes nothing, so a missing status still means zero. Anything else that returns
+    // rows may have changed some, and on the no-results path its count never reaches the driver:
+    // the rows are discarded, so tuples is empty whether or not it changed anything.
+    SqlCommand command = fromQuery.getSqlCommand();
+    rowsAwaitingStatusMayHaveChangedRows =
+        command == null || command.getType() != SqlCommandType.SELECT;
     if (!expectGeneratedKeys) {
       // No rows expected -> just ignore rows
       return;
@@ -86,8 +166,6 @@ public class BatchResultHandler extends ResultHandlerBase {
   public void handleCommandStatus(String status, long updateCount, long insertOID) {
     List<Tuple> latestGeneratedRows = this.latestGeneratedRows;
     if (latestGeneratedRows != null) {
-      // We have DML. Decrease resultIndex that was just increased in handleResultRows
-      resultIndex--;
       // If exception thrown, no need to collect generated keys
       // Note: some generated keys might be secured in generatedKeys
       if (updateCount > 0 && (getException() == null || isProgressDurable())) {
@@ -98,16 +176,60 @@ public class BatchResultHandler extends ResultHandlerBase {
         }
       }
       this.latestGeneratedRows = null;
-    }
-
-    if (resultIndex >= queries.length) {
-      handleError(new PSQLException(GT.tr("Too many update results were returned."),
-          PSQLState.TOO_MANY_RESULTS));
+      // This status belongs to the sub-statement that just returned rows, so it decides whether
+      // that sub-statement changed anything. Only a statement with RETURNING gets here — the rows
+      // are collected as generated keys — so the tag is INSERT, UPDATE, DELETE or MERGE and the
+      // count is rows changed.
+      rowsAwaitingStatus = false;
+      latestGeneratedKeysRs = null;
+      completeSubResult(updateCount, false);
       return;
+    } else if (rowsAwaitingStatus) {
+      // The sub-statement that returned rows gets no status of its own, so it ends here. This
+      // status belongs to the sub-statement after it.
+      completeSubResultAwaitingStatus();
     }
-    latestGeneratedKeysRs = null;
 
-    longUpdateCounts[resultIndex++] = updateCount;
+    latestGeneratedKeysRs = null;
+    // No rows came back, so a retrieval tag is not a read at all: CREATE TABLE AS, SELECT INTO and
+    // CREATE MATERIALIZED VIEW report the rows they wrote into the new relation under SELECT n.
+    // The number is real but it is not this entry's row count, and the relation now exists.
+    completeSubResult(updateCount, !reportsRowCount(status) || isRetrieval(status));
+  }
+
+  /**
+   * Returns whether a command tag is one the server uses for reading rows. Only the caller that saw
+   * no rows asks this: {@code CREATE TABLE AS} and {@code SELECT INTO} report the rows they wrote
+   * into a new relation under the same tag a plain {@code SELECT} uses, so a retrieval tag with no
+   * rows behind it is a statement whose real outcome this entry cannot state.
+   *
+   * @param status the command tag the server sent
+   */
+  private static boolean isRetrieval(String status) {
+    return status.startsWith("SELECT") || status.startsWith("FETCH") || status.startsWith("MOVE");
+  }
+
+  /**
+   * Returns whether a command tag carries a row count. The server appends one only to commands that
+   * have it, so {@code TRUNCATE TABLE} or {@code CREATE INDEX} arrive as a count of zero that says
+   * nothing about what they did. {@code EMPTY} is the driver's own tag for an empty statement,
+   * which changed nothing by definition.
+   *
+   * @param status the command tag the server sent
+   */
+  private static boolean reportsRowCount(String status) {
+    return "EMPTY".equals(status)
+        || !status.isEmpty() && Character.isDigit(status.charAt(status.length() - 1));
+  }
+
+  /**
+   * Closes a sub-statement that returned rows and never got a {@code CommandComplete}. A
+   * {@code SELECT} is known to have changed nothing; for DML with {@code RETURNING} the count never
+   * arrived, so the entry can no longer report a figure of its own.
+   */
+  private void completeSubResultAwaitingStatus() {
+    rowsAwaitingStatus = false;
+    completeSubResult(0, rowsAwaitingStatusMayHaveChangedRows);
   }
 
   /**
@@ -137,10 +259,18 @@ public class BatchResultHandler extends ResultHandlerBase {
 
   @Override
   public void secureProgress() {
-    if (isProgressDurable()) {
-      committedRows = resultIndex;
-      updateGeneratedKeys();
+    if (!isProgressDurable()) {
+      return;
     }
+    // A sub-statement that returned rows has finished, and so has the entry it ends. Leaving it
+    // open would commit one entry too few, and a later failure would report that committed entry as
+    // EXECUTE_FAILED. This runs after the protocol layer drained to ReadyForQuery, so no status is
+    // still in flight — the same reason handleError and handleCompletion close unconditionally.
+    if (rowsAwaitingStatus) {
+      completeSubResultAwaitingStatus();
+    }
+    committedRows = resultIndex;
+    updateGeneratedKeys();
   }
 
   private void updateGeneratedKeys() {
@@ -162,6 +292,12 @@ public class BatchResultHandler extends ResultHandlerBase {
 
   @Override
   public void handleError(SQLException newError) {
+    // A sub-statement that returned rows and never got a status still ends the entry it belongs to.
+    // This has to happen before resultIndex is read below, otherwise the error is charged to the
+    // finished entry and the exception quotes its SQL.
+    if (rowsAwaitingStatus) {
+      completeSubResultAwaitingStatus();
+    }
     if (getException() == null) {
       Arrays.fill(longUpdateCounts, committedRows, longUpdateCounts.length, Statement.EXECUTE_FAILED);
       if (allGeneratedRows != null) {
@@ -184,6 +320,8 @@ public class BatchResultHandler extends ResultHandlerBase {
 
       super.handleError(batchException);
     }
+    // The failing entry is done, however many of its statements never reported.
+    pendingSubResults = 0;
     resultIndex++;
 
     super.handleError(newError);
@@ -191,6 +329,9 @@ public class BatchResultHandler extends ResultHandlerBase {
 
   @Override
   public void handleCompletion() throws SQLException {
+    if (rowsAwaitingStatus) {
+      completeSubResultAwaitingStatus();
+    }
     updateGeneratedKeys();
     SQLException batchException = getException();
     if (batchException != null) {

@@ -1449,8 +1449,9 @@ msgstr "这个 statement 已经被关闭。"
 
 #: src/main/java/org/postgresql/jdbc/PgStatement.java:833
 msgid ""
-"Multi-statement SQL is not supported in Statement.addBatch(); call "
-"addBatch() once per statement instead."
+"Multi-statement SQL in Statement.addBatch() is not supported with "
+"preferQueryMode=simple or preferQueryMode=extendedForPrepared. Set "
+"preferQueryMode=extended, or add each SQL statement to the batch separately."
 msgstr ""
 
 #: src/main/java/org/postgresql/jdbc/PgStatement.java:1172
