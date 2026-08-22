@@ -454,6 +454,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         try {
           handler = sendQueryPreamble(handler, flags);
           autosave = sendAutomaticSavepoint(query, flags);
+          // The counter covers only the queries of this execution. A batch that stopped on an
+          // error read at a forced Sync leaves the estimate of the entry it did not send, which
+          // forces a needless Sync before the first query.
+          estimatedReceiveBufferBytes = 0;
           sendQuery(query, (V3ParameterList) parameters, maxRows, fetchSize, flags,
               handler, null, adaptiveFetch);
           if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
@@ -693,13 +697,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         estimatedReceiveBufferBytes = 0;
 
         for (int i = 0; i < queries.length; i++) {
-          SimpleQuery query = (SimpleQuery) queries[i];
-          if (i == 0) {
-            estimatedReceiveBufferBytes += estimateQueryResponseBytes(query, flags);
-          } else {
-            flushIfDeadlockRisk(query, handler, batchHandler, flags);
-          }
-
+          // An entry may be a CompositeQuery. sendQuery splits it into statements, so the
+          // receive-buffer check belongs there rather than in this loop.
+          Query query = queries[i];
           V3ParameterList parameters = (V3ParameterList) parameterLists[i];
           if (parameters == null) {
             parameters = SimpleQuery.NO_PARAMETERS;
@@ -1680,8 +1680,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       if (maxResultRowSize >= 0) {
         resultBytes += maxResultRowSize;
       } else {
-        LOGGER.log(Level.FINEST, "Couldn''t estimate result size or result size unbounded, "
-            + "disabling batching for this query.");
+        LOGGER.log(Level.FINEST, "Couldn't estimate result size or result size unbounded, "
+            + "assuming it fills the receive buffer.");
         return MAX_BUFFERED_RECV_BYTES;
       }
     } else {
@@ -1704,17 +1704,22 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private void flushIfDeadlockRisk(SimpleQuery query,
       ResultHandler resultHandler,
       @Nullable BatchResultHandler batchHandler,
-      final int flags) throws IOException {
+      final int flags, boolean adaptiveFetch) throws IOException {
     int resultBytes = estimateQueryResponseBytes(query, flags);
 
     int estimatedReceiveBufferBytesTotal = estimatedReceiveBufferBytes + resultBytes;
-    if (estimatedReceiveBufferBytesTotal < MAX_BUFFERED_RECV_BYTES) {
+    // At zero no query of this execution is pending, only the small responses of the preamble, so
+    // a Sync would free next to nothing and the first query is sent whatever its estimate.
+    if (estimatedReceiveBufferBytesTotal < MAX_BUFFERED_RECV_BYTES
+        || estimatedReceiveBufferBytes == 0) {
       estimatedReceiveBufferBytes = estimatedReceiveBufferBytesTotal;
     } else {
       LOGGER.log(Level.FINEST, "Forcing Sync, receive buffer full or batching disallowed");
       sendSync();
       pgStream.flush();
-      processResults(resultHandler, flags);
+      // These are the caller's results, so record adaptive fetch for them as the processResults
+      // at the end of the execution does.
+      processResults(resultHandler, flags, adaptiveFetch);
       // We've processed incoming bytes, and the query to be executed would consume receive buffer
       estimatedReceiveBufferBytes = resultBytes;
       if (batchHandler != null) {
@@ -1734,25 +1739,25 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     SimpleParameterList[] subparams = parameters.getSubparams();
 
     if (subqueries == null) {
+      SimpleQuery simpleQuery = (SimpleQuery) query;
+      flushIfDeadlockRisk(simpleQuery, resultHandler, batchHandler, flags, adaptiveFetch);
+
       // If we saw errors, don't send anything more.
       if (resultHandler.getException() == null) {
         if (fetchSize != 0) {
           adaptiveFetchCache.addNewQuery(adaptiveFetch, query);
         }
-        sendOneQuery((SimpleQuery) query, (SimpleParameterList) parameters, maxRows, fetchSize,
+        sendOneQuery(simpleQuery, (SimpleParameterList) parameters, maxRows, fetchSize,
             flags);
       }
     } else {
       for (int i = 0; i < subqueries.length; i++) {
         final SimpleQuery subquery = (SimpleQuery) subqueries[i];
-        if (i == 0) {
-          estimatedReceiveBufferBytes += estimateQueryResponseBytes(subquery, flags);
-        } else {
-          flushIfDeadlockRisk(subquery, resultHandler, batchHandler, flags);
-          // If we saw errors, don't send anything more.
-          if (resultHandler.getException() != null) {
-            break;
-          }
+        flushIfDeadlockRisk(subquery, resultHandler, batchHandler, flags, adaptiveFetch);
+
+        // If we saw errors, don't send anything more.
+        if (resultHandler.getException() != null) {
+          break;
         }
 
         // In the situation where parameters is already
@@ -1768,7 +1773,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         if (fetchSize != 0) {
           adaptiveFetchCache.addNewQuery(adaptiveFetch, subquery);
         }
-        sendOneQuery((SimpleQuery) subquery, subparam, maxRows, fetchSize, flags);
+        sendOneQuery(subquery, subparam, maxRows, fetchSize, flags);
       }
     }
   }
@@ -3420,7 +3425,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * The estimated server response size since we last consumed the input stream from the server, in
    * bytes.
    *
-   * <p>Starts at zero, reset by every Sync message. Mainly used for batches.</p>
+   * <p>Each execution clears it before its first query, and clears it again once it has read its
+   * results. A forced Sync sets it to the estimate of the query about to be sent. Mainly used for
+   * batches.</p>
    *
    * <p>Used to avoid deadlocks, see MAX_BUFFERED_RECV_BYTES.</p>
    */
