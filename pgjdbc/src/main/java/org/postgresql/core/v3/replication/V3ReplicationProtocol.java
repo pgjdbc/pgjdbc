@@ -16,7 +16,6 @@ import org.postgresql.replication.ReplicationType;
 import org.postgresql.replication.fluent.CommonOptions;
 import org.postgresql.replication.fluent.logical.LogicalReplicationOptions;
 import org.postgresql.replication.fluent.physical.PhysicalReplicationOptions;
-import org.postgresql.util.PSQLException;
 
 import java.sql.SQLException;
 import java.util.Properties;
@@ -56,17 +55,8 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
     LOGGER.log(Level.FINEST, " FE=> StartReplication(query: {0})", query);
 
     CopyDual copyDual = (CopyDual) queryExecutor.startCopy(query, true);
-    // Shortening the timeout before the handshake would leave the server one status interval to
-    // answer START_REPLICATION in
-    ReplicationSocketSettings connectionSettings;
-    try {
-      connectionSettings =
-          ReplicationSocketSettings.shorten(pgStream, options.getStatusInterval());
-    } catch (PSQLException e) {
-      // The copy is active by now, and a connection whose socket rejects setSoTimeout cannot end it
-      queryExecutor.abort();
-      throw e;
-    }
+    ReplicationSocketSettings connectionSettings =
+        ReplicationSocketSettings.shorten(pgStream, options.getStatusInterval());
 
     return new V3PGReplicationStream(
         castNonNull(copyDual),

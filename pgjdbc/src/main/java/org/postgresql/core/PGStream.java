@@ -89,6 +89,8 @@ public class PGStream implements Closeable, Flushable {
   // This is a workaround for SSL sockets: sslInputStream.available() might return 0
   // so we perform "1ms reads" once in a while
   private int minStreamAvailableCheckDelay = 1000;
+  private int networkTimeout;
+  private int readWakeupTimeout;
 
   private Encoding encoding;
 
@@ -740,8 +742,54 @@ public class PGStream implements Closeable, Flushable {
   }
 
   public void setNetworkTimeout(int milliseconds) throws IOException {
+    this.networkTimeout = milliseconds;
     connection.setSoTimeout(milliseconds);
     pgInput.setTimeoutRequested(milliseconds != 0);
+  }
+
+  /**
+   * Sets how long {@link #receiveMessageTypeChar()} waits for a message to start before it reports
+   * a read timeout, in milliseconds. Zero, the default, leaves the connection's own timeout in
+   * charge of every read.
+   *
+   * <p>A caller that reads with a deadline of its own — a replication stream waking up to send a
+   * standby status update — asks for it here rather than by shortening the connection's timeout.
+   * The wait then covers only the byte that starts a message, where nothing has been consumed yet
+   * and a timeout costs nothing. A timeout partway through a message would leave the bytes it
+   * already took out of the stream, and the next read would take the middle of that message for
+   * the start of the next one.</p>
+   *
+   * @param milliseconds the wait, or zero for none
+   */
+  public void setReadWakeupTimeout(int milliseconds) {
+    this.readWakeupTimeout = milliseconds;
+  }
+
+  public int getReadWakeupTimeout() {
+    return readWakeupTimeout;
+  }
+
+  /**
+   * Reads the byte that starts a backend message, waiting no longer than the read wake-up timeout
+   * for it.
+   *
+   * @return the message type byte
+   * @throws java.net.SocketTimeoutException if the wake-up timeout passes with no message
+   * @throws IOException if the read fails
+   */
+  public int receiveMessageTypeChar() throws IOException {
+    int wakeup = readWakeupTimeout;
+    if (wakeup <= 0 || pgInput.available() > 0) {
+      return receiveChar();
+    }
+    connection.setSoTimeout(networkTimeout > 0 ? Math.min(networkTimeout, wakeup) : wakeup);
+    pgInput.setTimeoutRequested(true);
+    try {
+      return receiveChar();
+    } finally {
+      connection.setSoTimeout(networkTimeout);
+      pgInput.setTimeoutRequested(networkTimeout != 0);
+    }
   }
 
   public int getNetworkTimeout() throws IOException {

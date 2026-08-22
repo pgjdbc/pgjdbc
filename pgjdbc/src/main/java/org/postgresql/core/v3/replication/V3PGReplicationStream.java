@@ -300,8 +300,8 @@ public class V3PGReplicationStream implements PGReplicationStream {
       return;
     }
 
-    // The shortened socket timeout is the stream's own. Put the connection's back before CopyDone,
-    // which is an ordinary exchange rather than a wait for the next WAL record
+    // The wake-up is the stream's own, and CopyDone is an ordinary exchange rather than a wait for
+    // the next WAL record
     connectionSettings.restore();
 
     if (copyDual.isActive()) {

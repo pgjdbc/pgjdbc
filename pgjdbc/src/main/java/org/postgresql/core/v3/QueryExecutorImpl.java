@@ -1442,7 +1442,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
         }
 
-        int c = pgStream.receiveChar();
+        // The wake-up a replication stream asks for belongs here and nowhere else in the loop:
+        // once the type byte is read the driver is inside a message, and a timeout would drop the
+        // bytes it already took
+        int c = pgStream.receiveMessageTypeChar();
         switch (c) {
 
           case PgMessageType.ASYNCHRONOUS_NOTICE:

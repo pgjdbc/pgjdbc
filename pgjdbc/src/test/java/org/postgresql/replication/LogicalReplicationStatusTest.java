@@ -465,7 +465,7 @@ class LogicalReplicationStatusTest {
   }
 
   @Test
-  void closeRestoresTheConnectionSocketTimeout() throws Exception {
+  void streamDoesNotChangeTheConnectionSocketTimeout() throws Exception {
     Connection conn = TestUtil.openReplicationConnection(props -> {
       PGProperty.SOCKET_TIMEOUT.set(props, SOCKET_TIMEOUT_SECONDS);
     });
@@ -474,14 +474,14 @@ class LogicalReplicationStatusTest {
       insertPreviousChanges(sqlConnection);
 
       PGReplicationStream stream = startStream(conn, startLSN);
-      assertThat("While the stream runs, its reads wake up once per status interval to send a "
-              + "standby status update, so the connection carries the shortened socket timeout",
-          conn.getNetworkTimeout(), equalTo(STATUS_INTERVAL_MS)
+      assertThat("The stream waits for a message to start with a wake-up of its own, so the "
+              + "connection keeps the socket timeout it was opened with rather than the status "
+              + "interval",
+          conn.getNetworkTimeout(), equalTo(SOCKET_TIMEOUT_SECONDS * 1000)
       );
 
       stream.close();
-      assertThat("The shortened timeout belongs to the stream, so a connection that outlives the "
-              + "stream reads with its own socketTimeout again",
+      assertThat("The connection still has its own socket timeout once the stream is over",
           conn.getNetworkTimeout(), equalTo(SOCKET_TIMEOUT_SECONDS * 1000)
       );
     } finally {
