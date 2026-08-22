@@ -1572,12 +1572,6 @@ msgstr "La dimensione massima del campo deve essere maggiore o eguale a 0."
 msgid "This statement has been closed."
 msgstr "Questo statement è stato chiuso."
 
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:833
-msgid ""
-"Multi-statement SQL is not supported in Statement.addBatch(); call "
-"addBatch() once per statement instead."
-msgstr ""
-
 #: src/main/java/org/postgresql/jdbc/PgStatement.java:1172
 #: src/main/java/org/postgresql/jdbc/PgStatement.java:1313
 #: src/main/java/org/postgresql/jdbc/PgStatement.java:1350

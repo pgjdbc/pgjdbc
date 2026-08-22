@@ -1443,12 +1443,6 @@ msgstr "最大欄位容量必須大於或等於 0。"
 msgid "This statement has been closed."
 msgstr "這個 statement 已經被關閉。"
 
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:833
-msgid ""
-"Multi-statement SQL is not supported in Statement.addBatch(); call "
-"addBatch() once per statement instead."
-msgstr ""
-
 #: src/main/java/org/postgresql/jdbc/PgStatement.java:1172
 #: src/main/java/org/postgresql/jdbc/PgStatement.java:1313
 #: src/main/java/org/postgresql/jdbc/PgStatement.java:1350

@@ -5,6 +5,7 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGProperty;
@@ -28,10 +29,13 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
@@ -99,6 +103,7 @@ public class BatchDeadlockTest extends BaseTest4 {
   private static final Pattern FE_DESCRIBE_PORTAL = Pattern.compile("FE=> Describe\\(portal");
   private static final Pattern FE_EXECUTE = Pattern.compile("FE=> Execute");
   private static final Pattern FE_SYNC = Pattern.compile("FE=> Sync");
+  private static final Pattern FORCED_SYNC = Pattern.compile("Forcing Sync");
 
   private final ReturningInQuery returningInQuery;
 
@@ -174,6 +179,91 @@ public class BatchDeadlockTest extends BaseTest4 {
         socketCounters = null;
       }
     }
+  }
+
+  /** Sequence number of the last protocol record logged so far, or -1 when none has been. */
+  private long lastSequenceNumber() {
+    long last = -1;
+    for (Pattern pattern : new Pattern[]{FE_EXECUTE, FE_SYNC}) {
+      for (LogRecord record : logHandler.getRecordsMatching(pattern)) {
+        last = Math.max(last, record.getSequenceNumber());
+      }
+    }
+    return last;
+  }
+
+  /**
+   * Fails when a forced Sync lands between the statements of one batch entry.
+   *
+   * <p>A multi-statement entry is one {@code addBatch()} call to the caller. Syncing inside one
+   * commits its leading statements on their own under auto-commit and lets {@code secureProgress}
+   * record an entry that has not finished, so a later failure can report as succeeded rows a
+   * rollback would have taken back. The deadlock check therefore covers a whole entry before any of
+   * it is sent — except for an entry whose own responses exceed the buffer, which keeps the
+   * per-statement checks because it cannot be sent unread.</p>
+   *
+   * <p>Both statements here carry {@code RETURNING}, so each reports rows rather than an update
+   * count and the entry spans two Executes. A Sync inside an entry therefore lands on an odd
+   * Execute count.</p>
+   */
+  @Test
+  @Timeout(value = 60, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+  void forcedSyncNeverSplitsAMultiStatementEntry() throws Exception {
+    assumeNotSimpleQueryMode();
+    con.setAutoCommit(true);
+    // No rows are needed. What this test reads is where the Syncs fall between the messages the
+    // driver writes, and a RETURNING statement that matches nothing still takes the rows path.
+    // The estimate is a flat NODATA_QUERY_RESPONSE_SIZE_BYTES per undescribed statement, so the
+    // table's width and contents cannot move the threshold either.
+
+    String sql = "UPDATE batch_deadlock_test SET id = id WHERE id = ? RETURNING data;"
+        + " UPDATE batch_deadlock_test SET id = id WHERE id = ? RETURNING data";
+    // setUp and the INSERT above have already logged Executes of their own, and counting those
+    // would shift the parity this test reads. Start from the last record written before the batch.
+    long startSequence = lastSequenceNumber();
+    try (PreparedStatement ps = con.prepareStatement(sql)) {
+      // enough entries that the estimated receive buffer overflows and forces a Sync
+      for (int i = 1; i <= 200; i++) {
+        ps.setInt(1, i);
+        ps.setInt(2, i);
+        ps.addBatch();
+      }
+      assertEquals(200, ps.executeBatch().length, "one update count per entry");
+    }
+
+    // Executes and Syncs interleave, so replay them in order: a Sync landing on an odd Execute
+    // count is one that fell between the two statements of an entry.
+    List<LogRecord> ordered = new ArrayList<>(logHandler.getRecordsMatching(FE_EXECUTE));
+    ordered.addAll(logHandler.getRecordsMatching(FE_SYNC));
+    ordered.removeIf(record -> record.getSequenceNumber() <= startSequence);
+    ordered.sort(Comparator.comparingLong(LogRecord::getSequenceNumber));
+
+    int executes = 0;
+    int syncsInsideAnEntry = 0;
+    for (LogRecord record : ordered) {
+      if (FE_EXECUTE.matcher(record.getMessage()).find()) {
+        executes++;
+      } else if (executes % 2 != 0) {
+        syncsInsideAnEntry++;
+      }
+    }
+    // Every batch ends in a Sync, so counting Syncs would hold even if none had been forced. The
+    // forced ones announce themselves in the log, and those are the ones under test.
+    long forcedSyncs = logHandler.getRecordsMatching(FORCED_SYNC).stream()
+        .filter(record -> record.getSequenceNumber() > startSequence)
+        .count();
+    assertTrue(forcedSyncs > 0,
+        "the batch has to be large enough to force a Sync, otherwise this proves nothing; "
+            + "executes=" + executes);
+    // The threshold this test relies on is 250 bytes per statement, which holds only while the
+    // statements stay undescribed. A Describe(statement) would put the estimate at 250 plus the
+    // column width and move the Sync somewhere else entirely.
+    assertEquals(0, logHandler.getRecordsMatching(FE_DESCRIBE_STATEMENT).stream()
+            .filter(record -> record.getSequenceNumber() > startSequence)
+            .count(),
+        "the estimate assumes undescribed statements");
+    assertEquals(0, syncsInsideAnEntry,
+        "a forced Sync must land between entries, never between the statements of one");
   }
 
   /**

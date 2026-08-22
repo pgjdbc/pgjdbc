@@ -1551,12 +1551,6 @@ msgstr "Die maximale Feldgröße muss ein Wert größer oder gleich Null sein."
 msgid "This statement has been closed."
 msgstr "Die Anweisung wurde geschlossen."
 
-#: src/main/java/org/postgresql/jdbc/PgStatement.java:833
-msgid ""
-"Multi-statement SQL is not supported in Statement.addBatch(); call "
-"addBatch() once per statement instead."
-msgstr ""
-
 #: src/main/java/org/postgresql/jdbc/PgStatement.java:1172
 #: src/main/java/org/postgresql/jdbc/PgStatement.java:1313
 #: src/main/java/org/postgresql/jdbc/PgStatement.java:1350
