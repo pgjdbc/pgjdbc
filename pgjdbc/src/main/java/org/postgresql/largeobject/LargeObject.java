@@ -231,21 +231,25 @@ public class LargeObject
   /**
    * Reads some data from the object into an existing array.
    *
+   * <p>The server allocates {@code len} bytes before it reads, so a {@code len} above 1073741819
+   * (just under 1 GiB) fails with {@code invalid memory alloc request size} and aborts the
+   * transaction, however few bytes the object holds.</p>
+   *
    * @param buf destination array
    * @param off offset within array
    * @param len number of bytes to read
-   * @return the number of bytes actually read
-   * @throws SQLException if a database-access error occurs.
+   * @return the number of bytes actually read, which is smaller than {@code len} when the object
+   *         has fewer bytes left
+   * @throws SQLException if a database-access error occurs
+   * @throws ArrayIndexOutOfBoundsException if {@code off} or {@code len} is negative, or if
+   *         {@code off + len} exceeds {@code buf.length}. No request is sent in that case
    */
   public int read(byte[] buf, int off, int len) throws SQLException {
     checkClosed();
-    byte[] b = read(len);
-    if (b.length == 0) {
-      return 0;
-    }
-    len = Math.min(len, b.length);
-    System.arraycopy(b, 0, buf, off, len);
-    return len;
+    FastpathArg[] args = new FastpathArg[2];
+    args[0] = new FastpathArg(fd);
+    args[1] = new FastpathArg(len);
+    return Math.max(fp.fastpath("loread", args, buf, off, len), 0);
   }
 
   /**

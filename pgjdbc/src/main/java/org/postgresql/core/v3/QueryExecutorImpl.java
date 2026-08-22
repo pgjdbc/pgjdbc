@@ -106,6 +106,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.ServerErrorMessage;
+import org.postgresql.util.internal.ArrayRanges;
 import org.postgresql.util.internal.IntSet;
 import org.postgresql.util.internal.SourceStreamIOException;
 
@@ -781,6 +782,23 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public byte @Nullable [] fastpathCall(int fnid, ParameterList parameters,
       boolean suppressBegin)
       throws SQLException {
+    FastpathResult result = new FastpathResult(null, 0, 0);
+    fastpathCall(fnid, parameters, suppressBegin, result);
+    return result.value;
+  }
+
+  @Override
+  @SuppressWarnings("deprecation")
+  public int fastpathCall(int fnid, ParameterList parameters, boolean suppressBegin,
+      byte[] dst, int off, int len) throws SQLException {
+    ArrayRanges.checkFromIndexSize(dst, off, len);
+    FastpathResult result = new FastpathResult(dst, off, len);
+    fastpathCall(fnid, parameters, suppressBegin, result);
+    return result.length;
+  }
+
+  private void fastpathCall(int fnid, ParameterList parameters, boolean suppressBegin,
+      FastpathResult result) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       waitOnLock();
       if (!suppressBegin) {
@@ -794,7 +812,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           processResults(new DiscardResultHandler(), 0);
         }
         sendFastpathCall(fnid, (SimpleParameterList) parameters);
-        return receiveFastpathResult();
+        receiveFastpathResult(result);
       } catch (IOException ioe) {
         abort();
         throw new PSQLException(GT.tr("An I/O error occurred while sending to the backend."),
@@ -1001,10 +1019,69 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
-  private byte @Nullable [] receiveFastpathResult() throws IOException, SQLException {
+  /**
+   * Receives the value of a {@code FunctionCallResponse} message, either into a fresh array or
+   * into one the caller supplied.
+   *
+   * <p>A null {@link #dst} selects the allocating mode and leaves the value in {@link #value}.
+   * Otherwise the value goes into {@link #dst} starting at {@link #off}, and a value longer than
+   * {@link #maxLen} is refused rather than truncated.</p>
+   */
+  private static final class FastpathResult {
+    final byte @Nullable [] dst;
+
+    final int off;
+
+    /**
+     * Number of bytes {@link #dst} has room for at {@link #off}. Ignored when {@link #dst} is
+     * {@code null}.
+     */
+    final int maxLen;
+
+    byte @Nullable [] value;
+
+    /**
+     * Length of the value stored in {@link #dst} or {@link #value}, and {@code -1} for a void
+     * result. Set only once the value is stored, so it stays {@code -1} for a value that did not
+     * fit.
+     */
+    int length = -1;
+
+    FastpathResult(byte @Nullable [] dst, int off, int maxLen) {
+      this.dst = dst;
+      this.off = off;
+      this.maxLen = maxLen;
+    }
+
+    /**
+     * Reads the value of a {@code FunctionCallResponse} message from {@code stream}.
+     *
+     * <p>A value too large for {@link #dst} is skipped rather than stored, so the caller can read
+     * on to {@code ReadyForQuery} and the connection stays usable.</p>
+     *
+     * @param stream the stream positioned at the first value byte
+     * @param valueLen the number of value bytes the message declares, never negative
+     * @return the exception to report to the caller, or {@code null} if the value was stored
+     * @throws IOException if reading from the stream fails
+     */
+    @Nullable SQLException receive(PGStream stream, int valueLen) throws IOException {
+      byte[] dst = this.dst;
+      if (dst == null) {
+        value = stream.receive(valueLen);
+      } else if (valueLen <= maxLen) {
+        stream.receive(dst, off, valueLen);
+      } else {
+        stream.skip(valueLen);
+        return new QueryExecutor.FastpathResultTooLongException(valueLen, maxLen);
+      }
+      length = valueLen;
+      return null;
+    }
+  }
+
+  private void receiveFastpathResult(FastpathResult result) throws IOException, SQLException {
     boolean endQuery = false;
     SQLException error = null;
-    byte[] returnValue = null;
 
     while (!endQuery) {
       int c = pgStream.receiveChar();
@@ -1041,10 +1118,26 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           LOGGER.log(Level.FINEST, " <=BE FunctionCallResponse({0} bytes)", valueLen);
 
+          if (valueLen < -1) {
+            // -1 is the only negative length the protocol defines. A smaller value leaves the
+            // driver unable to tell where the value ends, so the rest of the stream cannot be
+            // read, and abort() closes the connection instead of leaving it mid-message
+            abort();
+            throw new PSQLException(
+                GT.tr("The backend sent a function call result of {0} bytes, "
+                    + "which is not a valid length.", String.valueOf(valueLen)),
+                PSQLState.PROTOCOL_VIOLATION);
+          }
+
           if (valueLen != -1) {
-            byte[] buf = new byte[valueLen];
-            pgStream.receive(buf, 0, valueLen);
-            returnValue = buf;
+            SQLException valueError = result.receive(pgStream, valueLen);
+            if (valueError != null) {
+              if (error == null) {
+                error = valueError;
+              } else {
+                error.setNextException(valueError);
+              }
+            }
           }
 
           break;
@@ -1073,8 +1166,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if (error != null) {
       throw error;
     }
-
-    return returnValue;
   }
 
   //
