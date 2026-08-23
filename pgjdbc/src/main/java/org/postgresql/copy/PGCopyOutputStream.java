@@ -113,14 +113,26 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
       return;
     }
 
-    if (op.isActive()) {
-      try {
+    try {
+      if (op.isActive()) {
         endCopy();
-      } catch (SQLException se) {
-        throw new IOException("Ending write to copy failed.", se);
       }
+    } catch (SQLException se) {
+      IOException failed = new IOException("Ending write to copy failed.", se);
+      if (op.isActive()) {
+        // A copy that outlived the failure still holds the connection, and this stream is the
+        // last thing that could have given it back
+        try {
+          op.cancelCopy();
+        } catch (SQLException cancelFailed) {
+          failed.addSuppressed(cancelFailed);
+        }
+      }
+      throw failed;
+    } finally {
+      // Closing twice is not an error, and a close that failed still gave this stream up
+      this.op = null;
     }
-    this.op = null;
   }
 
   @Override
@@ -194,6 +206,9 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
   public long endCopy() throws SQLException {
     if (at > 0) {
       getOp().writeToCopy(copyBuffer, 0, at);
+      // The buffer is on the wire now. Ending the copy again waits for the answer and must not
+      // send these rows a second time
+      at = 0;
     }
     getOp().endCopy();
     return getHandledRowCount();

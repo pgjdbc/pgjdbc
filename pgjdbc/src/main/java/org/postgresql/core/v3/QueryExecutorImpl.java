@@ -298,7 +298,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           PSQLState.OBJECT_NOT_IN_STATE);
     }
     lockedFor = null;
-    lockCondition.signal();
+    // Threads park in waitOnLock() without taking the lock, so waking one of them would leave
+    // the rest waiting for a copy that is already over
+    lockCondition.signalAll();
   }
 
   /**
@@ -307,6 +309,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private void waitOnLock() throws PSQLException {
     while (lockedFor != null) {
+      if (isClosed()) {
+        // The copy holding the lock died with the connection, so it will never release it
+        throw new PSQLException(GT.tr("This connection has been closed."),
+            PSQLState.CONNECTION_DOES_NOT_EXIST);
+      }
       try {
         lockCondition.await();
       } catch (InterruptedException ie) {
@@ -315,6 +322,30 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             GT.tr("Interrupted while waiting to obtain lock on database connection"),
             PSQLState.OBJECT_NOT_IN_STATE, ie);
       }
+    }
+  }
+
+  /**
+   * Gives up on the connection after an I/O failure during COPY. A copy that holds the lock keeps
+   * it, since a desynchronized protocol stream is not free for anyone else to use; closing the
+   * connection is what lets threads waiting in {@link #waitOnLock()} fail instead of waiting for a
+   * copy that can no longer end.
+   *
+   * <p>The COPY methods call this for every I/O failure except one: a read timeout in
+   * {@link #readFromCopy}, the only failure a caller can resume from by reading again. A failed
+   * send has already put part of a message on the wire, and {@link #startCopy} cannot be retried,
+   * since that would send the query a second time.</p>
+   *
+   * <p>{@link #endCopy} gives the connection up on a read timeout too, though reading again would
+   * be safe there as well: CopyDone is on the wire before the loop starts, so waiting for the
+   * answer a second time re-sends nothing. Resuming would need a limit on how long that answer may
+   * take, since a server that never sends it would otherwise keep the loop going, and the deadline
+   * the caller asked for is the only limit there is today.</p>
+   */
+  private void abortAfterCopyFailure() {
+    abort();
+    try (ResourceLock ignore = lock.obtain()) {
+      lockCondition.signalAll();
     }
   }
 
@@ -1116,6 +1147,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         return castNonNull(processCopyResults(null, true));
         // expect a CopyInResponse or CopyOutResponse to our query above
       } catch (IOException ioe) {
+        abortAfterCopyFailure();
         throw new PSQLException(GT.tr("Database connection failed when starting copy"),
             PSQLState.CONNECTION_FAILURE, ioe);
       }
@@ -1164,13 +1196,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     try {
       if (op instanceof CopyIn) {
         try (ResourceLock ignore = lock.obtain()) {
-          LOGGER.log(Level.FINEST, "FE => CopyFail");
-          final byte[] msg = "Copy cancel requested".getBytes(StandardCharsets.US_ASCII);
-          pgStream.sendChar(PgMessageType.COPY_FAIL); // CopyFail
-          pgStream.sendInteger4(5 + msg.length);
-          pgStream.send(msg);
-          pgStream.sendChar(0);
-          pgStream.flush();
+          if (!op.copyDoneSent) {
+            LOGGER.log(Level.FINEST, "FE => CopyFail");
+            final byte[] msg = "Copy cancel requested".getBytes(StandardCharsets.US_ASCII);
+            pgStream.sendChar(PgMessageType.COPY_FAIL); // CopyFail
+            pgStream.sendInteger4(5 + msg.length);
+            pgStream.send(msg);
+            pgStream.sendChar(0);
+            pgStream.flush();
+          }
           do {
             try {
               processCopyResults(op, true); // discard rest of input
@@ -1193,13 +1227,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
 
     } catch (IOException ioe) {
+      abortAfterCopyFailure();
       throw new PSQLException(GT.tr("Database connection failed when canceling copy operation"),
           PSQLState.CONNECTION_FAILURE, ioe);
     } finally {
-      // Need to ensure the lock isn't held anymore, or else
-      // future operations, rather than failing due to the
-      // broken connection, will simply hang waiting for this
-      // lock.
+      // Canceling ends the copy either way, so the lock has to go back. Otherwise later
+      // operations would wait for a copy that is already over.
       try (ResourceLock ignore = lock.obtain()) {
         if (hasLock(op)) {
           unlock(op);
@@ -1207,7 +1240,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
     }
 
-    if (op instanceof CopyIn) {
+    if (op instanceof CopyIn && !op.copyDoneSent) {
       if (errors < 1) {
         throw new PSQLException(GT.tr("Missing expected error response to copy cancel request"),
             PSQLState.COMMUNICATION_ERROR);
@@ -1233,25 +1266,38 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
 
       try {
-        LOGGER.log(Level.FINEST, " FE=> CopyDone");
+        if (!op.copyDoneSent) {
+          LOGGER.log(Level.FINEST, " FE=> CopyDone");
 
-        pgStream.sendChar(PgMessageType.COPY_DONE); // CopyDone
-        pgStream.sendInteger4(4);
-        pgStream.flush();
+          pgStream.sendChar(PgMessageType.COPY_DONE); // CopyDone
+          pgStream.sendInteger4(4);
+          pgStream.flush();
+          op.copyDoneSent = true;
+        }
 
         do {
           processCopyResults(op, true);
         } while (hasLock(op));
         return op.getHandledRowCount();
+      } catch (SocketTimeoutException ste) {
+        // The answer to CopyDone is late, which the caller can wait for again: CopyDone is on the
+        // wire already, so nothing is re-sent. processCopyResults reports a timeout inside a
+        // message as the connection failure it is, so one that reaches here came from between two
+        throw new PSQLException(GT.tr("Database connection failed when ending copy"),
+            PSQLState.CONNECTION_FAILURE, ste);
+      } catch (SQLException e) {
+        // A copy the server failed has already been unlocked by the ReadyForQuery that followed
+        // its error, and that connection is fine. Still holding the lock means the exchange
+        // stopped somewhere else, so the copy is neither over nor resumable and nothing may wait
+        // on a lock it will never get back
+        if (hasLock(op)) {
+          abortAfterCopyFailure();
+        }
+        throw e;
       } catch (IOException ioe) {
+        abortAfterCopyFailure();
         throw new PSQLException(GT.tr("Database connection failed when ending copy"),
             PSQLState.CONNECTION_FAILURE, ioe);
-      } finally {
-        // Release the lock if still held, otherwise future operations
-        // will hang indefinitely in waitOnLock()
-        if (hasLock(op)) {
-          unlock(op);
-        }
       }
     }
   }
@@ -1281,9 +1327,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         pgStream.sendInteger4(siz + 4);
         pgStream.send(data, off, siz);
       } catch (IOException ioe) {
-        if (hasLock(op)) {
-          unlock(op);
-        }
+        abortAfterCopyFailure();
         throw new PSQLException(GT.tr("Database connection failed when writing to copy"),
             PSQLState.CONNECTION_FAILURE, ioe);
       }
@@ -1314,9 +1358,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         pgStream.sendInteger4(siz + 4);
         pgStream.send(from);
       } catch (IOException ioe) {
-        if (hasLock(op)) {
-          unlock(op);
-        }
+        abortAfterCopyFailure();
         throw new PSQLException(GT.tr("Database connection failed when writing to copy"),
             PSQLState.CONNECTION_FAILURE, ioe);
       }
@@ -1333,9 +1375,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       try {
         pgStream.flush();
       } catch (IOException ioe) {
-        if (hasLock(op)) {
-          unlock(op);
-        }
+        abortAfterCopyFailure();
         throw new PSQLException(GT.tr("Database connection failed when writing to copy"),
             PSQLState.CONNECTION_FAILURE, ioe);
       }
@@ -1359,12 +1399,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
       try {
         processCopyResults(op, block); // expect a call to handleCopydata() to store the data
+      } catch (SocketTimeoutException ste) {
+        // A read timeout leaves the socket usable, so the copy stays active and the caller can
+        // read again. Replication depends on that: the stream sets the socket timeout to the
+        // status interval and treats the timeout as its wake-up to send a standby status update.
+        throw new PSQLException(GT.tr("Database connection failed when reading from copy"),
+            PSQLState.CONNECTION_FAILURE, ste);
       } catch (IOException ioe) {
-        // Release the lock if still held after a connection failure,
-        // otherwise future operations will hang indefinitely in waitOnLock()
-        if (hasLock(op)) {
-          unlock(op);
-        }
+        abortAfterCopyFailure();
         throw new PSQLException(GT.tr("Database connection failed when reading from copy"),
             PSQLState.CONNECTION_FAILURE, ioe);
       }
@@ -1408,194 +1450,220 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       SQLException errors = null;
       int len;
 
-      while (!endReceiving && (block || pgStream.hasMessagePending())) {
+      try {
+        while (!endReceiving && (block || pgStream.hasMessagePending())) {
 
-        // There is a bug in the server's implementation of the copy
-        // protocol. It returns command complete immediately upon
-        // receiving the EOF marker in the binary protocol,
-        // potentially before we've issued CopyDone. When we are not
-        // blocking, we don't think we are done, so we hold off on
-        // processing command complete and any subsequent messages
-        // until we actually are done with the copy.
-        //
-        if (!block) {
-          int c = pgStream.peekChar();
-          if (c == PgMessageType.COMMAND_COMPLETE_RESPONSE) {
-            LOGGER.log(Level.FINEST, " <=BE CommandStatus, Ignored until CopyDone");
-            break;
-          }
-        }
-
-        int c = pgStream.receiveChar();
-        switch (c) {
-
-          case PgMessageType.ASYNCHRONOUS_NOTICE:
-            LOGGER.log(Level.FINEST, " <=BE Asynchronous Notification while copying");
-
-            receiveAsyncNotify();
-            break;
-
-          case PgMessageType.NOTICE_RESPONSE:
-
-            LOGGER.log(Level.FINEST, " <=BE Notification while copying");
-
-            addWarning(receiveNoticeResponse());
-            break;
-
-          case PgMessageType.COMMAND_COMPLETE_RESPONSE: // Command Complete
-
-            String status = receiveCommandStatus();
-
-            try {
-              if (op == null) {
-                throw new PSQLException(GT
-                    .tr("Received CommandComplete ''{0}'' without an active copy operation", status),
-                    PSQLState.OBJECT_NOT_IN_STATE);
-              }
-              op.handleCommandStatus(status);
-            } catch (SQLException se) {
-              error = se;
-            }
-
-            block = true;
-            break;
-
-          case PgMessageType.ERROR_RESPONSE: // ErrorMessage (expected response to CopyFail)
-
-            error = receiveErrorResponse();
-            // We've received the error and we now expect to receive
-            // Ready for query, but we must block because it might still be
-            // on the wire and not here yet.
-            block = true;
-            break;
-
-          case PgMessageType.COPY_IN_RESPONSE: // CopyInResponse
-
-            LOGGER.log(Level.FINEST, " <=BE CopyInResponse");
-
-            if (op != null) {
-              error = new PSQLException(GT.tr("Got CopyInResponse from server during an active {0}",
-                  op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
-            }
-
-            op = new CopyInImpl();
-            initCopy(op);
-            endReceiving = true;
-            break;
-
-          case PgMessageType.COPY_OUT_RESPONSE: // CopyOutResponse
-
-            LOGGER.log(Level.FINEST, " <=BE CopyOutResponse");
-
-            if (op != null) {
-              error = new PSQLException(GT.tr("Got CopyOutResponse from server during an active {0}",
-                  op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
-            }
-
-            op = new CopyOutImpl();
-            initCopy(op);
-            endReceiving = true;
-            break;
-
-          case PgMessageType.COPY_BOTH_RESPONSE: // CopyBothResponse
-
-            LOGGER.log(Level.FINEST, " <=BE CopyBothResponse");
-
-            if (op != null) {
-              error = new PSQLException(GT.tr("Got CopyBothResponse from server during an active {0}",
-                  op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
-            }
-
-            op = new CopyDualImpl();
-            initCopy(op);
-            endReceiving = true;
-            break;
-
-          case PgMessageType.COPY_DATA: // CopyData
-
-            LOGGER.log(Level.FINEST, " <=BE CopyData");
-
-            len = pgStream.receiveInteger4() - 4;
-
-            assert len > 0 : "Copy Data length must be greater than 4";
-
-            byte[] buf = pgStream.receive(len);
-            if (op == null) {
-              error = new PSQLException(GT.tr("Got CopyData without an active copy operation"),
-                  PSQLState.OBJECT_NOT_IN_STATE);
-            } else if (!(op instanceof CopyOut)) {
-              error = new PSQLException(
-                  GT.tr("Unexpected copydata from server for {0}", op.getClass().getName()),
-                  PSQLState.COMMUNICATION_ERROR);
-            } else {
-              op.handleCopydata(buf);
-            }
-            endReceiving = true;
-            break;
-
-          case PgMessageType.COPY_DONE: // CopyDone (expected after all copydata received)
-
-            LOGGER.log(Level.FINEST, " <=BE CopyDone");
-
-            len = pgStream.receiveInteger4() - 4;
-            if (len > 0) {
-              pgStream.receive(len); // not in specification; should never appear
-            }
-
-            if (!(op instanceof CopyOut)) {
-              error = new PSQLException("Got CopyDone while not copying from server",
-                  PSQLState.OBJECT_NOT_IN_STATE);
-            }
-
-            // keep receiving since we expect a CommandComplete
-            block = true;
-            break;
-          case PgMessageType.PARAMETER_STATUS_RESPONSE: // Parameter Status
-            try {
-              receiveParameterStatus();
-            } catch (SQLException e) {
-              error = e;
-              endReceiving = true;
-            }
-            break;
-
-          case PgMessageType.READY_FOR_QUERY_RESPONSE: // ReadyForQuery: After FE:CopyDone => BE:CommandComplete
-
-            receiveRFQ();
-            if (op != null && hasLock(op)) {
-              unlock(op);
-            }
-            op = null;
-            endReceiving = true;
-            break;
-
-          // If the user sends a non-copy query, we've got to handle some additional things.
+          // There is a bug in the server's implementation of the copy
+          // protocol. It returns command complete immediately upon
+          // receiving the EOF marker in the binary protocol,
+          // potentially before we've issued CopyDone. When we are not
+          // blocking, we don't think we are done, so we hold off on
+          // processing command complete and any subsequent messages
+          // until we actually are done with the copy.
           //
-          case PgMessageType.ROW_DESCRIPTION_RESPONSE: // Row Description (response to Describe)
-            LOGGER.log(Level.FINEST, " <=BE RowDescription (during copy ignored)");
-
-            skipMessage();
-            break;
-
-          case PgMessageType.DATA_ROW_RESPONSE: // DataRow
-            LOGGER.log(Level.FINEST, " <=BE DataRow (during copy ignored)");
-
-            skipMessage();
-            break;
-
-          default:
-            throw new IOException(
-                GT.tr("Unexpected packet type during copy: {0}", Integer.toString(c)));
-        }
-
-        // Collect errors into a neat chain for completeness
-        if (error != null) {
-          if (errors != null) {
-            error.setNextException(errors);
+          if (!block) {
+            int c = pgStream.peekChar();
+            if (c == PgMessageType.COMMAND_COMPLETE_RESPONSE) {
+              LOGGER.log(Level.FINEST, " <=BE CommandStatus, Ignored until CopyDone");
+              break;
+            }
           }
-          errors = error;
-          error = null;
+
+          int c = pgStream.receiveChar();
+          try {
+            switch (c) {
+
+              case PgMessageType.ASYNCHRONOUS_NOTICE:
+                LOGGER.log(Level.FINEST, " <=BE Asynchronous Notification while copying");
+
+                receiveAsyncNotify();
+                break;
+
+              case PgMessageType.NOTICE_RESPONSE:
+
+                LOGGER.log(Level.FINEST, " <=BE Notification while copying");
+
+                addWarning(receiveNoticeResponse());
+                break;
+
+              case PgMessageType.COMMAND_COMPLETE_RESPONSE: // Command Complete
+
+                String status = receiveCommandStatus();
+
+                try {
+                  if (op == null) {
+                    throw new PSQLException(GT
+                        .tr("Received CommandComplete ''{0}'' without an active copy operation", status),
+                        PSQLState.OBJECT_NOT_IN_STATE);
+                  }
+                  op.handleCommandStatus(status);
+                } catch (SQLException se) {
+                  error = se;
+                }
+
+                block = true;
+                break;
+
+              case PgMessageType.ERROR_RESPONSE: // ErrorMessage (expected response to CopyFail)
+
+                error = receiveErrorResponse();
+                // We've received the error and we now expect to receive
+                // Ready for query, but we must block because it might still be
+                // on the wire and not here yet.
+                block = true;
+                break;
+
+              case PgMessageType.COPY_IN_RESPONSE: // CopyInResponse
+
+                LOGGER.log(Level.FINEST, " <=BE CopyInResponse");
+
+                if (op != null) {
+                  error = new PSQLException(GT.tr("Got CopyInResponse from server during an active {0}",
+                      op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
+                }
+
+                op = new CopyInImpl();
+                initCopy(op);
+                endReceiving = true;
+                break;
+
+              case PgMessageType.COPY_OUT_RESPONSE: // CopyOutResponse
+
+                LOGGER.log(Level.FINEST, " <=BE CopyOutResponse");
+
+                if (op != null) {
+                  error = new PSQLException(GT.tr("Got CopyOutResponse from server during an active {0}",
+                      op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
+                }
+
+                op = new CopyOutImpl();
+                initCopy(op);
+                endReceiving = true;
+                break;
+
+              case PgMessageType.COPY_BOTH_RESPONSE: // CopyBothResponse
+
+                LOGGER.log(Level.FINEST, " <=BE CopyBothResponse");
+
+                if (op != null) {
+                  error = new PSQLException(GT.tr("Got CopyBothResponse from server during an active {0}",
+                      op.getClass().getName()), PSQLState.OBJECT_NOT_IN_STATE);
+                }
+
+                op = new CopyDualImpl();
+                initCopy(op);
+                endReceiving = true;
+                break;
+
+              case PgMessageType.COPY_DATA: // CopyData
+
+                LOGGER.log(Level.FINEST, " <=BE CopyData");
+
+                len = pgStream.receiveInteger4() - 4;
+
+                assert len > 0 : "Copy Data length must be greater than 4";
+
+                byte[] buf = pgStream.receive(len);
+                if (op == null) {
+                  error = new PSQLException(GT.tr("Got CopyData without an active copy operation"),
+                      PSQLState.OBJECT_NOT_IN_STATE);
+                } else if (!(op instanceof CopyOut)) {
+                  error = new PSQLException(
+                      GT.tr("Unexpected copydata from server for {0}", op.getClass().getName()),
+                      PSQLState.COMMUNICATION_ERROR);
+                } else {
+                  op.handleCopydata(buf);
+                }
+                endReceiving = true;
+                break;
+
+              case PgMessageType.COPY_DONE: // CopyDone (expected after all copydata received)
+
+                LOGGER.log(Level.FINEST, " <=BE CopyDone");
+
+                len = pgStream.receiveInteger4() - 4;
+                if (len > 0) {
+                  pgStream.receive(len); // not in specification; should never appear
+                }
+
+                if (!(op instanceof CopyOut)) {
+                  error = new PSQLException("Got CopyDone while not copying from server",
+                      PSQLState.OBJECT_NOT_IN_STATE);
+                }
+
+                // keep receiving since we expect a CommandComplete
+                block = true;
+                break;
+              case PgMessageType.PARAMETER_STATUS_RESPONSE: // Parameter Status
+                try {
+                  receiveParameterStatus();
+                } catch (SQLException e) {
+                  error = e;
+                  endReceiving = true;
+                }
+                break;
+
+              case PgMessageType.READY_FOR_QUERY_RESPONSE: // ReadyForQuery: After FE:CopyDone => BE:CommandComplete
+
+                receiveRFQ();
+                if (op != null && hasLock(op)) {
+                  unlock(op);
+                }
+                op = null;
+                endReceiving = true;
+                break;
+
+              // If the user sends a non-copy query, we've got to handle some additional things.
+              //
+              case PgMessageType.ROW_DESCRIPTION_RESPONSE: // Row Description (response to Describe)
+                LOGGER.log(Level.FINEST, " <=BE RowDescription (during copy ignored)");
+
+                skipMessage();
+                break;
+
+              case PgMessageType.DATA_ROW_RESPONSE: // DataRow
+                LOGGER.log(Level.FINEST, " <=BE DataRow (during copy ignored)");
+
+                skipMessage();
+                break;
+
+              default:
+                throw new IOException(
+                    GT.tr("Unexpected packet type during copy: {0}", Integer.toString(c)));
+            }
+          } catch (SocketTimeoutException ste) {
+            // The type byte is already out of the stream, so there is no way back to a
+            // message boundary. Report it as the connection failure it is rather than as
+            // something the caller can resume from, which would read the middle of this
+            // message as the start of the next one
+            IOException desynchronized = new IOException(GT.tr(
+                "Read timed out inside a backend message, so the copy stream is out of step"), ste);
+            if (errors != null) {
+              // The backend had already reported this copy failed. That is why the copy is over;
+              // losing the message boundary is only why the connection goes with it
+              desynchronized.addSuppressed(errors);
+            }
+            throw desynchronized;
+          }
+
+          // Collect errors into a neat chain for completeness
+          if (error != null) {
+            if (errors != null) {
+              error.setNextException(errors);
+            }
+            errors = error;
+            error = null;
+          }
         }
+
+      } catch (SocketTimeoutException ste) {
+        if (errors != null) {
+          // The backend has already reported this copy failed. Handing the caller a timeout
+          // instead would drop that and read as "nothing arrived yet", so a caller that reads
+          // again could see the copy end successfully
+          throw errors;
+        }
+        throw ste;
       }
 
       if (errors != null) {

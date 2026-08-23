@@ -21,6 +21,12 @@ public abstract class CopyOperationImpl implements CopyOperation {
   int rowFormat;
   int @Nullable [] fieldFormats;
   long handledRowCount = -1;
+  /**
+   * Whether CopyDone has reached the server. Ending the copy again then only waits for the answer,
+   * and cancelling it means draining that answer rather than failing a copy the server has already
+   * been told to finish.
+   */
+  boolean copyDoneSent;
 
   void init(QueryExecutorImpl q, int fmt, int[] fmts) {
     queryExecutor = q;
