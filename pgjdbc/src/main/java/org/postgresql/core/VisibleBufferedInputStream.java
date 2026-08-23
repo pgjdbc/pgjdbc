@@ -297,13 +297,18 @@ public class VisibleBufferedInputStream extends InputStream {
 
   /**
    * {@inheritDoc}
+   *
+   * <p>A count of zero or less returns {@code 0} and leaves the read position unchanged.</p>
    */
   @Override
   public long skip(long n) throws IOException {
+    if (n <= 0) {
+      return 0;
+    }
     int avail = endIndex - index;
     if (avail >= n) {
-      // Cast to int is safe here since the number of available bytes within the buffer
-      // always fits within int
+      // n is positive and no larger than avail, a difference of two buffer offsets, so the
+      // cast to int is exact
       index += (int) n;
       return n;
     }
