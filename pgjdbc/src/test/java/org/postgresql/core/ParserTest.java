@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.util.PSQLException;
@@ -18,10 +19,13 @@ import org.postgresql.util.PSQLState;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Test cases for the Parser.
@@ -310,6 +314,238 @@ class ParserTest {
     assertThrows(PSQLException.class,
         () -> Parser.modifyJdbcCall("{call f('a\\'b')}", true, ServerVersion.v11.getVersionNum(),
             EscapeSyntaxCallMode.CALL));
+  }
+
+  /**
+   * A comment may stand anywhere between the opening brace and {@code call}, as it already could
+   * before the opening brace and after the closing one. Such a comment used to be a syntax error.
+   */
+  @ParameterizedTest
+  @MethodSource("commentBeforeTheCallKeyword")
+  void aCommentBeforeTheCallKeywordIsSkipped(String sql, String expected) throws SQLException {
+    assertEquals(expected, modifyCall(sql), sql);
+  }
+
+  static Stream<Arguments> commentBeforeTheCallKeyword() {
+    return Stream.of(
+        argumentSet("block comment before call", "{/*c*/call f(?)}", "call f(?)"),
+        argumentSet("block comment before ?", "{/*c*/? = call f(?)}", "call f(?,?)"),
+        argumentSet("block comment between ? and =", "{? /*c*/ = call f(?)}", "call f(?,?)"),
+        argumentSet("block comment between = and call", "{? = /*c*/ call f(?)}", "call f(?,?)"),
+        argumentSet("line comment before ?", "{-- c\n? = call f(?)}", "call f(?,?)"),
+        argumentSet("line comment between = and call", "{? = -- c\n call f(?)}", "call f(?,?)")
+    );
+  }
+
+  /**
+   * Skipping a comment does not admit a word other than {@code call} after it.
+   */
+  @ParameterizedTest
+  @MethodSource("commentBeforeAWordOtherThanCall")
+  void aCommentBeforeAWordOtherThanCallIsRefused(String sql) {
+    PSQLException e = assertThrows(PSQLException.class, () -> modifyCall(sql), sql);
+    assertEquals(PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL.getState(), e.getSQLState(), sql);
+  }
+
+  static Stream<Arguments> commentBeforeAWordOtherThanCall() {
+    return Stream.of(
+        argumentSet("after {", "{/*c*/ foo(?)}"),
+        argumentSet("after ?", "{? /*c*/ foo(?)}"),
+        argumentSet("after ? =", "{? = /*c*/ foo(?)}")
+    );
+  }
+
+  /**
+   * PostgreSQL reads a string constant, a delimited identifier, a dollar-quoted string and a block
+   * comment as one token, so a brace, a quote or a {@code ;} inside one belongs to the token and
+   * neither ends nor breaks the call, and neither does a {@code $$}, a {@code /*} or a {@code --}
+   * inside a string constant. Only the string constant was skipped before, and an {@code E''}
+   * string ended at its first escaped quote; a brace in any of the others ended the call, and an
+   * apostrophe in a block comment opened a string.
+   */
+  @ParameterizedTest
+  @MethodSource("tokenHoldingABraceOrAQuote")
+  void aTokenInTheBodyIsSkippedWhole(String sql, String expected) throws SQLException {
+    assertEquals(expected, modifyCall(sql), sql);
+  }
+
+  static Stream<Arguments> tokenHoldingABraceOrAQuote() {
+    return Stream.of(
+        argumentSet("} in a string constant", "{call f('a}b')}", "call f('a}b')"),
+        argumentSet("; in a string constant", "{call f(';')}", "call f(';')"),
+        argumentSet("} after an escaped quote in an E'' string",
+            "{call f(E'\\'}')}", "call f(E'\\'}')"),
+        argumentSet("$$ after an escaped quote in an E'' string",
+            "{call f(E'\\'$$', E'\\'$$')}", "call f(E'\\'$$', E'\\'$$')"),
+        argumentSet("\" in a string constant", "{call f('\"}', '\"')}", "call f('\"}', '\"')"),
+        argumentSet("$$ in a string constant", "{call f('$$}', '$$')}", "call f('$$}', '$$')"),
+        argumentSet("/* in a string constant", "{call f('/*}', '*/')}", "call f('/*}', '*/')"),
+        argumentSet("-- in a string constant", "{call f('-- }', ?)}", "call f('-- }', ?)"),
+        argumentSet("} in a delimited identifier", "{call \"we}ird\"()}", "call \"we}ird\"()"),
+        argumentSet("{ in a delimited identifier", "{call \"we{ird\"()}", "call \"we{ird\"()"),
+        argumentSet("} after a doubled quote in a delimited identifier",
+            "{call \"a\"\"}\"()}", "call \"a\"\"}\"()"),
+        argumentSet("} in a dollar-quoted string", "{call f($$a}b$$)}", "call f($$a}b$$)"),
+        argumentSet("} in a tagged dollar-quoted string", "{call f($t$a}b$t$)}", "call f($t$a}b$t$)"),
+        argumentSet("; in a dollar-quoted string", "{call f($$;$$)}", "call f($$;$$)"),
+        argumentSet("} in a block comment", "{call foo() /*}*/ }", "call foo() /*}*/ "),
+        argumentSet("} in a nested block comment",
+            "{call f(?) /* /* } */ */}", "call f(?) /* /* } */ */"),
+        argumentSet("' in a block comment", "{call f(?) /* don't */}", "call f(?) /* don't */"),
+        argumentSet("; in a block comment", "{call f(?) /* ; */}", "call f(?) /* ; */"),
+        argumentSet("$ inside an identifier starts no dollar quote",
+            "{call my$fn$x('}')}", "call my$fn$x('}')"),
+        argumentSet("a parameter number starts no dollar quote", "{call f($1, '}')}", "call f($1, '}')"),
+        argumentSet("a division starts no block comment", "{call f(4/2, '}')}", "call f(4/2, '}')")
+    );
+  }
+
+  /**
+   * A call body that is not one complete call is refused with SQLSTATE 2F003 rather than sent: an
+   * unterminated token, a nested escape left open, a {@code ;} outside any token, or no closing
+   * brace at all. An
+   * unterminated token and an open nested escape used to be accepted. Through
+   * {@code Connection.prepareCall}, escape processing refuses an unterminated token before this
+   * parser runs.
+   */
+  @ParameterizedTest
+  @MethodSource("malformedCallBody")
+  void aMalformedCallBodyIsRefused(String sql) {
+    PSQLException e = assertThrows(PSQLException.class, () -> modifyCall(sql), sql);
+    assertEquals(PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL.getState(), e.getSQLState(), sql);
+  }
+
+  static Stream<Arguments> malformedCallBody() {
+    return Stream.of(
+        argumentSet("unterminated delimited identifier", "{call f(\"x)}"),
+        argumentSet("unterminated dollar-quoted string", "{call f($$x)}"),
+        argumentSet("tagged dollar quote closed by another tag", "{call f($t$x$$)}"),
+        argumentSet("unterminated block comment", "{call f(/*x)}"),
+        argumentSet("block comment closed at one level of two", "{call f(/* /* */)}"),
+        argumentSet("nested escape left open", "{call f({fn a()}"),
+        argumentSet("opening brace left open", "{call f({)}"),
+        argumentSet("; outside any token", "{call f(?); select 1}"),
+        argumentSet("line comment and no brace", "{call f(?) --")
+    );
+  }
+
+  /**
+   * The body of a call may hold further JDBC escapes, nested to any depth. The scan used to flip one
+   * flag on every brace and did not step past the closing brace of an inner escape, so that brace
+   * ended the call. Escape processing expands the escapes it knows, such as {@code {d ...}} and
+   * {@code {fn ...}}, before a {@code CallableStatement} reaches this parser, so those arrive here
+   * only from a direct caller.
+   */
+  @ParameterizedTest
+  @MethodSource("nestedEscape")
+  void aNestedEscapeIsKeptInTheBody(String sql, String expected) throws SQLException {
+    assertEquals(expected, modifyCall(sql), sql);
+  }
+
+  static Stream<Arguments> nestedEscape() {
+    return Stream.of(
+        argumentSet("{d} escape", "{call f({d '2020-01-01'})}", "call f({d '2020-01-01'})"),
+        argumentSet("two escapes side by side",
+            "{call f({fn a()}, {fn b()})}", "call f({fn a()}, {fn b()})"),
+        argumentSet("escape two levels deep",
+            "{call f({fn abs({fn abs(?)})})}", "call f({fn abs({fn abs(?)})})"),
+        argumentSet("escape after ? =", "{? = call f({d '2020-01-01'})}", "call f(?,{d '2020-01-01'})")
+    );
+  }
+
+  /**
+   * A line comment in the body is text: a quote, a {@code ;}, a {@code $}, a {@code /*} or an
+   * opening brace inside it starts nothing. That holds whether a newline ends the comment or the
+   * comment runs into the closing brace.
+   */
+  @ParameterizedTest
+  @MethodSource("lineCommentHoldingASpecialCharacter")
+  void aLineCommentInTheBodyIsText(String sql, String expected) throws SQLException {
+    assertEquals(expected, modifyCall(sql), sql);
+  }
+
+  static Stream<Arguments> lineCommentHoldingASpecialCharacter() {
+    return Stream.of(
+        argumentSet("apostrophe", "{call f(?) -- don't\n}", "call f(?) -- don't\n"),
+        argumentSet("apostrophe, then the closing brace", "{call f(?) -- don't}", "call f(?) -- don't"),
+        argumentSet("semicolon", "{call f(?) -- a; b\n}", "call f(?) -- a; b\n"),
+        argumentSet("semicolon, then the closing brace", "{call f(?) -- a; b}", "call f(?) -- a; b"),
+        argumentSet("double quote", "{call f(?) -- 6\" pipe\n}", "call f(?) -- 6\" pipe\n"),
+        argumentSet("dollar quote", "{call f(?) -- costs $$\n}", "call f(?) -- costs $$\n"),
+        argumentSet("block comment opener", "{call f(?) -- see /*\n}", "call f(?) -- see /*\n"),
+        argumentSet("opening brace", "{call f(?) -- {\n}", "call f(?) -- {\n"),
+        argumentSet("opening braces, then the closing brace", "{call f(?) -- {{}", "call f(?) -- {{")
+    );
+  }
+
+  /**
+   * A closing brace inside a line comment is comment text when a later brace closes the call.
+   * Otherwise the last brace inside the comment ends the call: a comment with no newline after it
+   * runs to the end of the input, so in {@code {call f(?) -- x}} the brace has to be the
+   * terminator. Where both readings parse, the brace is text.
+   */
+  @ParameterizedTest
+  @MethodSource("braceInALineComment")
+  void aBraceInALineCommentEndsTheCallOnlyWhenNoLaterBraceDoes(String sql, String expected)
+      throws SQLException {
+    assertEquals(expected, modifyCall(sql), sql);
+  }
+
+  static Stream<Arguments> braceInALineComment() {
+    return Stream.of(
+        argumentSet("text: a later brace closes the call",
+            "{call f(?) -- the } case\n}", "call f(?) -- the } case\n"),
+        argumentSet("text: a carriage return ends the comment",
+            "{call f(?) -- the } case\r}", "call f(?) -- the } case\r"),
+        argumentSet("text: the argument list goes on after the comment",
+            "{call f(?, -- }\n ?)}", "call f(?, -- }\n ?)"),
+        argumentSet("text: both readings parse",
+            "{call f(?) -- a}/*\n} --*/", "call f(?) -- a}/*\n"),
+        argumentSet("end: nothing follows", "{call f(?) -- x}", "call f(?) -- x"),
+        argumentSet("end: the last of two braces", "{call f(?) -- a} b}", "call f(?) -- a} b"),
+        argumentSet("end: after a quoted brace", "{call f(?) -- '}' }", "call f(?) -- '}' "),
+        argumentSet("end: after a brace in a quoted word",
+            "{call f(?) -- see 'a}b'}", "call f(?) -- see 'a}b'"),
+        argumentSet("end: the comment is empty", "{call f(?) --}", "call f(?) --"),
+        argumentSet("end: ? = call", "{? = call f() -- x}", "call f(?) -- x"),
+        argumentSet("end: a newline follows", "{call f(?) -- x}\n", "call f(?) -- x"),
+        argumentSet("end: a CRLF follows", "{call f(?) -- x}\r\n", "call f(?) -- x"),
+        argumentSet("end: a line comment holding } follows",
+            "{call f(?) -- x}\n -- }", "call f(?) -- x"),
+        argumentSet("end: a block comment holding } follows",
+            "{call f(?) -- x}\n /* } */", "call f(?) -- x"),
+        argumentSet("end: an earlier line comment ends at its newline",
+            "{call f(?) -- a\n -- b}\n", "call f(?) -- a\n -- b"),
+        argumentSet("a lone minus starts no comment", "{call f(1-'}')}", "call f(1-'}')")
+    );
+  }
+
+  /**
+   * {@code Connection.prepareCall} runs escape processing before the call parser, and the calls
+   * this parser now accepts come through both steps intact.
+   */
+  @ParameterizedTest
+  @MethodSource("callThroughEscapeProcessing")
+  void aCallPassesThroughEscapeProcessingIntact(String sql, String expected) throws SQLException {
+    String processed = Parser.replaceProcessing(sql, true, true);
+    assertEquals(expected, modifyCall(processed), sql);
+  }
+
+  static Stream<Arguments> callThroughEscapeProcessing() {
+    return Stream.of(
+        argumentSet("} in a delimited identifier", "{call \"we}ird\"()}", "call \"we}ird\"()"),
+        argumentSet("} in a dollar-quoted string", "{call f($$a}b$$)}", "call f($$a}b$$)"),
+        argumentSet("' in a block comment", "{call f(?) /* don't */}", "call f(?) /* don't */"),
+        argumentSet("' in a line comment", "{call f(?) -- don't}", "call f(?) -- don't"),
+        argumentSet("escaped quote in an E'' string", "{call f(E'it\\'s')}", "call f(E'it\\'s')"),
+        argumentSet("block comment before ?", "{/*c*/? = call f(?)}", "call f(?,?)"),
+        argumentSet("escape that escape processing does not know", "{call f({x})}", "call f({x})")
+    );
+  }
+
+  private static String modifyCall(String sql) throws SQLException {
+    return Parser.modifyJdbcCall(sql, true, ServerVersion.v11.getVersionNum(),
+        EscapeSyntaxCallMode.CALL).getSql();
   }
 
   @Test

@@ -1054,15 +1054,40 @@ public class Parser {
    * [?,..])] }} into the PostgreSQL format which is {@code select <some_function> (?, [?, ...]) as
    * result} or {@code select * from <some_function> (?, [?, ...]) as result} (7.3)
    *
+   * <p>A brace inside a string constant, a delimited identifier, a dollar-quoted string, a block
+   * comment, or a line comment does not end the escape, with one exception: when no other brace
+   * closes the escape, the last brace inside a line comment does. In {@code {call f(?) -- x}} the
+   * comment runs to the end of the input, and its brace closes the escape.</p>
+   *
    * @param jdbcSql              sql text with JDBC escapes
    * @param stdStrings           if backslash in single quotes should be regular character or escape one
    * @param serverVersion        server version
    * @param escapeSyntaxCallMode mode specifying whether JDBC escape call syntax is transformed into a CALL/SELECT statement
    * @return SQL in appropriate for given server format
-   * @throws SQLException if given SQL is malformed
+   * @throws SQLException if given SQL is malformed, including a call body with an unterminated
+   *     delimited identifier, dollar-quoted string, or block comment, or with an opening brace
+   *     that nothing closes
    */
   public static JdbcCallParseInfo modifyJdbcCall(String jdbcSql, boolean stdStrings,
       int serverVersion, EscapeSyntaxCallMode escapeSyntaxCallMode) throws SQLException {
+    try {
+      // PostgreSQL reads a brace inside a line comment as comment text, so try that first
+      return modifyJdbcCall(jdbcSql, stdStrings, serverVersion, escapeSyntaxCallMode, false);
+    } catch (PSQLException readAsText) {
+      // The escape did not close with the comment read as text. In "{call f(?) -- x}" the
+      // comment runs to the end of the input, so the brace inside it has to close the escape.
+      return modifyJdbcCall(jdbcSql, stdStrings, serverVersion, escapeSyntaxCallMode, true);
+    }
+  }
+
+  /**
+   * Converts the escape the way the public overload does, with the last brace inside a line comment
+   * read as the escape's closing brace when {@code braceInLineCommentEndsCall} is set, and as
+   * comment text otherwise.
+   */
+  private static JdbcCallParseInfo modifyJdbcCall(String jdbcSql, boolean stdStrings,
+      int serverVersion, EscapeSyntaxCallMode escapeSyntaxCallMode,
+      boolean braceInLineCommentEndsCall) throws SQLException {
     // Mini-parser for JDBC function-call syntax (only)
     // TODO: Merge with escape processing (and parameter parsing?) so we only parse each query once.
     // RE: frequently used statements are cached (see {@link org.postgresql.jdbc.PgConnection#borrowQuery}), so this "merge" is not that important.
@@ -1073,8 +1098,7 @@ public class Parser {
     char[] jdbcSqlChars = jdbcSql.toCharArray();
     int len = jdbcSql.length();
     int state = 1;
-    boolean inQuotes = false;
-    boolean inEscape = false;
+    int escapeDepth = 0;
     int startIndex = -1;
     int endIndex = -1;
     boolean syntaxError = false;
@@ -1100,7 +1124,7 @@ public class Parser {
           }
           break;
 
-        case 2:  // After {, looking for ? or =, skipping whitespace
+        case 2:  // After {, looking for ? or =, skipping whitespace and comments
           if (ch == '?') {
             outParamBeforeFunc =
                 isFunction = true;   // { ? = call ... }  -- function with one out parameter
@@ -1108,32 +1132,41 @@ public class Parser {
             ++state;
           } else if (ch == 'c' || ch == 'C') {  // { call ... }      -- proc with no out parameters
             state += 3; // Don't increase 'i'
-          } else if (Character.isWhitespace(ch)) {
-            ++i;
           } else {
-            // "{ foo ...", doesn't make sense, complain.
-            syntaxError = true;
+            int skipped = skipWhitespaceAndComments(jdbcSqlChars, i);
+            if (skipped > i) {
+              i = skipped;
+            } else {
+              // "{ foo ...", doesn't make sense, complain.
+              syntaxError = true;
+            }
           }
           break;
 
-        case 3:  // Looking for = after ?, skipping whitespace
+        case 3:  // Looking for = after ?, skipping whitespace and comments
           if (ch == '=') {
             ++i;
             ++state;
-          } else if (Character.isWhitespace(ch)) {
-            ++i;
           } else {
-            syntaxError = true;
+            int skipped = skipWhitespaceAndComments(jdbcSqlChars, i);
+            if (skipped > i) {
+              i = skipped;
+            } else {
+              syntaxError = true;
+            }
           }
           break;
 
-        case 4:  // Looking for 'call' after '? =' skipping whitespace
+        case 4:  // Looking for 'call' after '? =', skipping whitespace and comments
           if (ch == 'c' || ch == 'C') {
             ++state; // Don't increase 'i'.
-          } else if (Character.isWhitespace(ch)) {
-            ++i;
           } else {
-            syntaxError = true;
+            int skipped = skipWhitespaceAndComments(jdbcSqlChars, i);
+            if (skipped > i) {
+              i = skipped;
+            } else {
+              syntaxError = true;
+            }
           }
           break;
 
@@ -1143,10 +1176,13 @@ public class Parser {
             isFunction = true;
             i += 4;
             ++state;
-          } else if (Character.isWhitespace(ch)) {
-            ++i;
           } else {
-            syntaxError = true;
+            int skipped = skipWhitespaceAndComments(jdbcSqlChars, i);
+            if (skipped > i) {
+              i = skipped;
+            } else {
+              syntaxError = true;
+            }
           }
           break;
 
@@ -1163,26 +1199,53 @@ public class Parser {
 
         case 7:  // In "body" of the query (after "{ [? =] call ")
           if (ch == '\'') {
-            inQuotes = !inQuotes;
+            // A brace inside a string constant does not end the call. An E'' string treats a
+            // backslash as an escape even with standard_conforming_strings on. Stop at the end of
+            // the input, so an unterminated string reaches the "ran out of query" check below.
+            i = Math.min(parseSingleQuotes(jdbcSqlChars, i, stdStrings) + 1, len);
+          } else if (ch == '"') {
+            // A brace inside a delimited identifier does not end the call
+            i = Math.min(parseDoubleQuotes(jdbcSqlChars, i) + 1, len);
+          } else if (ch == '$') {
+            // A brace inside a dollar-quoted string does not end the call either
+            int dollarEnd = parseDollarQuotes(jdbcSqlChars, i);
+            i = dollarEnd > i ? Math.min(dollarEnd + 1, len) : i + 1;
+          } else if (ch == '/') {
+            // A brace or a quote inside a block comment does not count
+            int commentEnd = parseBlockComment(jdbcSqlChars, i);
+            i = commentEnd > i ? Math.min(commentEnd + 1, len) : i + 1;
+          } else if (ch == '-' && i + 1 < len && jdbcSqlChars[i + 1] == '-') {
+            // Nothing inside a line comment is a quote, a nested escape, or a separator. When
+            // braceInLineCommentEndsCall is set, the last brace inside it ends the call, so a
+            // brace quoted earlier in the comment, as in "-- '}' }", stays comment text.
+            int lineEnd = parseLineComment(jdbcSqlChars, i);
+            int commentEnd = lineEnd < len
+                && (jdbcSqlChars[lineEnd] == '\n' || jdbcSqlChars[lineEnd] == '\r')
+                ? lineEnd : len;
+            int commentStart = i + 2;
+            i = commentEnd;
+            if (braceInLineCommentEndsCall) {
+              for (int j = commentEnd - 1; j >= commentStart; j--) {
+                if (jdbcSqlChars[j] == '}') {
+                  i = j;
+                  break;
+                }
+              }
+            }
+          } else if (ch == '{') {
+            escapeDepth++;
             ++i;
-          } else if (inQuotes && ch == '\\' && !stdStrings) {
-            // Backslash in string constant, skip next character. A trailing backslash has nothing
-            // to escape, so stop at the end of the input: stepping past it would skip the
-            // "ran out of query" check below and reach substring() with endIndex still -1.
-            i = Math.min(i + 2, len);
-          } else if (!inQuotes && ch == '{') {
-            inEscape = !inEscape;
-            ++i;
-          } else if (!inQuotes && ch == '}') {
-            if (!inEscape) {
+          } else if (ch == '}') {
+            if (escapeDepth == 0) {
               // Should be end of string.
               endIndex = i;
               ++i;
               ++state;
             } else {
-              inEscape = false;
+              escapeDepth--;
+              ++i;
             }
-          } else if (!inQuotes && ch == ';') {
+          } else if (ch == ';') {
             syntaxError = true;
           } else {
             // Everything else is ok.
