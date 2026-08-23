@@ -10,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Named.named;
+import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.util.PSQLException;
@@ -18,10 +20,13 @@ import org.postgresql.util.PSQLState;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Test cases for the Parser.
@@ -268,6 +273,50 @@ class ParserTest {
     JdbcCallParseInfo parseInfo = Parser.modifyJdbcCall(sql, true, ServerVersion.v14.getVersionNum(),
         EscapeSyntaxCallMode.CALL);
     assertFalse(parseInfo.isFunction(), () -> "isFunction() should be false for: " + sql);
+  }
+
+  static Stream<Arguments> escapesWithEachSeparator() {
+    return Stream.of(
+        named("no separator", ""),
+        named("a space", " "),
+        named("a tab", "\t"),
+        named("a newline", "\n"),
+        named("a carriage return", "\r"),
+        named("a form feed", "\f"),
+        named("a mixed run", "  \t\n ")
+    ).flatMap(separator -> {
+      String whitespace = separator.getPayload();
+      String with = " with " + separator.getName();
+      return Stream.of(
+          argumentSet("d" + with, "{d" + whitespace + "'1999-01-09'}", "DATE '1999-01-09'"),
+          argumentSet("t" + with, "{t" + whitespace + "'20:00:03'}", "TIME '20:00:03'"),
+          argumentSet("ts" + with, "{ts" + whitespace + "'1999-01-09 20:11:11'}",
+              "TIMESTAMP '1999-01-09 20:11:11'"),
+          argumentSet("fn" + with, "{fn" + whitespace + "cos(1)}", "cos(1)"),
+          argumentSet("oj" + with, "{oj" + whitespace + "t1 LEFT OUTER JOIN t2 ON t1.id = t2.id}",
+              "t1 LEFT OUTER JOIN t2 ON t1.id = t2.id"),
+          argumentSet("escape" + with, "{escape" + whitespace + "'_'}", "ESCAPE '_'"));
+    });
+  }
+
+  @ParameterizedTest
+  @MethodSource("escapesWithEachSeparator")
+  void escapeIsReplacedWhateverWhitespaceFollowsItsKeyword(String sql, String expected)
+      throws SQLException {
+    assertEquals(expected, Parser.replaceProcessing(sql, true, false));
+  }
+
+  static Stream<Arguments> bracesWithNoEscapeValue() {
+    return Stream.of(
+        argumentSet("a word that is not an escape keyword", "{obj\t: 1}"),
+        argumentSet("a keyword followed by the closing brace", "{d\t}"),
+        argumentSet("a keyword followed by the end of the SQL", "{d\t"));
+  }
+
+  @ParameterizedTest
+  @MethodSource("bracesWithNoEscapeValue")
+  void braceWithNoEscapeValueIsLeftAsWritten(String sql) throws SQLException {
+    assertEquals(sql, Parser.replaceProcessing(sql, true, false));
   }
 
   @Test
