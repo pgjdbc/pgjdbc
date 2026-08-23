@@ -222,20 +222,31 @@ public class BlobOutputStream extends OutputStream {
 
   @Override
   public void close() throws IOException {
-    long loId = 0;
     try (ResourceLock ignore = lock.obtain()) {
       LargeObject lo = this.lo;
-      if (lo != null) {
-        loId = lo.getLongOID();
-        flush();
-        lo.close();
+      if (lo == null) {
+        return;
+      }
+      long loId = lo.getLongOID();
+      // The large object is closed as a resource so that the descriptor is released whatever the
+      // flush does, and a failure to release it is suppressed onto the flush failure rather than
+      // replacing it.
+      try (LargeObject closing = lo) {
+        try {
+          flush();
+        } finally {
+          // LargeObject.close() flushes the stream it handed out. Whatever is still buffered has
+          // already failed to reach the server, so drop it: a second attempt would fail the same
+          // way and only add noise to the failure the caller sees.
+          bufferPosition = 0;
+        }
+      } catch (SQLException e) {
+        throw new IOException(GT.tr("Can not close large object {0}", loId), e);
+      } finally {
+        // Mark the stream closed only once the large object is gone: until then it is still the
+        // stream LargeObject.close() flushes, and checkClosed() has to let that flush through.
         this.lo = null;
       }
-    } catch (SQLException e) {
-      throw new IOException(
-          GT.tr("Can not close large object {0}",
-              loId),
-          e);
     }
   }
 
