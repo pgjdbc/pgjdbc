@@ -106,6 +106,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.ServerErrorMessage;
+import org.postgresql.util.internal.ArrayRanges;
 import org.postgresql.util.internal.IntSet;
 import org.postgresql.util.internal.SourceStreamIOException;
 
@@ -1265,9 +1266,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * @param off index of first byte to send (usually 0)
    * @param siz number of bytes to send (usually data.length)
    * @throws SQLException on failure
+   * @throws NullPointerException if {@code data} is {@code null}
+   * @throws IndexOutOfBoundsException if {@code off} or {@code siz} is negative, or if
+   *         {@code siz} is greater than {@code data.length - off}
    */
   public void writeToCopy(CopyOperationImpl op, byte[] data, int off, int siz)
       throws SQLException {
+    // The range is rejected before the CopyData message is framed: send() pads a range that runs
+    // past the end of the array with zeros instead of failing, so an out-of-range request would
+    // reach the server as data
+    Objects.requireNonNull(data, "data");
+    ArrayRanges.checkFromIndexSize(data, off, siz);
     try (ResourceLock ignore = lock.obtain()) {
       if (!hasLock(op)) {
         throw new PSQLException(GT.tr("Tried to write to an inactive copy operation"),
