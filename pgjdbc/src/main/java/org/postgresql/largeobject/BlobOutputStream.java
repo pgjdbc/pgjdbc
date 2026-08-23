@@ -19,6 +19,11 @@ import java.sql.SQLException;
 
 /**
  * This implements a basic output stream that writes to a LargeObject.
+ *
+ * <p>The stream buffers, so the large object trails what the caller has written until the stream
+ * flushes. Seeking the large object under an open stream therefore needs a {@link #flush()} first:
+ * without one the buffered bytes land at the new position rather than the one they were written
+ * for, and the stream ends its writes on the rows of the offset it last saw.</p>
  */
 public class BlobOutputStream extends OutputStream {
   static final int DEFAULT_MAX_BUFFER_SIZE = 512 * 1024;
@@ -45,6 +50,33 @@ public class BlobOutputStream extends OutputStream {
   private int bufferPosition;
 
   /**
+   * Large object row size this stream ends its writes on, or {@code 0} when its buffer is too
+   * small to carry a remainder to the next write and alignment is not worth pursuing.
+   *
+   * <p>{@code LOBLKSIZE} is {@code BLCKSZ / 4}, so 2KiB by default. Installations may raise
+   * {@code BLCKSZ}, so buffers large enough to afford it aim at 8KiB instead, which covers the
+   * largest {@code LOBLKSIZE} a server can have.</p>
+   */
+  private final int alignment;
+
+  /**
+   * Offset within the large object that {@code buf[0]} will be written to, or {@code -1} when the
+   * stream does not know it.
+   *
+   * <p>The stream needs it to end its writes on a large object row boundary, and it is not always
+   * zero: {@link java.sql.Blob#setBinaryStream(long)} seeks before handing the stream out. Every
+   * write the stream issues moves it by what was sent, so it stays correct without asking again.
+   * A {@link #flush()} drops it instead of moving it: a flush sends an amount only the caller
+   * knows and is the point a caller may seek from, so what follows one is no longer predictable
+   * from here.</p>
+   *
+   * <p>Not private so that a test can assert it directly. It has to: the buffer size is always a
+   * multiple of the alignment, so an offset left behind by exactly one buffer is congruent to the
+   * right one, and no assertion about where a write lands can tell the two apart.</p>
+   */
+  long writePosition = -1;
+
+  /**
    * Create an OutputStream to a large object.
    *
    * @param lo LargeObject
@@ -63,6 +95,7 @@ public class BlobOutputStream extends OutputStream {
     this.lo = lo;
     // Avoid "0" buffer size, and ensure the bufferSize will always be a power of two
     this.maxBufferSize = Integer.highestOneBit(Math.max(bufferSize, 1));
+    this.alignment = maxBufferSize >= 8192 ? 8192 : (maxBufferSize >= 2048 ? 2048 : 0);
   }
 
   /**
@@ -96,8 +129,18 @@ public class BlobOutputStream extends OutputStream {
       loId = lo.getLongOID();
       byte[] buf = growBuffer(16);
       if (bufferPosition >= buf.length) {
-        lo.write(buf);
-        bufferPosition = 0;
+        // Hold back what would land past the last row boundary, exactly as the array path does.
+        // Writing the whole buffer would only preserve an alignment the stream already had, and a
+        // stream handed out by Blob.setBinaryStream(long) does not start with one.
+        long writePosition = alignment == 0 ? 0 : writePosition(lo);
+        int tailLength =
+            alignment == 0 ? 0 : (int) ((writePosition + bufferPosition) % alignment);
+        lo.write(buf, 0, bufferPosition - tailLength);
+        if (alignment != 0) {
+          this.writePosition = writePosition + bufferPosition - tailLength;
+        }
+        System.arraycopy(buf, bufferPosition - tailLength, buf, 0, tailLength);
+        bufferPosition = tailLength;
       }
       buf[bufferPosition++] = (byte) b;
     } catch (SQLException e) {
@@ -145,13 +188,14 @@ public class BlobOutputStream extends OutputStream {
       //  |<-------writeFromBuf---------------->|<--------tailLength---------------->|
       // "writeFromB" will be zero in that case
 
-      // We want aligned writes, so the write requests chunk nicely into large object rows
-      int tailLength =
-          maxBufferSize >= 8192 ? totalData % 8192 : (
-              maxBufferSize >= 2048 ? totalData % 2048 : 0
-          );
-
       if (totalData >= maxBufferSize) {
+        // We want aligned writes, so the write requests chunk nicely into large object rows.
+        // The alignment is on the offset within the large object, not on the count of bytes this
+        // stream happens to have written, so the remainder is taken from where the data lands.
+        // A stream with no alignment to aim at never asks the server where that is.
+        long writePosition = alignment == 0 ? 0 : writePosition(lo);
+        int tailLength = alignment == 0 ? 0 : (int) ((writePosition + totalData) % alignment);
+
         // The resulting data won't fit into the buffer, so we flush the data to the database
         int writeFromBuffer = Math.min(bufferPosition, totalData - tailLength);
         int writeFromB = Math.max(0, totalData - writeFromBuffer - tailLength);
@@ -177,6 +221,9 @@ public class BlobOutputStream extends OutputStream {
             bufferPosition -= writeFromBuffer;
           }
         }
+        if (alignment != 0) {
+          this.writePosition = writePosition + writeFromBuffer + writeFromB;
+        }
         len -= writeFromB;
         off += writeFromB;
       }
@@ -191,6 +238,26 @@ public class BlobOutputStream extends OutputStream {
               loId, len),
           e);
     }
+  }
+
+  /**
+   * Offset within the large object that the next flushed byte lands on.
+   *
+   * <p>Asked of the server only when the stream does not already know it, which is once per
+   * stream and once more after each {@link #flush()}. A stream that never fills its buffer has
+   * nothing to align and never asks at all.</p>
+   *
+   * @param lo the large object being written to
+   * @return the offset {@code buf[0]} will be written to
+   * @throws SQLException if a database-access error occurs
+   */
+  private long writePosition(LargeObject lo) throws SQLException {
+    long writePosition = this.writePosition;
+    if (writePosition < 0) {
+      writePosition = lo.supports64BitOffsets() ? lo.tell64() : lo.tell();
+      this.writePosition = writePosition;
+    }
+    return writePosition;
   }
 
   /**
@@ -212,6 +279,10 @@ public class BlobOutputStream extends OutputStream {
         lo.write(buf, 0, bufferPosition);
       }
       bufferPosition = 0;
+      // The offset was anchored to the bytes just sent, and they are gone. Nothing anchors it now:
+      // the server has moved by an amount only this flush knew, and once the buffer refills the
+      // stream would carry a value that was never true of the new bytes.
+      writePosition = -1;
     } catch (SQLException e) {
       throw new IOException(
           GT.tr("Can not flush large object {0}",
