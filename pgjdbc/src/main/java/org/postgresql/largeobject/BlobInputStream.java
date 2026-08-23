@@ -352,19 +352,19 @@ public class BlobInputStream extends InputStream {
    * Skips over and discards {@code n} bytes of data from this input stream.
    *
    * <p>Unlike the default implementation, this seeks instead of reading and discarding the bytes,
-   * so the cost does not grow with {@code n}.</p>
+   * so the cost does not grow with {@code n}. A skip within the buffered bytes, or one at the stream
+   * limit, makes no round-trip, apart from the call that reads the position of the object on the
+   * first use of the stream. Any other skip locates the end of the object with one fastpath call,
+   * and makes a second one to seek to the target unless the target is the end of the object.</p>
    *
-   * <p>Large objects are sparse, so the stream allows skipping past the current end of the object.
-   * Subsequent reads then return {@code -1}, and the skipped count still reflects the requested
-   * distance, as the {@link InputStream#skip(long)} contract permits.</p>
+   * <p>A skip stops at the end of the object or at the stream limit, whichever comes first, so the
+   * returned count is the number of bytes actually skipped, and {@code skip(Long.MAX_VALUE)} skips
+   * whatever is left.</p>
    *
    * @param n the number of bytes to be skipped
    * @return the actual number of bytes skipped, which may be zero
-   * @throws IOException if the underlying seek fails, in particular when the target position
-   *     exceeds the maximum large object size the server accepts
+   * @throws IOException if locating the end of the large object or repositioning it fails
    * @see java.io.InputStream#skip(long)
-   * @see <a href="https://www.postgresql.org/docs/14/lo-implementation.html">Large Objects:
-   *     Implementation Features</a>
    */
   @Override
   public long skip(long n) throws IOException {
@@ -377,19 +377,37 @@ public class BlobInputStream extends InputStream {
       LargeObject lo = getLo();
       long loId = lo.getLongOID();
 
-      long targetPosition = absolutePosition + n;
-      if (targetPosition > limit || targetPosition < 0) {
-        // Clamp to the limit, and guard against overflow when n is close to Long.MAX_VALUE
-        targetPosition = limit;
-      }
       long currentPosition = absolutePosition;
-      long skipped = targetPosition - currentPosition;
+      // A negative limit passed to the constructor resolves behind the current position
+      long distance = Math.min(n, limit - currentPosition);
+      if (distance <= 0) {
+        // At or past the limit there is nothing to skip, so no fastpath call is made
+        return 0;
+      }
 
-      if (buffer != null && buffer.length - bufferPosition > skipped) {
+      if (buffer != null && buffer.length - bufferPosition > distance) {
         // The target is still inside the current buffer, so just advance within it
-        bufferPosition += (int) skipped;
-      } else {
-        buffer = null;
+        bufferPosition += (int) distance;
+        absolutePosition += distance;
+        return distance;
+      }
+
+      long size;
+      try {
+        // The server refuses a seek past its maximum large object size, and the refused fastpath
+        // call aborts the caller's transaction, so skip moves no further than the end of the object
+        size = lo.seekToEnd();
+      } catch (SQLException e) {
+        throw new IOException(
+            GT.tr("Can not locate the end of large object {0} to skip {1} bytes (currently @{2})",
+                Long.toString(loId), Long.toString(n), Long.toString(currentPosition)),
+            e);
+      }
+      buffer = null;
+      // The object may already be positioned past its end, and skip does not go backwards
+      long targetPosition =
+          Math.max(currentPosition, Math.min(currentPosition + distance, size));
+      if (targetPosition != size) {
         try {
           if (targetPosition <= Integer.MAX_VALUE) {
             lo.seek((int) targetPosition, LargeObject.SEEK_SET);
@@ -397,14 +415,16 @@ public class BlobInputStream extends InputStream {
             lo.seek64(targetPosition, LargeObject.SEEK_SET);
           }
         } catch (SQLException e) {
+          // The object stays at its end, so the stream follows it there
+          absolutePosition = size;
           throw new IOException(
               GT.tr("Can not skip stream for large object {0} by {1} (currently @{2})",
-                  loId, n, currentPosition),
+                  Long.toString(loId), Long.toString(n), Long.toString(currentPosition)),
               e);
         }
       }
       absolutePosition = targetPosition;
-      return skipped;
+      return targetPosition - currentPosition;
     }
   }
 
@@ -420,14 +440,16 @@ public class BlobInputStream extends InputStream {
       // reported as a checked IOException. The LargeObject may already be positioned past the
       // start, so mark/reset must be relative to its current position, not to 0 (issue #3149).
       try {
-        // lo_tell64 requires PostgreSQL 9.3+, so fall back to lo_tell on older servers
-        this.absolutePosition = lo.supports64BitOffsets() ? lo.tell64() : lo.tell();
+        this.absolutePosition = lo.position();
       } catch (SQLException e) {
         throw new IOException("Failed to initialize BlobInputStream position", e);
       }
 
-      // The constructor limit is relative to the initial position; -1 means no limit
-      limit = limit == -1 ? Long.MAX_VALUE : limit + absolutePosition;
+      // The constructor limit is relative to the initial position; -1 means no limit, and a sum
+      // past Long.MAX_VALUE means no limit too
+      limit = limit == -1 || limit > Long.MAX_VALUE - absolutePosition
+          ? Long.MAX_VALUE
+          : limit + absolutePosition;
       markPosition = absolutePosition;
     }
 

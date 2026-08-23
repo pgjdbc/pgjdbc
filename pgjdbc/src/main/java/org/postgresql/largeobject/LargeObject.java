@@ -328,6 +328,46 @@ public class LargeObject
   }
 
   /**
+   * Moves the position to the end of the object and returns the new position, which is the size of
+   * the object in bytes. Unlike {@link #size64()}, this takes one fastpath call and does not restore
+   * the previous position.
+   *
+   * @return the size of the large object, in bytes
+   * @throws SQLException if a database-access error occurs.
+   */
+  long seekToEnd() throws SQLException {
+    checkClosed();
+    FastpathArg[] args = new FastpathArg[3];
+    args[0] = new FastpathArg(fd);
+    args[2] = new FastpathArg(SEEK_END);
+    if (supports64BitOffsets()) {
+      args[1] = new FastpathArg(0L);
+      return fp.getLong("lo_lseek64", args);
+    }
+    args[1] = new FastpathArg(0);
+    return unsignedOffset(fp.getInteger("lo_lseek", args));
+  }
+
+  /**
+   * Returns the current position within the object, with {@code lo_tell64} on PostgreSQL 9.3 and
+   * later and {@code lo_tell} before that.
+   *
+   * @return the current position within the object, in bytes
+   * @throws SQLException if a database-access error occurs.
+   */
+  long position() throws SQLException {
+    return supports64BitOffsets() ? tell64() : unsignedOffset(tell());
+  }
+
+  /**
+   * Converts an offset returned by {@code lo_tell} or {@code lo_lseek} before PostgreSQL 9.3, where
+   * the server keeps the offset as an unsigned 32-bit value and returns it as {@code int4}.
+   */
+  private static long unsignedOffset(int offset) {
+    return offset & 0xFFFFFFFFL;
+  }
+
+  /**
    * Sets the current position within the object.
    *
    * <p>This is similar to the fseek() call in the standard C library. It allows you to have random

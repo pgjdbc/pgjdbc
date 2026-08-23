@@ -7,6 +7,7 @@ package org.postgresql.test.jdbc2;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -14,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.jdbc.AutoSave;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.test.TestUtil;
@@ -109,6 +111,10 @@ class BlobTest {
 
   @AfterEach
   void tearDown() throws Exception {
+    // Discards the large objects a test created outside testblob
+    if (!con.getAutoCommit()) {
+      con.rollback();
+    }
     con.setAutoCommit(true);
     try (Statement stmt = con.createStatement()) {
       stmt.execute("SELECT lo_unlink(lo) FROM testblob where id != 'l1'");
@@ -419,40 +425,89 @@ class BlobTest {
     }
   }
 
-  @Test
-  void skipPastEnd() throws Exception {
+  /**
+   * Distances from one past the end of the object to {@code Long.MAX_VALUE}: a seek to 3 GiB fails
+   * before PostgreSQL 9.3, and {@code 256L * Integer.MAX_VALUE} is the largest offset a server
+   * built with a 1 KiB block size accepts.
+   *
+   * @param n distance to skip after the first byte is read
+   */
+  @ParameterizedTest
+  @ValueSource(longs = {96 * 1024, 3L * 1024 * 1024 * 1024, 256L * Integer.MAX_VALUE,
+      256L * Integer.MAX_VALUE + 1, Long.MAX_VALUE / 2, Long.MAX_VALUE})
+  void skipPastEndStopsAtTheEnd(long n) throws Exception {
     LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
     long loid = createMediumLargeObject();
 
     try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
-      // Large objects are sparse: skipping past the end is allowed and reads then return -1
       InputStream bis = blob.getInputStream();
-      assertEquals(1024 * 1024, bis.skip(1024 * 1024));
+      assertEquals(0, bis.read());
+      assertEquals(96 * 1024 - 1, bis.skip(n), () -> "skip(" + n + ") on a 96 KiB large object "
+          + "after one byte is read");
       assertEquals(-1, bis.read());
-      assertEquals(1024, bis.skip(1024));
-      assertEquals(-1, bis.read());
+      assertEquals(0, bis.skip(1024), "skip(1024) at the end of the large object");
+    }
+
+    try (Statement stmt = con.createStatement()) {
+      assertTrue(stmt.execute("SELECT 1"), "the transaction is usable after the skip");
     }
   }
 
   @Test
-  @EnabledForServerVersionRange(gte = "9.3")
-  void skipPastMax() throws Exception {
+  void skipFromPastTheEndSkipsNothing() throws Exception {
     LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
     long loid = createMediumLargeObject();
 
-    // Not try-with-resources: seeking beyond the server maximum fails and aborts the transaction,
-    // so a later close() on the same connection would fail too
-    LargeObject blob = lom.open(loid, LargeObjectManager.READ);
-    InputStream bis = blob.getInputStream();
-    assertEquals(0, bis.read());
-    assertThrows(IOException.class, () -> bis.skip(Long.MAX_VALUE / 2));
-
-    // The failed seek aborted the transaction, so further statements fail until rolled back
-    try (Statement stmt = con.createStatement()) {
-      SQLException ex = assertThrows(SQLException.class, () -> stmt.execute("SELECT 1"));
-      assertEquals(PSQLState.IN_FAILED_SQL_TRANSACTION.getState(), ex.getSQLState());
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      blob.seek(1024 * 1024);
+      InputStream bis = blob.getInputStream();
+      assertEquals(0, bis.skip(Long.MAX_VALUE));
+      assertEquals(1024 * 1024, blob.tell(), "large object position after skip(Long.MAX_VALUE)");
+      assertEquals(-1, bis.read());
     }
-    con.rollback();
+  }
+
+  /**
+   * A limit below zero leaves the end of the stream before its start, and skip reports that as
+   * nothing skipped. Where the large object sits decides how the stream would otherwise break,
+   * since the limit is resolved relative to that position: from offset 0 it stays below zero and
+   * the seek is one the server refuses, taking the transaction with it; from a later offset it
+   * resolves above zero and the seek succeeds, but skip returns a negative count, which
+   * {@link InputStream#skip(long)} does not allow.
+   *
+   * @param startOffset where the large object is positioned when the stream is built
+   */
+  @ParameterizedTest
+  @ValueSource(ints = {0, 1024})
+  void skipWithNegativeLimit(int startOffset) throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      blob.seek(startOffset);
+      // -1 is the "no limit" sentinel, so -2 is the negative limit closest to it
+      InputStream bis = blob.getInputStream(-2);
+      assertEquals(0, bis.skip(50));
+      assertEquals(-1, bis.read());
+    }
+
+    // The transaction is still usable, so no seek was rejected
+    try (Statement stmt = con.createStatement()) {
+      assertTrue(stmt.execute("SELECT 1"));
+    }
+  }
+
+  @Test
+  void skipPastMaxWithLimit() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      // The limit is closer than the end of the object, so it is what bounds the skip
+      InputStream bis = blob.getInputStream(65 * 1024);
+      assertEquals(65 * 1024L, bis.skip(Long.MAX_VALUE));
+      assertEquals(-1, bis.read());
+    }
   }
 
   @Test
@@ -484,6 +539,171 @@ class BlobTest {
       assertEquals(64, bis.read());
       assertEquals(1022L, bis.skip(1024));
       assertEquals(-1, bis.read());
+    }
+  }
+
+  /**
+   * A limit that, added to the position of the large object, passes {@code Long.MAX_VALUE} leaves
+   * the stream unlimited. {@code Long.MAX_VALUE - 1024} from offset 1024 sums to exactly
+   * {@code Long.MAX_VALUE}.
+   *
+   * @param limit the limit passed to {@code getInputStream} with the object at offset 1024
+   */
+  @ParameterizedTest
+  @ValueSource(longs = {Long.MAX_VALUE - 1024, Long.MAX_VALUE - 1023, Long.MAX_VALUE})
+  void limitPastLongMaxValueReadsToTheEnd(long limit) throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      blob.seek(1024);
+      InputStream bis = blob.getInputStream(limit);
+      assertEquals(1, bis.read(), "first byte at offset 1024");
+      assertEquals(96 * 1024 - 1025, bis.skip(Long.MAX_VALUE), "skip(Long.MAX_VALUE) from 1025");
+    }
+  }
+
+  @Test
+  void blobBinaryStreamWithLongMaxValueLengthReadsToTheEnd() throws Exception {
+    long loid = createMediumLargeObject();
+
+    try (PreparedStatement ps = con.prepareStatement("SELECT ?::oid")) {
+      ps.setLong(1, loid);
+      try (ResultSet rs = ps.executeQuery()) {
+        assertTrue(rs.next());
+        InputStream bis = rs.getBlob(1).getBinaryStream(1025, Long.MAX_VALUE);
+        assertEquals(1, bis.read(), "first byte at offset 1024");
+        assertEquals(96 * 1024 - 1025, bis.skip(Long.MAX_VALUE), "skip(Long.MAX_VALUE) from 1025");
+      }
+    }
+  }
+
+  /**
+   * The object is sparse: one byte written at {@code Integer.MAX_VALUE}, so its size, 2 GiB, does
+   * not fit in an {@code int}. Before PostgreSQL 9.3 the server reports that size from
+   * {@code lo_lseek} as a negative {@code int4}.
+   */
+  @Test
+  void skipToTheEndOfATwoGibibyteObject() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = lom.createLO();
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.WRITE)) {
+      blob.seek(Integer.MAX_VALUE);
+      blob.write(new byte[]{42});
+    }
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      InputStream bis = blob.getInputStream();
+      assertEquals(1L << 31, bis.skip(Long.MAX_VALUE));
+      assertEquals(-1, bis.read());
+    }
+  }
+
+  @Test
+  void skipWithinTheBufferMakesNoServerCall() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    // Not try-with-resources: closing the large object fails in the aborted transaction
+    LargeObject blob = lom.open(loid, LargeObjectManager.READ);
+    InputStream bis = blob.getInputStream();
+    assertEquals(0, bis.read());
+    abortTransaction();
+    assertEquals(1024, bis.skip(1024), "skip(1024) within the first 64 KiB read");
+    assertEquals(1, bis.read(), "byte at offset 1025");
+    con.rollback();
+  }
+
+  @Test
+  void limitCountsFromThePositionTheStreamStartsAt() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      blob.seek(1024);
+      InputStream bis = blob.getInputStream(2048);
+      assertEquals(2048, bis.skip(Long.MAX_VALUE), "skip(Long.MAX_VALUE) with limit 2048");
+      assertEquals(-1, bis.read());
+    }
+  }
+
+  /**
+   * The object is sparse: one byte written at 3 GiB, so the server stores a single page.
+   */
+  @Test
+  @EnabledForServerVersionRange(gte = "9.3")
+  void skipPastIntMaxValueInsideTheObject() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = lom.createLO();
+    long lastByteOffset = 3L * 1024 * 1024 * 1024;
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.WRITE)) {
+      blob.seek64(lastByteOffset, LargeObject.SEEK_SET);
+      blob.write(new byte[]{42});
+    }
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      InputStream bis = blob.getInputStream();
+      assertEquals(lastByteOffset, bis.skip(lastByteOffset));
+      assertEquals(42, bis.read(), "byte at offset 3 GiB");
+      assertEquals(-1, bis.read());
+    }
+  }
+
+  @Test
+  void skipAtTheLimitMakesNoServerCall() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    // Not try-with-resources: closing the large object fails in the aborted transaction
+    LargeObject blob = lom.open(loid, LargeObjectManager.READ);
+    InputStream bis = blob.getInputStream(1024);
+    assertEquals(1024, bis.skip(1024));
+    abortTransaction();
+    assertEquals(0, bis.skip(1), "skip(1) at the stream limit of 1024");
+    con.rollback();
+  }
+
+  @Test
+  void skipOnAClosedLargeObjectKeepsTheTransactionUsable() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    LargeObject blob = lom.open(loid, LargeObjectManager.READ);
+    InputStream bis = blob.getInputStream();
+    assertEquals(0, bis.read());
+    blob.close();
+    assertThrows(IOException.class, () -> bis.skip(Long.MAX_VALUE));
+
+    try (Statement stmt = con.createStatement()) {
+      assertTrue(stmt.execute("SELECT 1"), "the transaction is usable after the failed skip");
+    }
+  }
+
+  @Test
+  void skipReportsAFailedEndLookupAsIOException() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    // Not try-with-resources: closing the large object fails in the aborted transaction
+    LargeObject blob = lom.open(loid, LargeObjectManager.READ);
+    InputStream bis = blob.getInputStream();
+    assertEquals(0, bis.read());
+    abortTransaction();
+    IOException e = assertThrows(IOException.class, () -> bis.skip(Long.MAX_VALUE));
+    SQLException cause = assertInstanceOf(SQLException.class, e.getCause());
+    assertEquals(PSQLState.IN_FAILED_SQL_TRANSACTION.getState(), cause.getSQLState());
+    con.rollback();
+  }
+
+  /**
+   * Fails the current transaction, so every fastpath call after it throws until rollback. Autosave
+   * is turned off first: with {@code autosave=always} the driver would roll the failure back to its
+   * own savepoint.
+   */
+  private void abortTransaction() throws SQLException {
+    con.unwrap(PGConnection.class).setAutosave(AutoSave.NEVER);
+    try (Statement stmt = con.createStatement()) {
+      assertThrows(SQLException.class, () -> stmt.execute("SELECT 1/0"));
     }
   }
 
