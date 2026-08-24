@@ -280,6 +280,11 @@ class ParserTest {
    * <code>}</code> that closes the escape, outside a quoted name and outside a comment. PostgreSQL
    * accepts {@code (} and <code>}</code> in a quoted identifier, as in {@code select 1 as "we(ird"}.
    * A quoted name containing {@code (} used to be rejected as an unterminated identifier.
+   *
+   * <p>A comment between the name and the argument list is dropped with the whitespace around it,
+   * while a {@code -} or {@code /} that starts no comment, and text inside a quoted name, stay in
+   * the name. A line comment used to take the argument list with it:
+   * {@code {fn abs -- c\n (-1)}} became {@code abs -- c(-1)}.</p>
    */
   @ParameterizedTest
   @MethodSource("escapeFunctionsWithArgumentList")
@@ -300,13 +305,32 @@ class ParserTest {
             "{fn \"we}ird\"()}", "\"we}ird\"()"),
         argumentSet("parenthesis inside a quoted name",
             "{fn \"we(ird\"()}", "\"we(ird\"()"),
+        argumentSet("schema-qualified quoted name",
+            "{fn \"s\".\"f\"(1)}", "\"s\".\"f\"(1)"),
         argumentSet("doubled quote inside a quoted name",
             "{fn \"we\"\"ird\"()}", "\"we\"\"ird\"()"),
-        // The name is trimmed, so the space between the comment and '(' is dropped
         argumentSet("brace inside a block comment",
-            "select {fn abs /* } */ (-1)}", "select abs /* } */(-1)"),
+            "select {fn abs /* } */ (-1)}", "select abs(-1)"),
         argumentSet("parenthesis inside a block comment",
-            "select {fn abs /* ( */ (-1)}", "select abs /* ( */(-1)")
+            "select {fn abs /* ( */ (-1)}", "select abs(-1)"),
+        argumentSet("nested block comment",
+            "select {fn abs /* a /* b */ c */ (-1)}", "select abs(-1)"),
+        argumentSet("block comment with no whitespace around it",
+            "select {fn abs/* c */(-1)}", "select abs(-1)"),
+        argumentSet("line comment ended by a newline",
+            "select {fn abs -- c\n (-1)}", "select abs(-1)"),
+        argumentSet("line comment with no text",
+            "select {fn abs --\n (-1)}", "select abs(-1)"),
+        argumentSet("line comment ended by a carriage return",
+            "select {fn abs -- c\r (-1)}", "select abs(-1)"),
+        argumentSet("minus sign inside the name that starts no comment",
+            "select {fn a-b(1)}", "select a-b(1)"),
+        argumentSet("slash inside the name that starts no comment",
+            "select {fn a/b(1)}", "select a/b(1)"),
+        argumentSet("line comment marker inside a quoted name",
+            "{fn \"a--b\"()}", "\"a--b\"()"),
+        argumentSet("block comment inside a quoted name",
+            "{fn \"a/*b*/\"()}", "\"a/*b*/\"()")
     );
   }
 
@@ -368,6 +392,52 @@ class ParserTest {
         () -> assertEquals(PSQLState.SYNTAX_ERROR.getState(), e.getSQLState(), "SQLState"),
         () -> assertTrue(e.getMessage().contains(messagePart),
             () -> "message should contain \"" + messagePart + "\": " + e.getMessage()));
+  }
+
+  /**
+   * The driver looks up the escape's name to decide whether to rewrite the function, and the name
+   * it looks up has no comment in it. A comment before the argument list used to hide a function
+   * the driver rewrites, so {@code concat} reached the server with the comment still in it instead
+   * of becoming {@code ('a'||'b')}.
+   */
+  @ParameterizedTest
+  @MethodSource("escapeFunctionsWithACommentBeforeTheArgumentList")
+  void escapeFunctionWithACommentBeforeItsArgumentListIsStillRewritten(String sql) throws SQLException {
+    assertEquals("select ('a'||'b')", Parser.replaceProcessing(sql, true, true),
+        () -> "replaceProcessing(" + sql + ")");
+  }
+
+  static Stream<Arguments> escapeFunctionsWithACommentBeforeTheArgumentList() {
+    return Stream.of(
+        argumentSet("no comment", "select {fn concat('a','b')}"),
+        argumentSet("block comment", "select {fn concat /* c */ ('a','b')}"),
+        argumentSet("line comment", "select {fn concat -- c\n ('a','b')}")
+    );
+  }
+
+  /**
+   * A comment separates tokens in PostgreSQL, so {@code con/**}{@code /cat} is two identifiers.
+   * Dropping the comment from the escape's name leaves a space in its place, which keeps the
+   * tokens apart: the driver neither rewrites the pair as {@code concat} nor joins two quoted
+   * names into one. PostgreSQL rejects each input with {@code syntax error at or near "("}.
+   */
+  @ParameterizedTest
+  @MethodSource("escapeFunctionsWithACommentInsideTheName")
+  void commentInsideEscapeFunctionNameStillSeparatesTokens(String sql, String expected)
+      throws SQLException {
+    assertEquals(expected, Parser.replaceProcessing(sql, true, true),
+        () -> "replaceProcessing(" + sql + ")");
+  }
+
+  static Stream<Arguments> escapeFunctionsWithACommentInsideTheName() {
+    return Stream.of(
+        argumentSet("block comment between two names",
+            "select {fn con/**/cat('a','b')}", "select con cat('a','b')"),
+        argumentSet("line comment between two names",
+            "select {fn con--\ncat('a','b')}", "select con cat('a','b')"),
+        argumentSet("block comment between two quoted names",
+            "select {fn \"con\"/**/\"cat\"('a','b')}", "select \"con\" \"cat\"('a','b')")
+    );
   }
 
   @Test

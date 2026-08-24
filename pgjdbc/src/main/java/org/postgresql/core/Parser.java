@@ -1496,7 +1496,7 @@ public class Parser {
               i, new String(sql)),
           PSQLState.SYNTAX_ERROR);
     }
-    String functionName = new String(sql, i, argPos - i).trim();
+    String functionName = escapeFunctionName(sql, i, argPos);
     // extract arguments
     i = argPos + 1;// we start the scan after the first (
     i = escapeFunctionArguments(newsql, functionName, sql, i, stdStrings);
@@ -1506,6 +1506,50 @@ public class Parser {
       newsql.append(sql[i++]);
     }
     return i;
+  }
+
+  /**
+   * Returns the trimmed function name of a {@code {fn ...}} escape, with each comment in it
+   * replaced by a space.
+   *
+   * <p>The name is the text from {@code start} up to the {@code (} at {@code argPos}. It is both
+   * the key {@link EscapedFunctions2#getFunction} looks up and the text emitted right before the
+   * {@code (}, so no comment may survive in it: a line comment there would turn the argument list
+   * into comment text.</p>
+   *
+   * @param sql    SQL text
+   * @param start  offset of the function name
+   * @param argPos offset of the {@code (} that opens the argument list
+   * @return the name, with no comment left in it and no whitespace at either end
+   */
+  private static String escapeFunctionName(char[] sql, int start, int argPos) {
+    StringBuilder name = new StringBuilder(argPos - start);
+    int i = start;
+    while (i < argPos) {
+      char ch = sql[i];
+      if (ch == '"') {
+        // A delimited identifier may hold anything, including what looks like a comment
+        int end = Math.min(parseDoubleQuotes(sql, i), argPos - 1);
+        name.append(sql, i, end - i + 1);
+        i = end + 1;
+      } else if (ch == '-' || ch == '/') {
+        int end = ch == '-' ? parseLineComment(sql, i) : parseBlockComment(sql, i);
+        if (end > i) {
+          // A comment separates tokens in PostgreSQL, so "con/**/cat" stays two identifiers. As
+          // the single name concat, EscapedFunctions2 would rewrite it into a valid call
+          name.append(' ');
+          i = end + 1;
+        } else {
+          // Not a comment after all, so it is part of the name
+          name.append(ch);
+          i++;
+        }
+      } else {
+        name.append(ch);
+        i++;
+      }
+    }
+    return name.toString().trim();
   }
 
   /**
