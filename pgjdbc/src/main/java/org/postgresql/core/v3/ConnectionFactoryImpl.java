@@ -811,7 +811,16 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     @Nullable EnumSet<AuthMethod> authMethods = AuthMethod.parseRequireAuth(requireAuth);
 
     try {
+      int messages = 0;
       authloop: while (true) {
+        // Nothing else bounds this loop. Without it a server could send
+        // AuthenticationCleartextPassword any number of times and get a password each time.
+        if (++messages > PGStream.MAX_AUTH_ROUND_TRIPS) {
+          pgStream.setBroken();
+          throw new PSQLException(GT.tr(
+              "Backend sent more than {0} messages without finishing authentication.",
+              PGStream.MAX_AUTH_ROUND_TRIPS), PSQLState.PROTOCOL_VIOLATION);
+        }
         int beresp = pgStream.receiveMessageType();
 
         switch (beresp) {

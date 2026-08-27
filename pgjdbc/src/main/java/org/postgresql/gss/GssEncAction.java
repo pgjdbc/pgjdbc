@@ -127,44 +127,60 @@ public class GssEncAction implements PrivilegedAction<@Nullable Exception>, Call
       secContext.requestConf(true);
       secContext.requestInteg(true);
 
-      byte[] inToken = new byte[0];
-      byte[] outToken = null;
-
-      boolean established = false;
-      while (!established) {
-        outToken = secContext.initSecContext(inToken, 0, inToken.length);
-
-        if (outToken != null) {
-          LOGGER.log(Level.FINEST, " FE=> Password(GSS Authentication Token)");
-
-          pgStream.sendInteger4(outToken.length);
-          pgStream.send(outToken);
-          pgStream.flush();
-        }
-
-        if (!secContext.isEstablished()) {
-          // The length here is the raw token size, not a self inclusive message length.
-          int len = pgStream.receiveInteger4();
-          if (len < 0 || len > MAX_HANDSHAKE_TOKEN_SIZE) {
-            throw pgStream.protocolViolation(GT.tr(
-                "Backend declared a GSS token of {0} bytes, the maximum is {1}.",
-                String.valueOf(len), String.valueOf(MAX_HANDSHAKE_TOKEN_SIZE)));
-          }
-          inToken = pgStream.receive(len);
-        } else {
-          established = true;
-          pgStream.setSecContext(secContext);
-        }
-      }
-
+      return negotiate(secContext);
     } catch (IOException e) {
       return e;
     } catch (GSSException gsse) {
       return new PSQLException(GT.tr("GSS Authentication failed"), PSQLState.CONNECTION_FAILURE,
           gsse);
     }
+  }
 
-    return null;
+  /**
+   * Exchanges tokens with the backend until the context is established, then switches the
+   * stream to it. Separate from {@link #run()} so a test can drive the loop without a Kerberos
+   * realm.
+   *
+   * @param secContext the context to establish
+   * @return null once established, or the exception to report
+   * @throws GSSException if the context rejects a token
+   * @throws IOException on an I/O error
+   */
+  @Nullable Exception negotiate(GSSContext secContext) throws GSSException, IOException {
+    byte[] inToken = new byte[0];
+
+    // A zero length token is a valid continuation, so without the limit the loop runs for as
+    // long as the server answers every token with another.
+    for (int round = 0; round < PGStream.MAX_AUTH_ROUND_TRIPS; round++) {
+      byte[] outToken = secContext.initSecContext(inToken, 0, inToken.length);
+
+      if (outToken != null) {
+        LOGGER.log(Level.FINEST, " FE=> Password(GSS Authentication Token)");
+
+        pgStream.sendInteger4(outToken.length);
+        pgStream.send(outToken);
+        pgStream.flush();
+      }
+
+      if (secContext.isEstablished()) {
+        pgStream.setSecContext(secContext);
+        return null;
+      }
+
+      // The length is the raw token size and does not count itself.
+      int len = pgStream.receiveInteger4();
+      if (len < 0 || len > MAX_HANDSHAKE_TOKEN_SIZE) {
+        throw pgStream.protocolViolation(GT.tr(
+            "Backend declared a GSS token of {0} bytes, the maximum is {1}.",
+            String.valueOf(len), String.valueOf(MAX_HANDSHAKE_TOKEN_SIZE)));
+      }
+      inToken = pgStream.receive(len);
+    }
+
+    pgStream.setBroken();
+    return new PSQLException(GT.tr(
+        "GSS encryption handshake did not complete within {0} round trips.",
+        PGStream.MAX_AUTH_ROUND_TRIPS), PSQLState.PROTOCOL_VIOLATION);
   }
 
   @Override
