@@ -141,7 +141,7 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
         }
 
         if (!secContext.isEstablished()) {
-          int response = pgStream.receiveChar();
+          int response = pgStream.receiveMessageType();
           // Error
           switch (response) {
             case PgMessageType.ERROR_RESPONSE:

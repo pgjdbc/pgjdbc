@@ -67,6 +67,12 @@ public class VisibleBufferedInputStream extends InputStream {
   private int endIndex;
 
   /**
+   * Bytes read from this stream since it was created. It only grows, so a caller can record where
+   * a message ends and compare later.
+   */
+  private long position;
+
+  /**
    * socket timeout has been requested
    */
   private boolean timeoutRequested;
@@ -103,6 +109,7 @@ public class VisibleBufferedInputStream extends InputStream {
   @Override
   public int read() throws IOException {
     if (ensureBytes(1)) {
+      position++;
       return buffer[index++] & 0xFF;
     }
     return -1;
@@ -117,6 +124,7 @@ public class VisibleBufferedInputStream extends InputStream {
     if (ensureBytes(2)) {
       int res = ByteConverter.int2(buffer, index) & 0xffff;
       index += 2;
+      position += 2;
       return res;
     }
     throw new EOFException("End of stream reached while trying to read integer2");
@@ -131,6 +139,7 @@ public class VisibleBufferedInputStream extends InputStream {
     if (ensureBytes(4)) {
       int res = ByteConverter.int4(buffer, index);
       index += 4;
+      position += 4;
       return res;
     }
     throw new EOFException("End of stream reached while trying to read integer4");
@@ -158,6 +167,7 @@ public class VisibleBufferedInputStream extends InputStream {
    *         contains the byte.
    */
   public byte readRaw() {
+    position++;
     return buffer[index++];
   }
 
@@ -290,6 +300,14 @@ public class VisibleBufferedInputStream extends InputStream {
    */
   @Override
   public int read(byte[] to, int off, int len) throws IOException {
+    int read = readInternal(to, off, len);
+    if (read > 0) {
+      position += read;
+    }
+    return read;
+  }
+
+  private int readInternal(byte[] to, int off, int len) throws IOException {
     if ((off | len | (off + len) | (to.length - (off + len))) < 0) {
       throw new IndexOutOfBoundsException();
     } else if (len == 0) {
@@ -348,6 +366,12 @@ public class VisibleBufferedInputStream extends InputStream {
    */
   @Override
   public long skip(long n) throws IOException {
+    long skipped = skipInternal(n);
+    position += skipped;
+    return skipped;
+  }
+
+  private long skipInternal(long n) throws IOException {
     int avail = endIndex - index;
     if (avail >= n) {
       // Cast to int is safe here since the number of available bytes within the buffer
@@ -395,6 +419,15 @@ public class VisibleBufferedInputStream extends InputStream {
    */
   public int getIndex() {
     return index;
+  }
+
+  /**
+   * Returns how many bytes have been read from this stream in total.
+   *
+   * @return the number of bytes consumed since the stream was created
+   */
+  public long getPosition() {
+    return position;
   }
 
   /**

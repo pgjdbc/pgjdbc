@@ -967,7 +967,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (useTimeout && timeoutMillis >= 0) {
             setSocketTimeout(timeoutMillis);
           }
-          int c = pgStream.receiveChar();
+          int c = pgStream.receiveMessageType();
           if (useTimeout && timeoutMillis >= 0) {
             setSocketTimeout(0); // Don't timeout after first char
           }
@@ -1028,7 +1028,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     byte[] returnValue = null;
 
     while (!endQuery) {
-      int c = pgStream.receiveChar();
+      int c = pgStream.receiveMessageType();
       switch (c) {
         case PgMessageType.ASYNCHRONOUS_NOTICE:
           receiveAsyncNotify();
@@ -1461,7 +1461,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
         }
 
-        int c = pgStream.receiveChar();
+        int c = pgStream.receiveMessageType();
         switch (c) {
 
           case PgMessageType.ASYNCHRONOUS_NOTICE:
@@ -2413,14 +2413,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     boolean doneAfterRowDescNoData = false;
 
     while (!endQuery) {
-      c = pgStream.receiveChar();
+      c = pgStream.receiveMessageType();
       switch (c) {
         case 'A': // Asynchronous Notify
           receiveAsyncNotify();
           break;
 
         case PgMessageType.PARSE_COMPLETE_RESPONSE: // Parse Complete (response to Parse)
-          pgStream.receiveInteger4(); // len, discarded
+          pgStream.receiveMessageLength("ParseComplete", 4, 4);
 
           SimpleQuery parsedQuery = pendingParseQueue.removeFirst();
           String parsedStatementName = parsedQuery.getStatementName();
@@ -2476,7 +2476,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         }
 
         case PgMessageType.BIND_COMPLETE_RESPONSE: // (response to Bind)
-          pgStream.receiveInteger4(); // len, discarded
+          pgStream.receiveMessageLength("BindComplete", 4, 4);
 
           Portal boundPortal = pendingBindQueue.removeFirst();
           LOGGER.log(Level.FINEST, " <=BE BindComplete [{0}]", boundPortal);
@@ -2485,12 +2485,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case PgMessageType.CLOSE_COMPLETE_RESPONSE: // response to Close
-          pgStream.receiveInteger4(); // len, discarded
+          pgStream.receiveMessageLength("CloseComplete", 4, 4);
           LOGGER.log(Level.FINEST, " <=BE CloseComplete");
           break;
 
         case PgMessageType.NO_DATA_RESPONSE: // response to Describe
-          pgStream.receiveInteger4(); // len, discarded
+          pgStream.receiveMessageLength("NoData", 4, 4);
           LOGGER.log(Level.FINEST, " <=BE NoData");
 
           pendingDescribePortalQueue.removeFirst();
@@ -2513,7 +2513,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // nb: this appears *instead* of CommandStatus.
           // Must be a SELECT if we suspended, so don't worry about it.
 
-          pgStream.receiveInteger4(); // len, discarded
+          pgStream.receiveMessageLength("PortalSuspended", 4, 4);
           LOGGER.log(Level.FINEST, " <=BE PortalSuspended");
 
           ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
@@ -2710,7 +2710,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case PgMessageType.EMPTY_QUERY_RESPONSE: { // Empty Query (end of Execute)
-          pgStream.receiveInteger4();
+          pgStream.receiveMessageLength("EmptyQueryResponse", 4, 4);
 
           LOGGER.log(Level.FINEST, " <=BE EmptyQuery");
 
@@ -3085,9 +3085,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void receiveRFQ() throws IOException {
-    if (pgStream.receiveInteger4() != 5) {
-      throw pgStream.protocolViolation("unexpected length of ReadyForQuery message");
-    }
+    pgStream.receiveMessageLength("ReadyForQuery", 5, 5);
 
     char tStatus = (char) pgStream.receiveChar();
     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -3121,7 +3119,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   public void readStartupMessages() throws IOException, SQLException {
     for (int i = 0; i < 1000; i++) {
-      int beresp = pgStream.receiveChar();
+      int beresp = pgStream.receiveMessageType();
       switch (beresp) {
         case PgMessageType.READY_FOR_QUERY_RESPONSE:
           receiveRFQ();
@@ -3191,7 +3189,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   public void receiveParameterStatus() throws IOException, SQLException {
     // ParameterStatus
-    pgStream.receiveInteger4(); // MESSAGE SIZE
+    // 4 (length) + a terminator for each of the two strings.
+    pgStream.receiveMessageLength("ParameterStatus", 6, PGStream.MAX_BUFFERED_MESSAGE_LENGTH);
     final String name = pgStream.receiveCanonicalStringIfPresent();
     final String value = pgStream.receiveCanonicalStringIfPresent();
 

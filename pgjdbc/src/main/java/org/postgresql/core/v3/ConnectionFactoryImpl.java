@@ -595,7 +595,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.sendInteger2(1234);
     pgStream.sendInteger2(5680);
     pgStream.flush();
-    // Now get the response from the backend, one of N, E, S.
+    // Now get the response from the backend, one of N, E, S. A bare byte, not a message.
     int beresp = pgStream.receiveChar();
     pgStream.setNetworkTimeout(currentTimeout);
     switch (beresp) {
@@ -689,7 +689,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.sendInteger2(5679);
     pgStream.flush();
 
-    // Now get the response from the backend, one of N, E, S.
+    // Now get the response from the backend, one of N, E, S. A bare byte, not a message.
     int beresp = pgStream.receiveChar();
     pgStream.setNetworkTimeout(currentTimeout);
 
@@ -812,7 +812,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     try {
       authloop: while (true) {
-        int beresp = pgStream.receiveChar();
+        int beresp = pgStream.receiveMessageType();
 
         switch (beresp) {
           case PgMessageType.NEGOTIATE_PROTOCOL_RESPONSE:  // Negotiate Protocol Version
