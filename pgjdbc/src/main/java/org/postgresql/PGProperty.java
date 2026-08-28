@@ -109,6 +109,38 @@ public enum PGProperty {
       new String[]{"always", "never", "conservative"}),
 
   /**
+   * Per-type binary format for results received from the server.
+   */
+  BINARY_RECEIVE(
+      "binaryReceive",
+      "",
+      "Per-type binary format for results received from the server. "
+          + "Comma separated list of `oid:mode` entries, where `oid` is a type name or OID number "
+          + "and `mode` is `auto` or `disable`. "
+          + "Every mode overrides `binaryTransfer`, `binaryTransferEnable`, and "
+          + "`binaryTransferDisable` for that type when receiving. `auto` resets the type to the "
+          + "driver's built-in default, which may change between driver versions. "
+          + "Modes apply to top-level types only."),
+
+  /**
+   * Per-type binary format for parameters sent to the server.
+   */
+  BINARY_SEND(
+      "binarySend",
+      "",
+      "Per-type binary format for parameters sent to the server. "
+          + "Comma separated list of `oid:mode` entries, where `oid` is a type name or OID number "
+          + "and `mode` is `auto`, `force`, or `disable`. "
+          + "Every mode overrides `binaryTransfer`, `binaryTransferEnable`, and "
+          + "`binaryTransferDisable` for that type when sending. `auto` resets the type to the "
+          + "driver's built-in default, which may change between driver versions. "
+          + "`force` is best-effort: like `binaryTransferEnable`, it may request the binary format "
+          + "for a type the server cannot send in binary, which then fails at the server, and for "
+          + "temporal types it can change the value the server stores (for example, binary `date` "
+          + "loses the sub-day precision that the text path keeps for timestamp targets). "
+          + "Modes apply to top-level types only."),
+
+  /**
    * Use binary format for sending and receiving data if possible.
    */
   BINARY_TRANSFER(

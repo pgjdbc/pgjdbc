@@ -259,6 +259,23 @@ Comma separated list of types to enable binary transfer. Either OID numbers or n
 Comma separated list of types to disable binary transfer. Either OID numbers or names.
 Overrides values in the driver default set and values set with binaryTransferEnable.
 
+* **`binarySend (`*String*`)`** *Default `empty string`*\
+Per-type binary format for parameters sent to the server.
+Comma separated list of `oid:mode` entries, where `oid` is a type name or OID number and `mode` is `auto`, `force`, or `disable`.
+Every mode overrides `binaryTransfer`, `binaryTransferEnable`, and `binaryTransferDisable` for that type when sending.
+`auto` resets the type to the driver's built-in default, which may change between driver versions.
+`disable` keeps the type in text.
+`force` is best-effort: like `binaryTransferEnable`, it may request the binary format for a type the server cannot send in binary, which then fails at the server; for temporal types it can also change the value the server stores (for example, binary `date` loses the sub-day precision the text path keeps for timestamp targets).
+In this version, modes apply to top-level types only; recursion into composite and array element types may follow later, and only widens what `force`/`disable` reach.
+
+* **`binaryReceive (`*String*`)`** *Default `empty string`*\
+Per-type binary format for results received from the server.
+Comma separated list of `oid:mode` entries, where `oid` is a type name or OID number and `mode` is `auto` or `disable`.
+Every mode overrides `binaryTransfer`, `binaryTransferEnable`, and `binaryTransferDisable` for that type when receiving.
+`auto` resets the type to the driver's built-in default, which may change between driver versions.
+`disable` keeps the type in text.
+In this version, modes apply to top-level types only; recursion into composite and array element types may follow later, and only widens what `disable` reaches.
+
 * **`databaseMetadataCacheFields (`*int*`)`** *Default `65536`*\
 Specifies the maximum number of fields to be cached per connection.
 A value of `0` disables the cache.
