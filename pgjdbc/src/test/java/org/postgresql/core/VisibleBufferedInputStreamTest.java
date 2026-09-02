@@ -115,6 +115,20 @@ class VisibleBufferedInputStreamTest {
     assertEquals(INITIAL_SIZE * 2, in.getBuffer().length);
   }
 
+  /** A buffer grown for one message returns to its initial size the moment it is fully drained. */
+  @Test
+  void shrinksBackAsSoonAsAnOutsizedReadIsDrained() throws IOException {
+    VisibleBufferedInputStream in = new VisibleBufferedInputStream(new Bulk(), INITIAL_SIZE);
+    assertTrue(in.ensureBytes(20000));
+    assertTrue(in.getBuffer().length > INITIAL_SIZE);
+    int buffered = in.available();
+    in.skip(buffered);
+
+    // Shrunk by the skip, before any further read.
+    assertEquals(INITIAL_SIZE, in.getBuffer().length);
+    assertEquals(buffered % 251, in.read());
+  }
+
   @Test
   void compactsWhenThatLeavesRoomToRead() throws IOException {
     VisibleBufferedInputStream in = new VisibleBufferedInputStream(new Bulk(), INITIAL_SIZE);
