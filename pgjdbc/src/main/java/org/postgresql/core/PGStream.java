@@ -682,10 +682,10 @@ public class PGStream implements Closeable, Flushable {
       long skipped = pgInput.skip(size - s);
       if (skipped == 0) {
         // InputStream.skip() may return 0 for two different reasons: the stream still
-        // has data but chose not to skip any right now, or the stream has ended and will
-        // return 0 on every future call. We cannot tell which from skip() alone, so we
-        // read one byte: read() blocks until a byte is available and returns -1 only at
-        // end of stream, which is the reliable end-of-stream signal.
+        // has data but chose not to skip any right now, or the stream has reached
+        // end-of-stream and will return 0 on every future call. We cannot tell which
+        // from skip() alone, so we read one byte: read() blocks until a byte is
+        // available and returns -1 only at end-of-stream, which is the reliable signal.
         if (pgInput.read() == -1) {
           throw new EOFException();
         }
