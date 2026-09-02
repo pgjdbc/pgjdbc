@@ -2674,6 +2674,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             }
           } catch (SQLException e) {
             handler.handleError(e);
+            if (pgStream.isBroken()) {
+              // The connection was dropped at the limit, so there is nothing left to read.
+              endQuery = true;
+            }
           }
           if (!noResults) {
             if (tuples == null) {
