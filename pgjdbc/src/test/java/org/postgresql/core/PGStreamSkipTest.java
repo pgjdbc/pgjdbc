@@ -75,10 +75,12 @@ class PGStreamSkipTest {
 
   @Test
   void skipDiscardsExactlyTheRequestedBytes() throws Exception {
-    // PGStream buffers 8192 bytes. A skip smaller than the payload can be satisfied from the
-    // buffer once it is filled; a larger skip must reach through to the wrapped stream.
+    // A zero-byte skip never calls down to the wrapped stream, and the read buffer starts empty
+    // on a fresh stream, so every other size here reaches the wrapped stream on its first skip.
+    // DATA.length is included so a skip of exactly the payload is covered: the byte-after-the-skip
+    // assertion below is then skipped, since there is no byte after it.
     for (SkipStyle style : SkipStyle.values()) {
-      for (int size : new int[]{0, 1, 100, DATA.length - 1}) {
+      for (int size : new int[]{0, 1, 100, DATA.length - 1, DATA.length}) {
         CountingStream source = new CountingStream(new ByteArrayInputStream(DATA), style);
         try (PGStream stream = openStream(source)) {
           String label = style + " skip=" + size;
@@ -120,6 +122,11 @@ class PGStreamSkipTest {
     }
   }
 
+  /**
+   * Opens a {@link PGStream} that reads from {@code source}, with no server behind it. The 8192
+   * argument sizes the send buffer; it does not size the buffer the driver reads through when it
+   * skips, which is a separate fixed 8192 set up when the socket is attached.
+   */
   private static PGStream openStream(InputStream source) throws IOException {
     return new PGStream(new FixedSocketFactory(source), new HostSpec("localhost", 5432), 0, 8192);
   }
