@@ -34,10 +34,10 @@ import javax.net.SocketFactory;
  * <p>To discard bytes, the driver calls {@link InputStream#skip(long)}, which may return 0 even
  * when more data is coming. A stream that has ended also returns 0, on every call. {@code skip()}
  * must distinguish the two: a 0 from an ended stream must raise {@link EOFException}, while a 0
- * from a live stream must be retried, not treated as the end. Confusing them either hangs the
- * connection (retrying an ended stream forever) or breaks a working one (giving up on a live
- * stream). Discarding the wrong number of bytes leaves the connection between protocol messages,
- * which shows up later as a protocol error elsewhere.</p>
+ * from a live stream must be followed by a read, not treated as the end. Confusing them either
+ * hangs the connection (retrying an ended stream forever) or breaks a working one (giving up on a
+ * live stream). Discarding the wrong number of bytes leaves the connection off a message boundary,
+ * which a later read reports as a protocol error.</p>
  *
  * <p>The streams below simulate what a custom {@code socketFactory} may hand the driver: an
  * {@link InputStream} implementation the driver did not write and cannot make assumptions
