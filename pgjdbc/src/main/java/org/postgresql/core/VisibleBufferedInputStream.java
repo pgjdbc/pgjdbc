@@ -34,9 +34,10 @@ public class VisibleBufferedInputStream extends InputStream {
   private static final int STRING_SCAN_SPAN = 1024;
 
   /**
-   * The largest the buffer will grow. Only control messages and strings are buffered. Bulk data
-   * is read straight into its destination. This is therefore also the ceiling on any message body
-   * read through {@code PGStream.receiveString}, which buffers it whole.
+   * The largest the buffer will grow. Only control messages and strings are buffered, bulk data
+   * is read straight into its destination, so this is also the limit on a message body read
+   * through {@code PGStream.receiveString}. The protocol does not impose it. An ErrorResponse or
+   * NoticeResponse longer than this is truncated here and the rest of its body drained.
    */
   static final int MAX_BUFFER_SIZE = 32 * 1024 * 1024;
 
