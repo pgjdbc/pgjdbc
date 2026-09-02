@@ -23,7 +23,9 @@ import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.Tuple;
 import org.postgresql.util.HostSpec;
+import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.ServerErrorMessage;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.AfterAll;
@@ -36,6 +38,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
@@ -63,7 +66,15 @@ class BackendMessageEnvelopeTest {
   }
 
   private static class Script {
-    private final ByteArrayOutputStream out = new ByteArrayOutputStream();
+    private final ByteArrayOutputStream out;
+
+    Script() {
+      this(32);
+    }
+
+    Script(int capacity) {
+      out = new ByteArrayOutputStream(capacity);
+    }
 
     Script message(char type, byte[] body) {
       out.write(type);
@@ -142,6 +153,8 @@ class BackendMessageEnvelopeTest {
   }
 
   private static class CollectingHandler extends ResultHandlerBase {
+    private @Nullable SQLWarning warning;
+
     @Override
     public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
         ResultCursor cursor) {
@@ -153,6 +166,7 @@ class BackendMessageEnvelopeTest {
 
     @Override
     public void handleWarning(SQLWarning warning) {
+      this.warning = warning;
     }
   }
 
@@ -316,6 +330,85 @@ class BackendMessageEnvelopeTest {
 
     IOException e = assertThrows(IOException.class, () -> executorOf(script));
     assertTrue(e.getMessage().contains("ReadyForQuery"), e.getMessage());
+  }
+
+  /**
+   * Error fields for a message one byte longer than the buffer maximum. The query field comes
+   * last, so it is the field that is truncated.
+   */
+  private static byte[] oversizedErrorFields() {
+    byte[] head = bytes(cstring("SERROR"), cstring("C42601"), cstring("Mboom"), new byte[]{'q'});
+    byte[] body = new byte[PGStream.MAX_BUFFERED_MESSAGE_LENGTH + 1 - 4];
+    System.arraycopy(head, 0, body, 0, head.length);
+    // The last two bytes stay zero, the string terminator and the field list terminator.
+    Arrays.fill(body, head.length, body.length - 2, (byte) 'x');
+    return body;
+  }
+
+  /** The fields before the truncation point are kept and the connection stays usable. */
+  @Test
+  void truncatesAnErrorResponsePastTheBufferMaximum() throws Exception {
+    byte[] body = oversizedErrorFields();
+    Script script = new Script(body.length + 64).startup()
+        .message('E', body)
+        .readyForQuery()
+        .message('C', cstring("SELECT 0"))
+        .readyForQuery();
+
+    QueryExecutor executor = executorOf(script);
+    SQLException e = runQuery(executor, new CollectingHandler());
+    assertNotNull(e);
+    ServerErrorMessage message = ((PSQLException) e).getServerErrorMessage();
+    assertNotNull(message);
+    assertEquals("42601", message.getSQLState());
+    assertEquals("boom", message.getMessage());
+    String query = message.getInternalQuery();
+    assertNotNull(query);
+    assertTrue(query.startsWith("xxx") && query.length() < body.length, "truncated query field");
+
+    assertNull(runQuery(executor, new CollectingHandler()));
+  }
+
+  @Test
+  void truncatesANoticeResponsePastTheBufferMaximum() throws Exception {
+    byte[] body = oversizedErrorFields();
+    Script script = new Script(body.length + 64).startup()
+        .message('N', body)
+        .message('C', cstring("SELECT 0"))
+        .readyForQuery();
+
+    CollectingHandler handler = new CollectingHandler();
+    assertNull(runQuery(executorOf(script), handler));
+    assertNotNull(handler.warning);
+    assertEquals("42601", handler.warning.getSQLState());
+  }
+
+  /**
+   * A NoticeResponse whose body is truncated in the middle of a multibyte UTF-8 character. The
+   * tolerant decoding must deliver the notice rather than fail the read.
+   */
+  @Test
+  void truncatesANoticeResponseThroughAMultibyteCharacter() throws Exception {
+    int buffered = PGStream.MAX_BUFFERED_MESSAGE_LENGTH - 4;
+    byte[] body = new byte[buffered + 8];
+    body[0] = 'M';
+    Arrays.fill(body, 1, buffered - 1, (byte) 'x');
+    // Two byte U+00E9 split by the truncation, lead byte inside and trail byte outside.
+    body[buffered - 1] = (byte) 0xC3;
+    body[buffered] = (byte) 0xA9;
+    Arrays.fill(body, buffered + 1, body.length - 1, (byte) 'x');
+
+    Script script = new Script(body.length + 64).startup()
+        .message('N', body)
+        .message('C', cstring("SELECT 0"))
+        .readyForQuery();
+
+    CollectingHandler handler = new CollectingHandler();
+    assertNull(runQuery(executorOf(script), handler));
+    assertNotNull(handler.warning);
+    String message = handler.warning.getMessage();
+    assertNotNull(message);
+    assertTrue(message.startsWith("xxx"), message);
   }
 
   /** A DataRow past maxResultBuffer reports the limit and drops the connection. */
