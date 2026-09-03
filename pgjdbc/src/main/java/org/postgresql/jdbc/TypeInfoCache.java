@@ -87,7 +87,7 @@ public class TypeInfoCache implements TypeInfo {
       {"oid", Oid.OID, Types.BIGINT, "java.lang.Long", Oid.OID_ARRAY},
       {"int8", Oid.INT8, Types.BIGINT, "java.lang.Long", Oid.INT8_ARRAY},
       {"money", Oid.MONEY, Types.DOUBLE, "java.lang.Double", Oid.MONEY_ARRAY},
-      {"numeric", Oid.NUMERIC, Types.NUMERIC, "java.math.BigDecimal", Oid.NUMERIC_ARRAY},
+      {"numeric", Oid.NUMERIC, Types.NUMERIC, "java.lang.Number", Oid.NUMERIC_ARRAY},
       {"float4", Oid.FLOAT4, Types.REAL, "java.lang.Float", Oid.FLOAT4_ARRAY},
       {"float8", Oid.FLOAT8, Types.DOUBLE, "java.lang.Double", Oid.FLOAT8_ARRAY},
       {"char", Oid.CHAR, Types.CHAR, "java.lang.String", Oid.CHAR_ARRAY},
