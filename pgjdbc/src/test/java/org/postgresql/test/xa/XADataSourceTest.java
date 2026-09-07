@@ -502,7 +502,7 @@ public class XADataSourceTest {
   }
 
   @Test
-  void restoreOfAutoCommit() throws Exception {
+  void onePhaseBranch_leavesAutoCommitUnchanged() throws Exception {
     conn.setAutoCommit(false);
 
     Xid xid = new CustomXid(14);
@@ -512,7 +512,7 @@ public class XADataSourceTest {
 
     assertFalse(
         conn.getAutoCommit(),
-        "XaResource should have restored connection autocommit mode after commit or rollback to the initial state.");
+        "a one-phase branch must leave autoCommit at false, the value set before start()");
 
     // Test true case
     conn.setAutoCommit(true);
@@ -524,12 +524,12 @@ public class XADataSourceTest {
 
     assertTrue(
         conn.getAutoCommit(),
-        "XaResource should have restored connection autocommit mode after commit or rollback to the initial state.");
+        "a one-phase branch must leave autoCommit at true, the value set before start()");
 
   }
 
   @Test
-  void restoreOfAutoCommitEndThenJoin() throws Exception {
+  void endThenJoinBranch_leavesAutoCommitUnchanged() throws Exception {
     // Test with TMJOIN
     conn.setAutoCommit(true);
 
@@ -542,7 +542,7 @@ public class XADataSourceTest {
 
     assertTrue(
         conn.getAutoCommit(),
-        "XaResource should have restored connection autocommit mode after start(TMNOFLAGS) end() start(TMJOIN) and then commit or rollback to the initial state.");
+        "start(TMNOFLAGS) end() start(TMJOIN) end() commit() must leave autoCommit at true");
 
   }
 
