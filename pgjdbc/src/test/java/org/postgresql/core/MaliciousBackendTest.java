@@ -221,6 +221,21 @@ class MaliciousBackendTest {
     }
   }
 
+  /** Every exception in the chain with its SQLSTATE. */
+  private static String describe(Throwable t) {
+    StringBuilder sb = new StringBuilder();
+    for (Throwable c = t; c != null && c != c.getCause(); c = c.getCause()) {
+      if (sb.length() > 0) {
+        sb.append(", caused by ");
+      }
+      sb.append(c);
+      if (c instanceof SQLException) {
+        sb.append(" [").append(((SQLException) c).getSQLState()).append(']');
+      }
+    }
+    return sb.toString();
+  }
+
   private static Throwable rootCause(Throwable t) {
     Throwable cause = t;
     while (cause.getCause() != null && cause.getCause() != cause) {
@@ -303,7 +318,7 @@ class MaliciousBackendTest {
       SQLException e = assertThrows(SQLException.class,
           () -> DriverManager.getConnection(backend.getUrl()).close());
       assertTrue(e.getMessage().startsWith("xxx"),
-          "expected the server error message, got: " + e.getMessage());
+          "expected the server error message, got: " + describe(e));
     }
   }
 
