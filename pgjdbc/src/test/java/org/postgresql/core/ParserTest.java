@@ -270,6 +270,128 @@ class ParserTest {
     assertFalse(parseInfo.isFunction(), () -> "isFunction() should be false for: " + sql);
   }
 
+  /**
+   * When the statements are not split they all end up in one query, so the separator has to stay.
+   * It used to be dropped, which glued the statements together into invalid SQL.
+   */
+  @Test
+  void semicolonSurvivesWhenStatementsAreNotSplit() throws SQLException {
+    List<NativeQuery> qry = Parser.parseJdbcSql(
+        "insert into t(a) values(1); insert into t(a) values(2)",
+        true, false, false, true, true, "id");
+    assertEquals(1, qry.size());
+    assertEquals("insert into t(a) values(1); insert into t(a) values(2)", qry.get(0).nativeSql);
+    // No RETURNING is offered: the driver reads the first protocol result as the generated keys,
+    // and with more than one statement that result is another statement's
+    assertFalse(qry.get(0).command.isReturningKeywordPresent(),
+        "a multi-statement query cannot report generated keys");
+  }
+
+  /**
+   * A trailing separator does not make the query multi-statement, and the RETURNING clause goes in
+   * front of it, where the statement it belongs to ends.
+   */
+  @Test
+  void returningGoesBeforeATrailingSemicolon() throws SQLException {
+    for (String sql : new String[]{"insert into t(a) values(1);", "insert into t(a) values(1);  "}) {
+      List<NativeQuery> qry =
+          Parser.parseJdbcSql(sql, true, false, false, true, true, "id");
+      assertEquals("insert into t(a) values(1)\nRETURNING \"id\";", qry.get(0).nativeSql, sql);
+      assertTrue(qry.get(0).command.isReturningKeywordPresent(), sql);
+    }
+    // Without a separator at all the clause simply goes at the end
+    assertEquals("insert into t(a) values(1)\nRETURNING \"id\"",
+        Parser.parseJdbcSql("insert into t(a) values(1)", true, false, false, true, true, "id")
+            .get(0).nativeSql);
+  }
+
+  /**
+   * A comment after the separator is not another statement, so the query still gets its RETURNING
+   * clause, in front of the separator the comment trails.
+   */
+  @Test
+  void trailingCommentIsNotASecondStatement() throws SQLException {
+    List<NativeQuery> commented = Parser.parseJdbcSql("insert into t(a) values(1); -- audit",
+        true, false, false, true, true, "id");
+    assertEquals("insert into t(a) values(1)\nRETURNING \"id\"; -- audit",
+        commented.get(0).nativeSql);
+    // The query has to report the clause it carries, or the driver reads the RETURNING result as
+    // an ordinary one and executeUpdate answers -1 with no generated keys
+    assertTrue(commented.get(0).command.isReturningKeywordPresent());
+    assertEquals(SqlCommandType.INSERT, commented.get(0).command.getType());
+    assertEquals("insert into t(a) values(1)\nRETURNING \"id\"; /* audit */",
+        Parser.parseJdbcSql("insert into t(a) values(1); /* audit */", true, false, false, true,
+            true, "id").get(0).nativeSql);
+    // Code after the comment is another statement, and then no clause is offered
+    List<NativeQuery> two = Parser.parseJdbcSql(
+        "insert into t(a) values(1); -- audit\n insert into t(a) values(2)",
+        true, false, false, true, true, "id");
+    assertEquals("insert into t(a) values(1); -- audit\n insert into t(a) values(2)",
+        two.get(0).nativeSql);
+    assertFalse(two.get(0).command.isReturningKeywordPresent());
+  }
+
+  /**
+   * A separator that closes nothing does not make a second statement either, and the clause still
+   * goes where the one real statement ends. PostgreSQL accepts every form below.
+   */
+  @Test
+  void emptyStatementIsNotASecondStatement() throws SQLException {
+    List<NativeQuery> doubled = Parser.parseJdbcSql("insert into t(a) values(1);;",
+        true, false, false, true, true, "id");
+    assertEquals("insert into t(a) values(1)\nRETURNING \"id\";;", doubled.get(0).nativeSql);
+    assertTrue(doubled.get(0).command.isReturningKeywordPresent());
+    assertEquals(SqlCommandType.INSERT, doubled.get(0).command.getType());
+    assertEquals("insert into t(a) values(1)\nRETURNING \"id\"; -- audit\n;",
+        Parser.parseJdbcSql("insert into t(a) values(1); -- audit\n;", true, false, false, true,
+            true, "id").get(0).nativeSql);
+    assertEquals("insert into t(a) values(1)\nRETURNING \"id\"; /* a */ ;",
+        Parser.parseJdbcSql("insert into t(a) values(1); /* a */ ;", true, false, false, true,
+            true, "id").get(0).nativeSql);
+  }
+
+  /**
+   * A statement whose last token is the bind placeholder still counts. The placeholder is copied
+   * into the query as it is read, so nothing is left of the statement to look at by the time the
+   * separator arrives.
+   */
+  @Test
+  void statementEndingInABindMarkerIsCounted() throws SQLException {
+    // Two statements, so no clause may be added to the second one
+    List<NativeQuery> two = Parser.parseJdbcSql("update t set a=?; update t set b=2",
+        true, true, false, true, true, "id");
+    assertEquals("update t set a=$1; update t set b=2", two.get(0).nativeSql);
+    assertFalse(two.get(0).command.isReturningKeywordPresent());
+
+    // One statement, so the clause goes in front of the separator
+    assertEquals("update t set a=$1\nRETURNING \"id\";",
+        Parser.parseJdbcSql("update t set a=?;", true, true, false, true, true, "id")
+            .get(0).nativeSql);
+  }
+
+  /**
+   * With nothing to add and nothing to split, the text is already returned verbatim by the fast
+   * path at the top of parseJdbcSql. This pins that the two routes agree.
+   */
+  @Test
+  void unsplitQueryWithoutReturningColumnsIsVerbatim() throws SQLException {
+    String sql = "insert into t(a) values(1); insert into t(a) values(2)";
+    assertEquals(sql, Parser.parseJdbcSql(sql, true, false, false, true, true).get(0).nativeSql);
+  }
+
+  /**
+   * Splitting still drops the separator, because each statement becomes its own query.
+   */
+  @Test
+  void semicolonIsDroppedWhenStatementsAreSplit() throws SQLException {
+    List<NativeQuery> qry = Parser.parseJdbcSql(
+        "insert into t(a) values(1); insert into t(a) values(2)",
+        true, false, true, true, true);
+    assertEquals(2, qry.size());
+    assertEquals("insert into t(a) values(1)", qry.get(0).nativeSql);
+    assertEquals(" insert into t(a) values(2)", qry.get(1).nativeSql);
+  }
+
   @Test
   void unterminatedEscape() throws Exception {
     assertEquals("{oj ", Parser.replaceProcessing("{oj ", true, false));
