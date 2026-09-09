@@ -103,6 +103,29 @@ class StatementTest {
     }
   }
 
+  /**
+   * A statement after a BEGIN ATOMIC function body used to be glued to the CREATE, and the server
+   * answered "cannot insert multiple commands into a prepared statement".
+   */
+  @Test
+  void statementAfterBeginAtomicBody() throws SQLException {
+    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v14),
+        "BEGIN ATOMIC function bodies need PostgreSQL 14");
+    String sql = "create or replace function pg_temp.after_atomic() returns int language sql"
+        + " begin atomic select 1; end; select 42";
+    try (Statement stmt = con.createStatement()) {
+      assertFalse(stmt.execute(sql), "the CREATE comes first");
+      assertTrue(stmt.getMoreResults(), "the statement after the body runs too");
+      try (ResultSet rs = stmt.getResultSet()) {
+        assertTrue(rs.next());
+        assertEquals(42, rs.getInt(1));
+      }
+    }
+    try (PreparedStatement ps = con.prepareStatement(sql)) {
+      assertFalse(ps.execute());
+    }
+  }
+
   @Test
   void resultSetClosed() throws SQLException {
     Statement stmt = con.createStatement();

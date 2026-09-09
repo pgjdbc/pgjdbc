@@ -270,6 +270,205 @@ class ParserTest {
     assertFalse(parseInfo.isFunction(), () -> "isFunction() should be false for: " + sql);
   }
 
+  /**
+   * The END of a BEGIN ATOMIC function body closes it, so statements after the CREATE are split
+   * again. They used to be glued to it, and the server answered "cannot insert multiple commands
+   * into a prepared statement".
+   */
+  @Test
+  void beginAtomicBodyEndsAtItsEnd() throws SQLException {
+    String body = "create function f() returns int language sql begin atomic select 1; select 2; end";
+    List<NativeQuery> qry =
+        Parser.parseJdbcSql(body + "; select 42", true, true, true, true, true);
+    assertEquals(2, qry.size());
+    assertEquals(body, qry.get(0).nativeSql);
+    assertEquals(" select 42", qry.get(1).nativeSql);
+
+    // A body whose last statement ends in a bare END label still splits after the real one
+    assertEquals(2, Parser.parseJdbcSql(
+        "create function f() returns int language sql begin atomic select 1 end; end; select 42",
+        true, true, true, true, true).size());
+
+    // The keyword is matched regardless of case, and a space before the ';' changes nothing
+    assertEquals(2, Parser.parseJdbcSql(
+        "create function f() returns int language sql begin atomic select 1; END; select 42",
+        true, true, true, true, true).size());
+    assertEquals(2, Parser.parseJdbcSql(
+        "create function f() returns int language sql begin atomic select 1; end ; select 42",
+        true, true, true, true, true).size());
+  }
+
+  /**
+   * A CASE expression inside the body ends with its own END, which must not be mistaken for the
+   * body's. PostgreSQL accepts the function below, so the whole CREATE has to stay one statement.
+   */
+  @Test
+  void caseInsideBeginAtomicKeepsItsOwnEnd() throws SQLException {
+    for (String select : new String[]{
+        "select case when true then 1 else 2 end",
+        "select case when true then case when false then 1 else 2 end else 3 end"}) {
+      String sql = "create function f() returns int language sql begin atomic " + select
+          + "; end; select 42";
+      List<NativeQuery> qry = Parser.parseJdbcSql(sql, true, true, true, true, true);
+      assertEquals(2, qry.size(), sql);
+      assertEquals(" select 42", qry.get(1).nativeSql, sql);
+    }
+  }
+
+  /**
+   * END is not reserved as a column label in PostgreSQL, so a body may name a column {@code end},
+   * with or without AS. The body's own END always follows a {@code ;}, which is what tells them
+   * apart. Every statement below is one CREATE FUNCTION as far as the grammar is concerned.
+   *
+   * <p>These pass on the unfixed parser too, which never closes a body at all. They guard the
+   * closing rule against being too eager rather than reproducing the defect.</p>
+   */
+  @Test
+  void endAsAColumnLabelDoesNotEndTheBody() throws SQLException {
+    assertSingleStatement("create function period_of() returns table(start date, \"end\" date)"
+        + " language sql begin atomic select lo as start, hi as end from periods; end");
+    assertSingleStatement(
+        "create function f() returns int language sql begin atomic select lo as end; end");
+    // A bare label, with no AS in front of it
+    assertSingleStatement(
+        "create function f() returns int language sql begin atomic select 1 end; end");
+    assertSingleStatement(
+        "create function f() returns int language sql begin atomic select 1 end; select 2; end");
+  }
+
+  /**
+   * An empty body has no {@code ;} before its END, so the ATOMIC in front of it is what marks the
+   * END as the body's. The single-statement half passes on the unfixed parser; only the split
+   * assertion reproduces the defect.
+   */
+  @Test
+  void emptyBeginAtomicBody() throws SQLException {
+    assertSingleStatement(
+        "create function f() returns void language sql begin atomic end");
+    assertEquals(2, Parser.parseJdbcSql(
+        "create function f() returns void language sql begin atomic end; select 42",
+        true, true, true, true, true).size());
+  }
+
+  /**
+   * The label and the terminator have to be told apart in the awkward positions too: a label
+   * inside a CASE, which also has to leave the CASE nesting balanced, and a quoted alias just
+   * before the terminator, which is not a keyword and so leaves no keyword behind it. The
+   * single-statement half of each pair passes on the unfixed parser; the split half does not.
+   */
+  @Test
+  void endLabelInAwkwardPositions() throws SQLException {
+    String[] bodies = {
+        "select case when (select 1 as end) = 1 then 1 else 2 end;",
+        "select case when (select 1 end) = 1 then 1 else 2 end;",
+        "select 1 as \"v\";",
+        "select * from (select 1) as \"t\";",
+    };
+    for (String body : bodies) {
+      String create =
+          "create function f() returns int language sql begin atomic " + body + " end";
+      assertSingleStatement(create);
+      assertEquals(2, Parser.parseJdbcSql(create + "; select 42", true, true, true, true, true)
+          .size(), create);
+    }
+  }
+
+  /**
+   * ATOMIC is an ordinary identifier in PostgreSQL, so a body may hold a column, a parameter or a
+   * qualified name spelled {@code atomic}. Only the ATOMIC that opened the body can mark the very
+   * next keyword as an empty body's END. The single-statement half passes on the unfixed parser;
+   * only the split assertion reproduces the defect.
+   */
+  @Test
+  void atomicAsAnIdentifierInsideTheBody() throws SQLException {
+    String[] bodies = {
+        "select atomic end; select 1;",
+        "select tc.atomic + 1 end from tc; select 1;",
+        "select 1 as atomic, 2 end; select 2;",
+        "select case when (select 1 end) = 1 then 1 else tc.atomic end from tc; select 1;",
+    };
+    for (String body : bodies) {
+      String create =
+          "create function f(atomic int) returns int language sql begin atomic " + body + " end";
+      assertSingleStatement(create);
+      assertEquals(2, Parser.parseJdbcSql(create + "; select 42", true, true, true, true, true)
+          .size(), create);
+    }
+  }
+
+  /**
+   * A body whose first statement is empty writes the {@code ;} directly against the ATOMIC.
+   * PostgreSQL accepts that, and the separator is handled before the keyword in front of it, so
+   * the ATOMIC has to be recognised in both places just as the closing END is.
+   */
+  @Test
+  void semicolonDirectlyAfterAtomic() throws SQLException {
+    assertSingleStatement("create procedure p() language sql begin atomic; select 1; end");
+    assertSingleStatement("create procedure p() language sql begin atomic; end");
+    assertEquals(2, Parser.parseJdbcSql(
+        "create procedure p() language sql begin atomic; select 1; end; select 42",
+        true, true, true, true, true).size());
+    // A space in front of the ';' takes the other path to the same answer
+    assertSingleStatement("create procedure p() language sql begin atomic ; select 1; end");
+  }
+
+  /**
+   * BEGIN is an ordinary identifier too, and a statement can end on one. That pending BEGIN
+   * belongs to the statement that wrote it, so it must not make the next statement's {@code
+   * atomic} look like the opening of a function body.
+   */
+  @Test
+  void beginLeftPendingByAnEarlierStatement() throws SQLException {
+    // PostgreSQL 16 accepts every statement below. None puts a keyword ATOMIC directly after a
+    // keyword BEGIN, which is what caseAsAColumnLabelKeepsTheBodyOpen's sibling case does.
+    assertEquals(3, Parser.parseJdbcSql(
+        "create index i on t (begin); select 1 as atomic; select 2",
+        true, true, true, true, true).size());
+    assertEquals(3, Parser.parseJdbcSql(
+        "create table begin(); select 1 as atomic; select 2",
+        true, true, true, true, true).size());
+    assertEquals(4, Parser.parseJdbcSql(
+        "create table begin(); select 1; select 2 as atomic; select 3",
+        true, true, true, true, true).size());
+    // A body that opened with "begin atomic;" must not leave one pending either
+    assertEquals(3, Parser.parseJdbcSql(
+        "create function f() returns void language sql begin atomic; end;"
+            + " select 1 as atomic; select 2", true, true, true, true, true).size());
+    assertEquals(3, Parser.parseJdbcSql(
+        "create function f() returns int language sql begin atomic select 1; end;"
+            + " select 1 as atomic; select 2", true, true, true, true, true).size());
+  }
+
+  /**
+   * The one shape the closing rule does not recognise. CASE is an ordinary column label in
+   * PostgreSQL, and a body that labels a column that way inflates the nesting count, so the
+   * body's END is taken for a CASE end and the body never closes.
+   *
+   * <p>The unfixed parser does the same, so this is a hole the change leaves open rather than one
+   * it opens. It is pinned so a later change to the closing rule shows up here.</p>
+   */
+  @Test
+  void caseAsAColumnLabelKeepsTheBodyOpen() throws SQLException {
+    assertSingleStatement(
+        "create function f() returns int language sql begin atomic select 1 as case; end;"
+            + " select 42");
+  }
+
+  private static void assertSingleStatement(String sql) throws SQLException {
+    assertEquals(1, Parser.parseJdbcSql(sql, true, true, true, true, true).size(), sql);
+  }
+
+  /**
+   * A body that is never closed still swallows the rest of the string, which is what the ';' inside
+   * it needs. This one passes on the unfixed code too, and is here to pin that it stays that way.
+   */
+  @Test
+  void beginAtomicWithoutEndKeepsSwallowingSemicolons() throws SQLException {
+    assertEquals(1, Parser.parseJdbcSql(
+        "create function f() returns int language sql begin atomic select 1; select 2",
+        true, true, true, true, true).size());
+  }
+
   @Test
   void unterminatedEscape() throws Exception {
     assertEquals("{oj ", Parser.replaceProcessing("{oj ", true, false));

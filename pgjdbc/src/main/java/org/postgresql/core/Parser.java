@@ -73,6 +73,16 @@ public class Parser {
     boolean isReturningPresentPrev = false;
     boolean isBeginPresent = false;
     boolean isBeginAtomicPresent = false;
+    // Open CASE expressions inside a BEGIN ATOMIC body, whose END is not the body's
+    int caseDepth = 0;
+    // The last character of code seen, and its value as of the start of the keyword being
+    // examined. Whitespace and comments do not count.
+    char lastCodeChar = 0;
+    char codeCharBeforeKeyword = 0;
+    // keyWordCount as of the ATOMIC that opened the body, so the END of an empty body can be
+    // recognised as the very next keyword and nothing else. MIN_VALUE rather than -1, which would
+    // make the first keyword of the whole string qualify.
+    int atomicKeywordIndex = Integer.MIN_VALUE;
     SqlCommandType currentCommandType = SqlCommandType.BLANK;
     SqlCommandType prevCommandType = SqlCommandType.BLANK;
     int numberOfStatements = 0;
@@ -91,6 +101,7 @@ public class Parser {
       boolean isKeyWordChar = false;
       // ';' is ignored as it splits the queries. We do have to deal with ; in BEGIN ATOMIC functions
       whitespaceOnly &= aChar == ';' || Character.isWhitespace(aChar);
+      int charStart = i; // the sub-parsers below move i, so remember where this character was
       keywordEnd = i; // parseSingleQuotes, parseDoubleQuotes, etc move index so we keep old value
       switch (aChar) {
         case '\'': // single-quotes
@@ -145,6 +156,20 @@ public class Parser {
           break;
 
         case ';':
+          // The keyword in front of this ';' is examined after the switch, so the two keywords
+          // that decide whether this ';' separates statements have to be recognised here too.
+          if (isBeginPresent && !isBeginAtomicPresent && keywordStart >= 0
+              && i - keywordStart == 6 && parseAtomicKeyword(aChars, keywordStart)) {
+            // "begin atomic;" opens a body whose first statement is empty
+            isBeginAtomicPresent = true;
+            isBeginPresent = false;
+            caseDepth = 0;
+            atomicKeywordIndex = keyWordCount;
+          } else if (isBeginAtomicPresent && caseDepth == 0 && keywordStart >= 0
+              && endsAtomicBody(aChars, keywordStart, i - keywordStart, codeCharBeforeKeyword,
+                  keyWordCount == atomicKeywordIndex + 1)) {
+            isBeginAtomicPresent = false;
+          }
           // we don't split the queries if BEGIN ATOMIC is present
           if (!isBeginAtomicPresent && inParen == 0) {
             if (!whitespaceOnly) {
@@ -181,6 +206,8 @@ public class Parser {
             prevCommandType = currentCommandType;
             isReturningPresentPrev = isReturningPresent;
             currentCommandType = SqlCommandType.BLANK;
+            // A BEGIN this statement never paired with an ATOMIC does not carry into the next one
+            isBeginPresent = false;
             isReturningPresent = false;
             if (splitStatements) {
               // Prepare for next query
@@ -209,6 +236,7 @@ public class Parser {
           isKeyWordChar = isIdentifierStartChar(aChar);
           if (isKeyWordChar) {
             keywordStart = i;
+            codeCharBeforeKeyword = lastCodeChar;
             if (valuesParenthesisOpenPosition != -1 && inParen == 0) {
               // When the statement already has multi-values, stop looking for more of them
               // Since values(?,?),(?,?),... should not contain keywords in the middle
@@ -254,15 +282,29 @@ public class Parser {
           }
         } else if (currentCommandType == SqlCommandType.CREATE) {
           /*
-          We are looking for BEGIN ATOMIC
+          We are looking for BEGIN ATOMIC, and then for the END that closes the function body
            */
-          if (wordLength == 5 && parseBeginKeyword(aChars, keywordStart)) {
+          if (isBeginAtomicPresent) {
+            if (wordLength == 4 && parseCaseKeyword(aChars, keywordStart)) {
+              caseDepth++;
+            } else if (wordLength == 3 && parseEndKeyword(aChars, keywordStart)) {
+              if (caseDepth > 0) {
+                caseDepth--;
+              } else if (endsAtomicBody(aChars, keywordStart, wordLength, codeCharBeforeKeyword,
+                  keyWordCount == atomicKeywordIndex + 1)) {
+                // The body is over, so the ';' after this END separates statements again
+                isBeginAtomicPresent = false;
+              }
+            }
+          } else if (wordLength == 5 && parseBeginKeyword(aChars, keywordStart)) {
             isBeginPresent = true;
           } else {
             // found begin, now look for atomic
             if (isBeginPresent) {
               if (wordLength == 6 && parseAtomicKeyword(aChars, keywordStart)) {
                 isBeginAtomicPresent = true;
+                caseDepth = 0;
+                atomicKeywordIndex = keyWordCount;
               }
               // either way we reset beginFound
               isBeginPresent = false;
@@ -278,6 +320,11 @@ public class Parser {
         }
         keywordStart = -1;
         keyWordCount++;
+      }
+      if (!Character.isWhitespace(aChar)
+          && !((aChar == '-' || aChar == '/') && i > charStart)) {
+        // A comment is not code; parseLineComment and parseBlockComment moved i past one
+        lastCodeChar = aChar;
       }
       if (aChar == '(') {
         inParen++;
@@ -658,6 +705,67 @@ public class Parser {
         && (query[offset + 3] | 32) == 'm'
         && (query[offset + 4] | 32) == 'i'
         && (query[offset + 5] | 32) == 'c';
+  }
+
+  /**
+   * Tells whether the keyword at {@code keywordStart} is the END that closes a BEGIN ATOMIC
+   * function body. END is not reserved as a column label in PostgreSQL, so {@code select hi as end}
+   * and {@code select 1 end} are both legal inside a body and neither ends it.
+   *
+   * <p>Every statement of the body has to be terminated, so the body's own END always follows a
+   * {@code ;}, or the ATOMIC itself when the body is empty. A column label never sits in that
+   * position, which is what tells the two apart. PostgreSQL rejects a body whose last statement
+   * has no {@code ;}, so there is no third case.</p>
+   *
+   * @param sql                      SQL text
+   * @param keywordStart             offset of the keyword
+   * @param wordLength               length of the keyword
+   * @param codeCharBeforeKeyword    last character of code before the keyword, ignoring whitespace
+   *                                 and comments
+   * @param firstKeywordAfterAtomic  whether this is the first keyword after the ATOMIC that opened
+   *                                 the body, which is where an empty body's END sits
+   * @return true if this END ends the function body
+   */
+  private static boolean endsAtomicBody(char[] sql, int keywordStart, int wordLength,
+      char codeCharBeforeKeyword, boolean firstKeywordAfterAtomic) {
+    return wordLength == 3
+        && (codeCharBeforeKeyword == ';' || firstKeywordAfterAtomic)
+        && parseEndKeyword(sql, keywordStart);
+  }
+
+  /**
+   * Parse string to check presence of CASE keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseCaseKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 4)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'c'
+        && (query[offset + 1] | 32) == 'a'
+        && (query[offset + 2] | 32) == 's'
+        && (query[offset + 3] | 32) == 'e';
+  }
+
+  /**
+   * Parse string to check presence of END keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseEndKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 3)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'e'
+        && (query[offset + 1] | 32) == 'n'
+        && (query[offset + 2] | 32) == 'd';
   }
 
   /**
