@@ -10,6 +10,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.postgresql.PGProperty;
+import org.postgresql.core.v3.ConnectionFactoryImpl;
+import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -19,10 +22,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.parallel.Isolated;
 
+import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -30,8 +36,8 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Connects a real driver over loopback to a backend that declares a message length and then
@@ -314,86 +320,65 @@ class MaliciousBackendTest {
   }
 
   /**
-   * A server that keeps asking for a password keeps the client answering. Counting what the
-   * driver sent pins the cap, where merely observing that the loop ended would not.
+   * Counts the passwords the driver wrote to a canned socket. A peer cannot count them reliably,
+   * because the driver resets the connection when it gives up and Windows drops unread data on a
+   * reset.
    */
   @Test
-  @Timeout(value = 60, unit = TimeUnit.SECONDS)
-  void stopsAnsweringAfterTheAuthenticationMessageCap() throws IOException {
-    try (PasswordProbingBackend backend = new PasswordProbingBackend()) {
-      assertThrows(SQLException.class,
-          () -> DriverManager.getConnection(backend.getUrl()).close());
-      assertEquals(PGStream.MAX_AUTH_ROUND_TRIPS, backend.passwordsReceived(),
-          "the driver must answer exactly the capped number of requests");
-    }
+  @Timeout(value = 30, unit = TimeUnit.SECONDS)
+  void stopsAnsweringAfterTheAuthenticationMessageCap() throws Exception {
+    CannedSocketFactory factory =
+        new CannedSocketFactory(passwordRequests(PGStream.MAX_AUTH_ROUND_TRIPS + 10));
+    PGStream stream = new PGStream(factory, new HostSpec("localhost", 5432), 0, 8192);
+    Properties info = new Properties();
+    PGProperty.PASSWORD.set(info, "test");
+
+    PSQLException e = assertThrows(PSQLException.class, () -> authenticate(stream, info));
+
+    assertEquals(PSQLState.PROTOCOL_VIOLATION.getState(), e.getSQLState(), e.toString());
+    assertTrue(e.getMessage().contains("messages"), e.getMessage());
+    assertTrue(stream.isBroken(), "the stream must not look reusable");
+    assertEquals(PGStream.MAX_AUTH_ROUND_TRIPS, countPasswordMessages(factory.getWritten()),
+        "the driver must answer exactly the capped number of requests");
   }
 
-  /**
-   * Answers every password with another AuthenticationCleartextPassword, so the authentication
-   * loop only ends when the driver stops it.
-   */
-  private static class PasswordProbingBackend implements Closeable, Runnable {
-    private final ServerSocket serverSocket;
-    private final AtomicInteger passwords = new AtomicInteger();
-    private volatile boolean closed;
-
-    PasswordProbingBackend() throws IOException {
-      this.serverSocket = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"));
-      this.serverSocket.setSoTimeout(30000);
-      Thread thread = new Thread(this, "password-probing-backend");
-      thread.setDaemon(true);
-      thread.start();
+  /** AuthenticationCleartextPassword, repeated. */
+  private static byte[] passwordRequests(int count) {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    for (int i = 0; i < count; i++) {
+      out.write(PgMessageType.AUTHENTICATION_RESPONSE);
+      out.write(new byte[]{0, 0, 0, 8, 0, 0, 0, 3}, 0, 8);
     }
+    return out.toByteArray();
+  }
 
-    String getUrl() {
-      return "jdbc:postgresql://127.0.0.1:" + serverSocket.getLocalPort() + "/test"
-          + "?user=test&password=test&connectTimeout=10&socketTimeout=10&loginTimeout=10";
+  /** Walks the PasswordMessages the driver wrote. */
+  private static int countPasswordMessages(byte[] written) {
+    int count = 0;
+    int pos = 0;
+    while (pos < written.length) {
+      assertEquals(PgMessageType.PASSWORD_REQUEST, written[pos], "message type at byte " + pos);
+      int length = ((written[pos + 1] & 0xFF) << 24) | ((written[pos + 2] & 0xFF) << 16)
+          | ((written[pos + 3] & 0xFF) << 8) | (written[pos + 4] & 0xFF);
+      pos += 1 + length;
+      count++;
     }
+    assertEquals(written.length, pos, "the last message must end where the output ends");
+    return count;
+  }
 
-    int passwordsReceived() {
-      return passwords.get();
-    }
-
-    @Override
-    public void run() {
-      Socket socket = null;
-      try {
-        socket = serverSocket.accept();
-        socket.setSoTimeout(30000);
-        InputStream in = socket.getInputStream();
-        OutputStream out = socket.getOutputStream();
-        Backend.consumeStartup(in, out);
-        while (!closed) {
-          // AuthenticationCleartextPassword
-          out.write(PgMessageType.AUTHENTICATION_RESPONSE);
-          out.write(new byte[]{0, 0, 0, 8, 0, 0, 0, 3});
-          out.flush();
-          if (in.read() < 0) {
-            return;
-          }
-          int length = Backend.readInt4(in);
-          for (int i = 4; i < length; i++) {
-            if (in.read() < 0) {
-              return;
-            }
-          }
-          passwords.incrementAndGet();
-        }
-      } catch (Exception e) {
-        // The driver hanging up is the expected outcome.
-      } finally {
-        Backend.closeQuietly(socket);
+  /** doAuthentication is private. */
+  private static void authenticate(PGStream stream, Properties info) throws Exception {
+    Method method = ConnectionFactoryImpl.class.getDeclaredMethod("doAuthentication",
+        PGStream.class, String.class, String.class, Properties.class);
+    method.setAccessible(true);
+    try {
+      method.invoke(null, stream, "localhost", "test", info);
+    } catch (InvocationTargetException e) {
+      if (e.getCause() instanceof Exception) {
+        throw (Exception) e.getCause();
       }
-    }
-
-    @Override
-    public void close() {
-      closed = true;
-      try {
-        serverSocket.close();
-      } catch (IOException ignore) {
-        // nothing to do
-      }
+      throw e;
     }
   }
 }
