@@ -63,9 +63,11 @@ tasks.configureEach<JavaCompile> {
             }
         )
         compilerArgs.add("-parameters")
-        if (buildParameters.jdkBuildVersion >= 21 && buildParameters.targetJavaVersion < 11) {
-            // We know target Java 8 is deprecated with Java 21, so silence the warning
-            // otherwise the build fails due to -Werror below
+        if (buildParameters.buildJdkVersion >= 21 && buildParameters.targetJavaVersion < 11) {
+            // JDK 21 and later warn that source release 8 is obsolete, and the -Werror below
+            // turns that warning into a build failure. Read buildJdkVersion, the JDK the
+            // build resolved: jdkBuildVersion is the request, and it reads 0 when the
+            // build uses the current JDK.
             compilerArgs.add("-Xlint:-options")
         }
         if (!buildParameters.enableCheckerframework) {
