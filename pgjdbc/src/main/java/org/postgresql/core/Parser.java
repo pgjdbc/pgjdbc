@@ -1063,6 +1063,33 @@ public class Parser {
    */
   public static JdbcCallParseInfo modifyJdbcCall(String jdbcSql, boolean stdStrings,
       int serverVersion, EscapeSyntaxCallMode escapeSyntaxCallMode) throws SQLException {
+    try {
+      // A brace inside a line comment is comment text, which is what PostgreSQL makes of it
+      return modifyJdbcCall(jdbcSql, stdStrings, serverVersion, escapeSyntaxCallMode, false);
+    } catch (PSQLException readAsText) {
+      // Read that way the escape never closed, so the brace inside the comment was its closing
+      // one after all. "{call f(?) -- x}" has no other reading: the comment runs to the end of
+      // the input, and PostgreSQL executes what this produces.
+      return modifyJdbcCall(jdbcSql, stdStrings, serverVersion, escapeSyntaxCallMode, true);
+    }
+  }
+
+  /**
+   * Converts JDBC {@code {call ...}} escape syntax to a use of the {@code call} or {@code select}
+   * statement, reading a brace inside a line comment one of the two ways it can be read.
+   *
+   * @param jdbcSql                    sql text with JDBC escapes
+   * @param stdStrings                 whether standard_conforming_strings is on
+   * @param serverVersion              server version
+   * @param escapeSyntaxCallMode       how to convert the escape
+   * @param braceInLineCommentEndsCall whether a brace inside a line comment closes the escape,
+   *                                   rather than being comment text
+   * @return the converted sql text
+   * @throws SQLException if the escape is malformed under this reading
+   */
+  private static JdbcCallParseInfo modifyJdbcCall(String jdbcSql, boolean stdStrings,
+      int serverVersion, EscapeSyntaxCallMode escapeSyntaxCallMode,
+      boolean braceInLineCommentEndsCall) throws SQLException {
     // Mini-parser for JDBC function-call syntax (only)
     // TODO: Merge with escape processing (and parameter parsing?) so we only parse each query once.
     // RE: frequently used statements are cached (see {@link org.postgresql.jdbc.PgConnection#borrowQuery}), so this "merge" is not that important.
@@ -1074,7 +1101,7 @@ public class Parser {
     int len = jdbcSql.length();
     int state = 1;
     boolean inQuotes = false;
-    boolean inEscape = false;
+    int escapeDepth = 0;
     int startIndex = -1;
     int endIndex = -1;
     boolean syntaxError = false;
@@ -1108,11 +1135,14 @@ public class Parser {
             ++state;
           } else if (ch == 'c' || ch == 'C') {  // { call ... }      -- proc with no out parameters
             state += 3; // Don't increase 'i'
-          } else if (Character.isWhitespace(ch)) {
-            ++i;
           } else {
-            // "{ foo ...", doesn't make sense, complain.
-            syntaxError = true;
+            int skipped = skipWhitespaceAndComments(jdbcSqlChars, i);
+            if (skipped > i) {
+              i = skipped;
+            } else {
+              // "{ foo ...", doesn't make sense, complain.
+              syntaxError = true;
+            }
           }
           break;
 
@@ -1120,20 +1150,26 @@ public class Parser {
           if (ch == '=') {
             ++i;
             ++state;
-          } else if (Character.isWhitespace(ch)) {
-            ++i;
           } else {
-            syntaxError = true;
+            int skipped = skipWhitespaceAndComments(jdbcSqlChars, i);
+            if (skipped > i) {
+              i = skipped;
+            } else {
+              syntaxError = true;
+            }
           }
           break;
 
         case 4:  // Looking for 'call' after '? =' skipping whitespace
           if (ch == 'c' || ch == 'C') {
             ++state; // Don't increase 'i'.
-          } else if (Character.isWhitespace(ch)) {
-            ++i;
           } else {
-            syntaxError = true;
+            int skipped = skipWhitespaceAndComments(jdbcSqlChars, i);
+            if (skipped > i) {
+              i = skipped;
+            } else {
+              syntaxError = true;
+            }
           }
           break;
 
@@ -1143,10 +1179,13 @@ public class Parser {
             isFunction = true;
             i += 4;
             ++state;
-          } else if (Character.isWhitespace(ch)) {
-            ++i;
           } else {
-            syntaxError = true;
+            int skipped = skipWhitespaceAndComments(jdbcSqlChars, i);
+            if (skipped > i) {
+              i = skipped;
+            } else {
+              syntaxError = true;
+            }
           }
           break;
 
@@ -1166,19 +1205,44 @@ public class Parser {
             inQuotes = !inQuotes;
             ++i;
           } else if (inQuotes && ch == '\\' && !stdStrings) {
-            // Backslash in string constant, skip next character.
+            // Backslash in string constant, skip next character. A trailing backslash has nothing
+            // to escape, so stop at the end of the input: stepping past it would skip the
+            // "ran out of query" check below and reach substring() with endIndex still -1.
+            i = Math.min(i + 2, len);
+          } else if (!inQuotes && ch == '"') {
+            // A delimited identifier may hold a brace, and it is not the call's
+            i = Math.min(parseDoubleQuotes(jdbcSqlChars, i) + 1, len);
+          } else if (!inQuotes && ch == '$') {
+            int dollarEnd = parseDollarQuotes(jdbcSqlChars, i);
+            i = dollarEnd > i ? Math.min(dollarEnd + 1, len) : i + 1;
+          } else if (!inQuotes && ch == '/') {
+            // A block comment may hold a brace or a quote, and neither is the call's
+            int commentEnd = parseBlockComment(jdbcSqlChars, i);
+            i = commentEnd > i ? Math.min(commentEnd + 1, len) : i + 1;
+          } else if (!inQuotes && ch == '-' && i + 1 < len && jdbcSqlChars[i + 1] == '-') {
+            // A line comment is text, not SQL: nothing in it is a quote or a separator. A brace
+            // is the one ambiguous character, and which reading this pass takes is the caller's.
+            int lineEnd = parseLineComment(jdbcSqlChars, i);
+            int commentEnd = lineEnd < len
+                && (jdbcSqlChars[lineEnd] == '\n' || jdbcSqlChars[lineEnd] == '\r')
+                ? lineEnd : len;
             i += 2;
+            while (i < commentEnd
+                && !(braceInLineCommentEndsCall && jdbcSqlChars[i] == '}')) {
+              i++;
+            }
           } else if (!inQuotes && ch == '{') {
-            inEscape = !inEscape;
+            escapeDepth++;
             ++i;
           } else if (!inQuotes && ch == '}') {
-            if (!inEscape) {
+            if (escapeDepth == 0) {
               // Should be end of string.
               endIndex = i;
               ++i;
               ++state;
             } else {
-              inEscape = false;
+              escapeDepth--;
+              ++i;
             }
           } else if (!inQuotes && ch == ';') {
             syntaxError = true;
