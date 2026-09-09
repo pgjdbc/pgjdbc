@@ -270,6 +270,77 @@ class ParserTest {
     assertFalse(parseInfo.isFunction(), () -> "isFunction() should be false for: " + sql);
   }
 
+  /**
+   * Whitespace and comments after the last {@code ;} are not another statement. Sending them as one
+   * cost a round trip and made the query report a result nobody asked for, so
+   * {@code executeQuery("SELECT 1; -- trailing")} failed with SQLSTATE 0100E.
+   */
+  @Test
+  void trailingCommentIsNotAStatement() throws SQLException {
+    for (String sql : new String[]{"SELECT 1; -- trailing", "SELECT 1; /* c */",
+        "SELECT 1;\n-- trailing\n", "SELECT 1;   "}) {
+      List<NativeQuery> qry = Parser.parseJdbcSql(sql, true, true, true, true, true);
+      assertEquals(1, qry.size(), sql);
+      assertEquals("SELECT 1", qry.get(0).nativeSql, sql);
+    }
+  }
+
+  /**
+   * A query that is nothing but a comment still stands on its own: no statement precedes it, and
+   * the server answers it with an empty result.
+   */
+  @Test
+  void commentOnlyQueryIsStillAQuery() throws SQLException {
+    List<NativeQuery> qry = Parser.parseJdbcSql("-- only a comment", true, true, true, true, true);
+    assertEquals(1, qry.size());
+    assertEquals("-- only a comment", qry.get(0).nativeSql);
+  }
+
+  /**
+   * An unterminated block comment is not ignorable text. PostgreSQL rejects SQL that ends in one,
+   * and dropping it would let a statement the caller expected to fail run instead.
+   */
+  @Test
+  void unterminatedTrailingCommentIsKept() throws SQLException {
+    List<NativeQuery> qry =
+        Parser.parseJdbcSql("DELETE FROM t; /*", true, true, true, true, true);
+    assertEquals(2, qry.size(), "the unterminated comment has to reach the server and be refused");
+    assertEquals(" /*", qry.get(1).nativeSql);
+  }
+
+  @Test
+  void codeAfterATrailingCommentIsStillASecondStatement() throws SQLException {
+    List<NativeQuery> qry =
+        Parser.parseJdbcSql("SELECT 1; -- c\nSELECT 2", true, true, true, true, true);
+    assertEquals(2, qry.size());
+    assertEquals(" -- c\nSELECT 2", qry.get(1).nativeSql);
+  }
+
+  /**
+   * The test for a trailing comment has to start from the last {@code ;}, not from the offset the
+   * parser copies text from: a bind marker moves that offset past the statement body, which would
+   * make a statement ending in {@code ?} look like nothing but a comment.
+   */
+  @Test
+  void aStatementEndingInABindKeepsItsTrailingComment() throws SQLException {
+    // A statement that ends exactly at the '?' with nothing after it is a separate defect: the
+    // trailing fragment is then empty, which the parser reads as an empty trailing statement
+    for (String sql : new String[]{"select 1; update t set a=? -- c",
+        "select 1; update t set a=?\n"}) {
+      List<NativeQuery> qry = Parser.parseJdbcSql(sql, true, true, true, true, true, "id");
+      assertEquals(2, qry.size(), sql);
+      assertEquals(SqlCommandType.UPDATE, qry.get(1).command.getType(), sql);
+      assertTrue(qry.get(1).command.isReturningKeywordPresent(), sql);
+      assertTrue(qry.get(1).nativeSql.contains("RETURNING"), sql);
+    }
+    // The same SQL with a constant instead of the bind has to come out the same way
+    List<NativeQuery> constant =
+        Parser.parseJdbcSql("select 1; update t set a=2 -- c", true, true, true, true, true, "id");
+    assertEquals(SqlCommandType.UPDATE, constant.get(1).command.getType());
+    assertTrue(constant.get(1).nativeSql.contains("-- c"),
+        "the comment belongs to a statement that has content");
+  }
+
   @Test
   void unterminatedEscape() throws Exception {
     assertEquals("{oj ", Parser.replaceProcessing("{oj ", true, false));

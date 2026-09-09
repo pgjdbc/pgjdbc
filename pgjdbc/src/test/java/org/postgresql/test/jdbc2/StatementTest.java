@@ -103,6 +103,23 @@ class StatementTest {
     }
   }
 
+  /**
+   * A comment after the last {@code ;} is not a statement. It used to become an empty query of its
+   * own, so this asked the driver for two results and failed with SQLSTATE 0100E.
+   */
+  @Test
+  void trailingCommentIsNotAStatement() throws SQLException {
+    try (Statement stmt = con.createStatement()) {
+      try (ResultSet rs = stmt.executeQuery("SELECT 1; -- trailing")) {
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+      }
+      assertTrue(stmt.execute("SELECT 1; /* trailing */"));
+      assertFalse(stmt.getMoreResults(), "the comment is not a second result");
+      assertEquals(-1, stmt.getUpdateCount());
+    }
+  }
+
   @Test
   void resultSetClosed() throws SQLException {
     Statement stmt = con.createStatement();

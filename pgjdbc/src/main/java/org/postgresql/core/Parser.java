@@ -76,6 +76,9 @@ public class Parser {
     SqlCommandType currentCommandType = SqlCommandType.BLANK;
     SqlCommandType prevCommandType = SqlCommandType.BLANK;
     int numberOfStatements = 0;
+    // Offset just past the last ';' that split a statement. Unlike fragmentStart, which a
+    // bind marker moves, this is where the statement being read begins.
+    int lastStatementStart = 0;
 
     boolean whitespaceOnly = true;
     int keyWordCount = 0;
@@ -153,6 +156,7 @@ public class Parser {
               whitespaceOnly = true;
             }
             fragmentStart = i + 1;
+            lastStatementStart = i + 1;
             if (nativeSql.length() > 0) {
               if (addReturning(nativeSql, currentCommandType, returningColumnNames, isReturningPresent, quoteReturningIdentifiers)) {
                 isReturningPresent = true;
@@ -294,7 +298,12 @@ public class Parser {
       valuesParenthesisClosePosition = -1;
     }
 
-    if (fragmentStart < aChars.length && !whitespaceOnly) {
+    // Whitespace and comments after the last ';' are not another statement. Sending them as one
+    // costs a round trip and makes the query report a result the caller did not ask for. A query
+    // that is nothing but a comment still stands on its own, since no statement precedes it.
+    boolean tailIsAnotherStatement = numberOfStatements == 0
+        || !isIgnorableTail(aChars, lastStatementStart);
+    if (fragmentStart < aChars.length && !whitespaceOnly && tailIsAnotherStatement) {
       nativeSql.append(aChars, fragmentStart, aChars.length - fragmentStart);
     } else {
       if (numberOfStatements > 1) {
@@ -1047,6 +1056,37 @@ public class Parser {
       }
     }
     return Math.min(offset, len);
+  }
+
+  /**
+   * Tells whether everything from {@code offset} to the end of {@code sql} is whitespace and closed
+   * comments, and so holds no statement. An unterminated block comment does not qualify: the server
+   * rejects SQL that ends in one, and dropping it here would turn that error into a silent success.
+   *
+   * @param sql    SQL text
+   * @param offset start offset
+   * @return true if no statement follows {@code offset}
+   */
+  private static boolean isIgnorableTail(char[] sql, int offset) {
+    int len = sql.length;
+    while (offset < len) {
+      char ch = sql[offset];
+      if (Character.isWhitespace(ch)) {
+        offset++;
+      } else if (ch == '-' && offset + 1 < len && sql[offset + 1] == '-') {
+        // A line comment ends at the newline, or at the end of the input, and either is fine
+        offset = parseLineComment(sql, offset) + 1;
+      } else if (ch == '/' && offset + 1 < len && sql[offset + 1] == '*') {
+        int commentEnd = parseBlockComment(sql, offset);
+        if (commentEnd >= len) {
+          return false;
+        }
+        offset = commentEnd + 1;
+      } else {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
