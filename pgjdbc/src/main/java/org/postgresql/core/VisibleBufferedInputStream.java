@@ -6,6 +6,7 @@
 package org.postgresql.core;
 
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.GT;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -33,6 +34,24 @@ public class VisibleBufferedInputStream extends InputStream {
   private static final int STRING_SCAN_SPAN = 1024;
 
   /**
+   * The largest the buffer will grow. Only control messages and strings are buffered; bulk data
+   * is read straight into its destination. This is therefore also the ceiling on any message body
+   * read through {@code PGStream.receiveString}, which buffers it whole.
+   *
+   * <p>This is a driver policy limit, not one the protocol imposes. It bounds what a single
+   * message can make the driver allocate before the message is understood. An ErrorResponse or
+   * NoticeResponse longer than this is truncated to this size and the remainder of its body is
+   * drained, so exceeding it costs a shortened message rather than the connection.</p>
+   */
+  static final int MAX_BUFFER_SIZE = 32 * 1024 * 1024;
+
+  private static final Runnable NO_OP = new Runnable() {
+    @Override
+    public void run() {
+    }
+  };
+
+  /**
    * The wrapped input stream.
    */
   private final InputStream wrapped;
@@ -41,6 +60,11 @@ public class VisibleBufferedInputStream extends InputStream {
    * The buffer.
    */
   private byte[] buffer;
+
+  /**
+   * Size the buffer started at and returns to once an outsized message has been drained.
+   */
+  private final int initialSize;
 
   /**
    * Current read position in the buffer.
@@ -53,9 +77,18 @@ public class VisibleBufferedInputStream extends InputStream {
   private int endIndex;
 
   /**
+   * Bytes handed out since this stream was created. It only grows, so a caller can record where
+   * a message ends and compare later.
+   */
+  private long position;
+
+  /**
    * socket timeout has been requested
    */
   private boolean timeoutRequested;
+
+  /** Run when a read is refused, so the owner can mark itself broken. */
+  private final Runnable onProtocolViolation;
 
   /**
    * Creates a new buffer around the given stream.
@@ -64,8 +97,21 @@ public class VisibleBufferedInputStream extends InputStream {
    * @param bufferSize The initial size of the buffer.
    */
   public VisibleBufferedInputStream(InputStream in, int bufferSize) {
+    this(in, bufferSize, NO_OP);
+  }
+
+  /**
+   * Creates a new buffer around the given stream.
+   *
+   * @param in The stream to buffer.
+   * @param bufferSize The initial size of the buffer.
+   * @param onProtocolViolation run when a read is refused, so the owner can mark itself broken.
+   */
+  public VisibleBufferedInputStream(InputStream in, int bufferSize, Runnable onProtocolViolation) {
     wrapped = in;
-    buffer = new byte[bufferSize < MINIMUM_READ ? MINIMUM_READ : bufferSize];
+    initialSize = bufferSize < MINIMUM_READ ? MINIMUM_READ : bufferSize;
+    buffer = new byte[initialSize];
+    this.onProtocolViolation = onProtocolViolation;
   }
 
   /**
@@ -74,6 +120,7 @@ public class VisibleBufferedInputStream extends InputStream {
   @Override
   public int read() throws IOException {
     if (ensureBytes(1)) {
+      position++;
       return buffer[index++] & 0xFF;
     }
     return -1;
@@ -88,6 +135,7 @@ public class VisibleBufferedInputStream extends InputStream {
     if (ensureBytes(2)) {
       int res = ByteConverter.int2(buffer, index) & 0xffff;
       index += 2;
+      position += 2;
       return res;
     }
     throw new EOFException("End of stream reached while trying to read integer2");
@@ -102,6 +150,7 @@ public class VisibleBufferedInputStream extends InputStream {
     if (ensureBytes(4)) {
       int res = ByteConverter.int4(buffer, index);
       index += 4;
+      position += 4;
       return res;
     }
     throw new EOFException("End of stream reached while trying to read integer4");
@@ -129,6 +178,7 @@ public class VisibleBufferedInputStream extends InputStream {
    *         contains the byte.
    */
   public byte readRaw() {
+    position++;
     return buffer[index++];
   }
 
@@ -178,13 +228,7 @@ public class VisibleBufferedInputStream extends InputStream {
     }
     int canFit = buffer.length - endIndex;
     if (canFit < wanted) {
-      // would the wanted bytes fit if we compacted the buffer
-      // and still leave some slack
-      if (index + canFit > wanted + MINIMUM_READ) {
-        compact();
-      } else {
-        doubleBuffer();
-      }
+      growBuffer(wanted);
       canFit = buffer.length - endIndex;
     }
     int read = 0;
@@ -209,10 +253,35 @@ public class VisibleBufferedInputStream extends InputStream {
   }
 
   /**
-   * Doubles the size of the buffer.
+   * Makes room for {@code wanted} more bytes, compacting if that is enough and growing if not.
+   *
+   * @param wanted how many more bytes have to fit
+   * @throws IOException if the request does not fit in {@link #MAX_BUFFER_SIZE}
    */
-  private void doubleBuffer() {
-    byte[] buf = new byte[buffer.length * 2];
+  private void growBuffer(int wanted) throws IOException {
+    if (wanted < 0) {
+      onProtocolViolation.run();
+      throw new IOException(GT.tr("Cannot read a negative number of bytes: {0}.",
+          String.valueOf(wanted)));
+    }
+    // The arithmetic is done in long because wanted comes from the peer.
+    long required = (long) endIndex - index + wanted;
+    if (required > MAX_BUFFER_SIZE) {
+      onProtocolViolation.run();
+      throw new IOException(GT.tr(
+          "Backend asked for {0} bytes of buffer, the maximum is {1} bytes.",
+          String.valueOf(required), String.valueOf(MAX_BUFFER_SIZE)));
+    }
+    // Compact only when that leaves room for a worthwhile read, or a nearly full buffer would
+    // compact on every call and each socket read would be a few bytes. At the maximum there is
+    // nothing to grow into, so compacting is all that is left.
+    if (required + MINIMUM_READ <= buffer.length || buffer.length >= MAX_BUFFER_SIZE) {
+      compact();
+      return;
+    }
+    // Double for small reads, plus slack so a read can pull in more than this request.
+    long size = Math.min(Math.max(buffer.length * 2L, required + MINIMUM_READ), MAX_BUFFER_SIZE);
+    byte[] buf = new byte[(int) size];
     moveBufferTo(buf);
     buffer = buf;
   }
@@ -238,10 +307,31 @@ public class VisibleBufferedInputStream extends InputStream {
   }
 
   /**
+   * Returns the buffer to its initial size the moment it is fully drained, so a buffer grown for
+   * one large message does not stay that size for the rest of the connection, including while it
+   * sits idle in a pool. Called from every path that consumes bytes, so nothing is copied.
+   */
+  private void shrinkIfDrained() {
+    if (index == endIndex && buffer.length > initialSize) {
+      buffer = new byte[initialSize];
+      index = 0;
+      endIndex = 0;
+    }
+  }
+
+  /**
    * {@inheritDoc}
    */
   @Override
   public int read(byte[] to, int off, int len) throws IOException {
+    int read = readInternal(to, off, len);
+    if (read > 0) {
+      position += read;
+    }
+    return read;
+  }
+
+  private int readInternal(byte[] to, int off, int len) throws IOException {
     if ((off | len | (off + len) | (to.length - (off + len))) < 0) {
       throw new IndexOutOfBoundsException();
     } else if (len == 0) {
@@ -261,6 +351,7 @@ public class VisibleBufferedInputStream extends InputStream {
       if (len <= avail) {
         System.arraycopy(buffer, index, to, off, len);
         index += len;
+        shrinkIfDrained();
         return len;
       }
       System.arraycopy(buffer, index, to, off, avail);
@@ -272,6 +363,7 @@ public class VisibleBufferedInputStream extends InputStream {
     // good place to reset index because the buffer is fully drained
     index = 0;
     endIndex = 0;
+    shrinkIfDrained();
 
     // then directly from wrapped stream
     do {
@@ -300,16 +392,24 @@ public class VisibleBufferedInputStream extends InputStream {
    */
   @Override
   public long skip(long n) throws IOException {
+    long skipped = skipInternal(n);
+    position += skipped;
+    return skipped;
+  }
+
+  private long skipInternal(long n) throws IOException {
     int avail = endIndex - index;
     if (avail >= n) {
       // Cast to int is safe here since the number of available bytes within the buffer
       // always fits within int
       index += (int) n;
+      shrinkIfDrained();
       return n;
     }
     n -= avail;
     index = 0;
     endIndex = 0;
+    shrinkIfDrained();
     return avail + wrapped.skip(n);
   }
 
@@ -350,6 +450,15 @@ public class VisibleBufferedInputStream extends InputStream {
   }
 
   /**
+   * Returns how many bytes this stream has handed out in total.
+   *
+   * @return the number of bytes consumed since the stream was created
+   */
+  public long getPosition() {
+    return position;
+  }
+
+  /**
    * Scans the length of the next null terminated string (C-style string) from the stream.
    *
    * @return The length of the next null terminated string.
@@ -357,17 +466,38 @@ public class VisibleBufferedInputStream extends InputStream {
    * @throws EOFException If the stream did not contain any null terminators.
    */
   public int scanCStringLength() throws IOException {
-    int pos = index;
+    return scanCStringLength(Integer.MAX_VALUE);
+  }
+
+  /**
+   * Scans the length of the next null terminated string (C-style string) from the stream, looking
+   * no further than the given number of bytes.
+   *
+   * @param maxLength the most bytes the string may occupy, including its terminator.
+   * @return The length of the next null terminated string.
+   * @throws IOException If reading of stream fails, or no terminator is within maxLength.
+   * @throws EOFException If the stream did not contain any null terminators.
+   */
+  public int scanCStringLength(int maxLength) throws IOException {
+    int scanned = 0;
     while (true) {
+      // Resume where the last pass stopped. readMore may compact, which moves index. Rescanning
+      // from the start is quadratic in a length the peer chooses.
+      int pos = index + scanned;
       while (pos < endIndex) {
+        scanned++;
         if (buffer[pos++] == '\0') {
-          return pos - index;
+          return scanned;
+        }
+        if (scanned >= maxLength) {
+          onProtocolViolation.run();
+          throw new IOException(GT.tr("No string terminator within {0} bytes.",
+              String.valueOf(maxLength)));
         }
       }
       if (!readMore(STRING_SCAN_SPAN, true)) {
         throw new EOFException();
       }
-      pos = index;
     }
   }
 

@@ -169,10 +169,8 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   @Override
   public void close() {
-    if (closeAction.isClosed()) {
-      return;
-    }
-
+    // There is no isClosed() guard here. A broken stream reports itself closed, and only the
+    // close action releases its descriptor. The action is idempotent on its own.
     try {
       getCloseAction().close();
     } catch (IOException ioe) {
