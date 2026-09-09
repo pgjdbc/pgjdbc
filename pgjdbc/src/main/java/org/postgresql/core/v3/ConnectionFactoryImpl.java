@@ -11,6 +11,7 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 import org.postgresql.PGProperty;
 import org.postgresql.core.AuthMethod;
 import org.postgresql.core.ConnectionFactory;
+import org.postgresql.core.ExtendedSocketOptionAccessorImpl;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.PgMessageType;
 import org.postgresql.core.ProtocolVersion;
@@ -232,6 +233,21 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       // Enable TCP keep-alive probe if required.
       boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
       newStream.getSocket().setKeepAlive(requireTCPKeepAlive);
+
+      Integer tcpKeepAliveCount = PGProperty.TCP_KEEP_ALIVE_COUNT.getInteger(info);
+      if (tcpKeepAliveCount != null) {
+        ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepCount(newStream.getSocket(), tcpKeepAliveCount);
+      }
+
+      Integer tcpKeepAliveIdle = PGProperty.TCP_KEEP_ALIVE_IDLE.getInteger(info);
+      if (tcpKeepAliveIdle != null) {
+        ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepIdle(newStream.getSocket(), tcpKeepAliveIdle);
+      }
+
+      Integer tcpKeepAliveInterval = PGProperty.TCP_KEEP_ALIVE_INTERVAL.getInteger(info);
+      if (tcpKeepAliveInterval != null) {
+        ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepInterval(newStream.getSocket(), tcpKeepAliveInterval);
+      }
 
       // Enable TCP no delay if required
       boolean requireTCPNoDelay = PGProperty.TCP_NO_DELAY.getBoolean(info);
