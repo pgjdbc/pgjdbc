@@ -270,6 +270,147 @@ class ParserTest {
     assertFalse(parseInfo.isFunction(), () -> "isFunction() should be false for: " + sql);
   }
 
+  /**
+   * Splitting must not move a statement's own classification onto its neighbour. The keyword in
+   * front of a {@code ;} used to be examined only after the split had already reset the flags, so
+   * a statement ending in {@code returning} or {@code values} handed them to the next statement.
+   * Neither word is reserved in PostgreSQL, so both are legal table names.
+   */
+  @Test
+  void statementFlagsDoNotLeakAcrossSemicolon() throws SQLException {
+    // "values" is not reserved in PostgreSQL, so a statement really can end on that keyword
+    assertSplitMatchesStandalone("insert into dv default values", "insert into t(a) values(?)",
+        "id");
+    assertSplitMatchesStandalone("select * from values", "insert into t(a) values(?)", "id");
+    assertSplitMatchesStandalone("insert into t(a) values(1)", "insert into t(a) values(2)", "id");
+    assertSplitMatchesStandalone("select * from returning", "update t set a=1", "id");
+    // A statement whose last character is the bind placeholder leaves nothing to append, which
+    // used to be read as an empty trailing statement
+    assertSplitMatchesStandalone("select * from x", "delete from t where a=?", "id");
+    assertSplitMatchesStandalone("select * from x", "update t set a=?", "id");
+    // The same pairs with no returning columns to add
+    assertSplitMatchesStandalone("insert into dv default values", "insert into t(a) values(?)");
+    assertSplitMatchesStandalone("select * from values", "insert into t(a) values(?)");
+  }
+
+  /**
+   * Asserts that parsing {@code first + "; " + second} classifies each half exactly as parsing that
+   * half on its own does.
+   */
+  private static void assertSplitMatchesStandalone(String first, String second,
+      String... returningColumns) throws SQLException {
+    List<NativeQuery> split = Parser.parseJdbcSql(
+        first + "; " + second, true, true, true, true, true, returningColumns);
+    assertEquals(2, split.size(), first + "; " + second);
+
+    String[] halves = {first, second};
+    for (int i = 0; i < halves.length; i++) {
+      List<NativeQuery> alone =
+          Parser.parseJdbcSql(halves[i], true, true, true, true, true, returningColumns);
+      assertEquals(1, alone.size(), halves[i]);
+      assertEquals(alone.get(0).nativeSql, split.get(i).nativeSql.trim(),
+          "native SQL of <" + halves[i] + "> parsed alone and as part of a split");
+      assertEquals(alone.get(0).command.getType(), split.get(i).command.getType(),
+          "command type of <" + halves[i] + ">");
+      assertEquals(alone.get(0).command.isReturningKeywordPresent(),
+          split.get(i).command.isReturningKeywordPresent(),
+          "returning flag of <" + halves[i] + ">");
+      if (i == 0) {
+        // Batch rewrite is deliberately position-dependent: SqlCommand rejects any statement with
+        // a prior query. Only the first statement can match its standalone parse.
+        assertEquals(alone.get(0).command.isBatchedReWriteCompatible(),
+            split.get(i).command.isBatchedReWriteCompatible(),
+            "batch rewrite of <" + halves[i] + ">");
+        assertEquals(alone.get(0).command.getBatchRewriteValuesBraceOpenPosition(),
+            split.get(i).command.getBatchRewriteValuesBraceOpenPosition(),
+            "values brace open of <" + halves[i] + ">");
+        assertEquals(alone.get(0).command.getBatchRewriteValuesBraceClosePosition(),
+            split.get(i).command.getBatchRewriteValuesBraceClosePosition(),
+            "values brace close of <" + halves[i] + ">");
+      } else {
+        assertFalse(split.get(i).command.isBatchedReWriteCompatible(),
+            "only the first statement may be batch-rewritten");
+      }
+    }
+  }
+
+  /**
+   * BEGIN and ATOMIC are ordinary identifiers in PostgreSQL, so a CREATE that is not a routine
+   * definition may name a column, a table or an alias after either of them. Only a CREATE
+   * FUNCTION or CREATE PROCEDURE can hold a BEGIN ATOMIC body, and the two words have to be
+   * adjacent keywords in it.
+   *
+   * <p>The unfixed parser takes any two consecutive keywords after any CREATE, so most of these
+   * glue the rest of the string to the CREATE. Three escape it for reasons of their own: the
+   * {@code ;} landing right after the second word, a type name standing between the two, and the
+   * keyword naming the object consuming the pending BEGIN before the next statement's name is
+   * reached. Those three are guards rather than reproductions.</p>
+   */
+  @Test
+  void beginAndAtomicOutsideARoutineDefinition() throws SQLException {
+    // A BEGIN left pending by one statement must not reach the routine name of the next one
+    for (String sql : new String[]{
+        "create sequence begin; create function atomic() returns int language sql"
+            + " as 'select 1'; select 3",
+        "create view v as select 1 as begin; create procedure atomic() language sql"
+            + " as 'select 1'; select 3"}) {
+      assertEquals(3, Parser.parseJdbcSql(sql, true, true, true, true, true).size(), sql);
+    }
+    // A token that is not a keyword between the two words means they are not adjacent. Neither
+    // spelling is valid SQL; they are here because the parser has to reject them anyway.
+    for (String sql : new String[]{
+        "create function f() returns int language sql begin \"x\" atomic select 1; end; select 2",
+        "create function f() returns int language sql begin $$q$$ atomic select 1; end; select 2"}) {
+      assertEquals(3, Parser.parseJdbcSql(sql, true, true, true, true, true).size(), sql);
+    }
+    // A body starts at the statement level, so an adjacent pair inside an expression is not one
+    assertEquals(3, Parser.parseJdbcSql(
+        "create function g() returns int language sql return (select begin atomic from zz limit 1);"
+            + " select 2; select 3", true, true, true, true, true).size());
+    for (String sql : new String[]{
+        "create view v as select begin, atomic; insert into t(a) values(?)",
+        "create view v as select begin, atomic ; insert into t(a) values(?)",
+        "create table t2 as select * from zz order by begin, atomic; insert into t(a) values(?)",
+        // atomic as the implicit alias of a column named begin
+        "create view v as select begin atomic from t; insert into t2 values(?)",
+        "create table t2 as select begin atomic from t; insert into t3 values(?)"}) {
+      assertEquals(2, Parser.parseJdbcSql(sql, true, true, true, true, true).size(), sql);
+    }
+    assertEquals(3, Parser.parseJdbcSql(
+        "create table begin(atomic int); select 1; select 2",
+        true, true, true, true, true).size());
+    // The routine that defined one statement does not make the next statement's CREATE a routine
+    assertEquals(3, Parser.parseJdbcSql(
+        "create function f() returns int language sql as 'select 1';"
+            + " create view v as select begin atomic from t; select 2",
+        true, true, true, true, true).size());
+    // FUNCTION and PROCEDURE are identifiers too, so only the one naming what the CREATE creates
+    // counts, whatever the query behind it says
+    for (String sql : new String[]{
+        "create view v as select x function from t where t.begin atomic; select 1",
+        "create materialized view function as select begin atomic from t; select 1",
+        "create table procedure(begin int, atomic int); select 1"}) {
+      assertEquals(2, Parser.parseJdbcSql(sql, true, true, true, true, true).size(), sql);
+    }
+  }
+
+  /**
+   * A genuine BEGIN ATOMIC body is still recognised, in either kind of routine, in any case, and
+   * with a comment between the two keywords.
+   */
+  @Test
+  void beginAtomicInARoutineDefinition() throws SQLException {
+    for (String sql : new String[]{
+        "create function f() returns int language sql begin atomic select 1; select 2",
+        "create or replace function f() returns int language sql begin atomic select 1; select 2",
+        "create procedure p() language sql begin atomic select 1; select 2",
+        "CREATE FUNCTION f() RETURNS int LANGUAGE SQL BEGIN ATOMIC select 1; select 2",
+        "CREATE OR REPLACE PROCEDURE p() LANGUAGE SQL BEGIN ATOMIC select 1; select 2",
+        "create function f() returns int language sql begin /* c */ atomic select 1; select 2"}) {
+      assertEquals(1, Parser.parseJdbcSql(sql, true, true, true, true, true).size(), sql);
+    }
+  }
+
   @Test
   void unterminatedEscape() throws Exception {
     assertEquals("{oj ", Parser.replaceProcessing("{oj ", true, false));
