@@ -1265,9 +1265,22 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * @param off index of first byte to send (usually 0)
    * @param siz number of bytes to send (usually data.length)
    * @throws SQLException on failure
+   * @throws NullPointerException if {@code data} is {@code null}
+   * @throws IndexOutOfBoundsException if {@code off} or {@code siz} is negative, or if
+   *         {@code siz} is greater than {@code data.length - off}
    */
   public void writeToCopy(CopyOperationImpl op, byte[] data, int off, int siz)
       throws SQLException {
+    // The range is rejected before the CopyData message is framed: send() pads a range that runs
+    // past the end of the array with zeros instead of failing, so an out-of-range request would
+    // reach the server as data. The comparison subtracts so a siz near Integer.MAX_VALUE cannot
+    // wrap past the check.
+    Objects.requireNonNull(data, "data");
+    if (off < 0 || siz < 0 || siz > data.length - off) {
+      throw new IndexOutOfBoundsException(
+          "Range [" + off + ", " + off + " + " + siz + ") is out of bounds for byte["
+              + data.length + "]");
+    }
     try (ResourceLock ignore = lock.obtain()) {
       if (!hasLock(op)) {
         throw new PSQLException(GT.tr("Tried to write to an inactive copy operation"),

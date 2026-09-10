@@ -16,6 +16,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.SQLException;
+import java.util.Objects;
 
 /**
  * OutputStream for buffered input into a PostgreSQL COPY FROM STDIN operation.
@@ -89,6 +90,13 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
     write(buf, 0, buf.length);
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * @throws NullPointerException if {@code buf} is {@code null}
+   * @throws IndexOutOfBoundsException if {@code off} or {@code siz} is negative, or if
+   *         {@code siz} is greater than {@code buf.length - off}
+   */
   @Override
   public void write(byte[] buf, int off, int siz) throws IOException {
     checkClosed();
@@ -137,6 +145,16 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
 
   @Override
   public void writeToCopy(byte[] buf, int off, int siz) throws SQLException {
+    // Checked before the buffer below is flushed, so a request this stream is going to refuse does
+    // not send what it had already accepted. Both branches would refuse it anyway, but each in its
+    // own way: the pass-through one reaches PGStream.send, which pads a range that runs past the
+    // end of the array with zeros rather than failing, and the buffered one reaches arraycopy.
+    Objects.requireNonNull(buf, "buf");
+    if (off < 0 || siz < 0 || siz > buf.length - off) {
+      throw new IndexOutOfBoundsException(
+          "Range [" + off + ", " + off + " + " + siz + ") is out of bounds for byte[" + buf.length
+              + "]");
+    }
     if (at > 0
         && siz > copyBuffer.length - at) { // would not fit into rest of our buf, so flush buf
       getOp().writeToCopy(copyBuffer, 0, at);
