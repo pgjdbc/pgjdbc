@@ -348,6 +348,12 @@ public class PGStream implements Closeable, Flushable {
     // will call PGStream.flush() as needed.
     OutputStream interceptor = new FilterOutputStream(pgOutput) {
       @Override
+      public void write(byte[] b, int off, int len) throws IOException {
+        // FilterOutputStream forwards one byte per call, so the range has to be passed through
+        out.write(b, off, len);
+      }
+
+      @Override
       public void flush() throws IOException {
       }
 
