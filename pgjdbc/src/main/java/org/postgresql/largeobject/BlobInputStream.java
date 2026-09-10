@@ -253,19 +253,27 @@ public class BlobInputStream extends InputStream {
    */
   @Override
   public void close() throws IOException {
-    long loId = 0;
     try (ResourceLock ignore = lock.obtain()) {
       LargeObject lo = this.lo;
-      if (lo != null) {
-        loId = lo.getLongOID();
-        lo.close();
+      if (lo == null) {
+        return;
       }
+      long loId = lo.getLongOID();
+      // The stream is marked closed, and its buffer released, before the descriptor goes. It stays
+      // closed even when releasing the descriptor fails: a second close() would fail the same way,
+      // and until this.lo is cleared the stream goes on reading from a large object the caller
+      // believes is gone.
       this.lo = null;
-    } catch (SQLException e) {
-      throw new IOException(
-          GT.tr("Can not close large object {0}",
-              loId),
-          e);
+      buffer = null;
+      bufferPosition = 0;
+      try {
+        lo.close();
+      } catch (SQLException e) {
+        throw new IOException(
+            GT.tr("Can not close large object {0}",
+                loId),
+            e);
+      }
     }
   }
 
