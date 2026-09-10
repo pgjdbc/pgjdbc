@@ -121,7 +121,10 @@ public class BlobInputStream extends InputStream {
         bufferPosition = 0;
 
         if (buffer.length == 0) {
-          // The lob does not produce any more data, so we are at the end of the stream
+          // The lob does not produce any more data, so we are at the end of the stream. Drop the
+          // empty array: every other path nulls the buffer once it holds nothing to serve, and the
+          // rest of this class reads that as "nothing buffered"
+          buffer = null;
           return -1;
         }
       }
@@ -293,13 +296,19 @@ public class BlobInputStream extends InputStream {
   @Override
   public void mark(int readlimit) {
     try (ResourceLock ignore = lock.obtain()) {
+      if (this.lo == null) {
+        // Marking a closed stream has no effect, which is what this method promises above. Nothing
+        // went wrong, so nothing is logged
+        return;
+      }
       // mark() must not throw, but initialising the position can fail. Log and leave the mark
-      // unset; the next read/reset surfaces the underlying error as a checked IOException.
+      // unset; the next read or reset surfaces the same failure as a checked IOException, so this
+      // record is a hint rather than the report of a lost error.
       try {
         getLo();
         markPosition = absolutePosition;
       } catch (IOException e) {
-        LOGGER.log(Level.SEVERE, "Failed to set mark position", e);
+        LOGGER.log(Level.WARNING, "Failed to set mark position", e);
       }
     }
   }
@@ -318,6 +327,7 @@ public class BlobInputStream extends InputStream {
       long loId = lo.getLongOID();
       // Invalidate the buffer first, so a failed seek cannot leave stale data behind
       buffer = null;
+      bufferPosition = 0;
       try {
         if (markPosition <= Integer.MAX_VALUE) {
           lo.seek((int) markPosition);
@@ -411,9 +421,9 @@ public class BlobInputStream extends InputStream {
   private LargeObject getLo() throws IOException {
     LargeObject lo = this.lo;
     if (lo == null) {
-      throw new IOException("BlobInputStream is closed");
+      throw new IOException(GT.tr("BlobInputStream is closed"));
     }
-    assert lock.isLocked();
+    assert lock.isHeldByCurrentThread();
 
     if (absolutePosition < 0) {
       // Initialise the position lazily, here rather than in the constructor, so the failure can be
@@ -423,7 +433,8 @@ public class BlobInputStream extends InputStream {
         // lo_tell64 requires PostgreSQL 9.3+, so fall back to lo_tell on older servers
         this.absolutePosition = lo.supports64BitOffsets() ? lo.tell64() : lo.tell();
       } catch (SQLException e) {
-        throw new IOException("Failed to initialize BlobInputStream position", e);
+        throw new IOException(GT.tr("Can not read the position of large object {0}",
+            Long.toString(lo.getLongOID())), e);
       }
 
       // The constructor limit is relative to the initial position; -1 means no limit
