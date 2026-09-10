@@ -167,8 +167,17 @@ public class VisibleBufferedInputStream extends InputStream {
   /**
    * Reads more bytes into the buffer.
    *
+   * <p>The wrapped stream is allowed to read nothing and still have more to give, which
+   * {@link org.postgresql.gss.GSSInputStream} does whenever a frame is still incomplete. A blocking
+   * call then blocks for a byte, because a zero-length read is not the end of the stream and
+   * treating it as progress leaves {@link #ensureBytes(int)} looping over a request it can never
+   * satisfy.</p>
+   *
    * @param wanted How much should be at least read.
-   * @return True if at least some bytes were read.
+   * @param block whether or not to block the IO
+   * @return false once the stream has ended, and once nothing is ready when {@code block} is false.
+   *     True otherwise, which includes a retried timeout having interrupted the read before any
+   *     byte arrived. {@link #read(byte[], int, int)} states which timeouts are retried
    * @throws IOException If reading of the wrapped stream failed.
    */
   private boolean readMore(int wanted, boolean block) throws IOException {
@@ -190,8 +199,18 @@ public class VisibleBufferedInputStream extends InputStream {
     int read = 0;
     try {
       read = wrapped.read(buffer, endIndex, canFit);
-      if (!block && read == 0) {
-        return false;
+      if (read == 0) {
+        if (!block) {
+          return false;
+        }
+        // Reading blocks for a byte and reports the end as -1, so it tells apart a stream that
+        // has more to give from one that has ended, which a zero-length read does not
+        read = wrapped.read();
+        if (read < 0) {
+          return false;
+        }
+        buffer[endIndex] = (byte) read;
+        read = 1;
       }
     } catch (SocketTimeoutException e) {
       if (!block) {
@@ -239,6 +258,18 @@ public class VisibleBufferedInputStream extends InputStream {
 
   /**
    * {@inheritDoc}
+   *
+   * <p>Never returns {@code 0} for a non-empty request, as {@link InputStream#read(byte[], int,
+   * int)} requires. The wrapped stream is allowed to read nothing and still have more to give,
+   * which {@link org.postgresql.gss.GSSInputStream} does whenever a frame is still incomplete, so
+   * this blocks for a byte in that case and reports the end of the stream as {@code -1}.</p>
+   *
+   * <p>A {@link SocketTimeoutException} is retried rather than reported unless
+   * {@link #setTimeoutRequested(boolean)} is in force, which in the driver means
+   * {@link PGStream#setNetworkTimeout(int)} was given a non-zero timeout. A timeout installed
+   * straight on the socket therefore turns a blocking read into a retry rather than interrupting
+   * one; bytes already read come back as a short read instead. {@link #ensureBytes(int)} reads on
+   * the same terms.</p>
    */
   @Override
   public int read(byte[] to, int off, int len) throws IOException {
@@ -278,11 +309,25 @@ public class VisibleBufferedInputStream extends InputStream {
       int r;
       try {
         r = wrapped.read(to, off, len);
+        if (r == 0 && read == 0) {
+          // Reading blocks for a byte and reports the end as -1, so it tells apart a stream that
+          // has more to give from one that has ended, which a zero-length read does not
+          r = wrapped.read();
+          if (r >= 0) {
+            to[off] = (byte) r;
+            r = 1;
+          }
+        }
       } catch (SocketTimeoutException e) {
-        if (read == 0 && timeoutRequested) {
+        if (read > 0) {
+          return read;
+        }
+        if (timeoutRequested) {
           throw e;
         }
-        return read;
+        // The timeout is one the driver set for itself, so wait again rather than report a read
+        // of nothing
+        continue;
       }
       if (r <= 0) {
         return read == 0 ? r : read;
