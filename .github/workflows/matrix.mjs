@@ -308,7 +308,9 @@ matrix.addAxis({
   name: 'standard_conforming_strings',
   values: [
     {value: 'yes', title: '', weight: 90},
-    {value: 'no', title: 'standard_conforming_strings=no', weight: 10},
+    // pgjdbc is known to have bugs with standard_conforming_strings=no
+    // so skip tests with 'no' until https://github.com/pgjdbc/pgjdbc/pull/4404 is merged
+    // {value: 'no', title: 'standard_conforming_strings=no', weight: 10},
   ]
 });
 
