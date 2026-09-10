@@ -48,7 +48,7 @@ public class Parser {
       boolean withParameters, boolean splitStatements,
       boolean isBatchedReWriteConfigured,
       boolean quoteReturningIdentifiers,
-      String... returningColumnNames) throws SQLException {
+      String @Nullable ... returningColumnNames) throws SQLException {
     if (!withParameters && !splitStatements
         && returningColumnNames != null && returningColumnNames.length == 0) {
       return Collections.singletonList(new NativeQuery(query,
@@ -369,8 +369,9 @@ public class Parser {
   }
 
   private static boolean addReturning(StringBuilder nativeSql, SqlCommandType currentCommandType,
-      String[] returningColumnNames, boolean isReturningPresent, boolean quoteReturningIdentifiers) throws SQLException {
-    if (isReturningPresent || returningColumnNames.length == 0) {
+      String @Nullable [] returningColumnNames, boolean isReturningPresent,
+      boolean quoteReturningIdentifiers) throws SQLException {
+    if (isReturningPresent || returningColumnNames == null || returningColumnNames.length == 0) {
       return false;
     }
     if (currentCommandType != SqlCommandType.INSERT
@@ -380,8 +381,28 @@ public class Parser {
       return false;
     }
 
+    // Check the whole list first, so which name is unusable does not decide whether the caller
+    // gets an exception or a half-written clause
+    for (int col = 0; col < returningColumnNames.length; col++) {
+      String columnName = returningColumnNames[col];
+      if (columnName == null) {
+        throw new PSQLException(
+            GT.tr("Generated key column name at index {0} is null. Name the columns to return, or "
+                + "pass an empty array to return none.", col),
+            PSQLState.INVALID_PARAMETER_VALUE);
+      }
+      if (columnName.isEmpty()) {
+        throw new PSQLException(
+            GT.tr("Generated key column name at index {0} is empty. Name the columns to return, or "
+                + "pass an empty array to return none.", col),
+            PSQLState.INVALID_PARAMETER_VALUE);
+      }
+    }
+
     nativeSql.append("\nRETURNING ");
-    if (returningColumnNames.length == 1 && returningColumnNames[0].charAt(0) == '*') {
+    // QueryWithReturningColumnsKey uses "*" to mean every column, and that one name is not quoted.
+    // A column actually named "*abc" is an identifier like any other.
+    if (returningColumnNames.length == 1 && "*".equals(returningColumnNames[0])) {
       nativeSql.append('*');
       return true;
     }
