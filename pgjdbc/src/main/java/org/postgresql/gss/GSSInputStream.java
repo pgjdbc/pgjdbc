@@ -50,6 +50,22 @@ public class GSSInputStream extends InputStream {
     return res == -1 ? -1 : int1Buf[0] & 0xFF;
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * <p>Counts the bytes of the current frame that are decrypted but not yet handed out. A frame
+   * can carry more plaintext than the caller asked for, and the remainder stays here until the
+   * next read. Encrypted bytes still in the wrapped stream are left out: a frame yields nothing
+   * until the whole of it has arrived, and how much plaintext it holds is not known before it is
+   * unwrapped. The result is therefore a lower bound, which is all
+   * {@link InputStream#available()} promises.</p>
+   */
+  @Override
+  public int available() throws IOException {
+    byte[] unencrypted = this.unencrypted;
+    return unencrypted == null ? 0 : unencrypted.length - unencryptedPos;
+  }
+
   @Override
   public int read(byte[] buffer, int pos, int len) throws IOException {
     int n = 0;
