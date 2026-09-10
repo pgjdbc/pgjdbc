@@ -5,18 +5,46 @@
 
 package org.postgresql.test.jdbc4;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
+import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.stream.Stream;
 
+@ParameterizedClass
+@MethodSource("data")
 public class CharacterStreamTest extends BaseTest4 {
+
+  public CharacterStreamTest(PreferQueryMode preferQueryMode) {
+    setPreferQueryMode(preferQueryMode);
+  }
+
+  // setCharacterStream(int, Reader) takes a separate path in simple query mode
+  public static Iterable<Object[]> data() {
+    return Arrays.asList(
+        new Object[]{PreferQueryMode.EXTENDED},
+        new Object[]{PreferQueryMode.SIMPLE});
+  }
 
   private static final String TEST_TABLE_NAME = "charstream";
   private static final String TEST_COLUMN_NAME = "cs";
@@ -218,5 +246,146 @@ public class CharacterStreamTest extends BaseTest4 {
     String data = getTestData(200 * 1024);
     insertStreamUnknownLength(data);
     validateContent(data);
+  }
+
+  private void insertWithLongLength(String data, long length) throws SQLException {
+    try (PreparedStatement ps = con.prepareStatement(_insert)) {
+      ps.setCharacterStream(1, new StringReader(data), length);
+      ps.executeUpdate();
+    }
+  }
+
+  @Test
+  public void longLengthShorterThanTheReaderBindsTheFirstLengthChars() throws Exception {
+    insertWithLongLength("abcdef", 3L);
+    validateContent("abc");
+  }
+
+  @Test
+  public void longLengthLongerThanTheReaderBindsTheWholeReader() throws Exception {
+    insertWithLongLength("abc", 10L);
+    validateContent("abc");
+  }
+
+  @Test
+  public void longLengthZeroBindsAnEmptyString() throws Exception {
+    insertWithLongLength("abc", 0L);
+    validateContent("");
+  }
+
+  @Test
+  public void longLengthIntegerMaxValueIsAccepted() throws Exception {
+    insertWithLongLength("abc", Integer.MAX_VALUE);
+    validateContent("abc");
+  }
+
+  // U+1F600 is two chars in UTF-16, and length counts chars, not code points
+  @Test
+  public void longLengthCountsUtf16Chars() throws Exception {
+    insertWithLongLength("😀xyz", 3L);
+    validateContent("😀x");
+  }
+
+  @ParameterizedTest
+  @ValueSource(longs = {Integer.MAX_VALUE + 1L, Long.MAX_VALUE})
+  public void longLengthAboveIntegerMaxValueIsRejected(long length) throws SQLException {
+    try (PreparedStatement ps = con.prepareStatement(_insert)) {
+      SQLException e = assertThrows(SQLException.class,
+          () -> ps.setCharacterStream(1, new StringReader("abc"), length));
+      assertEquals(PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE.getState(), e.getSQLState(),
+          () -> "setCharacterStream(1, reader, " + length + "L)");
+    }
+  }
+
+  // (int) Long.MIN_VALUE is 0, so a sign check made after the narrowing cast would accept it, and
+  // MessageFormat would print its digits grouped
+  @ParameterizedTest
+  @ValueSource(longs = {-1L, Long.MIN_VALUE})
+  public void negativeLongLengthIsRejectedAndReportedWithUngroupedDigits(long length)
+      throws SQLException {
+    try (PreparedStatement ps = con.prepareStatement(_insert)) {
+      SQLException e = assertThrows(SQLException.class,
+          () -> ps.setCharacterStream(1, new StringReader("abc"), length));
+      String call = "setCharacterStream(1, reader, " + length + "L)";
+      String digits = Long.toString(length);
+      String message = String.valueOf(e.getMessage());
+      assertAll(
+          () -> assertEquals(PSQLState.INVALID_PARAMETER_VALUE.getState(), e.getSQLState(),
+              call + ", SQLState"),
+          () -> assertTrue(message.contains(digits),
+              () -> call + ", message: expected to contain <" + digits + "> but was <" + message
+                  + ">"));
+    }
+  }
+
+  @Test
+  public void intLengthShorterThanTheReaderBindsTheFirstLengthChars() throws Exception {
+    try (PreparedStatement ps = con.prepareStatement(_insert)) {
+      ps.setCharacterStream(1, new StringReader("abcdef"), 3);
+      ps.executeUpdate();
+    }
+    validateContent("abc");
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {-1, Integer.MIN_VALUE})
+  public void negativeIntLengthIsRejected(int length) throws SQLException {
+    try (PreparedStatement ps = con.prepareStatement(_insert)) {
+      SQLException e = assertThrows(SQLException.class,
+          () -> ps.setCharacterStream(1, new StringReader("abc"), length));
+      assertEquals(PSQLState.INVALID_PARAMETER_VALUE.getState(), e.getSQLState(),
+          () -> "setCharacterStream(1, reader, " + length + ")");
+    }
+  }
+
+  interface CharacterStreamSetter {
+    void set(PreparedStatement ps, Reader reader) throws SQLException;
+  }
+
+  static Stream<Arguments> characterStreamSetters() {
+    return Stream.of(
+        argumentSet("setCharacterStream(int, Reader, long)",
+            (CharacterStreamSetter) (ps, reader) -> ps.setCharacterStream(1, reader, 3L)),
+        argumentSet("setCharacterStream(int, Reader, int)",
+            (CharacterStreamSetter) (ps, reader) -> ps.setCharacterStream(1, reader, 3)),
+        argumentSet("setCharacterStream(int, Reader)",
+            (CharacterStreamSetter) (ps, reader) -> ps.setCharacterStream(1, reader)));
+  }
+
+  /**
+   * Counts the calls to {@code read}, so a test can check that the driver never read from it.
+   */
+  private static final class ReadCountingReader extends StringReader {
+    int reads;
+
+    ReadCountingReader(String s) {
+      super(s);
+    }
+
+    @Override
+    public int read() throws IOException {
+      reads++;
+      return super.read();
+    }
+
+    @Override
+    public int read(char[] cbuf, int off, int len) throws IOException {
+      reads++;
+      return super.read(cbuf, off, len);
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("characterStreamSetters")
+  public void closedStatementIsRejectedBeforeTheReaderIsRead(CharacterStreamSetter setter)
+      throws SQLException {
+    PreparedStatement ps = con.prepareStatement(_insert);
+    ps.close();
+    ReadCountingReader reader = new ReadCountingReader("abc");
+    SQLException e = assertThrows(SQLException.class, () -> setter.set(ps, reader));
+    assertAll(
+        () -> assertEquals(PSQLState.OBJECT_NOT_IN_STATE.getState(), e.getSQLState(),
+            "SQLState"),
+        () -> assertEquals(0, reader.reads, "calls to Reader.read"));
   }
 }
