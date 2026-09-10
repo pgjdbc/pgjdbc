@@ -6,6 +6,7 @@
 package org.postgresql.core;
 
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.GT;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -136,9 +137,10 @@ public class VisibleBufferedInputStream extends InputStream {
    * Ensures that the buffer contains at least n bytes. This method invalidates the buffer and index
    * fields.
    *
-   * @param n The amount of bytes to ensure exists in buffer
-   * @return true if required bytes are available and false if EOF
-   * @throws IOException If reading of the wrapped stream failed.
+   * @param n The amount of bytes to ensure exists in buffer. Must not be negative.
+   * @return true if required bytes are available and false at end of stream
+   * @throws IOException If reading of the wrapped stream failed, or n is negative. A negative n is
+   *         refused before any byte is read, so the buffer and the read position are unchanged.
    */
   public boolean ensureBytes(int n) throws IOException {
     return ensureBytes(n, true);
@@ -148,12 +150,18 @@ public class VisibleBufferedInputStream extends InputStream {
    * Ensures that the buffer contains at least n bytes. This method invalidates the buffer and index
    * fields.
    *
-   * @param n The amount of bytes to ensure exists in buffer
+   * @param n The amount of bytes to ensure exists in buffer. Must not be negative.
    * @param block whether or not to block the IO
-   * @return true if required bytes are available and false if EOF or the parameter block was false and socket timeout occurred.
-   * @throws IOException If reading of the wrapped stream failed.
+   * @return true if required bytes are available, and false at end of stream or, when block is
+   *         false, on a socket timeout
+   * @throws IOException If reading of the wrapped stream failed, or n is negative. A negative n is
+   *         refused before any byte is read, so the buffer and the read position are unchanged.
    */
   public boolean ensureBytes(int n, boolean block) throws IOException {
+    if (n < 0) {
+      throw new IOException(GT.tr("Cannot read a negative number of bytes: {0}.",
+          String.valueOf(n)));
+    }
     int required = n - endIndex + index;
     while (required > 0) {
       if (!readMore(required, block)) {
