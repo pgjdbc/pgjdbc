@@ -315,6 +315,13 @@ public class VisibleBufferedInputStream extends InputStream {
 
   /**
    * {@inheritDoc}
+   *
+   * <p>Reports a lower bound rather than the sum {@link java.io.BufferedInputStream#available()}
+   * returns: once the buffer holds bytes, the wrapped stream is not asked, so the count leaves out
+   * whatever has since arrived at the socket. The driver reads this only to tell zero from
+   * non-zero, which stays exact either way and costs no {@code FIONREAD} syscall while the buffer
+   * is non-empty. Summing would also throw on a closed socket that still has bytes buffered,
+   * because a socket stream checks the socket before it counts.</p>
    */
   @Override
   public int available() throws IOException {
@@ -352,7 +359,11 @@ public class VisibleBufferedInputStream extends InputStream {
   /**
    * Scans the length of the next null terminated string (C-style string) from the stream.
    *
-   * @return The length of the next null terminated string.
+   * <p>Reading to find the terminator may move the string within the buffer or replace the buffer
+   * outright, so anything {@link #getBuffer()} or {@link #getIndex()} returned before this call is
+   * stale afterwards. Call them again to read the string out.</p>
+   *
+   * @return The length of the next null terminated string, including the terminator.
    * @throws IOException If reading of stream fails.
    * @throws EOFException If the stream did not contain any null terminators.
    */
@@ -365,7 +376,7 @@ public class VisibleBufferedInputStream extends InputStream {
         }
       }
       if (!readMore(STRING_SCAN_SPAN, true)) {
-        throw new EOFException();
+        throw new EOFException("End of stream reached while looking for the end of a string");
       }
       pos = index;
     }
@@ -377,6 +388,12 @@ public class VisibleBufferedInputStream extends InputStream {
 
   /**
    * Returns the underlying stream.
+   *
+   * <p>The two share a position and this one reads ahead, so bytes already in the buffer are past
+   * the point the returned stream resumes at. Reading from it therefore skips them, and neither
+   * stream can tell afterwards. It is meant for asking the wrapped stream about itself, not for
+   * taking data out of it.</p>
+   *
    * @return the underlying stream
    */
   public InputStream getWrapped() {
