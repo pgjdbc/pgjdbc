@@ -6,6 +6,7 @@
 package org.postgresql.core;
 
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.GT;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -56,6 +57,15 @@ public class VisibleBufferedInputStream extends InputStream {
    * socket timeout has been requested
    */
   private boolean timeoutRequested;
+
+  /**
+   * Whether {@link #close()} has run. Reading is refused from then on.
+   *
+   * <p>Not volatile, and deliberately so: this class is unsynchronized throughout, and a reader
+   * that has not yet observed the write behaves the way it did before the flag existed rather
+   * than in some new way.</p>
+   */
+  private boolean closed;
 
   /**
    * Creates a new buffer around the given stream.
@@ -124,6 +134,10 @@ public class VisibleBufferedInputStream extends InputStream {
    * Reads byte from the buffer without any checks. This method never reads from the underlying
    * stream. Before calling this method the {@link #ensureBytes} method must have been called.
    *
+   * <p>{@link #close()} leaves the buffer as it stands, so this keeps handing out what was read
+   * before the close as if nothing had happened. A caller that needs a closed stream to say so has
+   * to come through {@link #ensureBytes(int)}, which is the call this method already requires.</p>
+   *
    * @return The next byte from the buffer.
    * @throws ArrayIndexOutOfBoundsException If ensureBytes was not called to make sure the buffer
    *         contains the byte.
@@ -154,6 +168,9 @@ public class VisibleBufferedInputStream extends InputStream {
    * @throws IOException If reading of the wrapped stream failed.
    */
   public boolean ensureBytes(int n, boolean block) throws IOException {
+    if (closed) {
+      throw new IOException(GT.tr("Stream is closed."));
+    }
     int required = n - endIndex + index;
     while (required > 0) {
       if (!readMore(required, block)) {
@@ -172,6 +189,9 @@ public class VisibleBufferedInputStream extends InputStream {
    * @throws IOException If reading of the wrapped stream failed.
    */
   private boolean readMore(int wanted, boolean block) throws IOException {
+    if (closed) {
+      throw new IOException(GT.tr("Stream is closed."));
+    }
     if (endIndex == index) {
       index = 0;
       endIndex = 0;
@@ -242,6 +262,9 @@ public class VisibleBufferedInputStream extends InputStream {
    */
   @Override
   public int read(byte[] to, int off, int len) throws IOException {
+    if (closed) {
+      throw new IOException(GT.tr("Stream is closed."));
+    }
     if ((off | len | (off + len) | (to.length - (off + len))) < 0) {
       throw new IndexOutOfBoundsException();
     } else if (len == 0) {
@@ -300,6 +323,9 @@ public class VisibleBufferedInputStream extends InputStream {
    */
   @Override
   public long skip(long n) throws IOException {
+    if (closed) {
+      throw new IOException(GT.tr("Stream is closed."));
+    }
     int avail = endIndex - index;
     if (avail >= n) {
       // Cast to int is safe here since the number of available bytes within the buffer
@@ -318,21 +344,47 @@ public class VisibleBufferedInputStream extends InputStream {
    */
   @Override
   public int available() throws IOException {
+    if (closed) {
+      throw new IOException(GT.tr("Stream is closed."));
+    }
     int avail = endIndex - index;
     return avail > 0 ? avail : wrapped.available();
   }
 
   /**
    * {@inheritDoc}
+   *
+   * <p>Reading afterwards raises an {@link IOException} rather than answering out of the buffer.
+   * The bytes left in it belong to the connection that has just gone away, so serving them would
+   * hand a caller protocol data from a stream it can no longer make progress on, which reads as
+   * ordinary data until the buffer runs out and then fails somewhere unrelated to the close.</p>
+   *
+   * <p>Nothing about the buffer changes -- not the array, not the read position. A close may run
+   * on a thread other than the reader, since {@code Connection.close()} takes no lock, and both of
+   * those fields otherwise have a single writer. Taking one of them over from another thread would
+   * move a reader's position out from under it between the moment it asks {@link #ensureBytes(int)}
+   * for bytes and the moment it reads them through {@link #getBuffer()} and {@link #getIndex()},
+   * which decodes the wrong bytes instead of failing. Refusing at every way in is what makes the
+   * buffered bytes unreachable, and it writes one field to do it.</p>
+   *
+   * <p>Calling this more than once closes the wrapped stream once.</p>
    */
   @Override
   public void close() throws IOException {
+    if (closed) {
+      return;
+    }
+    closed = true;
     wrapped.close();
   }
 
   /**
    * Returns direct handle to the used buffer. Use the {@link #ensureBytes} to prefill required
    * bytes the buffer and {@link #getIndex} to fetch the current position of the buffer.
+   *
+   * <p>{@link #close()} leaves both the array and the position alone, so the pair still reads as
+   * it did. What it holds then belongs to a connection that has gone away, and {@code ensureBytes}
+   * refuses to prefill it, so the pair is only meaningful before the close.</p>
    *
    * @return The underlying buffer.
    */
@@ -357,6 +409,11 @@ public class VisibleBufferedInputStream extends InputStream {
    * @throws EOFException If the stream did not contain any null terminators.
    */
   public int scanCStringLength() throws IOException {
+    // The only read that can answer out of the buffer without reaching readMore, so the guard
+    // cannot be left to that one
+    if (closed) {
+      throw new IOException(GT.tr("Stream is closed."));
+    }
     int pos = index;
     while (true) {
       while (pos < endIndex) {
