@@ -113,6 +113,19 @@ public class BlobOutputStream extends OutputStream {
     long loId = 0;
     try (ResourceLock ignore = lock.obtain()) {
       LargeObject lo = checkClosed();
+      // PGStream.send pads a range past the end of the array with zeros instead of failing, so
+      // the range has to be rejected here rather than on the way to the server. checkClosed()
+      // stays first so a closed stream still reports itself as closed. The null array is rejected
+      // on its own because otherwise the NullPointerException would come out of the b.length that
+      // builds the range message, and rewording that message would silently drop it.
+      if (b == null) {
+        throw new NullPointerException();
+      }
+      if (off < 0 || len < 0 || len > b.length - off) {
+        throw new IndexOutOfBoundsException(
+            "Range [" + off + ", " + off + " + " + len + ") is out of bounds for byte[" + b.length
+                + "]");
+      }
       loId = lo.getLongOID();
       byte[] buf = this.buf;
       int totalData = bufferPosition + len;
