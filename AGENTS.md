@@ -1,6 +1,10 @@
 # AGENTS.md
 
+
 ## Word choice in comments, documentation, and names
+
+Guidance for AI coding agents working in the PgJDBC repository. Keep changes small,
+build-clean, and consistent with the conventions below.
 
 Use the right-hand column below in Javadoc, inline comments, error and log messages, `CHANGELOG.md`, `docs/`,
 commit messages, and pull request descriptions.
@@ -20,11 +24,13 @@ commit messages, and pull request descriptions.
 The list binds identifiers as well as prose: rename `fieldCap` to `fieldLimit` along with the comment beside it, and
 `rejectsAFieldCountBeyondTheEnvelope` to `rejectsAFieldCountBeyondTheMessage`. This covers names you introduce and
 names in code you are already changing. Do not open a renaming pass over untouched code.
+=======
+Keep changes small, build-clean, and consistent with the conventions below.
+>>>>>>> a8d6f1b91 (break up one long paragraph)
 
 Do not describe code with words borrowed from building or construction. Say the plain thing: critical, not
 load-bearing; the key part, not the cornerstone; a check, not a guardrail. The terms the field already uses literally,
 build, architecture, and framework, are fine; this is about the decorative ones.
-
 These stay as they are:
 
 - Names an outside standard fixes, whether Java, an RFC, or PostgreSQL itself: the SQL function `ceiling()`,
