@@ -159,10 +159,17 @@ public class PGbytea {
 
   /**
    * Formats input object as {@code bytea} literal like {@code '\xcafebabe'::bytea}.
-   * The following inputs are supported: {@code byte[]}, {@link StreamWrapper}, and
-   * {@link ByteStreamWriter}.
+   * The following inputs are supported: {@code byte[]}, {@link StreamWrapper},
+   * {@link ByteStreamWriter}, and a {@code String} holding the hex format.
+   *
+   * <p>The literal is always the plain form, whatever the server reports. A server with
+   * {@code standard_conforming_strings} off reads its leading backslash as an escape character,
+   * so it refuses the statement or stores a different value; use
+   * {@link #toPGLiteral(Object, SqlSerializationContext)} against such a server.</p>
+   *
    * @param value input value to format
-   * @return formatted value
+   * @return the literal, or {@code ?} for a {@link StreamWrapper} over an {@link InputStream},
+   *     which this overload always leaves unread
    * @throws IOException in case there's underflow in the input value
    * @deprecated prefer {@link #toPGLiteral(Object, SqlSerializationContext)} to clarify the behaviour
    *     regarding {@link InputStream} objects
@@ -173,12 +180,16 @@ public class PGbytea {
   }
 
   /**
-   * Formats input object as {@code bytea} literal like {@code '\xcafebabe'::bytea}.
-   * The following inputs are supported: {@code byte[]}, {@link StreamWrapper}, and
-   * {@link ByteStreamWriter}.
+   * Formats input object as {@code bytea} literal like {@code '\xcafebabe'::bytea}, or
+   * {@code E'\\xcafebabe'::bytea} where {@code context} reports
+   * {@code standard_conforming_strings} off.
+   * The following inputs are supported: {@code byte[]}, {@link StreamWrapper},
+   * {@link ByteStreamWriter}, and a {@code String} holding the hex format.
+   *
    * @param value input value to format
    * @param context specifies configuration for converting the parameters to string
-   * @return formatted value
+   * @return the literal, or {@code ?} where {@code context} is idempotent and the value is a
+   *     {@link StreamWrapper} over an {@link InputStream}, which is then left unread
    * @throws IOException in case there's underflow in the input value
    */
   public static String toPGLiteral(Object value, SqlSerializationContext context) throws IOException {
@@ -207,13 +218,17 @@ public class PGbytea {
         throw new IllegalArgumentException(
             GT.tr("The bytea hex value has an odd number of digits."));
       }
-      return "'" + str + "'::bytea";
+      StringBuilder sb = new StringBuilder(str.length() + 12);
+      openHexLiteral(sb, context);
+      sb.append(str, 2, str.length());
+      sb.append("'::bytea");
+      return sb.toString();
     }
 
     if (value instanceof byte[]) {
       byte[] bytes = (byte[]) value;
-      StringBuilder sb = new StringBuilder(bytes.length * 2 + 11);
-      sb.append("'\\x");
+      StringBuilder sb = new StringBuilder(bytes.length * 2 + 13);
+      openHexLiteral(sb, context);
       appendHexString(sb, bytes, 0, bytes.length);
       sb.append("'::bytea");
       return sb.toString();
@@ -229,8 +244,8 @@ public class PGbytea {
       }
 
       int length = sw.getLength();
-      StringBuilder sb = new StringBuilder(length * 2 + 11);
-      sb.append("'\\x");
+      StringBuilder sb = new StringBuilder(length * 2 + 13);
+      openHexLiteral(sb, context);
       if (bytes != null) {
         appendHexString(sb, bytes, sw.getOffset(), length);
       } else if (length > 0) {
@@ -258,8 +273,8 @@ public class PGbytea {
     if (value instanceof ByteStreamWriter) {
       ByteStreamWriter bsw = (ByteStreamWriter) value;
       int len = bsw.getLength();
-      StringBuilder sb = new StringBuilder(len * 2 + 11);
-      sb.append("'\\x");
+      StringBuilder sb = new StringBuilder(len * 2 + 13);
+      openHexLiteral(sb, context);
       FixedLengthOutputStream str = new FixedLengthOutputStream(len, new OutputStream() {
         @Override
         public void write(int b) {
@@ -282,6 +297,19 @@ public class PGbytea {
 
     throw new IllegalArgumentException(
         GT.tr("Cannot convert {0} to {1} literal", value.getClass(), "bytea"));
+  }
+
+  /**
+   * Opens a hex-format {@code bytea} literal: the {@code E} prefix where one is needed, the quote,
+   * and the {@code \x} marker. A server with {@code standard_conforming_strings} off reads a
+   * backslash in a plain literal as an escape character, so the literal is written as an escape
+   * string constant there, with the marker's backslash doubled.
+   *
+   * @param sb output builder
+   * @param context specifies configuration for converting the parameters to string
+   */
+  private static void openHexLiteral(StringBuilder sb, SqlSerializationContext context) {
+    sb.append(context.getStandardConformingStrings() ? "'\\x" : "E'\\\\x");
   }
 
   private static boolean isHexDigit(char ch) {
