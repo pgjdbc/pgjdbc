@@ -91,7 +91,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -2069,24 +2068,186 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return;
     }
     String sql = originalQuery.toString(null);
-    StringTokenizer st = new StringTokenizer(sql, " \r\t\n");
-    boolean tableFound = false;
-    boolean tablesChecked = false;
-    String name = "";
-
     singleTable = true;
+    tableName = findTableName(sql);
+  }
 
-    while (!tableFound && !tablesChecked && st.hasMoreTokens()) {
-      name = st.nextToken();
-      if ("from".equalsIgnoreCase(name)) {
-        tableName = st.nextToken();
-        if ("only".equalsIgnoreCase(tableName)) {
-          tableName = st.nextToken();
-          onlyTable = "ONLY ";
+  private @Nullable String findTableName(String sql) {
+    int length = sql.length();
+    int depth = 0;
+    int i = 0;
+    while (i < length) {
+      char c = sql.charAt(i);
+      if (isLineCommentStart(sql, i)) {
+        i = skipLineComment(sql, i);
+      } else if (isBlockCommentStart(sql, i)) {
+        i = skipBlockComment(sql, i);
+      } else if (c == '\'' || c == '"') {
+        i = skipQuoted(sql, i, c);
+      } else if (c == '$') {
+        int dollarEnd = skipDollarQuoted(sql, i);
+        i = dollarEnd < 0 ? i + 1 : dollarEnd;
+      } else if (c == '(') {
+        depth++;
+        i++;
+      } else if (c == ')') {
+        depth = Math.max(0, depth - 1);
+        i++;
+      } else if (isIdentifierStart(c)) {
+        int wordEnd = skipIdentifier(sql, i);
+        if (depth == 0 && "from".equalsIgnoreCase(sql.substring(i, wordEnd))) {
+          return readTableReference(sql, wordEnd);
         }
-        tableFound = true;
+        i = wordEnd;
+      } else {
+        i++;
       }
     }
+    return null;
+  }
+
+  private @Nullable String readTableReference(String sql, int pos) {
+    int start = skipWhitespaceAndComments(sql, pos);
+    int end = skipReferenceToken(sql, start);
+    if (end == start) {
+      return null;
+    }
+    String reference = sql.substring(start, end);
+    if (!"only".equalsIgnoreCase(reference)) {
+      return reference;
+    }
+    onlyTable = "ONLY ";
+    start = skipWhitespaceAndComments(sql, end);
+    end = skipReferenceToken(sql, start);
+    return end == start ? null : sql.substring(start, end);
+  }
+
+  private static int skipReferenceToken(String sql, int start) {
+    int length = sql.length();
+    int i = start;
+    while (i < length) {
+      char c = sql.charAt(i);
+      if (isSqlWhitespace(c)) {
+        break;
+      }
+      i = c == '"' ? skipQuoted(sql, i, '"') : i + 1;
+    }
+    return i;
+  }
+
+  private static int skipWhitespaceAndComments(String sql, int i) {
+    int length = sql.length();
+    while (i < length) {
+      char c = sql.charAt(i);
+      if (isSqlWhitespace(c)) {
+        i++;
+      } else if (isLineCommentStart(sql, i)) {
+        i = skipLineComment(sql, i);
+      } else if (isBlockCommentStart(sql, i)) {
+        i = skipBlockComment(sql, i);
+      } else {
+        break;
+      }
+    }
+    return i;
+  }
+
+  private static int skipQuoted(String sql, int i, char quote) {
+    int length = sql.length();
+    i++;
+    while (i < length) {
+      if (sql.charAt(i) == quote) {
+        if (i + 1 < length && sql.charAt(i + 1) == quote) {
+          i += 2;
+        } else {
+          return i + 1;
+        }
+      } else {
+        i++;
+      }
+    }
+    return length;
+  }
+
+  private static int skipDollarQuoted(String sql, int i) {
+    int tagEnd = dollarQuoteTagEnd(sql, i);
+    if (tagEnd < 0) {
+      return -1;
+    }
+    String tag = sql.substring(i, tagEnd);
+    int close = sql.indexOf(tag, tagEnd);
+    return close < 0 ? sql.length() : close + tag.length();
+  }
+
+  private static int dollarQuoteTagEnd(String sql, int i) {
+    int length = sql.length();
+    int j = i + 1;
+    if (j < length && sql.charAt(j) == '$') {
+      return j + 1;
+    }
+    if (j >= length || !isIdentifierStart(sql.charAt(j))) {
+      return -1;
+    }
+    j++;
+    while (j < length && isIdentifierPart(sql.charAt(j))) {
+      j++;
+    }
+    return j < length && sql.charAt(j) == '$' ? j + 1 : -1;
+  }
+
+  private static int skipLineComment(String sql, int i) {
+    int length = sql.length();
+    i += 2;
+    while (i < length && sql.charAt(i) != '\n') {
+      i++;
+    }
+    return i;
+  }
+
+  private static int skipBlockComment(String sql, int i) {
+    int length = sql.length();
+    int depth = 0;
+    do {
+      if (isBlockCommentStart(sql, i)) {
+        depth++;
+        i += 2;
+      } else if (i + 1 < length && sql.charAt(i) == '*' && sql.charAt(i + 1) == '/') {
+        depth--;
+        i += 2;
+      } else {
+        i++;
+      }
+    } while (i < length && depth > 0);
+    return i;
+  }
+
+  private static int skipIdentifier(String sql, int i) {
+    int length = sql.length();
+    i++;
+    while (i < length && isIdentifierPart(sql.charAt(i))) {
+      i++;
+    }
+    return i;
+  }
+
+  private static boolean isLineCommentStart(String sql, int i) {
+    return i + 1 < sql.length() && sql.charAt(i) == '-' && sql.charAt(i + 1) == '-';
+  }
+
+  private static boolean isBlockCommentStart(String sql, int i) {
+    return i + 1 < sql.length() && sql.charAt(i) == '/' && sql.charAt(i + 1) == '*';
+  }
+
+  private static boolean isSqlWhitespace(char c) {
+    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+  }
+
+  private static boolean isIdentifierStart(char c) {
+    return Character.isLetter(c) || c == '_';
+  }
+
+  private static boolean isIdentifierPart(char c) {
+    return Character.isLetterOrDigit(c) || c == '$' || c == '_';
   }
 
   private void setRowBufferColumn(Tuple rowBuffer,
