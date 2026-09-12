@@ -355,7 +355,50 @@ public class TestUtil {
    */
   public static Connection openDB(Properties props) throws SQLException {
     Properties propsWithDefaults = mergeDefaultProperties(props);
-    return DriverManager.getConnection(getURL(propsWithDefaults), propsWithDefaults);
+    String url = getURL(propsWithDefaults);
+    // In domain socket "all" mode (fuzzing), route the plain default connection through a Unix
+    // domain socket. Only connections that the caller did not customise are redirected: any test
+    // that passes its own properties (a different database or user, SSL, GSS, an auth plugin, ...)
+    // stays on TCP so it keeps exercising the host-based behaviour it targets. The socket factory is
+    // passed as a connection property rather than appended to the URL, so getURL() still matches
+    // PgConnection.getURL().
+    if (props.isEmpty() && "all".equals(getDomainSocketMode())
+        && getDomainSocketDir() != null
+        && PGProperty.SOCKET_FACTORY.getOrDefault(propsWithDefaults) == null) {
+      // Copy first so System.getProperties() is not mutated for the no-properties case.
+      propsWithDefaults = new Properties(propsWithDefaults);
+      PGProperty.SOCKET_FACTORY.set(propsWithDefaults,
+          "org.postgresql.unixsocket.UnixDomainSocketFactory");
+      PGProperty.SOCKET_FACTORY_ARG.set(propsWithDefaults, castNonNull(getDomainSocketDir()));
+    }
+    return DriverManager.getConnection(url, propsWithDefaults);
+  }
+
+  /**
+   * Returns the absolute path of the directory that holds the server's Unix domain socket, or
+   * {@code null} when the socket listener was not activated for this test run. Set on the JVM with
+   * {@code -DdomainSocketDir=<dir>}; the matrix configures it when the {@code domain_socket} axis is
+   * active.
+   *
+   * @return the socket directory, or {@code null}
+   */
+  public static @Nullable String getDomainSocketDir() {
+    String dir = System.getProperty("domainSocketDir");
+    if (dir == null || dir.isEmpty()) {
+      return null;
+    }
+    return getFile(dir).getAbsolutePath();
+  }
+
+  /**
+   * Returns how tests use the Unix domain socket: {@code none} (default, all TCP), {@code smoke}
+   * (only the dedicated socket tests use it) or {@code all} (every default connection uses it). Set
+   * on the JVM with {@code -DdomainSocketMode=<mode>}.
+   *
+   * @return the domain socket test mode
+   */
+  public static String getDomainSocketMode() {
+    return System.getProperty("domainSocketMode", "none");
   }
 
   /**
