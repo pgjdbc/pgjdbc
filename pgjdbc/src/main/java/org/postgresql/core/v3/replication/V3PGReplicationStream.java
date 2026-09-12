@@ -30,6 +30,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
   private static final long NANOS_PER_MILLISECOND = 1000000L;
 
   private final CopyDual copyDual;
+  private final ReplicationSocketSettings connectionSettings;
   private final long updateInterval;
   private final ReplicationType replicationType;
   private final boolean automaticFlush;
@@ -57,11 +58,14 @@ public class V3PGReplicationStream implements PGReplicationStream {
    *                         completely, although an update will still be sent when requested by the
    *                         server, to avoid timeout disconnect.
    * @param replicationType  LOGICAL or PHYSICAL
+   * @param connectionSettings the socket settings to put back when the stream ends
    */
-  public V3PGReplicationStream(CopyDual copyDual, LogSequenceNumber startLSN, long updateIntervalMs,
-      boolean automaticFlush, ReplicationType replicationType
+  V3PGReplicationStream(CopyDual copyDual, LogSequenceNumber startLSN, long updateIntervalMs,
+      boolean automaticFlush, ReplicationType replicationType,
+      ReplicationSocketSettings connectionSettings
   ) {
     this.copyDual = copyDual;
+    this.connectionSettings = connectionSettings;
     this.updateInterval = updateIntervalMs * NANOS_PER_MILLISECOND;
     this.lastStatusUpdate = System.nanoTime() - (updateIntervalMs * NANOS_PER_MILLISECOND);
     this.lastReceiveLSN = startLSN;
@@ -292,13 +296,19 @@ public class V3PGReplicationStream implements PGReplicationStream {
 
   @Override
   public void close() throws SQLException {
-    if (isClosed()) {
+    if (closeFlag) {
       return;
     }
 
-    LOGGER.log(Level.FINEST, " FE=> StopReplication");
+    // The wake-up is the stream's own, and CopyDone is an ordinary exchange rather than a wait for
+    // the next WAL record
+    connectionSettings.restore();
 
-    copyDual.endCopy();
+    if (copyDual.isActive()) {
+      LOGGER.log(Level.FINEST, " FE=> StopReplication");
+
+      copyDual.endCopy();
+    }
 
     closeFlag = true;
   }

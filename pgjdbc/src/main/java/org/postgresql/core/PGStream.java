@@ -89,6 +89,7 @@ public class PGStream implements Closeable, Flushable {
   // This is a workaround for SSL sockets: sslInputStream.available() might return 0
   // so we perform "1ms reads" once in a while
   private int minStreamAvailableCheckDelay = 1000;
+  private int readWakeupTimeout;
 
   private Encoding encoding;
 
@@ -250,6 +251,10 @@ public class PGStream implements Closeable, Flushable {
 
   public void setMinStreamAvailableCheckDelay(int delay) {
     this.minStreamAvailableCheckDelay = delay;
+  }
+
+  public int getMinStreamAvailableCheckDelay() {
+    return minStreamAvailableCheckDelay;
   }
 
   private Socket createSocket(int timeout) throws IOException {
@@ -760,6 +765,56 @@ public class PGStream implements Closeable, Flushable {
   public void setNetworkTimeout(int milliseconds) throws IOException {
     connection.setSoTimeout(milliseconds);
     pgInput.setTimeoutRequested(milliseconds != 0);
+  }
+
+  /**
+   * Sets how long {@link #receiveMessageType()} waits for a message to start before it reports
+   * a read timeout, in milliseconds. Zero, the default, leaves the connection's own timeout in
+   * charge of every read.
+   *
+   * <p>A caller that reads with a deadline of its own — a replication stream waking up to send a
+   * standby status update — asks for it here rather than by shortening the connection's timeout.
+   * The wait then covers only the byte that starts a message, where nothing has been consumed yet
+   * and a timeout costs nothing. A timeout partway through a message would leave the bytes it
+   * already took out of the stream, and the next read would take the middle of that message for
+   * the start of the next one.</p>
+   *
+   * @param milliseconds the wait, or zero for none
+   */
+  public void setReadWakeupTimeout(int milliseconds) {
+    this.readWakeupTimeout = milliseconds;
+  }
+
+  public int getReadWakeupTimeout() {
+    return readWakeupTimeout;
+  }
+
+  /**
+   * Reads the byte that starts a backend message, waiting no longer than the read wake-up timeout
+   * for it.
+   *
+   * @return the message type byte
+   * @throws java.net.SocketTimeoutException if the wake-up timeout passes with no message
+   * @throws IOException if the read fails
+   */
+  public int receiveMessageType() throws IOException {
+    int wakeup = readWakeupTimeout;
+    if (wakeup <= 0 || pgInput.available() > 0) {
+      return receiveChar();
+    }
+    // Read what the connection has rather than remembering it: a socket factory, an SSL upgrade or
+    // a GSS upgrade can set the timeout without going through setNetworkTimeout, and restoring a
+    // remembered value would put that connection on a timeout it never asked for
+    int previousTimeout = getNetworkTimeout();
+    boolean previousTimeoutRequested = pgInput.isTimeoutRequested();
+    connection.setSoTimeout(previousTimeout > 0 ? Math.min(previousTimeout, wakeup) : wakeup);
+    pgInput.setTimeoutRequested(true);
+    try {
+      return receiveChar();
+    } finally {
+      connection.setSoTimeout(previousTimeout);
+      pgInput.setTimeoutRequested(previousTimeoutRequested);
+    }
   }
 
   public int getNetworkTimeout() throws IOException {

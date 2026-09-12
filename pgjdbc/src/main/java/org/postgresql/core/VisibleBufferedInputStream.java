@@ -371,6 +371,10 @@ public class VisibleBufferedInputStream extends InputStream {
     }
   }
 
+  public boolean isTimeoutRequested() {
+    return timeoutRequested;
+  }
+
   public void setTimeoutRequested(boolean timeoutRequested) {
     this.timeoutRequested = timeoutRequested;
   }
