@@ -952,14 +952,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             setSocketTimeout(0); // Don't timeout after first char
           }
           switch (c) {
-            case 'A': // Asynchronous Notify
+            case PgMessageType.ASYNCHRONOUS_NOTICE:
               receiveAsyncNotify();
               timeoutMillis = -1;
               continue;
-            case 'E':
+            case PgMessageType.ERROR_RESPONSE:
               // Error Response (response to pretty much everything; backend then skips until Sync)
               throw receiveErrorResponse();
-            case 'N': // Notice Response (warnings / info)
+            case PgMessageType.NOTICE_RESPONSE: // warnings / info
               SQLWarning warning = receiveNoticeResponse();
               addWarning(warning);
               if (useTimeout) {
@@ -2382,7 +2382,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     while (!endQuery) {
       c = pgStream.receiveChar();
       switch (c) {
-        case 'A': // Asynchronous Notify
+        case PgMessageType.ASYNCHRONOUS_NOTICE:
           receiveAsyncNotify();
           break;
 
@@ -3050,15 +3050,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     // Update connection state.
     switch (tStatus) {
-      case 'I':
+      case PgMessageType.TRANSACTION_IDLE:
         transactionFailCause = null;
         setTransactionState(TransactionState.IDLE);
         break;
-      case 'T':
+      case PgMessageType.TRANSACTION_OPEN:
         transactionFailCause = null;
         setTransactionState(TransactionState.OPEN);
         break;
-      case 'E':
+      case PgMessageType.TRANSACTION_FAILED:
         setTransactionState(TransactionState.FAILED);
         break;
       default:
