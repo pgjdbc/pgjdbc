@@ -279,8 +279,8 @@ val getShadedDependencyLicenses = tasks.register<GatherLicenseTask>("getShadedDe
     listOf(
         "com.ongres.scram:scram-client:3.2",
         "com.ongres.scram:scram-common:3.2",
-        "com.ongres.stringprep:saslprep:2.2",
-        "com.ongres.stringprep:stringprep:2.2"
+        "com.ongres.stringprep:saslprep:2.4",
+        "com.ongres.stringprep:stringprep:2.4"
     ).forEach {
         overrideLicense(it) {
             effectiveLicense = "BSD-2-Clause"
