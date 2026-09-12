@@ -13,6 +13,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * This implements a class that handles the PostgreSQL interval type.
@@ -20,6 +22,16 @@ import java.util.StringTokenizer;
 public class PGInterval extends PGobject implements Serializable, Cloneable {
 
   private static final int MICROS_IN_SECOND = 1000000;
+  private static final Pattern SQL_STANDARD_YEAR_MONTH = Pattern.compile(
+      "^([+-]?)(\\d+)-(\\d+)$");
+  private static final Pattern SQL_STANDARD_YEAR_MONTH_CANDIDATE = Pattern.compile(
+      "^[+-]?\\d+-.*$");
+  private static final Pattern SQL_STANDARD_DAY_TIME = Pattern.compile(
+      "^([+-]?)(\\d+)\\s+([+-]?)(\\d+):(\\d{2}):(\\d{2}(?:\\.\\d+)?)$");
+  private static final Pattern SQL_STANDARD_DAY_TIME_CANDIDATE = Pattern.compile(
+      "^[+-]?\\d+\\s+[+-]?\\d+:.*$");
+  private static final Pattern SQL_STANDARD_COMPOUND = Pattern.compile(
+      "^([+-]?)(\\d+)-(\\d+)\\s+([+-])(\\d+)\\s+([+-])(\\d+):(\\d{2}):(\\d{2}(?:\\.\\d+)?)$");
 
   private int years;
   private int months;
@@ -109,6 +121,50 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     }
   }
 
+  private boolean parseSqlStandardFormat(String value) throws SQLException {
+    try {
+      Matcher yearMonthMatcher = SQL_STANDARD_YEAR_MONTH.matcher(value);
+      if (yearMonthMatcher.matches()) {
+        String sign = yearMonthMatcher.group(1);
+        setValue(
+            Integer.parseInt(sign + yearMonthMatcher.group(2)),
+            Integer.parseInt(sign + yearMonthMatcher.group(3)), 0, 0, 0, 0);
+        return true;
+      }
+
+      Matcher dayTimeMatcher = SQL_STANDARD_DAY_TIME.matcher(value);
+      if (dayTimeMatcher.matches()) {
+        String daySign = dayTimeMatcher.group(1);
+        String timeSign = dayTimeMatcher.group(3).isEmpty()
+            ? daySign : dayTimeMatcher.group(3);
+        setValue(0, 0,
+            Integer.parseInt(daySign + dayTimeMatcher.group(2)),
+            Integer.parseInt(timeSign + dayTimeMatcher.group(4)),
+            Integer.parseInt(timeSign + dayTimeMatcher.group(5)),
+            Double.parseDouble(timeSign + dayTimeMatcher.group(6)));
+        return true;
+      }
+
+      Matcher compoundMatcher = SQL_STANDARD_COMPOUND.matcher(value);
+      if (!compoundMatcher.matches()) {
+        return false;
+      }
+
+      String yearMonthSign = compoundMatcher.group(1);
+      setValue(
+          Integer.parseInt(yearMonthSign + compoundMatcher.group(2)),
+          Integer.parseInt(yearMonthSign + compoundMatcher.group(3)),
+          Integer.parseInt(compoundMatcher.group(4) + compoundMatcher.group(5)),
+          Integer.parseInt(compoundMatcher.group(6) + compoundMatcher.group(7)),
+          Integer.parseInt(compoundMatcher.group(6) + compoundMatcher.group(8)),
+          Double.parseDouble(compoundMatcher.group(6) + compoundMatcher.group(9)));
+      return true;
+    } catch (NumberFormatException e) {
+      throw new PSQLException(GT.tr("Cannot convert value to {0}: {1}", "interval", value),
+          PSQLState.BAD_DATETIME_FORMAT, e);
+    }
+  }
+
   /**
    * Initializes all values of this interval to the specified values.
    *
@@ -145,6 +201,14 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     if (value.startsWith("P")) {
       parseISO8601Format(value);
       return;
+    }
+    if (parseSqlStandardFormat(value)) {
+      return;
+    }
+    if (SQL_STANDARD_YEAR_MONTH_CANDIDATE.matcher(value).matches()
+        || SQL_STANDARD_DAY_TIME_CANDIDATE.matcher(value).matches()) {
+      throw new PSQLException(GT.tr("Cannot convert value to {0}: {1}", "interval", value),
+          PSQLState.BAD_DATETIME_FORMAT);
     }
     // Just a simple '0'
     if (!postgresFormat && value.length() == 3 && value.charAt(2) == '0') {
