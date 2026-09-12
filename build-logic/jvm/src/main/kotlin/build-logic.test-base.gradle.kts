@@ -22,7 +22,6 @@ tasks.configureEach<Test> {
     testLogging {
         showStandardStreams = true
     }
-    exclude("**/*Suite*")
     jvmArgs("-Xmx1536m")
     jvmArgs("-Djdk.net.URLClassPath.disableClassPathURLCheck=true")
     if (buildParameters.testJdkVersion >= 21) {
