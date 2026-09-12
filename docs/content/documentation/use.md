@@ -207,8 +207,9 @@ If provided will be used by ConsoleCallbackHandler
 * **`sslResponseTimeout (`*Integer*`)`** *Default `5000`*\
 Time in milliseconds to wait for a response after requesting an SSL encrypted connection from the server. If this is greater than the current connectTimeout then connectTimeout will be used.
 
-* **`protocolVersion (`*int*`)`** *Default `null`*\
-The driver supports the V3 frontend/backend protocols. The V3 protocol was introduced in 7.4 and the driver will by default try to connect using the V3 protocol.
+* **`protocolVersion (`*String*`)`** *Default `3`*\
+Protocol version the driver requests when it connects. `3` and `3.0` request version 3.0. `3.2` requests version 3.2, which PostgreSQL 18 introduced and which differs from 3.0 only in a longer query cancellation key. PostgreSQL 11 through 17 negotiate the connection down to 3.0, and so do 9.3 through 10 from minor releases 9.3.21, 9.4.16, 9.5.11, 9.6.7, and 10.2. With an older server, or through a connection pooler that does not implement protocol negotiation, the connection fails. Any other value fails the connection with `A connection could not be made using the requested protocol {0}.`
+  Since: 42.7.6 for `3.0` and `3.2`
 
 * **`loggerLevel (`*String*`)`**\
 This property is no longer used by the driver and will be ignored. All logging configuration is handled by java.util.logging.
