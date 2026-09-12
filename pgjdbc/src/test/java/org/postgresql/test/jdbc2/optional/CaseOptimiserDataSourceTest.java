@@ -109,5 +109,6 @@ public class CaseOptimiserDataSourceTest {
     bds.setPassword(TestUtil.getPassword());
     bds.setPrepareThreshold(TestUtil.getPrepareThreshold());
     bds.setProtocolVersion(TestUtil.getProtocolVersion());
+    TestUtil.configureOAuthIfNeeded(bds);
   }
 }
