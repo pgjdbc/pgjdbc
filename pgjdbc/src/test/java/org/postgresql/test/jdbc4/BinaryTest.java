@@ -5,7 +5,10 @@
 
 package org.postgresql.test.jdbc4;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -16,10 +19,11 @@ import org.postgresql.core.Field;
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.jdbc2.BaseTest4;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.Test;
 
-import java.nio.ByteBuffer;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -135,6 +139,35 @@ public class BinaryTest extends BaseTest4 {
   }
 
   @Test
+  public void testGetBytesRejectsNonBinaryTypesAcrossTransferFormats() throws SQLException {
+    try (PreparedStatement ps = con.prepareStatement(
+        "select 42::int4 as int_value, 1.25::float8 as float_value, "
+            + "'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid as uuid_value, "
+            + "'text'::text as text_value, decode('00015cff', 'hex') as bytea_value, "
+            + "null::bytea as null_bytea_value")) {
+      ((PGStatement) ps).setPrepareThreshold(1);
+
+      for (int execution = 0; execution < 2; execution++) {
+        try (ResultSet rs = ps.executeQuery()) {
+          assertTrue(rs.next(), "One row should be returned");
+          int expectedFormat = execution == 0 ? Field.TEXT_FORMAT : Field.BINARY_FORMAT;
+          assertEquals(expectedFormat, getFormat(rs));
+          assertEquals(expectedFormat, getFormat(rs, 5));
+
+          for (int columnIndex = 1; columnIndex <= 4; columnIndex++) {
+            assertGetBytesCannotCoerce(rs, columnIndex);
+          }
+          assertGetBytesCannotCoerce(rs, "uuid_value");
+
+          assertArrayEquals(new byte[]{0, 1, 92, (byte) 255}, rs.getBytes(5));
+          assertArrayEquals(new byte[]{0, 1, 92, (byte) 255}, rs.getBytes("bytea_value"));
+          assertNull(rs.getBytes("null_bytea_value"));
+        }
+      }
+    }
+  }
+
+  @Test
   public void testGetMetaDataBeforeExecuteQuery() throws SQLException {
     PreparedStatement ps = null;
     ResultSet rs = null;
@@ -147,11 +180,8 @@ public class BinaryTest extends BaseTest4 {
       ps.setLong(1, paramsLong);
       rs = ps.executeQuery();
       assertTrue(rs.next(), "One row should be returned");
-      byte[] bytes = rs.getBytes(1);
-      ByteBuffer bf = ByteBuffer.wrap(bytes);
-      long longResult = bf.getLong();
       assertEquals(Field.BINARY_FORMAT, getFormat(rs));
-      assertEquals(paramsLong, longResult);
+      assertEquals(paramsLong, rs.getLong(1));
     } finally {
       if (rs != null) {
         rs.close();
@@ -164,6 +194,20 @@ public class BinaryTest extends BaseTest4 {
   }
 
   private static int getFormat(ResultSet results) throws SQLException {
-    return ((PGResultSetMetaData) results.getMetaData()).getFormat(1);
+    return getFormat(results, 1);
+  }
+
+  private static int getFormat(ResultSet results, int columnIndex) throws SQLException {
+    return ((PGResultSetMetaData) results.getMetaData()).getFormat(columnIndex);
+  }
+
+  private static void assertGetBytesCannotCoerce(ResultSet rs, int columnIndex) {
+    PSQLException error = assertThrows(PSQLException.class, () -> rs.getBytes(columnIndex));
+    assertEquals(PSQLState.CANNOT_COERCE.getState(), error.getSQLState());
+  }
+
+  private static void assertGetBytesCannotCoerce(ResultSet rs, String columnLabel) {
+    PSQLException error = assertThrows(PSQLException.class, () -> rs.getBytes(columnLabel));
+    assertEquals(PSQLState.CANNOT_COERCE.getState(), error.getSQLState());
   }
 }
