@@ -1850,6 +1850,23 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.FLUSH_CACHE_ON_DDL.set(properties, flushCacheOnDdl);
   }
 
+  /**
+   * @return maximum length of a single driver log message in characters
+   * @see PGProperty#MAX_LOG_MESSAGE_LENGTH
+   */
+  public int getMaxLogMessageLength() {
+    return PGProperty.MAX_LOG_MESSAGE_LENGTH.getIntNoCheck(properties);
+  }
+
+  /**
+   * @param maxLogMessageLength maximum length of a single driver log message in characters;
+   *     {@code 0} means unlimited
+   * @see PGProperty#MAX_LOG_MESSAGE_LENGTH
+   */
+  public void setMaxLogMessageLength(int maxLogMessageLength) {
+    PGProperty.MAX_LOG_MESSAGE_LENGTH.set(properties, maxLogMessageLength);
+  }
+
   public @Nullable String getMaxResultBuffer() {
     return PGProperty.MAX_RESULT_BUFFER.getOrDefault(properties);
   }
