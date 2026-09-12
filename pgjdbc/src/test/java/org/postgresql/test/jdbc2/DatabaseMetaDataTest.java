@@ -73,6 +73,7 @@ public class DatabaseMetaDataTest {
   static void createTables() throws Exception {
     try (Connection con = TestUtil.openDB()) {
       TestUtil.createTable(con, "bestrowid", "id int4 primary key");
+      TestUtil.createTable(con, "uniquerowid", "id int4 unique");
       TestUtil.createTable(con, "precision_test", "implicit_precision numeric");
       TestUtil.dropSequence(con, "sercoltest_b_seq");
       TestUtil.dropSequence(con, "sercoltest_c_seq");
@@ -155,6 +156,7 @@ public class DatabaseMetaDataTest {
       TestUtil.execute(con, "drop function bar()");
       TestUtil.dropTable(con, "duplicate");
       TestUtil.dropTable(con, "bestrowid");
+      TestUtil.dropTable(con, "uniquerowid");
       TestUtil.dropTable(con, "sercoltest");
       TestUtil.dropSequence(con, "sercoltest_b_seq");
       TestUtil.dropSequence(con, "sercoltest_c_seq");
@@ -1325,7 +1327,14 @@ public class DatabaseMetaDataTest {
     try (ResultSet rs =
              dbmd.getBestRowIdentifier(null, null, "bestrowid", DatabaseMetaData.bestRowSession, false)) {
       assertTrue(rs.next());
+      assertTrue("id".equals(rs.getString("COLUMN_NAME")));
     }
+    try (ResultSet rs =
+             dbmd.getBestRowIdentifier(null, null, "uniquerowid", DatabaseMetaData.bestRowSession, false)) {
+      assertTrue(rs.next());
+      assertTrue("id".equals(rs.getString("COLUMN_NAME")));
+    }
+
     try (ResultSet rs =
              dbmd.getBestRowIdentifier("nonsensecatalog", null, "bestrowid", DatabaseMetaData.bestRowSession, false)) {
       assertFalse(rs.next());
