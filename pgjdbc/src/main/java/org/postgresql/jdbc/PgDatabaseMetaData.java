@@ -2299,6 +2299,38 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return privileges;
   }
 
+  /**
+   * Returns the columns of the table's primary key, or of its unique indexes when {@code primary}
+   * is {@code false}. The statement is closed with the returned {@link ResultSet}.
+   */
+  private ResultSet findPrimaryUnique(@Nullable String schema, String table,
+      boolean primary) throws SQLException {
+    StringBuilder sql = new StringBuilder(
+        // language=sql
+        "SELECT a.attname, a.atttypid, atttypmod "
+          + "FROM pg_catalog.pg_class ct "
+          + "  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) "
+          + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
+          + "  JOIN (SELECT i.indexrelid, i.indrelid, i.indisprimary, i.indisunique, "
+          + "             information_schema._pg_expandarray(i.indkey) AS keys "
+          + "        FROM pg_catalog.pg_index i) i "
+          + "    ON (a.attnum = (i.keys).x AND a.attrelid = i.indrelid) "
+          + "WHERE true ");
+    List<String> args = new ArrayList<>(2);
+    if (schema != null) {
+      sql.append(" AND n.nspname = ?");
+      args.add(schema);
+    }
+
+    sql.append(" AND ct.relname = ?");
+    args.add(table);
+
+    sql.append(primary ? " AND i.indisprimary " : " AND i.indisunique ")
+        .append(" ORDER BY a.attnum ");
+
+    return prepareMetaDataStatement(sql.toString(), args).executeQuery();
+  }
+
   @Override
   public ResultSet getBestRowIdentifier(
       @Nullable String catalog, @Nullable String schema, String table,
@@ -2321,33 +2353,15 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
 
     /*
-     * At the moment this simply returns a table's primary key, if there is one. I believe other
-     * unique indexes, ctid, and oid should also be considered. -KJ
+     * This returns a table's primary key, falling back to its unique indexes. I believe ctid and
+     * oid should also be considered. -KJ
      */
-    StringBuilder sql = new StringBuilder(
-        // language=sql
-        "SELECT a.attname, a.atttypid, atttypmod "
-          + "FROM pg_catalog.pg_class ct "
-          + "  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) "
-          + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
-          + "  JOIN (SELECT i.indexrelid, i.indrelid, i.indisprimary, "
-          + "             information_schema._pg_expandarray(i.indkey) AS keys "
-          + "        FROM pg_catalog.pg_index i) i "
-          + "    ON (a.attnum = (i.keys).x AND a.attrelid = i.indrelid) "
-          + "WHERE true ");
-    List<String> args = new ArrayList<>(2);
-    if (schema != null) {
-      sql.append(" AND n.nspname = ?");
-      args.add(schema);
+    ResultSet rs = findPrimaryUnique(schema, table, true);
+    if (!rs.isBeforeFirst()) {
+      // no primary key, look for a unique index instead
+      rs.close();
+      rs = findPrimaryUnique(schema, table, false);
     }
-
-    sql.append(" AND ct.relname = ?"
-        + " AND i.indisprimary "
-        + " ORDER BY a.attnum ");
-    args.add(table);
-
-    PreparedStatement stmt = prepareMetaDataStatement(sql.toString(), args);
-    ResultSet rs = stmt.executeQuery();
     while (rs.next()) {
       byte[] @Nullable [] tuple = new byte[8][];
       int typeOid = (int) rs.getLong("atttypid");
@@ -2371,7 +2385,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       v.add(new Tuple(tuple));
     }
     rs.close();
-    stmt.close();
 
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }
