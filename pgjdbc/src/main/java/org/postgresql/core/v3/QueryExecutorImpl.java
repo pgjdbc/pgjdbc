@@ -947,7 +947,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (useTimeout && timeoutMillis >= 0) {
             setSocketTimeout(timeoutMillis);
           }
-          int c = pgStream.receiveChar();
+          int c = pgStream.receiveMessageType();
           if (useTimeout && timeoutMillis >= 0) {
             setSocketTimeout(0); // Don't timeout after first char
           }
@@ -1007,7 +1007,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     byte[] returnValue = null;
 
     while (!endQuery) {
-      int c = pgStream.receiveChar();
+      int c = pgStream.receiveMessageType();
       switch (c) {
         case PgMessageType.ASYNCHRONOUS_NOTICE:
           receiveAsyncNotify();
@@ -1035,17 +1035,34 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case PgMessageType.FUNCTION_CALL_RESPONSE:
-          @SuppressWarnings("unused")
-          int msgLen = pgStream.receiveInteger4();
+          // Envelope = 4 (self) + 4 (valueLen) + max(0, valueLen) bytes payload.
+          // Deliberately left at MAX_MESSAGE_SIZE. The value is user data whose size the
+          // caller chose: LargeObject.read(len) asks for exactly this many bytes, so any
+          // pgjdbc ceiling -- including maxResultBuffer, which never applied here -- would
+          // reject a read the application explicitly requested. The remaining exposure is
+          // one allocation of at most MAX_MESSAGE_SIZE on a desynced fastpath response,
+          // bounded below by the envelope check on valueLen.
+          int msgLen = pgStream.readMessageLength("FunctionCallResponse", 8);
           int valueLen = pgStream.receiveInteger4();
 
           LOGGER.log(Level.FINEST, " <=BE FunctionCallResponse({0} bytes)", valueLen);
 
           if (valueLen != -1) {
+            if (valueLen < -1) {
+              throw pgStream.markBroken(new IOException(GT.tr(
+                  "Protocol error. FunctionCallResponse has negative value length {0}.",
+                  String.valueOf(valueLen))));
+            }
+            if (valueLen > msgLen - 8) {
+              throw pgStream.markBroken(new IOException(GT.tr(
+                  "Protocol error. FunctionCallResponse value length {0} exceeds message size {1}.",
+                  String.valueOf(valueLen), String.valueOf(msgLen))));
+            }
             byte[] buf = new byte[valueLen];
             pgStream.receive(buf, 0, valueLen);
             returnValue = buf;
           }
+          pgStream.endMessage();
 
           break;
 
@@ -1132,14 +1149,32 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private void initCopy(CopyOperationImpl op) throws SQLException, IOException {
     try (ResourceLock ignore = lock.obtain()) {
-      pgStream.receiveInteger4(); // length not used
+      // CopyInResponse/CopyOutResponse is exactly 7 + 2*numFields bytes. numFields is a
+      // signed int16, so the protocol-level maximum is 7 + 2*Short.MAX_VALUE = 65 541
+      // bytes. Hard cap, enforced unconditionally by readMessageLength.
+      int msgLen = pgStream.readMessageLength(
+          "CopyInResponse/CopyOutResponse", 7, 7 + 2 * Short.MAX_VALUE);
       int rowFormat = pgStream.receiveChar();
-      int numFields = pgStream.receiveInteger2();
+      // The backend sends numFields and the per-field format codes as signed int16.
+      int numFields = (short) pgStream.receiveInteger2();
+      // Envelope is fully determined by numFields; enforce exact equality.
+      if (numFields < 0) {
+        throw pgStream.markBroken(new IOException(GT.tr(
+            "Protocol error. Copy response has negative field count {0}.",
+            String.valueOf(numFields))));
+      }
+      if (msgLen != 7 + 2 * numFields) {
+        throw pgStream.markBroken(new IOException(GT.tr(
+            "Protocol error. Copy response field count {0} requires message size {1}, got {2}.",
+            String.valueOf(numFields), String.valueOf(7 + 2 * numFields),
+            String.valueOf(msgLen))));
+      }
       int[] fieldFormats = new int[numFields];
 
       for (int i = 0; i < numFields; i++) {
-        fieldFormats[i] = pgStream.receiveInteger2();
+        fieldFormats[i] = (short) pgStream.receiveInteger2();
       }
+      pgStream.endMessage();
 
       lock(op);
       op.init(this, rowFormat, fieldFormats);
@@ -1359,6 +1394,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
       try {
         processCopyResults(op, block); // expect a call to handleCopydata() to store the data
+      } catch (SQLException se) {
+        // Release the lock if still held, otherwise future operations will hang
+        // indefinitely in waitOnLock(). processCopyResults can fail with a SQLException as
+        // well as with an IOException.
+        if (hasLock(op)) {
+          unlock(op);
+        }
+        throw se;
       } catch (IOException ioe) {
         // Release the lock if still held after a connection failure,
         // otherwise future operations will hang indefinitely in waitOnLock()
@@ -1426,7 +1469,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
         }
 
-        int c = pgStream.receiveChar();
+        int c = pgStream.receiveMessageType();
         switch (c) {
 
           case PgMessageType.ASYNCHRONOUS_NOTICE:
@@ -1515,11 +1558,18 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
             LOGGER.log(Level.FINEST, " <=BE CopyData");
 
-            len = pgStream.receiveInteger4() - 4;
-
-            assert len > 0 : "Copy Data length must be greater than 4";
+            // The protocol bounds nothing here -- CopyData carries user rows -- and
+            // pgStream.receive() below sizes its array straight from this length, which is
+            // what issue #4015 flags: a wire-supplied length driving the allocation.
+            // maxCopyDataSize bounds it, falling back to a soft 64 MB when the user has not
+            // set one. maxResultBuffer deliberately does not apply: it never has, and the
+            // COPY stream is not the result buffer it describes.
+            int copyDataLen = pgStream.readMessageLength("CopyData", 5);
+            pgStream.checkCopyDataSize(copyDataLen);
+            len = copyDataLen - 4;
 
             byte[] buf = pgStream.receive(len);
+            pgStream.endMessage();
             if (op == null) {
               error = new PSQLException(GT.tr("Got CopyData without an active copy operation"),
                   PSQLState.OBJECT_NOT_IN_STATE);
@@ -1537,10 +1587,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
             LOGGER.log(Level.FINEST, " <=BE CopyDone");
 
-            len = pgStream.receiveInteger4() - 4;
+            len = pgStream.readMessageLength("CopyDone", 4) - 4;
             if (len > 0) {
               pgStream.receive(len); // not in specification; should never appear
             }
+            pgStream.endMessage();
 
             if (!(op instanceof CopyOut)) {
               error = new PSQLException("Got CopyDone while not copying from server",
@@ -1574,13 +1625,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           case PgMessageType.ROW_DESCRIPTION_RESPONSE: // Row Description (response to Describe)
             LOGGER.log(Level.FINEST, " <=BE RowDescription (during copy ignored)");
 
-            skipMessage();
+            skipMessage("RowDescription");
             break;
 
           case PgMessageType.DATA_ROW_RESPONSE: // DataRow
             LOGGER.log(Level.FINEST, " <=BE DataRow (during copy ignored)");
 
-            skipMessage();
+            skipMessage("DataRow");
             break;
 
           default:
@@ -2380,14 +2431,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     boolean doneAfterRowDescNoData = false;
 
     while (!endQuery) {
-      c = pgStream.receiveChar();
+      c = pgStream.receiveMessageType();
       switch (c) {
         case 'A': // Asynchronous Notify
           receiveAsyncNotify();
           break;
 
         case PgMessageType.PARSE_COMPLETE_RESPONSE: // Parse Complete (response to Parse)
-          pgStream.receiveInteger4(); // len, discarded
+          pgStream.readFixedMessageLength("ParseComplete", 4);
+          pgStream.endMessage();
 
           SimpleQuery parsedQuery = pendingParseQueue.removeFirst();
           String parsedStatementName = parsedQuery.getStatementName();
@@ -2397,7 +2449,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case PgMessageType.PARAMETER_DESCRIPTION_RESPONSE: {
-          pgStream.receiveInteger4(); // len, discarded
+          // ParameterDescription is exactly 6 + 4*numParams bytes. numParams is one of the
+          // few int16 slots the backend fills as unsigned: a statement may take up to 65535
+          // parameters, so the protocol-level maximum is 6 + 4*0xffff = 262 146 bytes.
+          // Hard cap, enforced unconditionally by readMessageLength.
+          int paramDescLen = pgStream.readMessageLength(
+              "ParameterDescription", 6, 6 + 4 * 0xffff);
 
           LOGGER.log(Level.FINEST, " <=BE ParameterDescription");
 
@@ -2408,12 +2465,23 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // This might differ from query.getStatementName if the query was re-prepared
           String origStatementName = describeData.statementName;
 
+          // Unsigned, unlike most int2 slots: a statement may take up to 65535 parameters,
+          // which does not fit a signed int16.
           int numParams = pgStream.receiveInteger2();
+          // Envelope is fully determined by numParams; enforce exact equality so a desynced
+          // stream cannot pass by claiming a too-large msgLen with a consistent-looking count.
+          if (paramDescLen != 6 + 4 * numParams) {
+            throw pgStream.markBroken(new IOException(GT.tr(
+                "Protocol error. ParameterDescription parameter count {0} requires message size {1}, got {2}.",
+                String.valueOf(numParams), String.valueOf(6 + 4 * numParams),
+                String.valueOf(paramDescLen))));
+          }
 
           for (int i = 1; i <= numParams; i++) {
             int typeOid = pgStream.receiveInteger4();
             params.setResolvedType(i, typeOid);
           }
+          pgStream.endMessage();
 
           // Since we can issue multiple Parse and DescribeStatement
           // messages in a single network trip, we need to make
@@ -2435,7 +2503,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         }
 
         case PgMessageType.BIND_COMPLETE_RESPONSE: // (response to Bind)
-          pgStream.receiveInteger4(); // len, discarded
+          pgStream.readFixedMessageLength("BindComplete", 4);
+          pgStream.endMessage();
 
           Portal boundPortal = pendingBindQueue.removeFirst();
           LOGGER.log(Level.FINEST, " <=BE BindComplete [{0}]", boundPortal);
@@ -2444,12 +2513,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case PgMessageType.CLOSE_COMPLETE_RESPONSE: // response to Close
-          pgStream.receiveInteger4(); // len, discarded
+          pgStream.readFixedMessageLength("CloseComplete", 4);
+          pgStream.endMessage();
           LOGGER.log(Level.FINEST, " <=BE CloseComplete");
           break;
 
         case PgMessageType.NO_DATA_RESPONSE: // response to Describe
-          pgStream.receiveInteger4(); // len, discarded
+          pgStream.readFixedMessageLength("NoData", 4);
+          pgStream.endMessage();
           LOGGER.log(Level.FINEST, " <=BE NoData");
 
           pendingDescribePortalQueue.removeFirst();
@@ -2472,7 +2543,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // nb: this appears *instead* of CommandStatus.
           // Must be a SELECT if we suspended, so don't worry about it.
 
-          pgStream.receiveInteger4(); // len, discarded
+          pgStream.readFixedMessageLength("PortalSuspended", 4);
+          pgStream.endMessage();
           LOGGER.log(Level.FINEST, " <=BE PortalSuspended");
 
           ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
@@ -2669,7 +2741,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case PgMessageType.EMPTY_QUERY_RESPONSE: { // Empty Query (end of Execute)
-          pgStream.receiveInteger4();
+          pgStream.readFixedMessageLength("EmptyQueryResponse", 4);
+          pgStream.endMessage();
 
           LOGGER.log(Level.FINEST, " <=BE EmptyQuery");
 
@@ -2782,13 +2855,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           pgStream.sendChar(0);
           sendSync(); // send sync message
           pgStream.flush();
-          skipMessage(); // skip the response message
+          skipMessage("CopyInResponse");
           break;
 
         case PgMessageType.COPY_OUT_RESPONSE:
           LOGGER.log(Level.FINEST, " <=BE CopyOutResponse");
 
-          skipMessage();
+          skipMessage("CopyOutResponse");
           // In case of CopyOutResponse, we cannot abort data transfer,
           // so just throw an error and ignore CopyData messages
           handler.handleError(
@@ -2797,12 +2870,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case PgMessageType.COPY_DONE:
-          skipMessage();
+          skipMessage("CopyDone");
           LOGGER.log(Level.FINEST, " <=BE CopyDone");
           break;
 
         case PgMessageType.COPY_DATA:
-          skipMessage();
+          skipMessage("CopyData");
           LOGGER.log(Level.FINEST, " <=BE CopyData");
           break;
 
@@ -2835,16 +2908,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   /**
-   * Ignore the response message by reading the message length and skipping over those bytes in the
-   * communication stream.
+   * Consumes the body of a message the driver does not act on.
+   *
+   * @param packetName the message type the caller already dispatched on, so that a length
+   *                   violation names the actual message rather than a generic
+   *                   "skipped message"
    */
-  private void skipMessage() throws IOException {
-    int len = pgStream.receiveInteger4();
-
-    assert len >= 4 : "Length from skip message must be at least 4 ";
-
+  private void skipMessage(String packetName) throws IOException {
+    int len = pgStream.readMessageLength(packetName, 4);
     // skip len-4 (length includes the 4 bytes for message length itself
     pgStream.skip(len - 4);
+    pgStream.endMessage();
   }
 
   @Override
@@ -2934,39 +3008,76 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * Receive the field descriptions from the back end.
    */
   private Field[] receiveFields() throws IOException {
-    pgStream.receiveInteger4(); // MESSAGE SIZE
-    int size = pgStream.receiveInteger2();
+    int msgSize = pgStream.readMessageLength("RowDescription", 6);
+    // Column labels are NAMEDATALEN-bounded and PostgreSQL allows at most 1664 columns, so
+    // a well-formed RowDescription tops out around 135 KiB. Without a ceiling, a declared
+    // size of 1 GiB with a single field passes the 19-byte-per-field check below and then
+    // hands receiveCanonicalString a near-gigabyte budget for one label.
+    pgStream.checkRowDescriptionSize(msgSize);
+    // The backend sends the field count and the format code as signed int16, the same as
+    // attnum and typlen below.
+    int size = (short) pgStream.receiveInteger2();
+    if (size < 0) {
+      throw pgStream.markBroken(new IOException(GT.tr(
+          "Protocol error. RowDescription has negative field count {0}.",
+          String.valueOf(size))));
+    }
+    // Envelope: each field description is at minimum 19 bytes (1 NUL for empty name
+    // + 4 tableOid + 2 attnum + 4 typeOid + 2 typlen + 4 typmod + 2 format). This is the
+    // tightest protocol-level lower bound and is fork-independent.
+    if ((long) size * 19L > msgSize - 6L) {
+      throw pgStream.markBroken(new IOException(GT.tr(
+          "Protocol error. RowDescription field count {0} requires at least {1} bytes, but message size is only {2}.",
+          String.valueOf(size), String.valueOf(6 + size * 19), String.valueOf(msgSize))));
+    }
     Field[] fields = new Field[size];
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, " <=BE RowDescription({0})", size);
     }
 
+    // Each column label C-string is bounded by the remaining envelope budget tracked by
+    // PGStream, which naturally tightens after each field is consumed.
     for (int i = 0; i < fields.length; i++) {
       String columnLabel = pgStream.receiveCanonicalString();
       int tableOid = pgStream.receiveInteger4();
+      // attnum is a signed protocol field. Backends are free to use any negative value for
+      // system columns, so don't second-guess it here. The envelope-based bounds (size and
+      // the endMessage check below) already detect a desynced stream.
       short positionInTable = (short) pgStream.receiveInteger2();
       int typeOid = pgStream.receiveInteger4();
       short typeLength = (short) pgStream.receiveInteger2();
       int typeModifier = pgStream.receiveInteger4();
-      int formatType = pgStream.receiveInteger2();
+      int formatType = (short) pgStream.receiveInteger2();
       fields[i] = new Field(columnLabel,
           typeOid, typeLength, typeModifier, tableOid, positionInTable);
       fields[i].setFormat(formatType);
 
       LOGGER.log(Level.FINEST, "        {0}", fields[i]);
     }
+    pgStream.endMessage();
 
     return fields;
   }
 
   private void receiveAsyncNotify() throws IOException {
-    int len = pgStream.receiveInteger4(); // MESSAGE SIZE
-    assert len > 4 : "Length for AsyncNotify must be at least 4";
+    // NotificationResponse: 4 (self) + 4 (pid) + NUL-terminated channel + NUL-terminated payload.
+    int notifLen = pgStream.readMessageLength("NotificationResponse", 10);
+    // PostgreSQL's NOTIFY payload is capped at NOTIFY_PAYLOAD_MAX_LENGTH (8000 bytes) and
+    // channel names are NAMEDATALEN-bounded (64 bytes), so a well-formed message tops out
+    // at ~8 KiB. The shared server-text ceiling leaves >100x headroom for forks (which may
+    // bump NAMEDATALEN or the payload limit substantially) while still bounding a desynced
+    // stream early. Soft cap, routed through ProtocolHardeningMode: a fork that advertises
+    // larger can disable it without rebuilding the driver.
+    pgStream.checkServerTextMessageSize("NotificationResponse", notifLen);
 
     int pid = pgStream.receiveInteger4();
+    // Each C-string is bounded by what's left in the envelope (tracked by PGStream).
     String msg = pgStream.receiveCanonicalString();
     String param = pgStream.receiveString();
+    // Same envelope-completeness check as ParameterStatus: per-string bounds don't pin the
+    // sum, so verify that the two strings consumed exactly the declared body.
+    pgStream.endMessage();
     addNotification(new Notification(msg, pid, param));
 
     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -2980,10 +3091,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // so, append messages to a string buffer and keep processing
     // check at the bottom to see if we need to throw an exception
 
-    int elen = pgStream.receiveInteger4();
-    assert elen > 4 : "Error response length must be greater than 4";
+    int elen = pgStream.readMessageLength("ErrorResponse", 5);
+    pgStream.checkServerTextMessageSize("ErrorResponse", elen);
 
     EncodingPredictor.DecodeResult totalMessage = pgStream.receiveErrorString(elen - 4);
+    pgStream.endMessage();
     ServerErrorMessage errorMsg = new ServerErrorMessage(totalMessage);
 
     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -3000,10 +3112,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private SQLWarning receiveNoticeResponse() throws IOException {
-    int nlen = pgStream.receiveInteger4();
-    assert nlen > 4 : "Notice Response length must be greater than 4";
+    int nlen = pgStream.readMessageLength("NoticeResponse", 5);
+    pgStream.checkServerTextMessageSize("NoticeResponse", nlen);
 
     ServerErrorMessage warnMsg = new ServerErrorMessage(pgStream.receiveString(nlen - 4));
+    pgStream.endMessage();
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, " <=BE NoticeResponse({0})", warnMsg.toString());
@@ -3013,12 +3126,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private String receiveCommandStatus() throws IOException {
-    // TODO: better handle the msg len
-    int len = pgStream.receiveInteger4();
+    // CommandComplete: 4 (self) + at least one byte of status + 1 (trailing NUL)
+    int len = pgStream.readMessageLength("CommandComplete", 6);
+    pgStream.checkServerTextMessageSize("CommandComplete", len);
     // read len -5 bytes (-4 for len and -1 for trailing \0)
     String status = pgStream.receiveString(len - 5);
     // now read and discard the trailing \0
     pgStream.receiveChar(); // Receive(1) would allocate new byte[1], so avoid it
+    pgStream.endMessage();
 
     LOGGER.log(Level.FINEST, " <=BE CommandStatus({0})", status);
 
@@ -3039,14 +3154,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void receiveRFQ() throws IOException {
-    if (pgStream.receiveInteger4() != 5) {
-      throw new IOException("unexpected length of ReadyForQuery message");
-    }
+    pgStream.readFixedMessageLength("ReadyForQuery", 5);
 
     char tStatus = (char) pgStream.receiveChar();
+    pgStream.endMessage();
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, " <=BE ReadyForQuery({0})", tStatus);
     }
+    // This Sync is over, so the next one reports its own first over-sized row rather than
+    // skipping in silence.
+    pgStream.clearOversizedRowReport();
 
     // Update connection state.
     switch (tStatus) {
@@ -3075,7 +3192,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   public void readStartupMessages() throws IOException, SQLException {
     for (int i = 0; i < 1000; i++) {
-      int beresp = pgStream.receiveChar();
+      int beresp = pgStream.receiveMessageType();
       switch (beresp) {
         case PgMessageType.READY_FOR_QUERY_RESPONSE:
           receiveRFQ();
@@ -3084,27 +3201,24 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case PgMessageType.BACKEND_KEY_DATA_RESPONSE:
           // BackendKeyData
-          int msgLen = pgStream.receiveInteger4();
+          // BackendKeyData: 4 (self) + 4 (pid) + keyLen bytes. keyLen is 4 for protocol v3.0
+          // and at most 256 for v3.2, so the protocol-level maximum is 8 + 256 = 264.
+          int msgLen = pgStream.readMessageLength("BackendKeyData", 8, 264);
           int pid = pgStream.receiveInteger4();
           int keyLen = msgLen - 8;
           byte[] ckey;
           if (ProtocolVersion.v3_0.equals(protocolVersion)) {
             if (keyLen != 4) {
-              throw new PSQLException(GT.tr("Protocol error. Cancel Key should be 4 bytes for protocol version {0},"
+              throw pgStream.markBroken(new PSQLException(GT.tr("Protocol error. Cancel Key should be 4 bytes for protocol version {0},"
                   + " but received {1} bytes. Session setup failed.", ProtocolVersion.v3_0, keyLen),
-                  PSQLState.PROTOCOL_VIOLATION);
+                  PSQLState.PROTOCOL_VIOLATION));
             }
           }
-          if (ProtocolVersion.v3_2.equals(protocolVersion)) {
-            if (keyLen > 256) {
-              throw new PSQLException(GT.tr(
-                  "Protocol error. Cancel Key cannot be greater than 256 for protocol version {0},"
-                      + " but received {1} bytes. Session setup failed.",
-                  ProtocolVersion.v3_2, keyLen),
-                  PSQLState.PROTOCOL_VIOLATION);
-            }
-          }
+          // No separate v3.2 bound: the readMessageLength cap above pins msgLen to
+          // [8, 264], so keyLen is already in [0, 256] and a check for either end of that
+          // range could never fire.
           ckey = pgStream.receive(keyLen);
+          pgStream.endMessage();
 
           if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, " <=BE BackendKeyData(pid={0},ckey={1})", new Object[]{pid, ckey});
@@ -3132,19 +3246,28 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, "  invalid message type={0}", (char) beresp);
           }
-          throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-              PSQLState.PROTOCOL_VIOLATION);
+          throw pgStream.markBroken(new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+              PSQLState.PROTOCOL_VIOLATION));
       }
     }
-    throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-        PSQLState.PROTOCOL_VIOLATION);
+    throw pgStream.markBroken(new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+        PSQLState.PROTOCOL_VIOLATION));
   }
 
   public void receiveParameterStatus() throws IOException, SQLException {
-    // ParameterStatus
-    pgStream.receiveInteger4(); // MESSAGE SIZE
+    // ParameterStatus: 4 (self) + NUL-terminated name + NUL-terminated value, minimum 6.
+    int paramStatusLen = pgStream.readMessageLength("ParameterStatus", 6);
+    // Names are NAMEDATALEN-bounded; values are short GUC strings in practice, so the
+    // shared server-text ceiling is orders of magnitude over any real parameter status
+    // while still bounding a desynced stream. Soft cap, routed through
+    // ProtocolHardeningMode.
+    pgStream.checkServerTextMessageSize("ParameterStatus", paramStatusLen);
     final String name = pgStream.receiveCanonicalStringIfPresent();
     final String value = pgStream.receiveCanonicalStringIfPresent();
+    // Each receive() bounds against the remaining envelope, but those per-string bounds
+    // do not pin their sum. A desynced stream of the form `name\0value\0<extra>` would
+    // otherwise pass both bounds and leak <extra> into the next message header.
+    pgStream.endMessage();
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});

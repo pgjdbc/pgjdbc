@@ -68,6 +68,16 @@ public class QueryExecutorCloseAction implements Closeable {
     // closes pgStream reflectively, so here's an extra check to prevent failures
     // when getNetworkTimeout is called on a closed stream
     if (pgStream.isClosed()) {
+      // isClosed() is also true for a stream that markBroken() flagged. There the socket
+      // close is best-effort and may have failed, so release the descriptor here rather
+      // than leaking it. Close the socket directly rather than through PGStream.close():
+      // that would close pgOutput first, and FilterOutputStream.close() flushes, pushing
+      // the tail of a half-written request at a peer that is already discarding it -- and,
+      // on a socket that markBroken could not close, most likely throwing out of
+      // Connection.close().
+      if (!pgStream.isSocketClosed()) {
+        pgStream.getSocket().close();
+      }
       return;
     }
     pgStream.flush();

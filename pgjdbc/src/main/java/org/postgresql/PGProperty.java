@@ -465,6 +465,17 @@ public enum PGProperty {
       "When connections that are not explicitly closed are garbage collected, log the stacktrace from the opening of the connection to trace the leak source"),
 
   /**
+   * Upper bound on a single CopyData message, which is also the unit the logical and
+   * physical replication streams arrive in. Unset by default, in which case the driver
+   * applies a built-in 64 MB ceiling governed by {@code pgjdbc.protocolHardeningMode}.
+   * Sizes are parsed with decimal suffixes, so {@code 64M} is 64 000 000 bytes.
+   */
+  MAX_COPY_DATA_SIZE(
+      "maxCopyDataSize",
+      null,
+      "Specifies the largest single CopyData message the driver will accept, which also bounds replication stream messages. Can be specified as a size or a percent of heap memory."),
+
+  /**
    * Specifies size of buffer during fetching result set. Can be specified as specified size or
    * percent of heap memory.
    */
@@ -480,6 +491,18 @@ public enum PGProperty {
       "maxSendBufferSize",
       "8192",
       "Maximum amount of bytes buffered before sending to the backend"),
+
+  /**
+   * Upper bound on a backend message whose body is server-generated text: ErrorResponse,
+   * NoticeResponse, CommandComplete, ParameterStatus and NotificationResponse. The protocol
+   * fixes no maximum for these, so the default is the driver's own 64 MB. Raise it if the
+   * backend legitimately sends larger notices or error details. Sizes are parsed with decimal
+   * suffixes, so {@code 64M} is 64 000 000 bytes.
+   */
+  MAX_SERVER_TEXT_MESSAGE_SIZE(
+      "maxServerTextMessageSize",
+      null,
+      "Specifies the largest ErrorResponse, NoticeResponse, CommandComplete, ParameterStatus or NotificationResponse the driver will accept. Can be specified as a size or a percent of heap memory."),
 
   /**
    * Specify 'options' connection initialization parameter.

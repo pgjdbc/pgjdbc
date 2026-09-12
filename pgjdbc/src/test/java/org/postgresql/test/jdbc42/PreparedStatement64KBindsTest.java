@@ -76,6 +76,13 @@ public class PreparedStatement64KBindsTest extends BaseTest4 {
               .mapToObj(i -> "v" + i).toArray()
       );
 
+      if (preferQueryMode != PreferQueryMode.SIMPLE) {
+        // Describe Statement is the only path that makes the backend send ParameterDescription,
+        // so it is the only place where the 6 + 4*65535 envelope shows up on the wire.
+        assertEquals(numBinds, ps.getParameterMetaData().getParameterCount(),
+            "ps.getParameterMetaData().getParameterCount()");
+      }
+
       try (ResultSet rs = ps.executeQuery()) {
         rs.next();
         Array res = rs.getArray(1);

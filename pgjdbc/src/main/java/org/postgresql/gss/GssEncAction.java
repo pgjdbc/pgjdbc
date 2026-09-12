@@ -31,6 +31,26 @@ import javax.security.auth.Subject;
 
 public class GssEncAction implements PrivilegedAction<@Nullable Exception>, Callable<@Nullable Exception> {
   private static final Logger LOGGER = Logger.getLogger(GssAction.class.getName());
+
+  /**
+   * Largest GSS token the driver accepts during the encryption handshake, matching
+   * {@code PQ_GSS_AUTH_BUFFER_SIZE - sizeof(uint32)} in {@code fe-secure-gssapi.c} and
+   * {@code be-secure-gssapi.c}. The handshake cannot split a token across packets, so both
+   * ends have to accept whatever the GSSAPI library produced; upstream notes that this
+   * reaches 64 kB on some configurations, which is why it is four times the bound that
+   * applies once the handshake is over.
+   */
+  private static final int MAX_GSS_AUTH_TOKEN_SIZE = 64 * 1024 - 4;
+
+  /**
+   * Upper bound on round-trips of the GSS encryption handshake. A Kerberos context is
+   * established in two or three exchanges; 64 leaves the same headroom the authentication
+   * exchange gets in {@code ConnectionFactoryImpl}, while stopping a server that answers
+   * every token with another one from looping the client indefinitely before any
+   * credentials have been exchanged.
+   */
+  private static final int MAX_HANDSHAKE_ITERATIONS = 64;
+
   private final PGStream pgStream;
   private final String host;
   private final String user;
@@ -124,36 +144,67 @@ public class GssEncAction implements PrivilegedAction<@Nullable Exception>, Call
       secContext.requestConf(true);
       secContext.requestInteg(true);
 
-      byte[] inToken = new byte[0];
-      byte[] outToken = null;
-
-      boolean established = false;
-      while (!established) {
-        outToken = secContext.initSecContext(inToken, 0, inToken.length);
-
-        if (outToken != null) {
-          LOGGER.log(Level.FINEST, " FE=> Password(GSS Authentication Token)");
-
-          pgStream.sendInteger4(outToken.length);
-          pgStream.send(outToken);
-          pgStream.flush();
-        }
-
-        if (!secContext.isEstablished()) {
-          int len = pgStream.receiveInteger4();
-          // should check type = 8
-          inToken = pgStream.receive(len);
-        } else {
-          established = true;
-          pgStream.setSecContext(secContext);
-        }
-      }
-
+      return negotiate(secContext);
     } catch (IOException e) {
       return e;
     } catch (GSSException gsse) {
       return new PSQLException(GT.tr("GSS Authentication failed"), PSQLState.CONNECTION_FAILURE,
           gsse);
+    }
+  }
+
+  /**
+   * Exchanges tokens until the context is established, then installs it on the stream so that
+   * every message after the handshake is encrypted.
+   *
+   * <p>Separate from {@link #run()} so a test can drive the round-trip cap with a context that
+   * never establishes; {@code run} owns the credential and context setup that a test has no way
+   * to fake.</p>
+   *
+   * @param secContext the context to establish
+   * @return {@code null} once the context is established, or the failure to report. Running past
+   *     {@value #MAX_HANDSHAKE_ITERATIONS} round-trips also marks the connection broken
+   */
+  @Nullable Exception negotiate(GSSContext secContext) throws IOException, GSSException {
+    byte[] inToken = new byte[0];
+    byte[] outToken = null;
+
+    boolean established = false;
+    int handshakeIterations = 0;
+    while (!established) {
+      if (++handshakeIterations > MAX_HANDSHAKE_ITERATIONS) {
+        // A zero-length token is a legal continuation, so a server that keeps sending them
+        // loops the client forever before authentication has even started.
+        return pgStream.markBroken(new PSQLException(GT.tr(
+            "Protocol error. GSS encryption handshake did not complete within {0} round-trips.",
+            String.valueOf(MAX_HANDSHAKE_ITERATIONS)), PSQLState.PROTOCOL_VIOLATION));
+      }
+      outToken = secContext.initSecContext(inToken, 0, inToken.length);
+
+      if (outToken != null) {
+        LOGGER.log(Level.FINEST, " FE=> Password(GSS Authentication Token)");
+
+        pgStream.sendInteger4(outToken.length);
+        pgStream.send(outToken);
+        pgStream.flush();
+      }
+
+      if (!secContext.isEstablished()) {
+        // The handshake token length is not self-inclusive. Both libpq
+        // (fe-secure-gssapi.c pqsecure_open_gss) and the backend (be-secure-gssapi.c
+        // secure_open_gssapi) reject a token over PQ_GSS_AUTH_BUFFER_SIZE - sizeof(uint32),
+        // so mirror that. The tighter PQ_GSS_MAX_PACKET_SIZE governs the encrypted stream
+        // that follows, not this exchange.
+        int len = pgStream.readUntrackedLength(
+            "GSSEncryptionHandshakeToken", 0, MAX_GSS_AUTH_TOKEN_SIZE);
+        inToken = pgStream.receive(len);
+        // The handshake token is not a framed message, so no endMessage() closes it. The
+        // framed dialogue resumes once the token has been consumed.
+        pgStream.markMessageBoundary();
+      } else {
+        established = true;
+        pgStream.setSecContext(secContext);
+      }
     }
 
     return null;

@@ -8,6 +8,7 @@ package org.postgresql.gss;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.GT;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.ietf.jgss.GSSContext;
@@ -18,12 +19,24 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class GSSInputStream extends InputStream {
+  /**
+   * Largest declared length in bytes this stream accepts for an encrypted packet.
+   *
+   * <p>libpq ({@code fe-secure-gssapi.c} {@code pg_GSS_read}) and the backend
+   * ({@code be-secure-gssapi.c} {@code be_gssapi_read}) both reject an encrypted packet
+   * whose declared length exceeds {@code PQ_GSS_MAX_PACKET_SIZE - sizeof(uint32)}, so
+   * mirror that here and a desynced or hostile stream cannot drive a large allocation.
+   * The handshake that precedes this stream answers to the larger
+   * {@code PQ_GSS_AUTH_BUFFER_SIZE} instead.</p>
+   */
+  private static final int MAX_ENCRYPTED_PACKET_LENGTH = 16 * 1024 - 4;
+
   private final GSSContext gssContext;
   private final MessageProp messageProp;
   private final InputStream wrapped;
   // See https://www.postgresql.org/docs/current/protocol-flow.html#PROTOCOL-FLOW-GSSAPI
   // The server can be expected to not send encrypted packets of larger than 16kB to the client
-  private byte[] encrypted = new byte[16 * 1024];
+  private final byte[] encrypted = new byte[16 * 1024];
   private int encryptedPos;
   private int encryptedLength;
 
@@ -95,9 +108,10 @@ public class GSSInputStream extends InputStream {
   /**
    * Reads the length of the wrapper message.
    *
-   * @return -1 of end of stream reached, 0 if length is not fully read yet, and 1 if length is
+   * @return -1 if end of stream reached, 0 if length is not fully read yet, and 1 if length is
    *     fully read
-   * @throws IOException if read fails
+   * @throws IOException if the read fails, or if the declared length is outside
+   *     1..{@value #MAX_ENCRYPTED_PACKET_LENGTH} bytes
    */
   private int readLength() throws IOException {
     while (true) {
@@ -115,9 +129,13 @@ public class GSSInputStream extends InputStream {
       }
     }
     encryptedLength = ByteConverter.int4(int4Buf, 0);
-    if (encrypted.length < encryptedLength) {
-      // If the buffer is too small, reallocate
-      encrypted = new byte[encryptedLength];
+    if (encryptedLength <= 0 || encryptedLength > MAX_ENCRYPTED_PACKET_LENGTH) {
+      // String.valueOf, so the numbers reach the message as digits: MessageFormat gives an
+      // int the locale's grouping separators, which makes a byte count depend on the JVM
+      // locale and stops it matching a grep of the logs.
+      throw new IOException(GT.tr(
+          "Protocol error. GSS encrypted packet has invalid length {0} (expected 1..{1}).",
+          String.valueOf(encryptedLength), String.valueOf(MAX_ENCRYPTED_PACKET_LENGTH)));
     }
     return 1;
   }

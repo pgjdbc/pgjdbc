@@ -96,6 +96,25 @@ To connect, you need to get a `Connection` instance from JDBC. To do this, you u
 ### System Properties
 `pgjdbc.config.cleanup.thread.ttl` (milliseconds, default: 30000). The driver has an internal cleanup thread which monitors and cleans up unclosed connections. This property sets the duration the cleanup thread will keep running if there is nothing to clean up.
 
+`pgjdbc.protocolHardeningMode` (`fail` | `disable`, default: `fail`). Controls the message-length ceilings the driver applies where the v3 protocol fixes no maximum of its own. Under `fail`, a message over one of them closes the connection with `Protocol error. <message type> message has length N which exceeds the pgjdbc ceiling of M bytes.` Under `disable`, the driver skips them.
+
+Where the right ceiling depends on your workload, it is an ordinary connection property, listed under Connection Parameters below. Where it does not, the driver uses a fixed number:
+
+| What is bounded | Default | Property that raises it | `disable` skips it |
+| --- | --- | --- | --- |
+| `CopyData`, including replication data | 64 MB (`DEFAULT_MAX_COPY_DATA_SIZE`, 64,000,000 bytes) | `maxCopyDataSize` | only while the property is unset |
+| `ErrorResponse`, `NoticeResponse`, `CommandComplete`, `ParameterStatus`, `NotificationResponse` | 64 MB (`DEFAULT_MAX_SERVER_TEXT_MESSAGE_SIZE`, 64,000,000 bytes) | `maxServerTextMessageSize` | yes, after authentication |
+| One NUL-terminated string inside a message | 1 MiB (`MAX_CSTRING_LENGTH`, 1,048,576 bytes) | — | yes, after authentication |
+| `RowDescription` | 8 MiB (`MAX_ROW_DESCRIPTION_SIZE`, 8,388,608 bytes) | — | no |
+| `NegotiateProtocolVersion` | 1 MiB (`MAX_NEGOTIATE_PROTOCOL_VERSION_SIZE`, 1,048,576 bytes) | — | no |
+| `AuthenticationRequest`, `AuthenticationGSSContinue` | 8008 bytes (`MAX_AUTHENTICATION_MESSAGE_SIZE`) | — | no |
+
+`disable` skips only the ceilings the last column marks. Raising the individual property is almost always the better answer, since it keeps the remaining ceilings in force. Reach for `disable` only as a temporary workaround while a false positive is investigated, and please [file an issue](https://github.com/pgjdbc/pgjdbc/issues) when you do.
+
+Some checks stay in force whatever the mode is. The `RowDescription` ceiling is one. PostgreSQL tops out near 133 KiB there (1664 columns), and 8 MiB clears even a fork that raises both the column limit and the identifier length. A message above that is a desynchronized stream rather than a wide query. The ceilings that apply before the server has authenticated are another, since at that point the peer has proved nothing. Last are the checks that catch a value no conforming backend can send: a message whose declared length disagrees with the bytes it contains, a negative field count, or a field that overruns its row. Any of these closes the connection, and no configuration relaxes them. `maxResultBuffer` is a memory cap rather than a protocol ceiling, and this property does not affect it either.
+
+The property is read once when the driver class loads and applies to every connection in the JVM. It is deliberately not available in the JDBC URL, so that a connection string cannot be used to switch the checks off.
+
 ### Connection Parameters
 
 In addition to the standard connection parameters the driver supports a number of additional properties which can be used to specify additional driver behaviour specific to PostgreSQL®. These properties may be specified in either the connection
@@ -495,11 +514,20 @@ the driver always uses a CALL statement (allowing procedure invocation only).
 
 * **`maxResultBuffer (`*String*`)`** *Default `null`*\
 Specifies size of result buffer in bytes, which can't be exceeded during reading result set. Property can be specified in two styles:
-  * as size of bytes (i.e. 100, 150M, 300K, 400G, 1T);
-  * as percent of max heap memory (i.e. 10p, 15pct, 20percent);
+  * as a number of bytes, with an optional suffix: `100`, `300K`, `150M`, `400G`, `1T`. The suffixes are decimal, so `1K` is 1,000 bytes and `1M` is 1,000,000 bytes, not 1,048,576;
+  * as a percentage of max heap memory: `10p`, `15pct`, `20percent`;
 A limit during setting of property is 90% of max heap memory. All given values, which are going to be higher than the limit,
 will be lowered to the limit. By default, maxResultBuffer is not set (is null), which means that reading of results will
-be performed without limits.
+be performed without limits.\
+The limit applies to a result set in two ways. Cumulatively, as rows are read: once the rows buffered for the current result set exceed the limit, the read fails. And per row: a row whose own size exceeds the limit is rejected before its body is read, so the driver skips it, fails the query, and leaves the connection usable — an application can catch the error and retry with a query that selects less per row, since no `defaultRowFetchSize` makes a single over-wide row fit. A row so far over the limit that skipping it would mean pulling more than 64 MB (`MAX_RECOVERABLE_SKIP`) off the wire closes the connection instead. `COPY` and replication are not covered by this property; see `maxCopyDataSize`.
+
+* **`maxCopyDataSize (`*String*`)`** *Default `null`*\
+Specifies the largest single `CopyData` message the driver will accept, in the same styles `maxResultBuffer` accepts (`100`, `150M`, `10p`), suffixes included. `CopyData` is how the backend delivers both `COPY ... TO STDOUT` output and logical or physical replication data, so this property bounds `PGReplicationStream` as well: a replication client that sets it too low will see its stream fail.\
+When unset, the driver applies a built-in ceiling of 64 MB (`DEFAULT_MAX_COPY_DATA_SIZE`, 64,000,000 bytes), and `pgjdbc.protocolHardeningMode=disable` skips it. When set, the driver enforces your value whatever the mode is, so `maxCopyDataSize=64M` keeps the same number and takes it out of the mode's hands. A message over whichever ceiling is in force fails the `COPY` and closes the connection. The ceiling exists because the protocol gives `CopyData` no maximum: the driver sizes the receiving array from the length the message declares, so without a bound one corrupt or hostile length becomes an out-of-memory error.
+
+* **`maxServerTextMessageSize (`*String*`)`** *Default `null`*\
+Specifies the largest `ErrorResponse`, `NoticeResponse`, `CommandComplete`, `ParameterStatus` or `NotificationResponse` the driver will accept, in the same styles `maxResultBuffer` accepts. When unset, the driver applies a built-in ceiling of 64 MB (`DEFAULT_MAX_SERVER_TEXT_MESSAGE_SIZE`, 64,000,000 bytes). The protocol fixes no maximum for these, and libpq applies none either — they sit in its `VALID_LONG_MESSAGE_TYPE` set, which exempts them from its own 30000-byte limit. Raise this if your server emits larger `RAISE NOTICE` payloads or error details.\
+The `ErrorResponse` that answers the startup packet arrives before the peer has authenticated. This property raises its ceiling too, but `pgjdbc.protocolHardeningMode=disable` does not remove it.
 
 * **`adaptiveFetch (`*boolean*`)`** *Default `false`*\
 Specifies if the number of rows, fetched in `ResultSet` per request from the database, should be dynamic.

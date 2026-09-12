@@ -6,6 +6,7 @@
 package org.postgresql.core;
 
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.GT;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -51,6 +52,18 @@ public class VisibleBufferedInputStream extends InputStream {
    * How far is the buffer filled with valid data.
    */
   private int endIndex;
+
+  /**
+   * Bytes consumed before {@code buffer[0]}, counted since construction. The logical position is
+   * {@code position + index}, exposed by {@link #getPosition()}, so a read served out of the
+   * buffer advances it through {@code index} alone and costs no bookkeeping. Bytes read or
+   * skipped straight from the wrapped stream bypass the buffer and are added here directly.
+   * Never decreases; a skipped byte counts as consumed.
+   *
+   * <p>{@link PGStream} reads the position to record where a protocol message must end and to
+   * verify that it ended there, which is why the count has to hold across a buffer refill.</p>
+   */
+  private long position;
 
   /**
    * socket timeout has been requested
@@ -173,6 +186,7 @@ public class VisibleBufferedInputStream extends InputStream {
    */
   private boolean readMore(int wanted, boolean block) throws IOException {
     if (endIndex == index) {
+      position += index;
       index = 0;
       endIndex = 0;
     }
@@ -225,14 +239,15 @@ public class VisibleBufferedInputStream extends InputStream {
   }
 
   /**
-   * Moves bytes from the buffer to the beginning of the destination buffer. Also sets the index and
-   * endIndex variables.
+   * Moves bytes from the buffer to the beginning of the destination buffer. Also updates
+   * {@code position}, {@code index} and {@code endIndex} to match the new buffer base.
    *
    * @param dest The destination buffer.
    */
   private void moveBufferTo(byte[] dest) {
     int size = endIndex - index;
     System.arraycopy(buffer, index, dest, 0, size);
+    position += index;
     index = 0;
     endIndex = size;
   }
@@ -269,7 +284,10 @@ public class VisibleBufferedInputStream extends InputStream {
     }
     int read = avail;
 
-    // good place to reset index because the buffer is fully drained
+    // The buffer is fully drained: we copied `avail` bytes out without bumping `index`,
+    // so the buffer is logically consumed up to endIndex. position += endIndex captures
+    // both the previously-skipped index bytes and the avail bytes just copied.
+    position += endIndex;
     index = 0;
     endIndex = 0;
 
@@ -287,6 +305,9 @@ public class VisibleBufferedInputStream extends InputStream {
       if (r <= 0) {
         return read == 0 ? r : read;
       }
+      // Bytes copied directly from the wrapped stream bypass the buffer, so they are not
+      // accounted for by the position += endIndex reset above; track them explicitly.
+      position += r;
       read += r;
       off += r;
       len -= r;
@@ -308,9 +329,15 @@ public class VisibleBufferedInputStream extends InputStream {
       return n;
     }
     n -= avail;
+    // The buffer is fully consumed (the `avail` bytes are skipped logically, not copied),
+    // so the new logical base is position + endIndex.
+    position += endIndex;
     index = 0;
     endIndex = 0;
-    return avail + wrapped.skip(n);
+    long skipped = wrapped.skip(n);
+    // Bytes skipped directly on the wrapped stream bypass the buffer; account for them.
+    position += skipped;
+    return avail + skipped;
   }
 
   /**
@@ -350,24 +377,87 @@ public class VisibleBufferedInputStream extends InputStream {
   }
 
   /**
-   * Scans the length of the next null terminated string (C-style string) from the stream.
+   * Returns the total number of bytes read or skipped from the logical stream since this
+   * stream was constructed.
    *
-   * @return The length of the next null terminated string.
-   * @throws IOException If reading of stream fails.
-   * @throws EOFException If the stream did not contain any null terminators.
+   * @return total bytes consumed from the logical stream
    */
-  public int scanCStringLength() throws IOException {
-    int pos = index;
+  public long getPosition() {
+    return position + index;
+  }
+
+  /**
+   * Scans the length of the next null-terminated string from the stream, rejecting a scan
+   * that finds no NUL within {@code envelopeBudget} or {@code fieldCap} bytes, whichever is
+   * smaller. This is used to prevent an unbounded scan (and unbounded buffer growth) on a
+   * desynced stream.
+   *
+   * <p>The scan holds every byte it has looked at, because the caller decodes the string
+   * straight out of the buffer, so the budget that trips first also caps how far the buffer
+   * grows before the failure.</p>
+   *
+   * @param envelopeBudget inclusive maximum the message envelope leaves for this string,
+   *                       including the trailing NUL
+   * @param fieldCap inclusive maximum for this one string, including the trailing NUL;
+   *                 enforced together with {@code envelopeBudget}, smaller first
+   * @param packetName protocol message name; used only in the error message
+   * @param messageLength declared total length (including the 4 length bytes) of the protocol
+   *                      message currently being parsed; used only in the error message
+   * @return the length of the next null-terminated string (including the trailing NUL)
+   * @throws EOFException if the stream ends before a NUL is found
+   * @throws IOException if no NUL is found within either budget, or if reading fails
+   */
+  public int scanCStringLength(int envelopeBudget, int fieldCap, String packetName,
+      int messageLength) throws IOException {
+    if (envelopeBudget <= 0) {
+      throw new IOException(GT.tr(
+          "Protocol error. Unexpected C-string in {0} message of {1} bytes (remaining budget: {2} bytes).",
+          packetName, String.valueOf(messageLength), String.valueOf(envelopeBudget)));
+    }
+    int maxBytes = Math.min(envelopeBudget, fieldCap);
+    int scanned = 0;
     while (true) {
+      // After readMore() the buffer may have been compacted (index reset to 0) or extended
+      // (index unchanged). Either way, the bytes already counted in `scanned` are now at
+      // [index, index + scanned), so resume scanning from index + scanned to avoid
+      // re-counting them and tripping the budget check on well-formed traffic.
+      int pos = index + scanned;
       while (pos < endIndex) {
+        scanned++;
+        // Check the budget before the NUL test, not after: the returned length includes
+        // the NUL, so a string whose terminator sits at maxBytes + 1 must be rejected even
+        // though the scan found a NUL.
+        if (scanned > maxBytes) {
+          if (fieldCap < envelopeBudget) {
+            throw new CStringCeilingException(GT.tr(
+                "Protocol error. C-string in {0} message of {1} bytes exceeds the pgjdbc ceiling of {2} bytes on a single C-string.",
+                packetName, String.valueOf(messageLength), String.valueOf(fieldCap)));
+          }
+          throw new IOException(GT.tr(
+              "Protocol error. C-string in {0} message of {1} bytes exceeds remaining budget of {2} bytes.",
+              packetName, String.valueOf(messageLength), String.valueOf(envelopeBudget)));
+        }
         if (buffer[pos++] == '\0') {
-          return pos - index;
+          return scanned;
         }
       }
       if (!readMore(STRING_SCAN_SPAN, true)) {
         throw new EOFException();
       }
-      pos = index;
+    }
+  }
+
+  /**
+   * Signals that a C-string hit the per-field ceiling rather than its message envelope. Only
+   * the ceiling answers to {@code -Dpgjdbc.protocolHardeningMode=disable}, so {@link PGStream}
+   * names that remedy for this failure and not for a spent envelope, and it tells the two
+   * apart by type rather than by matching on message text.
+   */
+  static class CStringCeilingException extends IOException {
+    private static final long serialVersionUID = 1L;
+
+    CStringCeilingException(String message) {
+      super(message);
     }
   }
 
