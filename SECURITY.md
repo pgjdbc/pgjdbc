@@ -1,28 +1,25 @@
 # Security Policy
 
-We value backward compatibility. Upgrading pgJDBC, including across
-minor versions, should not require code or configuration changes. If
-you cannot upgrade and need a fix backported, open an issue or write
-to the mailing list with the reason you're stuck.
-
 ## Supported versions
 
-| Version | We ship |
-| ------- | ------- |
-| Latest 42.x line | security releases, features, bug fixes |
-| Every older 42.x line within the proactive-security window | security releases on the line's own minor |
-| 42.2.x (last line supporting Java 6 / 7) | security releases, critical bug fixes |
-| Every other version (past the window) | security backports on request |
+| Version | Status | What we release |
+| ------- | ------ | --------------- |
+| Newest 42.x line | Full support | Features, bug fixes, and security fixes |
+| Older 42.x lines, for five years after the `.0` release of the next minor line | Security support | Security fixes; other fixes at the maintainers' discretion |
+| All other versions | End of life | Backports on request, case by case |
 
-The **proactive-security window** is five years past the `.0` of the
-next minor. While a line is in the window, every CVE gets a dedicated
-patch release on that same line; applying the fix never requires
-moving to a newer minor. The latest line has no successor yet and
-stays in full support indefinitely.
+Security support for a line ends five years after the `.0` release of the next minor line. For example, security
+support for 42.6.x ends five years after the release of 42.7.0. The newest line has no end date: its five years start
+only when the next minor line is released.
 
-Lines past the window remain eligible for a backport on request.
-Open an issue with the reason you're stuck. We have rolled patches
-as far back as 9.4 when the need was real.
+While a line has security support, we publish a patch release on that line for every vulnerability that affects it,
+including a vulnerability in a library the driver bundles, without waiting for anyone to ask. A fix for 42.6.x ships as
+a 42.6.x patch release, so applying it does not require upgrading to 42.7.x. We may also backport a fix for a bug we
+judge too serious to leave on such a line.
+
+Upgrading to a newer minor line should not require code or configuration changes. If you cannot upgrade and need a fix
+backported to an older line, open an issue or write to the mailing list and explain what keeps you on that line. We
+consider each request case by case, and a backport is not guaranteed.
 
 ## Reporting a vulnerability
 
