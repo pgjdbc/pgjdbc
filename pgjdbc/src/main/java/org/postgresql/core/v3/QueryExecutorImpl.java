@@ -2824,7 +2824,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (!pendingExecuteQueue.isEmpty()
               && castNonNull(pendingExecuteQueue.peekFirst()).asSimple) {
             tuples = null;
-            pgStream.clearResultBufferCount();
 
             ExecuteRequest executeRequest = pendingExecuteQueue.removeFirst();
             // Simple queries might return several resultsets, thus we clear
@@ -3199,6 +3198,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, " <=BE ReadyForQuery({0})", tStatus);
     }
+    // ReadyForQuery ends the Sync, and both the over-sized-row report and the maxResultBuffer
+    // count cover one Sync: the next one throws for its own first over-sized row, and its rows
+    // count against maxResultBuffer on their own. fetch sends a Sync after each Execute, so rows
+    // read through a cursor are counted and reported per fetch batch.
+    pgStream.clearOversizedRowReport();
+    pgStream.clearResultBufferCount();
+
     // Update connection state.
     switch (tStatus) {
       case 'I':

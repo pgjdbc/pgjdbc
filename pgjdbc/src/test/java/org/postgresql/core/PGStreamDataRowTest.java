@@ -19,8 +19,6 @@ import org.postgresql.test.util.FakeSocketFactory;
 import org.postgresql.test.util.Wire;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -33,8 +31,9 @@ import java.util.Arrays;
 /**
  * {@link PGStream#receiveTupleV3()} checks every length in a DataRow against the bytes the
  * message has left before the length sizes an allocation or a read, in every
- * {@link ProtocolHardeningMode}. A DataRow that fails a check breaks the stream, and so does a row
- * that exceeds {@code maxResultBuffer}.
+ * {@link ProtocolHardeningMode}. A DataRow that fails a check breaks the stream.
+ * {@link PGStreamMaxResultBufferTest} covers a row that does not fit within
+ * {@code maxResultBuffer}.
  *
  * <p>The DataRow body is a 2-byte unsigned field count, then per field a 4-byte length
  * ({@code -1} for NULL) followed by that many bytes. The declared message length counts its own
@@ -261,37 +260,5 @@ class PGStreamDataRowTest {
     assertThrowsExactly(OutOfMemoryError.class, stream::receiveTupleV3);
 
     assertBroken(stream, socket);
-  }
-
-  @Test
-  void aRowAtMaxResultBufferIsReturned() throws Exception {
-    PGStream stream = openStream(
-        new FakeSocket(new Wire().int4(20).int2(1).int4(10).bytes(10).toBytes()));
-    stream.setMaxResultBuffer("10");
-
-    Tuple tuple = stream.receiveTupleV3();
-
-    assertAll(
-        () -> assertEquals(1, tuple.fieldCount(), "fieldCount()"),
-        () -> assertFalse(stream.isClosed(), "isClosed()"));
-  }
-
-  /**
-   * The row is left unread when the limit is exceeded, so the stream must not be usable
-   * afterwards. The overflow used to throw with the stream still open, and the next message type
-   * was then read from inside the row.
-   */
-  @Test
-  void aRowOverMaxResultBufferBreaksTheStream() throws Exception {
-    FakeSocket socket = new FakeSocket(
-        new Wire().int4(21).int2(1).int4(11).bytes(11).toBytes());
-    PGStream stream = openStream(socket);
-    stream.setMaxResultBuffer("10");
-
-    PSQLException e = assertThrowsExactly(PSQLException.class, stream::receiveTupleV3);
-
-    assertAll(
-        () -> assertEquals(PSQLState.COMMUNICATION_ERROR.getState(), e.getSQLState(), "SQLState"),
-        () -> assertBroken(stream, socket));
   }
 }
