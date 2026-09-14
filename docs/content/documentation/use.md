@@ -604,7 +604,7 @@ A limit whose right value depends on the workload is a connection property, and 
 | --- | --- | --- | --- |
 | `ErrorResponse`, `NoticeResponse`, `CommandComplete`, `ParameterStatus`, `NotificationResponse` after the server has authenticated | 64 MB (64000000 bytes) | `maxServerTextMessageSize` | yes |
 | `RowDescription` | 8 MiB (8388608 bytes) | none | no |
-| `AuthenticationRequest` | 8008 bytes | none | no |
+| `AuthenticationRequest`, `AuthenticationGSSContinue` | 8008 bytes | none | no |
 | `ErrorResponse` before the server has authenticated | 30000 bytes | none | no |
 
 Each fixed limit is orders of magnitude above what PostgreSQL sends. A `RowDescription` for a result of 1664 columns, the most PostgreSQL returns, is about 133 KiB.
@@ -618,6 +618,7 @@ Each fixed limit is orders of magnitude above what PostgreSQL sends. A `RowDescr
 * A field count whose per-field entries do not fit the message, such as `Protocol error. DataRow field count N requires at least A bytes for per-field length prefixes, but the message size is only B.` or, for a `CopyInResponse`, `CopyOutResponse` or `CopyBothResponse`, `Protocol error. <message type> field count N requires message size A, but the message is B bytes.`
 * A field or value that claims more bytes than its message still holds, which is the failure behind [issue #4015](https://github.com/pgjdbc/pgjdbc/issues/4015): `Protocol error. DataRow field N length A exceeds remaining row bytes B.` or `Protocol error. FunctionCallResponse value length A exceeds the B bytes left in the message.`
 * Every limit that applies before the server has authenticated, since nothing has yet established who the peer is: `Protocol error. <message type> message has length N, which exceeds the pgjdbc limit of M bytes applied before authentication. This limit cannot be relaxed.`
-* An authentication exchange still unfinished after 64 authentication messages, `Protocol error. Authentication did not complete within N authentication messages.`
+* A GSS encrypted packet whose declared length is outside 1 to 16380 bytes, the range libpq and the backend both enforce.
+* An authentication exchange still unfinished after 64 authentication messages, `Protocol error. Authentication did not complete within N authentication messages.`, and a GSS encryption handshake or a GSS authentication handshake still unfinished after 64 round-trips. A zero-length GSS token is a valid continuation, so without that limit a server that responds to every token with another one keeps the client looping before any credentials have been exchanged.
 
 `maxResultBuffer` limits the memory a result set may occupy rather than the length of a message, so no mode affects it either; see its entry under [Connection Parameters](#connection-parameters).
