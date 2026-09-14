@@ -108,8 +108,38 @@ public class PGStream implements Closeable, Flushable {
    * larger than the startup packet the driver just sent: every option it lists is a parameter
    * name the driver chose. Those are GUC names, and a startup packet is a few hundred bytes, so 1 MiB is
    * orders of magnitude over anything reachable and does not vary with the workload.
+   *
+   * <p>This limit, and the limit on every other pre-authentication message the driver scans for
+   * C-strings, must stay at or below {@link #MAX_CSTRING_LENGTH}. Such a string has to stay
+   * bounded in every mode, and {@link ProtocolHardeningMode#DISABLE} lifts the per-string limit
+   * inside any message the driver tracks, so the message around the string is all that is left
+   * to bound it.
    */
   public static final int MAX_NEGOTIATE_PROTOCOL_VERSION_SIZE = 1 << 20;
+
+  /**
+   * Largest single NUL-terminated string, in bytes including the trailing NUL, that pgjdbc
+   * accepts inside a backend message: 1 MiB ({@value #MAX_CSTRING_LENGTH} bytes). No
+   * connection property raises it: every scanned field except a GUC value has a server-side
+   * limit, the widest being a NOTIFY payload at 8000 bytes.
+   * Inside a message the driver tracks, {@link ProtocolHardeningMode#DISABLE} raises it to
+   * {@link #MAX_MESSAGE_SIZE}, leaving that message as the only bound, because a GUC value is
+   * the only scanned field whose length the server does not limit. With no message tracked the
+   * limit applies in every mode.
+   *
+   * <p>A message bounds the sum of its fields, but not how much the driver holds while it
+   * looks for the NUL of a single one: {@link #receiveString()} decodes straight out of the
+   * read buffer, so the scan cannot discard as it goes, and the buffer doubles until the scan
+   * runs out of budget. This limit stops that buffer at 2 MiB. ErrorResponse and
+   * NoticeResponse are unaffected, since their bodies are read as a block rather than scanned.
+   *
+   * <p>The value must stay below {@link #DEFAULT_MAX_SERVER_TEXT_MESSAGE_SIZE}, because it stops
+   * the buffer only while it is the smaller of the two bounds on the scan. A ParameterStatus that
+   * declares a length just under the server-text limit and sends no NUL then stops the buffer at
+   * 2 MiB, the first power of two above this limit, not at the first power of two above its
+   * declared length.
+   */
+  public static final int MAX_CSTRING_LENGTH = 1 << 20;
 
   /**
    * Largest declared length, in bytes, that pgjdbc accepts for AuthenticationRequest and
@@ -1219,25 +1249,47 @@ public class PGStream implements Closeable, Flushable {
    * without consuming it.
    *
    * <p>The scan is always bounded, so a stream out of sync cannot keep growing the buffer and
-   * reading into it. The bound is the part of the message opened by {@link #beginMessage} that is
-   * not yet consumed, or {@link #MAX_MESSAGE_SIZE} when no message is tracked.</p>
+   * reading into it. Two bounds apply and the smaller one wins. The first is the part of the
+   * message opened by {@link #beginMessage} that is not yet consumed, or
+   * {@link #MAX_MESSAGE_SIZE} when no message is tracked. The second is
+   * {@link #MAX_CSTRING_LENGTH} on the string itself, which {@link ProtocolHardeningMode#DISABLE}
+   * raises to {@link #MAX_MESSAGE_SIZE} inside a tracked message.</p>
    *
-   * @throws IOException if no NUL arrives within the bound, if the tracked message has no bytes
+   * @throws IOException if no NUL arrives within the bounds, if the tracked message has no bytes
    *                     left, at end of stream, or on I/O error; the stream is marked broken first
    */
   private int scanBoundedCStringLength() throws IOException {
-    // Every IOException from the scan leaves the stream unusable: the message has no NUL within
-    // the bytes it has left, the input reached end of stream, or the read failed. So every
-    // IOException marks the stream broken before it propagates.
+    // Every IOException from the scan leaves the stream unusable: the string is longer than the
+    // per-string limit, the message has no NUL within the bytes it has left, the input reached
+    // end of stream, or the read failed. So every IOException marks the stream broken before it
+    // propagates.
+
+    // DISABLE lifts MAX_CSTRING_LENGTH like any other pgjdbc limit, but only where a
+    // tracked message bounds the scan in its place.
+    boolean messageTracked = messageEndPosition >= 0;
+    int fieldLimit = messageTracked && protocolHardeningMode == ProtocolHardeningMode.DISABLE
+        ? MAX_MESSAGE_SIZE : MAX_CSTRING_LENGTH;
     try {
       if (messageEndPosition < 0) {
         return pgInput.scanCStringLength(
-            MAX_MESSAGE_SIZE, "unknown", MAX_MESSAGE_SIZE);
+            MAX_MESSAGE_SIZE, fieldLimit, "unknown", MAX_MESSAGE_SIZE);
       }
       long remaining = messageEndPosition - pgInput.getPosition();
       int budget = (int) Math.min(remaining, MAX_MESSAGE_SIZE);
       return pgInput.scanCStringLength(
-          budget, currentMessageNameForError(), currentMessageLength);
+          budget, fieldLimit, currentMessageNameForError(), currentMessageLength);
+    } catch (VisibleBufferedInputStream.CStringLimitException e) {
+      // Inside a tracked message DISABLE lifts this limit, so the error names it as the remedy.
+      // With no message tracked, the error names no message, because no message length was
+      // declared, and offers no remedy, because no mode lifts the limit there.
+      throw markBroken(messageTracked
+          ? new IOException(GT.tr(
+              "Protocol error. C-string in {0} message of {1} bytes exceeds the pgjdbc limit of {2} bytes on a single C-string. Set -D{3}=disable to skip these limits altogether.",
+              currentMessageNameForError(), String.valueOf(currentMessageLength),
+              String.valueOf(fieldLimit), ProtocolHardeningMode.SYSTEM_PROPERTY))
+          : new IOException(GT.tr(
+              "Protocol error. A C-string read outside a tracked message exceeds the pgjdbc limit of {0} bytes on a single C-string.",
+              String.valueOf(fieldLimit))));
     } catch (IOException e) {
       throw markBroken(e);
     }

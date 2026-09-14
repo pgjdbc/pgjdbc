@@ -621,12 +621,15 @@ A limit whose right value depends on the workload is a connection property, and 
 | --- | --- | --- | --- |
 | `CopyData`, which carries `COPY ... TO STDOUT` output and replication data | 64 MB (64000000 bytes) | `maxCopyDataSize` | only while the property is unset |
 | `ErrorResponse`, `NoticeResponse`, `CommandComplete`, `ParameterStatus`, `NotificationResponse` after the server has authenticated | 64 MB (64000000 bytes) | `maxServerTextMessageSize` | yes |
+| One NUL-terminated string inside a message | 1 MiB (1048576 bytes) | none | yes, inside a message whose length the driver has read, before authentication too, where every message the driver scans is limited to 1 MiB anyway; no elsewhere |
 | `RowDescription` | 8 MiB (8388608 bytes) | none | no |
 | `NegotiateProtocolVersion` | 1 MiB (1048576 bytes) | none | no |
 | `AuthenticationRequest`, `AuthenticationGSSContinue` | 8008 bytes | none | no |
 | `ErrorResponse` before the server has authenticated | 30000 bytes | none | no |
 
-Each fixed limit is orders of magnitude above what PostgreSQL sends. A `RowDescription` for a result of 1664 columns, the most PostgreSQL returns, is about 133 KiB.
+A string over its own limit fails with `Protocol error. C-string in <message type> message of N bytes exceeds the pgjdbc limit of M bytes on a single C-string.` When the string is inside a message whose length the driver has already read, which is where `disable` lifts this limit, the error continues with `Set -Dpgjdbc.protocolHardeningMode=disable to skip these limits altogether.` A string read outside such a message fails with `Protocol error. A C-string read outside a tracked message exceeds the pgjdbc limit of M bytes on a single C-string.`
+
+Each fixed limit is orders of magnitude above what PostgreSQL sends. A `RowDescription` for a result of 1664 columns, the most PostgreSQL returns, is about 133 KiB, and the widest field the driver scans for a NUL terminator is a `NOTIFY` payload, which the server limits to 8000 bytes.
 
 ### Limits no setting relaxes
 

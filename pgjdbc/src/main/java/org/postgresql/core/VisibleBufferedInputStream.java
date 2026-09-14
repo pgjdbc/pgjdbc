@@ -386,7 +386,7 @@ public class VisibleBufferedInputStream extends InputStream {
    *
    * <p>A byte counts when a caller reads or skips it, not when the buffer reads it from the wrapped
    * stream. Inspecting a byte in place does not change the count, so {@link #peek()} and
-   * {@link #scanCStringLength(int, String, int)} do not advance it.</p>
+   * {@link #scanCStringLength(int, int, String, int)} do not advance it.</p>
    *
    * @return bytes consumed so far, never decreasing
    */
@@ -397,30 +397,43 @@ public class VisibleBufferedInputStream extends InputStream {
   /**
    * Scans the length of the next null-terminated string without consuming it.
    *
-   * <p>The NUL has to arrive within {@code maxBytes} bytes, so that a stream that has fallen out
-   * of sync cannot drive an unbounded scan. The scanned bytes stay in the buffer for the caller to
-   * decode, so {@code maxBytes} also limits how far the buffer grows before the scan fails.</p>
+   * <p>The NUL has to arrive within {@code messageBudget} or {@code fieldLimit} bytes, whichever is
+   * smaller, so that a stream that has fallen out of sync cannot drive an unbounded scan. The
+   * scanned bytes stay in the buffer for the caller to decode, so the smaller of the two also
+   * limits how far the buffer grows before the scan fails.</p>
    *
    * <p>{@link #getPosition()} does not move. The caller decodes from {@link #getBuffer()} at
    * {@link #getIndex()} and then skips the returned length.</p>
    *
-   * @param maxBytes inclusive maximum the message leaves for this string, including the trailing
-   *                 NUL; must be positive
+   * @param messageBudget inclusive maximum the message leaves for this string, including the
+   *                      trailing NUL; must be positive
+   * @param fieldLimit inclusive maximum for this one string, including the trailing NUL; must be
+   *                   positive; the smaller of this and {@code messageBudget} applies
    * @param messageName protocol message name; used only in the error message
    * @param messageLength declared total length (including the 4 length bytes) of the protocol
    *                      message currently being parsed; used only in the error message
    * @return the length of the next null-terminated string (including the trailing NUL)
+   * @throws IllegalArgumentException if {@code fieldLimit} is not positive; no byte is read
    * @throws EOFException if end of stream is reached before a NUL is found
-   * @throws IOException if {@code maxBytes} is not positive, if the string overruns
-   *                     {@code maxBytes}, or if reading fails
+   * @throws CStringLimitException if {@code fieldLimit} is the smaller maximum and the string
+   *                               overruns it
+   * @throws IOException if {@code messageBudget} is not positive, if the string overruns
+   *                     {@code messageBudget}, or if reading fails
    */
-  public int scanCStringLength(int maxBytes, String messageName, int messageLength)
-      throws IOException {
-    if (maxBytes <= 0) {
+  public int scanCStringLength(int messageBudget, int fieldLimit, String messageName,
+      int messageLength) throws IOException {
+    // A non-positive field limit is a defect in the calling driver code, so it is reported as
+    // such before the budget, which comes from the backend, is checked.
+    if (fieldLimit <= 0) {
+      throw new IllegalArgumentException(GT.tr("C-string field limit {0} must be positive",
+          String.valueOf(fieldLimit)));
+    }
+    if (messageBudget <= 0) {
       throw new IOException(GT.tr(
           "Protocol error. {0} message of {1} bytes has no room left for a C-string (remaining budget: {2} bytes).",
-          messageName, String.valueOf(messageLength), String.valueOf(maxBytes)));
+          messageName, String.valueOf(messageLength), String.valueOf(messageBudget)));
     }
+    int maxBytes = Math.min(messageBudget, fieldLimit);
     int scanned = 0;
     while (true) {
       // readMore may move the unread bytes to the front of the buffer, so index can change.
@@ -432,9 +445,14 @@ public class VisibleBufferedInputStream extends InputStream {
         // The budget test comes before the NUL test because the returned length counts the NUL:
         // byte maxBytes + 1 is over the limit whether or not it is the terminator.
         if (scanned > maxBytes) {
+          if (fieldLimit < messageBudget) {
+            throw new CStringLimitException(GT.tr(
+                "Protocol error. C-string in {0} message of {1} bytes exceeds the pgjdbc limit of {2} bytes on a single C-string.",
+                messageName, String.valueOf(messageLength), String.valueOf(fieldLimit)));
+          }
           throw new IOException(GT.tr(
               "Protocol error. C-string in {0} message of {1} bytes exceeds remaining budget of {2} bytes.",
-              messageName, String.valueOf(messageLength), String.valueOf(maxBytes)));
+              messageName, String.valueOf(messageLength), String.valueOf(messageBudget)));
         }
         if (buffer[pos++] == '\0') {
           return scanned;
@@ -443,6 +461,23 @@ public class VisibleBufferedInputStream extends InputStream {
       if (!readMore(STRING_SCAN_SPAN, true)) {
         throw new EOFException();
       }
+    }
+  }
+
+  /**
+   * Signals that a C-string overran the limit on one string rather than the bytes left in the
+   * message that carries it. {@link PGStream} distinguishes the two by type rather than by the
+   * exception text, because {@code -Dpgjdbc.protocolHardeningMode=disable} lifts this limit and not
+   * the message budget. That mode lifts the limit only where a tracked message bounds the scan in
+   * its place. PGStream replaces this exception with its own error, built from the message it
+   * tracks: inside a tracked message the error names that mode as the remedy, and elsewhere it
+   * names no message.
+   */
+  static class CStringLimitException extends IOException {
+    private static final long serialVersionUID = 1L;
+
+    CStringLimitException(String message) {
+      super(message);
     }
   }
 

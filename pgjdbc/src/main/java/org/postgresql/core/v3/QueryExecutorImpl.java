@@ -3058,7 +3058,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       LOGGER.log(Level.FINEST, " <=BE RowDescription({0})", size);
     }
 
-    // PGStream bounds each column label by the bytes the message has left.
+    // PGStream bounds each column label by the bytes the message has left and by
+    // MAX_CSTRING_LENGTH, which ProtocolHardeningMode.DISABLE raises to MAX_MESSAGE_SIZE.
     for (int i = 0; i < fields.length; i++) {
       String columnLabel = pgStream.receiveCanonicalString();
       int tableOid = pgStream.receiveInteger4();

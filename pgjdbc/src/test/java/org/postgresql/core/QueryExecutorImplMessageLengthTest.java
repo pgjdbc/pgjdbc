@@ -67,8 +67,9 @@ import java.util.stream.Stream;
  * {@link ProtocolHardeningMode#DISABLE} switches off; the 8 MiB RowDescription limit holds in every
  * mode. A CopyData read during a copy is limited by {@code maxCopyDataSize}, or by 64 MB
  * (64000000 bytes) while that property is unset, and {@link ProtocolHardeningMode#DISABLE} switches
- * off only the 64 MB limit. Every other check holds in both modes, so each rejection runs under
- * both.</p>
+ * off only the 64 MB limit. A column label is limited to 1 MiB (1048576 bytes) with its NUL, and
+ * {@link ProtocolHardeningMode#DISABLE} switches that limit off. Every other check holds in both
+ * modes, so each rejection runs under both.</p>
  *
  * <p>Every loop that dispatches on a message type (startup, query results, fastpath results, copy
  * results, and notifications) reads the type only on a message boundary, and fails the connection
@@ -379,8 +380,7 @@ class QueryExecutorImplMessageLengthTest {
   }
 
   /**
-   * The channel name and the payload are each bounded only by what the body has left, so a byte
-   * after the payload's NUL is left for the end-of-message check to reject.
+   * The payload ends at its NUL, so a byte after it is left for the end-of-message check to reject.
    */
   @ParameterizedTest
   @EnumSource(ProtocolHardeningMode.class)
@@ -525,19 +525,62 @@ class QueryExecutorImplMessageLengthTest {
     assertConnectionBroken(s, executor, e, GT.tr(UNREAD, "RowDescription", "1"));
   }
 
+  /**
+   * No label here passes the 1 MiB C-string limit, so the message is read in every mode:
+   * 4 (length) + 2 (count) + 7 * (1048575 + NUL + 18) + (1048425 + NUL + 18) = 8388608.
+   */
   @Test
   void aRowDescriptionAtTheSizeLimitIsRead() throws Exception {
-    // 4 (length) + 2 (count) + label + NUL + 18 fixed bytes = 8388608
-    String label = text(PGStream.MAX_ROW_DESCRIPTION_SIZE - 4 - 2 - 1 - 18);
+    Wire body = new Wire().int2(8);
+    for (int i = 0; i < 7; i++) {
+      body.raw(fieldDescription(text(1048575), 0));
+    }
+    body.raw(fieldDescription(text(1048425), 0));
     Session s = new Session(readyForQuery(),
-        message('T', new Wire().int2(1).raw(fieldDescription(label, 0)).toBytes()),
+        message('T', body.toBytes()),
         message('C', cstring("SELECT 0")),
         readyForQuery());
     QueryExecutorImpl executor = s.connect();
 
     Field[] fields = castNonNull(s.executeSimpleQuery(executor).fields);
 
-    assertEquals(label.length(), fields[0].getColumnLabel().length(), "label length");
+    assertAll(
+        () -> assertEquals(8, fields.length, "field count"),
+        () -> assertEquals(1048575, fields[0].getColumnLabel().length(), "first label length"),
+        () -> assertEquals(1048425, fields[7].getColumnLabel().length(), "last label length"));
+  }
+
+  private static final String CSTRING_LIMIT =
+      "Protocol error. C-string in {0} message of {1} bytes exceeds the pgjdbc limit of {2} bytes on a single C-string. Set -D{3}=disable to skip these limits altogether.";
+
+  /** 4 (length) + 2 (count) + 1048576 letters + NUL + 18 fixed bytes = 1048601 */
+  @Test
+  void aRowDescriptionWithALabelOverTheCStringLimitBreaksTheConnection() throws Exception {
+    Session s = new Session(readyForQuery(),
+        message('T', new Wire().int2(1).raw(fieldDescription(text(1048576), 0)).toBytes()),
+        message('C', cstring("SELECT 0")),
+        readyForQuery());
+    s.stream.setProtocolHardeningMode(ProtocolHardeningMode.FAIL);
+    QueryExecutorImpl executor = s.connect();
+
+    SQLException e = assertThrows(SQLException.class, () -> s.executeSimpleQuery(executor));
+
+    assertConnectionBroken(s, executor, e, GT.tr(CSTRING_LIMIT, "RowDescription", "1048601",
+        "1048576", "pgjdbc.protocolHardeningMode"));
+  }
+
+  @Test
+  void aRowDescriptionWithALabelOverTheCStringLimitIsReadUnderDisable() throws Exception {
+    Session s = new Session(readyForQuery(),
+        message('T', new Wire().int2(1).raw(fieldDescription(text(1048576), 0)).toBytes()),
+        message('C', cstring("SELECT 0")),
+        readyForQuery());
+    s.stream.setProtocolHardeningMode(ProtocolHardeningMode.DISABLE);
+    QueryExecutorImpl executor = s.connect();
+
+    Field[] fields = castNonNull(s.executeSimpleQuery(executor).fields);
+
+    assertEquals(1048576, fields[0].getColumnLabel().length(), "label length");
   }
 
   @ParameterizedTest

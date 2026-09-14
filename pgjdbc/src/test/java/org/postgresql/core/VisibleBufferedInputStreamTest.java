@@ -10,11 +10,13 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.util.GT;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.EOFException;
@@ -26,8 +28,9 @@ import java.util.Arrays;
 /**
  * {@link VisibleBufferedInputStream#getPosition()} equals the offset of the next byte a caller
  * reads, whichever method consumed the bytes before it and however the buffer was refilled,
- * compacted, or bypassed; and {@link VisibleBufferedInputStream#scanCStringLength(int, String, int)}
- * finds a NUL within {@code maxBytes} bytes without consuming anything.
+ * compacted, or bypassed; and {@link VisibleBufferedInputStream#scanCStringLength(int, int, String, int)}
+ * finds a NUL within the smaller of the message budget and the field limit without consuming
+ * anything.
  *
  * <p>The position tests read {@link #pattern(int)}, where the byte at offset {@code i} is
  * {@code i % 251}, so a test can also check that the byte read at the reported position is the
@@ -35,6 +38,9 @@ import java.util.Arrays;
  * chooses, so a test can make the buffer refill. The scan tests build their own bytes.</p>
  */
 class VisibleBufferedInputStreamTest {
+
+  /** A field limit no test string reaches, so the message budget alone bounds the scan. */
+  private static final int NO_FIELD_LIMIT = Integer.MAX_VALUE;
 
   /**
    * Returns {@code length} bytes where the byte at offset {@code i} is {@code i % 251}. The values
@@ -208,34 +214,11 @@ class VisibleBufferedInputStreamTest {
     VisibleBufferedInputStream in = new VisibleBufferedInputStream(
         new ChunkedStream("xabc\0tail".getBytes(StandardCharsets.US_ASCII), 100), 1024);
     in.read();
-    int len = in.scanCStringLength(100, "Probe", 104);
+    int len = in.scanCStringLength(100, NO_FIELD_LIMIT, "Probe", 104);
     assertAll(
         () -> assertEquals(4, len, "scanCStringLength over \"abc\\0\""),
         () -> assertEquals(1, in.getPosition(), "position after the scan"),
         () -> assertEquals('a', in.read(), "byte read after the scan"));
-  }
-
-  /**
-   * {@code maxBytes} counts the NUL, so a string whose NUL is byte {@code maxBytes} fits and one
-   * whose NUL is byte {@code maxBytes + 1} does not.
-   */
-  @ParameterizedTest
-  @ValueSource(ints = {4, 5})
-  void scanAcceptsANulAtOrBeforeTheLastAllowedByte(int maxBytes) throws IOException {
-    VisibleBufferedInputStream in = new VisibleBufferedInputStream(
-        new ChunkedStream("abc\0tail".getBytes(StandardCharsets.US_ASCII), 100), 1024);
-    assertEquals(4, in.scanCStringLength(maxBytes, "Probe", 8), "scanCStringLength(" + maxBytes + ")");
-  }
-
-  @Test
-  void scanRejectsANulOneBytePastTheLimit() {
-    VisibleBufferedInputStream in = new VisibleBufferedInputStream(
-        new ChunkedStream("abc\0tail".getBytes(StandardCharsets.US_ASCII), 100), 1024);
-    IOException e = assertThrowsExactly(IOException.class, () -> in.scanCStringLength(3, "Probe", 7));
-    assertEquals(
-        GT.tr("Protocol error. C-string in {0} message of {1} bytes exceeds remaining budget of {2} bytes.",
-            "Probe", "7", "3"),
-        e.getMessage());
   }
 
   /**
@@ -248,7 +231,7 @@ class VisibleBufferedInputStreamTest {
     byte[] noNul = new byte[3001];
     Arrays.fill(noNul, (byte) 'x');
     VisibleBufferedInputStream in = new VisibleBufferedInputStream(new EndlessAfter(noNul, 700), 1024);
-    IOException e = assertThrowsExactly(IOException.class, () -> in.scanCStringLength(3000, "Probe", 3004));
+    IOException e = assertThrowsExactly(IOException.class, () -> in.scanCStringLength(3000, NO_FIELD_LIMIT, "Probe", 3004));
     assertEquals(
         GT.tr("Protocol error. C-string in {0} message of {1} bytes exceeds remaining budget of {2} bytes.",
             "Probe", "3004", "3000"),
@@ -268,7 +251,7 @@ class VisibleBufferedInputStreamTest {
     data[5000] = 0;
     VisibleBufferedInputStream in = new VisibleBufferedInputStream(new ChunkedStream(data, 300), 1024);
     in.read();
-    int len = in.scanCStringLength(10000, "Probe", 10004);
+    int len = in.scanCStringLength(10000, NO_FIELD_LIMIT, "Probe", 10004);
     assertAll(
         () -> assertEquals(5000, len, "scanCStringLength over 4999 bytes and a NUL"),
         () -> assertArrayEquals(Arrays.copyOfRange(data, 1, 5001),
@@ -281,7 +264,7 @@ class VisibleBufferedInputStreamTest {
   @ValueSource(ints = {0, -1})
   void scanRejectsANonPositiveLimitWithoutReading(int maxBytes) {
     VisibleBufferedInputStream in = new VisibleBufferedInputStream(new EndlessAfter(new byte[0], 1), 1024);
-    IOException e = assertThrowsExactly(IOException.class, () -> in.scanCStringLength(maxBytes, "Probe", 20));
+    IOException e = assertThrowsExactly(IOException.class, () -> in.scanCStringLength(maxBytes, NO_FIELD_LIMIT, "Probe", 20));
     assertEquals(
         GT.tr("Protocol error. {0} message of {1} bytes has no room left for a C-string (remaining budget: {2} bytes).",
             "Probe", "20", String.valueOf(maxBytes)),
@@ -292,7 +275,128 @@ class VisibleBufferedInputStreamTest {
   void scanReportsEndOfStreamBeforeANulWithinTheLimit() {
     VisibleBufferedInputStream in = new VisibleBufferedInputStream(
         new ChunkedStream("abc".getBytes(StandardCharsets.US_ASCII), 100), 1024);
-    assertThrows(EOFException.class, () -> in.scanCStringLength(100, "Probe", 104));
+    assertThrows(EOFException.class, () -> in.scanCStringLength(100, NO_FIELD_LIMIT, "Probe", 104));
+  }
+
+  /**
+   * The smaller of the message budget and the field limit bounds the scan, whichever of the two it
+   * is. The string {@code "abc"} takes 4 bytes with its NUL, and the smaller bound is 4 in every
+   * case.
+   */
+  @ParameterizedTest
+  @CsvSource({"4, 100", "100, 4", "4, 4"})
+  void scanAcceptsANulOnTheLastByteOfTheSmallerBound(int messageBudget, int fieldLimit)
+      throws IOException {
+    VisibleBufferedInputStream in = new VisibleBufferedInputStream(
+        new ChunkedStream("abc\0tail".getBytes(StandardCharsets.US_ASCII), 100), 1024);
+    assertEquals(4, in.scanCStringLength(messageBudget, fieldLimit, "Probe", 104),
+        "scanCStringLength(" + messageBudget + ", " + fieldLimit + ")");
+  }
+
+  /**
+   * A field limit that is not positive is a caller defect, reported before the message budget is
+   * checked and before any byte is read, so a budget of 0 does not turn it into a protocol error.
+   */
+  @ParameterizedTest
+  @CsvSource({"0, 100", "-1, 100", "0, 0"})
+  void scanWithAFieldLimitThatIsNotPositiveIsRefusedBeforeReading(int fieldLimit,
+      int messageBudget) {
+    ChunkedStream source = new ChunkedStream("abc\0tail".getBytes(StandardCharsets.US_ASCII), 100);
+    VisibleBufferedInputStream in = new VisibleBufferedInputStream(source, 1024);
+    IllegalArgumentException e = assertThrowsExactly(IllegalArgumentException.class,
+        () -> in.scanCStringLength(messageBudget, fieldLimit, "Probe", 104));
+    assertAll(
+        () -> assertEquals(
+            GT.tr("C-string field limit {0} must be positive", String.valueOf(fieldLimit)),
+            e.getMessage()),
+        () -> assertEquals(0, in.getPosition(), "getPosition()"),
+        () -> assertEquals(0, source.next, "bytes read from the source"));
+  }
+
+  @Test
+  void scanWithAFieldLimitOfOneAcceptsAnEmptyString() throws IOException {
+    VisibleBufferedInputStream in = new VisibleBufferedInputStream(
+        new ChunkedStream("\0tail".getBytes(StandardCharsets.US_ASCII), 100), 1024);
+    assertEquals(1, in.scanCStringLength(100, 1, "Probe", 104), "scanCStringLength(100, 1)");
+  }
+
+  @Test
+  void scanOverAFieldLimitSmallerThanTheBudgetThrowsCStringLimitException() {
+    VisibleBufferedInputStream in = new VisibleBufferedInputStream(
+        new ChunkedStream("abc\0tail".getBytes(StandardCharsets.US_ASCII), 100), 1024);
+    IOException e = assertThrowsExactly(VisibleBufferedInputStream.CStringLimitException.class,
+        () -> in.scanCStringLength(100, 3, "Probe", 104));
+    assertEquals(
+        GT.tr("Protocol error. C-string in {0} message of {1} bytes exceeds the pgjdbc limit of {2} bytes on a single C-string.",
+            "Probe", "104", "3"),
+        e.getMessage());
+  }
+
+  /**
+   * An overrun of the message budget is a plain {@link IOException} naming the budget, also when the
+   * field limit is equal to the budget: PGStream offers {@code disable} as a remedy only for a
+   * {@link VisibleBufferedInputStream.CStringLimitException}, and that mode does not lift the budget.
+   */
+  @ParameterizedTest
+  @CsvSource({"3, 100", "3, 3"})
+  void scanOverTheBudgetThrowsAPlainIOException(int messageBudget, int fieldLimit) {
+    VisibleBufferedInputStream in = new VisibleBufferedInputStream(
+        new ChunkedStream("abc\0tail".getBytes(StandardCharsets.US_ASCII), 100), 1024);
+    IOException e = assertThrowsExactly(IOException.class,
+        () -> in.scanCStringLength(messageBudget, fieldLimit, "Probe", 104));
+    assertEquals(
+        GT.tr("Protocol error. C-string in {0} message of {1} bytes exceeds remaining budget of {2} bytes.",
+            "Probe", "104", "3"),
+        e.getMessage());
+  }
+
+  /**
+   * The scanned bytes stay in the buffer, so the bound on the scan is also the bound on the buffer.
+   * With a 64 MB budget and a 1 MiB field limit, a source that sends no NUL leaves the buffer at
+   * 2 MiB (2097152 bytes) or less.
+   */
+  @Test
+  void scanRefusedAtTheFieldLimitDoesNotGrowTheBufferPastTwoMiB() {
+    VisibleBufferedInputStream in = new VisibleBufferedInputStream(new NoNulStream(64_000_000), 8192);
+    assertThrowsExactly(VisibleBufferedInputStream.CStringLimitException.class,
+        () -> in.scanCStringLength(64_000_000, 1048576, "Probe", 64_000_004));
+    int length = in.getBuffer().length;
+    assertTrue(length <= 2097152, () -> "buffer length after the refused scan: " + length);
+  }
+
+  /**
+   * Serves {@code limit} bytes {@code 'x'}, none of them a NUL, then end of stream.
+   */
+  private static final class NoNulStream extends InputStream {
+    private final int limit;
+    private int served;
+
+    NoNulStream(int limit) {
+      this.limit = limit;
+    }
+
+    @Override
+    public int read() {
+      if (served == limit) {
+        return -1;
+      }
+      served++;
+      return 'x';
+    }
+
+    @Override
+    public int read(byte[] b, int off, int len) {
+      if (len == 0) {
+        return 0;
+      }
+      int n = Math.min(len, limit - served);
+      if (n == 0) {
+        return -1;
+      }
+      Arrays.fill(b, off, off + n, (byte) 'x');
+      served += n;
+      return n;
+    }
   }
 
   /**
