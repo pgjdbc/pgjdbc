@@ -6,6 +6,7 @@
 package org.postgresql.core;
 
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.GT;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -13,8 +14,13 @@ import java.io.InputStream;
 import java.net.SocketTimeoutException;
 
 /**
- * A faster version of BufferedInputStream. Does no synchronisation and allows direct access to the
- * used byte[] buffer.
+ * A faster version of {@link java.io.BufferedInputStream BufferedInputStream}. Does no
+ * synchronisation and allows direct access to the used byte[] buffer.
+ *
+ * <p>The stream also counts the bytes consumed since construction, which {@link PGStream} reads to
+ * record where a protocol message must end and to verify that it ended there. A method that resets
+ * {@code index} has to add the consumed bytes it discards to {@code position} first, and a method
+ * that reads or skips outside the buffer has to add those bytes too.</p>
  *
  * @author Mikko Tiihonen
  */
@@ -51,6 +57,14 @@ public class VisibleBufferedInputStream extends InputStream {
    * How far is the buffer filled with valid data.
    */
   private int endIndex;
+
+  /**
+   * Bytes consumed before {@code buffer[0]}, counted since construction. The logical position is
+   * {@code position + index}, exposed by {@link #getPosition()}, so a read served out of the
+   * buffer advances it through {@code index} alone and costs no bookkeeping. Never decreases;
+   * a skipped byte counts as consumed.
+   */
+  private long position;
 
   /**
    * socket timeout has been requested
@@ -165,14 +179,20 @@ public class VisibleBufferedInputStream extends InputStream {
   }
 
   /**
-   * Reads more bytes into the buffer.
+   * Reads more bytes into the buffer. The buffer may be replaced and the unread bytes moved, so a
+   * caller must re-read {@link #getBuffer()} and {@link #getIndex()} afterwards.
    *
-   * @param wanted How much should be at least read.
-   * @return True if at least some bytes were read.
+   * @param wanted number of free bytes to make room for before reading; the buffer is compacted or
+   *               doubled at most once per call, so it can still have less room, and the read
+   *               itself may return fewer
+   * @param block false to give up when the wrapped stream has nothing ready or times out
+   * @return false at end of stream, or when {@code block} is false and the wrapped stream had
+   *         nothing ready; true otherwise, which does not promise that any bytes arrived
    * @throws IOException If reading of the wrapped stream failed.
    */
   private boolean readMore(int wanted, boolean block) throws IOException {
     if (endIndex == index) {
+      position += index;
       index = 0;
       endIndex = 0;
     }
@@ -225,14 +245,16 @@ public class VisibleBufferedInputStream extends InputStream {
   }
 
   /**
-   * Moves bytes from the buffer to the beginning of the destination buffer. Also sets the index and
-   * endIndex variables.
+   * Moves the unread bytes to the beginning of the destination buffer, which may be the current
+   * buffer itself. Also updates {@code position}, {@code index} and {@code endIndex} to match the
+   * new buffer base. The caller installs {@code dest} as the buffer.
    *
    * @param dest The destination buffer.
    */
   private void moveBufferTo(byte[] dest) {
     int size = endIndex - index;
     System.arraycopy(buffer, index, dest, 0, size);
+    position += index;
     index = 0;
     endIndex = size;
   }
@@ -269,7 +291,9 @@ public class VisibleBufferedInputStream extends InputStream {
     }
     int read = avail;
 
-    // good place to reset index because the buffer is fully drained
+    // The copy above did not advance index, so the bytes the buffer has served are the index
+    // bytes earlier reads consumed plus the avail bytes just copied out. Their sum is endIndex.
+    position += endIndex;
     index = 0;
     endIndex = 0;
 
@@ -287,6 +311,8 @@ public class VisibleBufferedInputStream extends InputStream {
       if (r <= 0) {
         return read == 0 ? r : read;
       }
+      // These bytes never pass through the buffer, so nothing else adds them to position.
+      position += r;
       read += r;
       off += r;
       len -= r;
@@ -308,9 +334,15 @@ public class VisibleBufferedInputStream extends InputStream {
       return n;
     }
     n -= avail;
+    // Skipping the avail bytes did not advance index, so the bytes the buffer has served are
+    // the index bytes earlier reads consumed plus those avail bytes. Their sum is endIndex.
+    position += endIndex;
     index = 0;
     endIndex = 0;
-    return avail + wrapped.skip(n);
+    long skipped = wrapped.skip(n);
+    // These bytes never pass through the buffer, so nothing else adds them to position.
+    position += skipped;
+    return avail + skipped;
   }
 
   /**
@@ -350,24 +382,67 @@ public class VisibleBufferedInputStream extends InputStream {
   }
 
   /**
-   * Scans the length of the next null terminated string (C-style string) from the stream.
+   * Returns the number of bytes read or skipped since construction.
    *
-   * @return The length of the next null terminated string.
-   * @throws IOException If reading of stream fails.
-   * @throws EOFException If the stream did not contain any null terminators.
+   * <p>A byte counts when a caller reads or skips it, not when the buffer reads it from the wrapped
+   * stream. Inspecting a byte in place does not change the count, so {@link #peek()} and
+   * {@link #scanCStringLength(int, String, int)} do not advance it.</p>
+   *
+   * @return bytes consumed so far, never decreasing
    */
-  public int scanCStringLength() throws IOException {
-    int pos = index;
+  public long getPosition() {
+    return position + index;
+  }
+
+  /**
+   * Scans the length of the next null-terminated string without consuming it.
+   *
+   * <p>The NUL has to arrive within {@code maxBytes} bytes, so that a stream that has fallen out
+   * of sync cannot drive an unbounded scan. The scanned bytes stay in the buffer for the caller to
+   * decode, so {@code maxBytes} also limits how far the buffer grows before the scan fails.</p>
+   *
+   * <p>{@link #getPosition()} does not move. The caller decodes from {@link #getBuffer()} at
+   * {@link #getIndex()} and then skips the returned length.</p>
+   *
+   * @param maxBytes inclusive maximum the message leaves for this string, including the trailing
+   *                 NUL; must be positive
+   * @param messageName protocol message name; used only in the error message
+   * @param messageLength declared total length (including the 4 length bytes) of the protocol
+   *                      message currently being parsed; used only in the error message
+   * @return the length of the next null-terminated string (including the trailing NUL)
+   * @throws EOFException if end of stream is reached before a NUL is found
+   * @throws IOException if {@code maxBytes} is not positive, if the string overruns
+   *                     {@code maxBytes}, or if reading fails
+   */
+  public int scanCStringLength(int maxBytes, String messageName, int messageLength)
+      throws IOException {
+    if (maxBytes <= 0) {
+      throw new IOException(GT.tr(
+          "Protocol error. {0} message of {1} bytes has no room left for a C-string (remaining budget: {2} bytes).",
+          messageName, String.valueOf(messageLength), String.valueOf(maxBytes)));
+    }
+    int scanned = 0;
     while (true) {
+      // readMore may move the unread bytes to the front of the buffer, so index can change.
+      // The scanned bytes are unread and still sit at [index, index + scanned), so the scan
+      // resumes at index + scanned.
+      int pos = index + scanned;
       while (pos < endIndex) {
+        scanned++;
+        // The budget test comes before the NUL test because the returned length counts the NUL:
+        // byte maxBytes + 1 is over the limit whether or not it is the terminator.
+        if (scanned > maxBytes) {
+          throw new IOException(GT.tr(
+              "Protocol error. C-string in {0} message of {1} bytes exceeds remaining budget of {2} bytes.",
+              messageName, String.valueOf(messageLength), String.valueOf(maxBytes)));
+        }
         if (buffer[pos++] == '\0') {
-          return pos - index;
+          return scanned;
         }
       }
       if (!readMore(STRING_SCAN_SPAN, true)) {
         throw new EOFException();
       }
-      pos = index;
     }
   }
 
