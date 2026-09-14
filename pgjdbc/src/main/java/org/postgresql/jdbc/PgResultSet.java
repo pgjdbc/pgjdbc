@@ -979,7 +979,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
 
     if (maxRows != 0) {
-      if (fetchRows == 0 || rowOffset + fetchRows + 1 > maxRows) {
+      if (fetchRows == 0 || fetchRows > maxRows - rowOffset - 1) {
         // Fetch would exceed maxRows, limit it.
         fetchRows = maxRows - rowOffset - 1;
       }
@@ -2320,7 +2320,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       }
 
       if (maxRows != 0) {
-        if (fetchRows == 0 || rowOffset + fetchRows > maxRows) {
+        if (fetchRows == 0 || fetchRows > maxRows - rowOffset) {
           // Fetch would exceed maxRows, limit it.
           fetchRows = maxRows - rowOffset;
         }
