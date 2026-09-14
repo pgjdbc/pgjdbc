@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Runs psql against the server the tests of this checkout connect to. The port is PGPORT when
+# set, otherwise the last test.url.PGPORT in build.local.properties or build.properties, which
+# is where docker/bin/postgres-server writes the leased port when PG_ISOLATE is on.
+# The arguments go to psql unchanged. The host defaults to localhost, and the user, the
+# password, and the database to test, as in build.properties.
+#
+#    docker/bin/test-psql -c 'show server_version'
+
+main () {
+    local root port
+    root="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../.." &> /dev/null && pwd )"
+    local files=("${root}/build.properties")
+    if [[ -f "${root}/build.local.properties" ]]; then
+        files+=("${root}/build.local.properties")
+    fi
+    port="$(awk -F= '$1 == "test.url.PGPORT" { port = $2 } END { sub(/[ \t\r]+$/, "", port); print port }' "${files[@]}")"
+    PGHOST="${PGHOST:-localhost}" PGPORT="${PGPORT:-${port:-5432}}" PGUSER="${PGUSER:-test}" \
+        PGPASSWORD="${PGPASSWORD:-test}" PGDATABASE="${PGDATABASE:-test}" \
+        exec psql "$@"
+}
+
+main "$@"

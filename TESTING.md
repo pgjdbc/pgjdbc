@@ -60,6 +60,14 @@ If you have Docker, you can use `docker compose` to launch test database (see [d
     TZ    = "Etc/UTC" | ...                - Override server timezone (default Etc/UTC)
     CREATE_REPLICAS = "yes" | "no"         - Whether to create two streaming replicas (defaults to off)
 
+    The host ports and the Compose project are chosen with:
+
+    PG_PUBLISH_PORT             = "5432" | ... - Host port of the primary server (defaults to 5432)
+    PG_REPLICA_ONE_PUBLISH_PORT = "5433" | ... - Host port of the first replica (defaults to 5433)
+    PG_REPLICA_TWO_PUBLISH_PORT = "5434" | ... - Host port of the second replica (defaults to 5434)
+    PG_ISOLATE  = "yes" | "no"                 - Whether to lease ports from 20000 to 29998 for this git
+                                                 worktree with docker/bin/pg-port-lease (defaults to no)
+
     The container is started in the foreground. It will remain running until it
     is killed via Ctrl-C.
 
@@ -86,6 +94,35 @@ If you have Docker, you can use `docker compose` to launch test database (see [d
     To start the default (latest) version with read only replicas:
 
     CREATE_REPLICAS=on docker/bin/postgres-server
+
+    To start a server on the ports leased to this git worktree:
+
+    PG_ISOLATE=yes docker/bin/postgres-server
+
+To run test servers from several git worktrees at once, start each with `PG_ISOLATE=yes`. The script leases three ports
+from 20000 to 29998 to the worktree and writes them into `build.local.properties` of that worktree between
+`# BEGIN ports written by docker/bin/postgres-server` and the matching `# END` line, so `./gradlew test` connects to
+this server. Keys set above the block stay in the file and take effect again when the server is started without
+`PG_ISOLATE`, which removes the block. The leased ports are published only on `127.0.0.1`, and on `::1` when the host
+has an IPv6 loopback address, so the server is not reachable from other machines; `docker/bin/pg-port-lease addresses`
+prints those addresses.
+
+`docker/bin/test-psql` runs `psql` as user `test` on database `test` and passes its arguments to `psql`. It connects to
+the port the tests use: `PGPORT` when it is set, otherwise the last `test.url.PGPORT` in `build.local.properties` or
+`build.properties`:
+
+    docker/bin/test-psql -c 'show server_version'
+
+`docker/bin/pg-port-lease show` prints the slot and the three ports of the worktree, and
+`docker/bin/pg-port-lease release` gives them up. The leases are refs under `refs/pgjdbc/ports/`, shared by all
+worktrees of the repository, and each start of the server with `PG_ISOLATE` renews the lease of its worktree. Another
+worktree takes over a slot only when the lease was released, when its worktree was removed, or when every slot is
+taken and this lease was renewed longest ago, and never while a server listens on one of its ports. The old worktree's
+`build.local.properties` still names those ports until its server is started again.
+
+After changing `docker/bin/pg-port-lease`, `docker/bin/test-psql`, or `docker/bin/postgres-server`, run
+`docker/bin/pg-port-lease-test`. It needs `git` and `python3`, uses throwaway repositories, and stops with an error when
+a port it holds open from 20000 is already in use.
 
 An alternative way is to use a Vagrant script: [jackdb/pgjdbc-test-vm](https://github.com/jackdb/pgjdbc-test-vm).
 Follow the instructions on that project's [README](https://github.com/jackdb/pgjdbc-test-vm) page.

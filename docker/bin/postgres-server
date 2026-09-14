@@ -14,6 +14,20 @@ set -euo pipefail
 #    TZ    = "Etc/UTC" | ...                - Override server timezone (default Etc/UTC)
 #    CREATE_REPLICAS = "yes" | "no"         - Whether to create two streaming replicas (defaults to off)
 #
+# The host ports and the Compose project are chosen with:
+#
+#    PG_PUBLISH_PORT             = "5432" | ... - Host port of the primary server (defaults to 5432)
+#    PG_REPLICA_ONE_PUBLISH_PORT = "5433" | ... - Host port of the first replica (defaults to 5433)
+#    PG_REPLICA_TWO_PUBLISH_PORT = "5434" | ... - Host port of the second replica (defaults to 5434)
+#    PG_ISOLATE  = "yes" | "no"                 - Whether to lease ports from 20000 to 29998 for this git
+#                                                 worktree with docker/bin/pg-port-lease (defaults to no)
+#
+# With PG_ISOLATE=yes, the leased ports replace the defaults and are published only on
+# 127.0.0.1, and on ::1 when the host has an IPv6 loopback; the Compose project is named
+# after the worktree; and the ports are written into build.local.properties, so the tests and
+# docker/bin/test-psql connect to this server. Without it, the script publishes the ports on
+# every address, as before, and removes those ports from build.local.properties again.
+#
 # The container is started in the foreground. It will remain running until it
 # is killed via Ctrl-C.
 #
@@ -40,27 +54,91 @@ set -euo pipefail
 # To start the default (latest) version with read only replicas:
 #
 #     CREATE_REPLICAS=on docker/bin/postgres-server
+#
+# To start a server on the ports leased to this git worktree:
+#
+#     PG_ISOLATE=yes docker/bin/postgres-server
+
+readonly properties_begin="# BEGIN ports written by docker/bin/postgres-server"
+readonly properties_end="# END ports written by docker/bin/postgres-server"
 
 log () {
     echo "$@" 1>&2
 }
 
+# Replaces the block of ports this script wrote into the properties file with the given ports,
+# or removes the block when no ports are given. The file is left untouched when nothing changes.
+# Java keeps the last value of a repeated key, so the block overrides the same keys above it.
+write_port_properties () {
+    local file="$1" tmp
+    tmp="$(mktemp "${file}.XXXXXX")"
+    if [[ -f "${file}" ]]; then
+        awk -v begin="${properties_begin}" -v end="${properties_end}" \
+            '$0 == begin { skip = 1 } !skip { print } $0 == end { skip = 0 }' "${file}" > "${tmp}"
+    fi
+    if [[ $# -gt 1 ]]; then
+        printf '%s\ntest.url.PGPORT=%s\nsecondaryPort1=%s\nsecondaryPort2=%s\n%s\n' \
+            "${properties_begin}" "$2" "$3" "$4" "${properties_end}" >> "${tmp}"
+    fi
+    if cmp -s "${tmp}" "${file}" || { [[ ! -f "${file}" ]] && [[ ! -s "${tmp}" ]]; }; then
+        rm -f "${tmp}"
+    else
+        mv "${tmp}" "${file}"
+    fi
+}
+
 main () {
     local publish_port="${PG_PUBLISH_PORT:-5432}"
     local replica_one_port="${PG_REPLICA_ONE_PUBLISH_PORT:-5433}"
-    local replica_two_port="${PG_REPLICA_ONE_PUBLISH_PORT:-5434}"
+    local replica_two_port="${PG_REPLICA_TWO_PUBLISH_PORT:-5434}"
+    # Empty publishes on every address; isolation lists the loopback addresses instead.
+    local addresses=""
 
     # Determine our current directory and change to be in the same directory as the compose file
     local script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+    local properties="${script_dir}/../../build.local.properties"
     cd "${script_dir}/../postgres-server"
 
+    case "$(printf '%s' "${PG_ISOLATE:-no}" | tr '[:upper:]' '[:lower:]')" in
+    yes|on|true|1)
+        local lease slot leased_port leased_replica_one_port leased_replica_two_port
+        lease="$("${script_dir}/pg-port-lease" acquire)"
+        read -r slot leased_port leased_replica_one_port leased_replica_two_port <<< "${lease}"
+        publish_port="${PG_PUBLISH_PORT:-${leased_port}}"
+        replica_one_port="${PG_REPLICA_ONE_PUBLISH_PORT:-${leased_replica_one_port}}"
+        replica_two_port="${PG_REPLICA_TWO_PUBLISH_PORT:-${leased_replica_two_port}}"
+        addresses="$("${script_dir}/pg-port-lease" addresses)"
+
+        local slug
+        slug="$(basename "$(git rev-parse --show-toplevel)" | tr '[:upper:]' '[:lower:]')"
+        slug="${slug//[^a-z0-9_-]/_}"
+        export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-pgjdbc_${slug}_${slot}}"
+
+        write_port_properties "${properties}" "${publish_port}" "${replica_one_port}" "${replica_two_port}"
+        log "Leased slot ${slot} for Compose project ${COMPOSE_PROJECT_NAME}; wrote ports ${publish_port}, ${replica_one_port}, and ${replica_two_port} into build.local.properties"
+        ;;
+    *)
+        write_port_properties "${properties}"
+        ;;
+    esac
+
+    local publish=() address
+    if [[ -z "${addresses}" ]]; then
+        publish=(--publish="${publish_port}:5432" --publish="${replica_one_port}:5433" --publish="${replica_two_port}:5434")
+    else
+        for address in ${addresses}; do
+            # Docker takes an IPv6 host address in brackets.
+            if [[ "${address}" == *:* ]]; then
+                address="[${address}]"
+            fi
+            publish+=(--publish="${address}:${publish_port}:5432"
+                --publish="${address}:${replica_one_port}:5433"
+                --publish="${address}:${replica_two_port}:5434")
+        done
+    fi
+
     log "Starting Postgres server and mapping to local port ${publish_port}"
-    exec docker compose run \
-        --rm \
-        --publish="${publish_port}:5432" \
-        --publish="${replica_one_port}:5433" \
-        --publish="${replica_two_port}:5434" \
-        pgdb
+    exec docker compose run --rm "${publish[@]}" pgdb
 }
 
 main "$@"

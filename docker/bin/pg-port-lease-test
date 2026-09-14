@@ -1,0 +1,346 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+# Tests docker/bin/pg-port-lease, docker/bin/test-psql, and the ports that
+# docker/bin/postgres-server publishes and writes into build.local.properties. Each group runs
+# in a throwaway git repository with its own worktrees, so the registry of the checkout the
+# script lives in is left alone. docker and psql are replaced with stubs that print what they
+# receive.
+#
+# Needs bash, git, awk, and python3, which holds a port open for the tests that expect a
+# slot with a port in use to be skipped. The tests use ports from 20000, and stop with an
+# error when a port they hold open is already in use.
+#
+#    docker/bin/pg-port-lease-test
+#
+# PG_PORT_LEASE selects another copy of the lease script, to check that a broken copy
+# fails the tests.
+
+readonly script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+readonly lease="${PG_PORT_LEASE:-${script_dir}/pg-port-lease}"
+# git reports worktree paths with symbolic links resolved, as in /private/var for /var on macOS.
+root="$(cd "$(mktemp -d)" && pwd -P)"
+readonly root
+trap 'rm -rf "${root}"' EXIT
+failures=0
+listener=
+
+# The variables the scripts read are cleared, so a PG_ISOLATE exported in the shell profile does
+# not change the results.
+unset PG_ISOLATE PG_PUBLISH_PORT PG_REPLICA_ONE_PUBLISH_PORT PG_REPLICA_TWO_PUBLISH_PORT \
+    COMPOSE_PROJECT_NAME PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE
+
+check () {
+    if [[ "$2" == "$3" ]]; then
+        echo "PASS $1"
+    else
+        echo "FAIL $1"
+        echo "     expected: [$2]"
+        echo "     actual:   [$3]"
+        failures=$(( failures + 1 ))
+    fi
+}
+
+git () {
+    command git -c user.name=test -c user.email=test@example.com -c init.defaultBranch=main "$@"
+}
+export -f git
+
+# Creates a repository with a main worktree under $root/$1 and sets $repo to it.
+new_repo () {
+    mkdir -p "${root}/$1"
+    git init -q "${root}/$1/main"
+    git -C "${root}/$1/main" commit -q --allow-empty -m init
+    repo="${root}/$1/main"
+}
+
+add_worktree () {
+    git -C "${repo}" worktree add -q "${root}/$1/$2" 2> /dev/null
+}
+
+acquire_in () { (cd "$1" && "${lease}" acquire); }
+show_in () { (cd "$1" && "${lease}" show); }
+release_in () { (cd "$1" && "${lease}" release); }
+
+# Prints yes when the host can bind ::1, and no otherwise. It decides which addresses the tests
+# expect a leased server to be published on, without asking the scripts under test.
+has_ipv6_loopback () {
+    python3 -c 'import socket
+s = socket.socket(socket.AF_INET6)
+try:
+    s.bind(("::1", 0))
+    print("yes")
+except OSError:
+    print("no")'
+}
+
+# Holds port $1 open on address $2, 127.0.0.1 by default, until stop_listening.
+listen () {
+    python3 -c 'import socket, sys, time
+host = sys.argv[2]
+s = socket.socket(socket.AF_INET6 if ":" in host else socket.AF_INET)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind((host, int(sys.argv[1])))
+s.listen()
+print("ready", flush=True)
+time.sleep(120)' "$1" "${2:-127.0.0.1}" > "${root}/listener" &
+    listener=$!
+    until grep -q ready "${root}/listener" 2> /dev/null; do
+        if ! kill -0 "${listener}" 2> /dev/null; then
+            echo "pg-port-lease-test: cannot listen on port $1; stop the process that uses it" 1>&2
+            exit 2
+        fi
+        sleep 0.1
+    done
+}
+
+stop_listening () {
+    kill "${listener}"
+    wait "${listener}" 2> /dev/null
+}
+
+# Reads "<slot> <unix time>" lines and creates leases owned by the main worktree of $repo.
+fill_slots () {
+    local blobs="${root}/blobs"
+    rm -rf "${blobs}"
+    mkdir -p "${blobs}"
+    awk -v dir="${blobs}" -v owner="${repo}" \
+        '{ file = dir "/" $1; print $2, owner > file; close(file); print $1, file }' > "${root}/slots"
+    cut -d' ' -f2 "${root}/slots" | git -C "${repo}" hash-object -w --stdin-paths |
+        paste -d' ' "${root}/slots" - |
+        awk '{ print "create refs/pgjdbc/ports/" $1, $3 }' |
+        git -C "${repo}" update-ref --stdin
+}
+
+ref_state () {
+    if git -C "${repo}" rev-parse -q --verify "refs/pgjdbc/ports/$1" > /dev/null; then echo present; else echo absent; fi
+}
+
+lease_time () {
+    git -C "${repo}" cat-file blob "refs/pgjdbc/ports/$1" | cut -d' ' -f1
+}
+
+set_lease_time () {
+    git -C "${repo}" update-ref "refs/pgjdbc/ports/$1" \
+        "$(printf '%s %s\n' "$2" "$3" | git -C "${repo}" hash-object -w --stdin)"
+}
+
+test_lease_lifecycle () {
+    local w
+    new_repo lifecycle
+    for w in wt1 wt2 wt3 wt4 wt5; do add_worktree lifecycle "${w}"; done
+    local dir="${root}/lifecycle"
+
+    check "the first worktree takes slot 0" "0 20000 20001 20002" "$(acquire_in "${dir}/wt1")"
+    check "a worktree that holds a slot gets the same slot again" "0 20000 20001 20002" "$(acquire_in "${dir}/wt1")"
+    check "the lease names the worktree" "${dir}/wt1" "$(git -C "${repo}" cat-file blob refs/pgjdbc/ports/0 | cut -d' ' -f2-)"
+
+    set_lease_time 0 100 "${dir}/wt1"
+    show_in "${dir}/wt1" > /dev/null
+    check "show leaves the lease time unchanged" "100" "$(lease_time 0)"
+    acquire_in "${dir}/wt1" > /dev/null
+    check "acquire renews the lease time of the worktree" "renewed" \
+        "$([[ "$(lease_time 0)" -gt 100 ]] && echo renewed || echo "still $(lease_time 0)")"
+
+    check "the second worktree takes slot 1" "1 20003 20004 20005" "$(acquire_in "${dir}/wt2")"
+    check "show prints nothing for a worktree without a lease" "" "$(show_in "${dir}/wt3")"
+    check "show prints the lease of the worktree" "1 20003 20004 20005" "$(show_in "${dir}/wt2")"
+
+    rm -rf "${dir}/wt1"
+    check "a slot of a deleted, prunable worktree goes to the next worktree" "0 20000 20001 20002" "$(acquire_in "${dir}/wt3")"
+    check "a worktree takes the lowest free slot" "2 20006 20007 20008" "$(acquire_in "${dir}/wt4")"
+    git -C "${repo}" worktree remove "${dir}/wt4"
+    check "a slot of a worktree removed with git worktree remove goes to the next worktree" "2 20006 20007 20008" "$(acquire_in "${dir}/wt5")"
+
+    release_in "${dir}/wt2"
+    check "release deletes the ref of the slot" "absent" "$(ref_state 1)"
+    check "show prints nothing after release" "" "$(show_in "${dir}/wt2")"
+    release_in "${dir}/wt2"
+    check "release in a worktree without a lease keeps the other leases" "present present" "$(ref_state 0) $(ref_state 2)"
+}
+
+test_ports_in_use () {
+    new_repo busy
+    add_worktree busy wt1
+    add_worktree busy wt2
+    add_worktree busy wt3
+    local dir="${root}/busy"
+    local ipv6
+    ipv6="$(has_ipv6_loopback)"
+
+    check "addresses lists 127.0.0.1, and ::1 when the host can bind it" \
+        "$([[ "${ipv6}" == yes ]] && echo '127.0.0.1 ::1' || echo 127.0.0.1)" \
+        "$(cd "${dir}/wt1" && "${lease}" addresses | paste -sd' ' -)"
+
+    check "a worktree takes slot 0 while its ports are free" "0 20000 20001 20002" "$(acquire_in "${dir}/wt1")"
+    listen 20004
+    check "a free slot with a port in use on 127.0.0.1 is skipped" "2 20006 20007 20008" "$(acquire_in "${dir}/wt2")"
+    stop_listening
+
+    if [[ "${ipv6}" == yes ]]; then
+        listen 20004 ::1
+        check "a free slot with a port in use on ::1 is skipped" "3 20009 20010 20011" "$(acquire_in "${dir}/wt3")"
+        stop_listening
+    else
+        echo "SKIP a free slot with a port in use on ::1 is skipped: the host has no IPv6 loopback"
+    fi
+
+    listen 20000
+    check "a worktree keeps its slot while a port of the slot is in use" "0 20000 20001 20002" "$(acquire_in "${dir}/wt1")"
+    stop_listening
+}
+
+test_skipped_ports () {
+    new_repo skip
+    add_worktree skip wt1
+    add_worktree skip wt2
+    add_worktree skip wt3
+    local dir="${root}/skip"
+
+    seq 0 665 | awk '{ print $1, 100 }' | fill_slots
+    check "slot 666 includes port 22000 and is skipped" "667 22001 22002 22003" "$(acquire_in "${dir}/wt1")"
+    { echo 666; seq 668 2336; } | awk '{ print $1, 100 }' | fill_slots
+    check "slot 2337 ends just below the skipped range 27015-27030 and is taken" "2337 27011 27012 27013" "$(acquire_in "${dir}/wt2")"
+    check "every slot with a port in the range 27015-27030 is skipped" "2344 27032 27033 27034" "$(acquire_in "${dir}/wt3")"
+}
+
+test_last_slot () {
+    new_repo last
+    add_worktree last wt1
+    seq 0 3331 | awk '{ print $1, 100 }' | fill_slots
+    check "the last slot is taken before any lease is evicted" "3332 29996 29997 29998" "$(acquire_in "${root}/last/wt1")"
+}
+
+test_eviction () {
+    new_repo lru
+    add_worktree lru wt1
+    add_worktree lru wt2
+    # Every slot is leased; slot 42 was renewed longest ago, then slot 7, then slot 0.
+    seq 0 3332 | awk '{ time = 1000 + $1; if ($1 == 42) time = 5; if ($1 == 7) time = 6; print $1, time }' | fill_slots
+
+    check "the lease renewed longest ago is evicted" "42 20126 20127 20128" "$(acquire_in "${root}/lru/wt1")"
+    listen 20021
+    check "an evictable slot with a port in use is skipped" "0 20000 20001 20002" "$(acquire_in "${root}/lru/wt2")"
+    stop_listening
+}
+
+test_malformed_registry () {
+    new_repo malformed
+    add_worktree malformed wt1
+    add_worktree malformed wt2
+    local dir="${root}/malformed"
+    # Refs sort by name, so refs/pgjdbc/ports/10 is read between slots 1 and 2.
+    git -C "${repo}" update-ref refs/pgjdbc/ports/0 "$(git -C "${repo}" rev-parse HEAD)"
+    git -C "${repo}" update-ref refs/pgjdbc/ports/10 "$(printf 'p q r\ns t u' | git -C "${repo}" hash-object -w --stdin)"
+
+    check "a slot whose ref points to a commit is skipped" "1 20003 20004 20005" "$(acquire_in "${dir}/wt1")"
+    check "a lease read after a blob of several lines is still found" "2 20006 20007 20008" "$(acquire_in "${dir}/wt2")"
+    check "show finds the lease of a worktree after the malformed refs" "1 20003 20004 20005" "$(show_in "${dir}/wt1")"
+    release_in "${dir}/wt2"
+    check "release deletes only the ref of its own slot" "present present absent present" \
+        "$(ref_state 0) $(ref_state 1) $(ref_state 2) $(ref_state 10)"
+}
+
+test_concurrent_acquire () {
+    local i
+    new_repo concurrent
+    for i in 1 2 3 4 5 6 7 8; do add_worktree concurrent "wt${i}"; done
+    for i in 1 2 3 4 5 6 7 8; do
+        acquire_in "${root}/concurrent/wt${i}" > "${root}/concurrent/slot${i}" &
+    done
+    wait
+    check "eight worktrees acquiring at once get slots 0 to 7" "0 1 2 3 4 5 6 7" \
+        "$(cat "${root}"/concurrent/slot* | cut -d' ' -f1 | sort -n | paste -sd' ' -)"
+}
+
+test_server_ports () {
+    new_repo properties
+    add_worktree properties wt1
+    local dir="${root}/properties/wt1"
+    local properties="${dir}/build.local.properties"
+    cp -R "${script_dir}/.." "${dir}/docker"
+    if [[ -n "${PG_PORT_LEASE:-}" ]]; then
+        cp "${PG_PORT_LEASE}" "${dir}/docker/bin/pg-port-lease"
+    fi
+    printf 'test.url.PGPORT=5432\n' > "${dir}/build.properties"
+    mkdir -p "${root}/fakebin"
+    printf '#!/bin/sh\necho "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-}" > "%s/compose-env"\necho "docker $*"\n' \
+        "${root}" > "${root}/fakebin/docker"
+    printf '#!/bin/sh\necho "$PGHOST $PGPORT $PGUSER $PGPASSWORD $PGDATABASE $*"\n' > "${root}/fakebin/psql"
+    chmod +x "${root}/fakebin/docker" "${root}/fakebin/psql"
+    start_server () { (cd "${dir}" && PATH="${root}/fakebin:${PATH}" env "$@" docker/bin/postgres-server 2> /dev/null); }
+    run_psql () { (cd "${dir}" && PATH="${root}/fakebin:${PATH}" env "$@" docker/bin/test-psql -c 'select 1'); }
+
+    # A leased server is published on 127.0.0.1, and on ::1 when the host has an IPv6 loopback.
+    local leased_publish="--publish=127.0.0.1:20000:5432 --publish=127.0.0.1:20001:5433 --publish=127.0.0.1:20002:5434"
+    local explicit_publish="--publish=127.0.0.1:15999:5432 --publish=127.0.0.1:20001:5433 --publish=127.0.0.1:16002:5434"
+    if [[ "$(has_ipv6_loopback)" == yes ]]; then
+        leased_publish+=" --publish=[::1]:20000:5432 --publish=[::1]:20001:5433 --publish=[::1]:20002:5434"
+        explicit_publish+=" --publish=[::1]:15999:5432 --publish=[::1]:20001:5433 --publish=[::1]:16002:5434"
+    fi
+
+    check "a run without PG_ISOLATE publishes the default ports on every address" \
+        "docker compose run --rm --publish=5432:5432 --publish=5433:5433 --publish=5434:5434 pgdb" \
+        "$(start_server PG_ISOLATE=no)"
+    check "a run without PG_ISOLATE creates no properties file" "absent" "$([[ -f "${properties}" ]] && echo present || echo absent)"
+    check "PG_REPLICA_ONE_PUBLISH_PORT changes only the port of the first replica" \
+        "docker compose run --rm --publish=5432:5432 --publish=6001:5433 --publish=5434:5434 pgdb" \
+        "$(start_server PG_REPLICA_ONE_PUBLISH_PORT=6001)"
+    check "test-psql uses the port from build.properties" "localhost 5432 test test test -c select 1" "$(run_psql)"
+
+    printf 'test.url.PGPORT=15432\nuser=someone' > "${properties}"
+    check "a run with PG_ISOLATE publishes the leased ports on the loopback addresses" \
+        "docker compose run --rm ${leased_publish} pgdb" \
+        "$(start_server PG_ISOLATE=yes)"
+    check "a run with PG_ISOLATE names the Compose project after the worktree and the slot" \
+        "COMPOSE_PROJECT_NAME=pgjdbc_wt1_0" "$(cat "${root}/compose-env")"
+    check "the ports are appended in a block after the existing keys" \
+        "$(printf '%s\n' 'test.url.PGPORT=15432' 'user=someone' \
+            '# BEGIN ports written by docker/bin/postgres-server' \
+            'test.url.PGPORT=20000' 'secondaryPort1=20001' 'secondaryPort2=20002' \
+            '# END ports written by docker/bin/postgres-server')" \
+        "$(cat "${properties}")"
+    check "test-psql uses the port from the block" "localhost 20000 test test test -c select 1" "$(run_psql)"
+    check "test-psql uses PGPORT when it is set" "localhost 15000 test test test -c select 1" "$(run_psql PGPORT=15000)"
+
+    sleep 1
+    touch "${root}/marker"
+    sleep 1
+    check "PG_ISOLATE is read without regard to case, and a set COMPOSE_PROJECT_NAME is kept" \
+        "docker compose run --rm ${leased_publish} pgdb COMPOSE_PROJECT_NAME=custom" \
+        "$(start_server PG_ISOLATE=ON COMPOSE_PROJECT_NAME=custom) $(cat "${root}/compose-env")"
+    check "a second run with the same ports leaves the file unmodified" "unmodified" \
+        "$([[ "${properties}" -nt "${root}/marker" ]] && echo modified || echo unmodified)"
+
+    check "explicit ports override the leased ones" \
+        "docker compose run --rm ${explicit_publish} pgdb" \
+        "$(start_server PG_ISOLATE=yes PG_PUBLISH_PORT=15999 PG_REPLICA_TWO_PUBLISH_PORT=16002)"
+    check "explicit ports go into the block" "test.url.PGPORT=15999 secondaryPort1=20001 secondaryPort2=16002" \
+        "$(sed -n '/^# BEGIN/,/^# END/p' "${properties}" | grep -v '^#' | paste -sd' ' -)"
+
+    start_server PG_ISOLATE=no > /dev/null
+    check "a run without PG_ISOLATE removes the block and keeps the other keys" \
+        "$(printf '%s\n' 'test.url.PGPORT=15432' 'user=someone')" "$(cat "${properties}")"
+    check "test-psql uses the key above a removed block" "localhost 15432 test test test -c select 1" "$(run_psql)"
+    check "no temporary file is left next to the properties file" "" \
+        "$(cd "${dir}" && ls | grep 'build.local.properties.')"
+}
+
+main () {
+    command -v python3 > /dev/null || { echo "pg-port-lease-test: python3 is required" 1>&2; exit 2; }
+    test_lease_lifecycle
+    test_ports_in_use
+    test_skipped_ports
+    test_last_slot
+    test_eviction
+    test_malformed_registry
+    test_concurrent_acquire
+    test_server_ports
+    if [[ "${failures}" -gt 0 ]]; then
+        echo "${failures} check(s) failed"
+        exit 1
+    fi
+    echo "all checks passed"
+}
+
+main "$@"
