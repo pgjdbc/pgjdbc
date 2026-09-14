@@ -6,6 +6,8 @@
 package org.postgresql.test.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.util.CanEstimateSize;
@@ -18,6 +20,12 @@ import java.sql.SQLException;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Deque;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Tests {@link org.postgresql.util.LruCache}.
@@ -65,6 +73,47 @@ class LruCacheTest {
         assertEquals(expected, entry, "Unexpected evict");
       }
     });
+  }
+
+  /**
+   * A put on another thread returns while borrow is still running the create action for a missing
+   * key. The create action previously ran under the cache lock, so such a put waited for it.
+   */
+  @Test
+  void putCompletesWhileCreateActionRuns() throws Exception {
+    CountDownLatch createStarted = new CountDownLatch(1);
+    CountDownLatch putCompleted = new CountDownLatch(1);
+    AtomicBoolean createSawPut = new AtomicBoolean();
+    LruCache<Integer, Entry> cache = new LruCache<>(4, 1000, false,
+        key -> {
+          createStarted.countDown();
+          try {
+            createSawPut.set(putCompleted.await(5, TimeUnit.SECONDS));
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+          }
+          return new Entry(key);
+        },
+        null);
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    try {
+      Future<Entry> borrowed = executor.submit(() -> cache.borrow(1));
+      assertTrue(createStarted.await(5, TimeUnit.SECONDS),
+          "Timed out after 5 s waiting for createAction for key 1 to start");
+      cache.put(2, new Entry(2));
+      putCompleted.countDown();
+      assertEquals(1, borrowed.get(5, TimeUnit.SECONDS).id, "borrow(1)");
+      assertTrue(createSawPut.get(),
+          "put(2) did not return while createAction for key 1 was running");
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  void borrowOfAMissingKeyWithoutCreateActionThrows() {
+    LruCache<Integer, Entry> cache = new LruCache<>(4, 1000, false);
+    assertThrows(UnsupportedOperationException.class, () -> cache.borrow(1), "borrow(1)");
   }
 
   @Test
