@@ -10,6 +10,14 @@
     padding-inline: var(--primary-spacing);
   }
 
+  &__group__title {
+    font-weight: 700;
+  }
+
+  &__group__links {
+    padding-inline-start: var(--primary-spacing);
+  }
+
   &__links__link {
     color: var(--clr--indigo);
     text-decoration: none;

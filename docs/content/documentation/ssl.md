@@ -2,7 +2,7 @@
 title: "Using SSL"
 date: 2022-06-19T22:46:55+05:30
 draft: false
-weight: 3
+weight: 70
 toc: true
 aliases:
     - "/documentation/head/ssl.html"
@@ -75,7 +75,7 @@ and the source to the `NonValidatingFactory` provided by the JDBC driver.
 
 ## Configuring the Client
 
-There are a number of connection parameters for configuring the client for SSL. See [SSL Connection parameters](/documentation/use/#connection-parameters/)
+There are a number of connection parameters for configuring the client for SSL. See [SSL Connection parameters](/documentation/connection-properties/)
 
 The simplest being `ssl=true` , passing this into the driver will cause the driver to validate both the SSL certificate
 and verify the hostname (same as `verify-full` ).
