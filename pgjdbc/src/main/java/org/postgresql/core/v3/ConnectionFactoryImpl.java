@@ -622,8 +622,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.sendInteger2(1234);
     pgStream.sendInteger2(5680);
     pgStream.flush();
-    // Now get the response from the backend, one of N, E, S.
+    // The GSSENCRequest reply is one byte, N or G, rather than a framed message. This is where
+    // the framed dialogue resumes. An E starts an ErrorResponse, which the E branch does not read
+    // because it abandons this stream.
     int beresp = pgStream.receiveChar();
+    pgStream.markMessageBoundary();
     pgStream.setNetworkTimeout(currentTimeout);
     switch (beresp) {
       case 'E':
@@ -722,8 +725,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.sendInteger2(5679);
     pgStream.flush();
 
-    // Now get the response from the backend, one of N, E, S.
+    // The SSLRequest reply is one byte, N or S, rather than a framed message. This is where
+    // the framed dialogue resumes. An E starts an ErrorResponse, which the E branch does not read
+    // because it abandons this stream.
     int beresp = pgStream.receiveChar();
+    pgStream.markMessageBoundary();
     pgStream.setNetworkTimeout(currentTimeout);
 
     switch (beresp) {
@@ -852,7 +858,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               String.valueOf(MAX_AUTH_ITERATIONS)),
               PSQLState.PROTOCOL_VIOLATION));
         }
-        int beresp = pgStream.receiveChar();
+        int beresp = pgStream.receiveMessageType();
 
         switch (beresp) {
           case PgMessageType.NEGOTIATE_PROTOCOL_RESPONSE:  // Negotiate Protocol Version
@@ -985,6 +991,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               case AUTH_REQ_GSS:
               case AUTH_REQ_SSPI:
                 AuthMethod.checkAuth(authMethods, areq == AUTH_REQ_GSS ? AuthMethod.GSS : AuthMethod.SSPI);
+                // On the JSSE GSSAPI path, MakeGSS.authenticate reads the following messages
+                // itself, and its first receiveMessageType checks that the stream sits on a
+                // message boundary. The body is the request type and nothing else, so closing
+                // the message here records that boundary; the endMessage after the switch then
+                // does nothing.
+                pgStream.endMessage();
                 /*
                  * Use GSSAPI if requested on all platforms, via JSSE.
                  *

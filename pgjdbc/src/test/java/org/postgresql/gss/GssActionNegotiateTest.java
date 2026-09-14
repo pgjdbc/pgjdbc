@@ -192,6 +192,30 @@ class GssActionNegotiateTest {
         () -> PGStreamTestSupport.assertBroken(stream, socket));
   }
 
+  // The message boundary
+
+  /**
+   * The test reads one byte with {@code receiveChar} before the exchange starts, so the stream
+   * sits one byte past the last boundary. An exchange that took the type byte with
+   * {@code receiveChar} would read the AuthenticationGSSContinue after that byte and complete.
+   */
+  @Test
+  void anExchangeReadsNoMessageTypeAwayFromAMessageBoundary() throws Exception {
+    FakeSocket socket = new FakeSocket(gssContinue(new Wire().int1('x'), 0).toBytes());
+    PGStream stream = PGStreamTestSupport.openStream(socket);
+    stream.receiveChar();
+
+    IOException e = assertThrowsExactly(IOException.class,
+        () -> action(stream).negotiate(new ScriptedGssContext(2)));
+
+    assertAll(
+        () -> assertEquals(
+            GT.tr("Protocol error. The stream is {0} bytes away from the end of the {1} message, so the next byte is not a message type. Read every backend message through readMessageLength or readFixedMessageLength, and close it with endMessage.",
+                "1", "preceding"),
+            e.getMessage()),
+        () -> PGStreamTestSupport.assertBroken(stream, socket));
+  }
+
   // ErrorResponse
 
   @ParameterizedTest

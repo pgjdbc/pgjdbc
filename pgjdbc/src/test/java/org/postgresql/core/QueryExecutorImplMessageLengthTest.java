@@ -70,6 +70,11 @@ import java.util.stream.Stream;
  * off only the 64 MB limit. Every other check holds in both modes, so each rejection runs under
  * both.</p>
  *
+ * <p>Every loop that dispatches on a message type (startup, query results, fastpath results, copy
+ * results, and notifications) reads the type only on a message boundary, and fails the connection
+ * when the stream is anywhere else. These tests run in one mode; {@link PGStreamMessageBoundaryTest}
+ * runs the check itself in both.</p>
+ *
  * <p>The executor reads from bytes built here through a fake socket, so no server is involved. A
  * rejection reaches the caller as SQLState 08006 with the reader's {@link IOException} as the
  * cause, with three exceptions: during startup the constructor throws the reader's exception
@@ -1230,6 +1235,83 @@ class QueryExecutorImplMessageLengthTest {
 
     assertAll(
         () -> assertEquals(PSQLState.PROTOCOL_VIOLATION.getState(), e.getSQLState(), "SQLState"),
+        () -> assertBroken(s.stream, s.socket));
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // The message boundary before each message type
+  //
+  // Each test reads one byte of the script with receiveChar just before the loop under test
+  // runs, which leaves the stream one byte past the last boundary. A loop that took the type
+  // byte with receiveChar would read the message after that byte and succeed.
+
+  private static final String AWAY_FROM_BOUNDARY =
+      "Protocol error. The stream is {0} bytes away from the end of the {1} message, so the next byte is not a message type. Read every backend message through readMessageLength or readFixedMessageLength, and close it with endMessage.";
+
+  @Test
+  void startupReadsNoMessageTypeAwayFromAMessageBoundary() throws IOException {
+    Session s = new Session(new byte[]{'x'}, readyForQuery());
+    s.stream.receiveChar();
+
+    IOException e = assertThrowsExactly(IOException.class, s::connect);
+
+    assertAll(
+        () -> assertEquals(GT.tr(AWAY_FROM_BOUNDARY, "1", "preceding"), e.getMessage()),
+        () -> assertBroken(s.stream, s.socket));
+  }
+
+  @Test
+  void queryResultsReadNoMessageTypeAwayFromAMessageBoundary() throws Exception {
+    Session s = new Session(readyForQuery(), new byte[]{'x'},
+        message('C', cstring("SELECT 0")), readyForQuery());
+    QueryExecutorImpl executor = s.connect();
+    s.stream.receiveChar();
+
+    SQLException e = assertThrows(SQLException.class, () -> s.executeSimpleQuery(executor));
+
+    assertConnectionBroken(s, executor, e, GT.tr(AWAY_FROM_BOUNDARY, "1", "ReadyForQuery"));
+  }
+
+  @Test
+  void fastpathResultsReadNoMessageTypeAwayFromAMessageBoundary() throws Exception {
+    Session s = new Session(readyForQuery(), new byte[]{'x'},
+        message('V', new Wire().int4(-1).toBytes()), readyForQuery());
+    QueryExecutorImpl executor = s.connect();
+    s.stream.receiveChar();
+
+    SQLException e = assertThrows(SQLException.class, () -> s.fastpathCall(executor));
+
+    assertConnectionBroken(s, executor, e, GT.tr(AWAY_FROM_BOUNDARY, "1", "ReadyForQuery"));
+  }
+
+  @Test
+  void copyResultsReadNoMessageTypeAwayFromAMessageBoundary() throws Exception {
+    Session s = new Session(readyForQuery(), copyOutResponse(), new byte[]{'x'},
+        message('d', letters(3)));
+    QueryExecutorImpl executor = s.connect();
+    CopyOut copyOut = (CopyOut) executor.startCopy(COPY_STATEMENT, true);
+    s.stream.receiveChar();
+
+    SQLException e = assertThrows(SQLException.class, copyOut::readFromCopy);
+
+    assertConnectionBroken(s, executor, e, GT.tr(AWAY_FROM_BOUNDARY, "1", "CopyOutResponse"));
+  }
+
+  /** A timeout of 0 makes processNotifies read one message whether or not any is pending. */
+  @Test
+  void notificationPollingReadsNoMessageTypeAwayFromAMessageBoundary() throws Exception {
+    Session s = new Session(readyForQuery(), new byte[]{'x'},
+        message('A', new Wire().int4(7).raw(cstring("c")).raw(cstring("p")).toBytes()));
+    QueryExecutorImpl executor = s.connect();
+    s.stream.receiveChar();
+
+    SQLException e = assertThrows(SQLException.class, () -> executor.processNotifies(0));
+
+    Throwable cause = e.getCause();
+    assertAll(
+        () -> assertEquals(PSQLState.CONNECTION_FAILURE.getState(), e.getSQLState(), "SQLState"),
+        () -> assertEquals(GT.tr(AWAY_FROM_BOUNDARY, "1", "ReadyForQuery"),
+            cause == null ? null : cause.getMessage(), "cause message"),
         () -> assertBroken(s.stream, s.socket));
   }
 

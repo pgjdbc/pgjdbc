@@ -200,6 +200,9 @@ public class GssEncAction implements PrivilegedAction<@Nullable Exception>, Call
         int len = pgStream.readUntrackedLength(
             "GSSEncryptionHandshakeToken", 0, MAX_GSS_AUTH_TOKEN_SIZE);
         inToken = pgStream.receive(len);
+        // The handshake token is not a framed message, so no endMessage() closes it. The
+        // framed dialogue resumes once the token has been consumed.
+        pgStream.markMessageBoundary();
       } else {
         established = true;
         pgStream.setSecContext(secContext);

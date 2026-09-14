@@ -454,6 +454,30 @@ public class ConnectionFactoryImplPreAuthMessageTest {
         () -> server.assertEverySocketBroken());
   }
 
+  // The message boundary after encryption negotiation
+
+  /**
+   * The {@code N} that refuses the SSLRequest or the GSSENCRequest is one byte outside any
+   * message, and the authentication exchange starts on the message boundary after it.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"sslmode", "gssEncMode"})
+  void theAuthenticationExchangeIsReadAfterARefusedEncryptionRequest(String negotiation)
+      throws SQLException {
+    Properties props = new Properties();
+    props.setProperty(negotiation, "prefer");
+    ScriptedServer server = new ScriptedServer(new Wire()
+        .int1('N')
+        .raw(errorResponse(SERVER_SQL_STATE, 100))
+        .toBytes());
+
+    SQLException e = server.connectAndFail(props);
+
+    assertAll(
+        () -> assertEquals(SERVER_SQL_STATE, e.getSQLState(), "SQLState"),
+        () -> assertEquals(1, server.sockets.size(), "sockets opened"));
+  }
+
   // Read limits after encryption negotiation
 
   /**

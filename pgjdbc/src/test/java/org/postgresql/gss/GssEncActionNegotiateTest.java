@@ -72,6 +72,33 @@ class GssEncActionNegotiateTest {
   }
 
   /**
+   * The handshake token is not a framed message, so the framed dialogue resumes on the decrypted
+   * stream at a message boundary. {@link ScriptedGssContext} unwraps a packet whose first four
+   * bytes give the length of the plaintext after them, here a ReadyForQuery.
+   */
+  @Test
+  void aFramedMessageIsReadFromTheDecryptedStreamAfterTheHandshake() throws Exception {
+    byte[] readyForQuery = new Wire().int1('Z').int4(5).int1('I').toBytes();
+    FakeSocket socket = new FakeSocket(new Wire()
+        .int4(1).int1('t')
+        .int4(4 + readyForQuery.length).int4(readyForQuery.length).raw(readyForQuery)
+        .toBytes());
+    PGStream stream = PGStreamTestSupport.openStream(socket);
+    Exception result = action(stream).negotiate(new ScriptedGssContext(2));
+
+    int type = stream.receiveMessageType();
+    stream.readFixedMessageLength("ReadyForQuery", 5);
+    int status = stream.receiveChar();
+    stream.endMessage();
+
+    assertAll(
+        () -> assertNull(result, "negotiate result"),
+        () -> assertEquals('Z', (char) type, "message type"),
+        () -> assertEquals('I', (char) status, "transaction status"),
+        () -> assertFalse(stream.isClosed(), "isClosed()"));
+  }
+
+  /**
    * The server answers every token with a zero-length one, which is a valid continuation, so
    * only the round-trip limit ends the handshake.
    */

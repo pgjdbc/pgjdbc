@@ -46,8 +46,8 @@ import javax.net.SocketFactory;
  * {@link #readMessageLength(String, int)}, {@link #readFixedMessageLength(String, int)} or
  * {@link #readPreAuthMessageLength(String, int, int)}, check any further length it reads from the
  * body against the bytes the message has left, and close the message with {@link #endMessage()}.
- * A reader that skips any of these leaves the stream off a message boundary, and the next
- * message type is then read from inside the previous message's body.</p>
+ * A reader that skips any of these leaves the stream off a message boundary, so the next
+ * {@link #receiveMessageType()} throws rather than mistaking a body byte for a message type.</p>
  *
  * <p>The maxima this class enforces come from three places: the protocol
  * ({@link #MAX_MESSAGE_SIZE}), a pgjdbc default where the protocol fixes none
@@ -219,6 +219,7 @@ public class PGStream implements Closeable, Flushable {
     // The new pgInput counts positions from zero, so a message end recorded against the stream
     // it wraps does not apply to it. The framed dialogue resumes at this position.
     resetMessageTracker();
+    markMessageBoundary();
   }
 
   private long nextStreamAvailableCheckTime;
@@ -295,6 +296,22 @@ public class PGStream implements Closeable, Flushable {
   private long messageEndPosition = -1;
 
   /**
+   * Stream position, in bytes consumed, at which the backend dialogue is known to sit on a
+   * message boundary. Advanced by {@link #endMessage()} once a message body has been consumed
+   * exactly, and set to the stream's current position by {@link #markMessageBoundary()} where
+   * the dialogue steps outside message framing (the SSL and GSS encryption negotiations).
+   * Compared against the current position by {@link #receiveMessageType()}.
+   */
+  private long messageBoundaryPosition;
+
+  /**
+   * Name of the last message whose body {@link #endMessage()} found consumed exactly, or
+   * {@code null} until one has been. {@link #checkMessageBoundary()} quotes it in the error it
+   * throws when no message is tracked.
+   */
+  private @Nullable String lastMessageName;
+
+  /**
    * Opens a message for {@link #endMessage()} to close, and records its name and declared length
    * for later error messages.
    *
@@ -324,8 +341,10 @@ public class PGStream implements Closeable, Flushable {
    * {@link #readPreAuthMessageLength(String, int, int) readPreAuthMessageLength},
    * and checks that exactly as many body bytes were read as the message declared.
    *
-   * <p>The message is closed whatever the outcome, so the next {@code readMessageLength} opens a
-   * new one.</p>
+   * <p>On success, the current position becomes the message boundary that the next
+   * {@link #receiveMessageType()} requires. The message is closed whatever the outcome, so the
+   * next {@code readMessageLength} opens a new one. With no message open, this method returns
+   * without recording a boundary.</p>
    *
    * <p>A body read short or long means the stream is out of sync: the extra bytes after the
    * value of a corrupted ParameterStatus, for example, would be read as the next message
@@ -355,6 +374,60 @@ public class PGStream implements Closeable, Flushable {
           "Protocol error. {0} message was read {1} bytes past its declared length.",
           name, String.valueOf(actual - expected))));
     }
+    messageBoundaryPosition = actual;
+    lastMessageName = name;
+  }
+
+  /**
+   * Declares that the stream sits on a backend message boundary, so the next
+   * {@link #receiveMessageType()} accepts the current position.
+   *
+   * <p>It is reserved for the parts of the dialogue that are not message-framed: the SSL and GSS
+   * encryption negotiations reply to a request packet with a bare byte or with a length
+   * prefix that counts only the payload, so neither goes through
+   * {@link #readMessageLength(String, int)} and neither leaves a message for
+   * {@link #endMessage()} to close. Call it where the framed dialogue resumes. A reader of a
+   * framed message must not call it, because the boundary check in
+   * {@link #receiveMessageType()} exists to verify that reader's framing.</p>
+   */
+  public void markMessageBoundary() {
+    messageBoundaryPosition = pgInput.getPosition();
+  }
+
+  /**
+   * Rejects a stream that does not sit where the preceding message ended, since the byte about
+   * to be read as a message type would come from the middle of a body instead.
+   *
+   * <p>Each of the three errors reports a different cause. A body left partly unread means the
+   * read stopped early, usually because the connection failed mid-message. A body read to its end
+   * or past it with the message still open means the reader skipped {@link #endMessage()}. No
+   * tracked message at all means the reader took the length or the body outside the bounded API.
+   * The last two are driver defects rather than corrupted input. {@link #endMessage()} has
+   * already rejected a declared length that disagrees with the bytes read, so a reader that uses
+   * the API reaches the boundary whatever the server sent.</p>
+   *
+   * @throws IOException if the stream is not on the boundary; the stream is marked broken and its
+   *                     socket closed first
+   */
+  private void checkMessageBoundary() throws IOException {
+    long position = pgInput.getPosition();
+    if (position == messageBoundaryPosition) {
+      return;
+    }
+    if (messageEndPosition >= 0) {
+      if (position < messageEndPosition) {
+        throw markBroken(new IOException(GT.tr(
+            "Protocol error. Reading the {0} message stopped with {1} bytes of its body unread, so the connection is no longer positioned on a message boundary.",
+            currentMessageNameForError(), String.valueOf(messageEndPosition - position))));
+      }
+      throw markBroken(new IOException(GT.tr(
+          "Protocol error. The {0} message was read without a closing endMessage call, which is a pgjdbc defect.",
+          currentMessageNameForError())));
+    }
+    throw markBroken(new IOException(GT.tr(
+        "Protocol error. The stream is {0} bytes away from the end of the {1} message, so the next byte is not a message type. Read every backend message through readMessageLength or readFixedMessageLength, and close it with endMessage.",
+        String.valueOf(position - messageBoundaryPosition),
+        lastMessageName == null ? "preceding" : lastMessageName)));
   }
 
   /**
@@ -682,6 +755,7 @@ public class PGStream implements Closeable, Flushable {
 
     pgInput = new VisibleBufferedInputStream(connection.getInputStream(), 8192);
     resetMessageTracker();
+    markMessageBoundary();
     int sendBufferSize = Math.min(maxSendBufferSize, Math.max(8192, socket.getSendBufferSize()));
     pgOutput = new PgBufferedOutputStream(connection.getOutputStream(), sendBufferSize);
 
@@ -865,6 +939,22 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
+   * Receives the one-byte type tag that opens a backend message.
+   *
+   * <p>A reader that dispatches on a backend message type must take the tag from here, not from
+   * {@link #receiveChar()}. The boundary check here then enforces the framing rule at run time:
+   * the tag is in the right place only if the preceding message was closed.</p>
+   *
+   * @return the message type tag
+   * @throws IOException if an I/O error occurs, or if the stream is not positioned on a
+   *         message boundary, in which case the stream is marked broken and its socket closed
+   */
+  public int receiveMessageType() throws IOException {
+    checkMessageBoundary();
+    return receiveChar();
+  }
+
+  /**
    * Receives a four byte integer from the backend.
    *
    * @return the integer received from the backend
@@ -939,6 +1029,10 @@ public class PGStream implements Closeable, Flushable {
    * <p>A tracked message would end 4 bytes early here, because tracking assumes the length
    * counts its own four bytes. The GSS encryption handshake token is the only such prefix in the
    * v3 protocol.</p>
+   *
+   * <p>With no message open, {@link #endMessage()} records no boundary. The caller must call
+   * {@link #markMessageBoundary()} once the payload has been read, or the next
+   * {@link #receiveMessageType()} throws.</p>
    *
    * @param messageName protocol message name used in the error message
    * @param minLength inclusive minimum valid value of the length field; must be at least 0 and
