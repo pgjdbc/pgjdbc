@@ -85,6 +85,16 @@ public class PGStream implements Closeable, Flushable {
 
   }
 
+  /**
+   * Whether {@link #close()} has run, so that a second one is a no-op. A caller that closes on the
+   * way out of a failure has no way to know whether an earlier one already got there.
+   *
+   * <p>Not what {@link #isClosed()} reports. That asks the socket, which a caller can close on its
+   * own -- {@link QueryExecutorCloseAction#abort()} does -- and which stays open when this method
+   * runs but its last step fails.</p>
+   */
+  private boolean closeRan;
+
   private long nextStreamAvailableCheckTime;
   // This is a workaround for SSL sockets: sslInputStream.available() might return 0
   // so we perform "1ms reads" once in a while
@@ -752,9 +762,80 @@ public class PGStream implements Closeable, Flushable {
    */
   @Override
   public void close() throws IOException {
-    pgOutput.close();
-    pgInput.close();
-    connection.close();
+    if (closeRan) {
+      return;
+    }
+    closeRan = true;
+    // Each of the three runs whatever an earlier one throws. On a connection that has already
+    // dropped, the output close is what fails -- it flushes first -- and letting that skip the
+    // input close would leave the input stream answering reads out of the buffer it still holds.
+    // Throwable rather than IOException, because a socket the application supplied through the
+    // socketFactory property can throw anything, and the sequencing has to hold for all of it
+    Throwable failure = null;
+    try {
+      pgOutput.close();
+    } catch (Throwable t) {
+      failure = alsoFailed(failure, t);
+    }
+    try {
+      pgInput.close();
+    } catch (Throwable t) {
+      failure = alsoFailed(failure, t);
+    }
+    try {
+      connection.close();
+    } catch (Throwable t) {
+      failure = alsoFailed(failure, t);
+    }
+    if (failure != null) {
+      rethrow(failure);
+    }
+  }
+
+  /**
+   * Keeps the first failure of a close and hangs the later ones off it. The first one says what
+   * went wrong with the connection; the rest are what closing it in that state does.
+   *
+   * <p>Shared with {@link QueryExecutorCloseAction}, which accumulates the same way one frame up.
+   * Neither this nor {@link #rethrow(Throwable)} is about a stream; they live here because both
+   * callers do.</p>
+   *
+   * @param failure what has already failed, or null if nothing has
+   * @param another the failure to record
+   * @return the failure to raise once every close has been attempted
+   */
+  static Throwable alsoFailed(@Nullable Throwable failure, Throwable another) {
+    if (failure == null) {
+      return another;
+    }
+    if (failure != another) {
+      // A stream that rethrows one stored instance hands back the same object twice, and
+      // suppressing a throwable under itself raises IllegalArgumentException, which would end the
+      // sequence of closes this exists to keep going
+      failure.addSuppressed(another);
+    }
+    return failure;
+  }
+
+  /**
+   * Raises a failure collected by {@link #alsoFailed} as the type it came in as, so that catching
+   * a close is no different from catching the call that failed inside it.
+   *
+   * @param failure the failure to raise
+   * @throws IOException the failure, when that is what it is, and otherwise a wrapper for a
+   *     checked exception these closes are not declared to throw
+   */
+  static void rethrow(Throwable failure) throws IOException {
+    if (failure instanceof IOException) {
+      throw (IOException) failure;
+    }
+    if (failure instanceof RuntimeException) {
+      throw (RuntimeException) failure;
+    }
+    if (failure instanceof Error) {
+      throw (Error) failure;
+    }
+    throw new IOException(failure);
   }
 
   public void setNetworkTimeout(int milliseconds) throws IOException {
@@ -852,6 +933,8 @@ public class PGStream implements Closeable, Flushable {
   }
 
   public boolean isClosed() {
+    // The socket, not whether close() has run: a caller can close the socket on its own, and a
+    // close() whose last step failed leaves it open
     return connection.isClosed();
   }
 }
