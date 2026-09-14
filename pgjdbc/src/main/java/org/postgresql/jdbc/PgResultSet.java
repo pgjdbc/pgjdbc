@@ -2126,7 +2126,12 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
           // java.time.LocalTime (time) or java.time.OffsetTime (timetz).
           String stringValue;
           if (valueObject instanceof OffsetTime) {
-            stringValue = getTimestampUtils().toString((OffsetTime) valueObject);
+            // A "time without time zone" column drops the offset on the server, so store the
+            // local time to keep the row buffer in step with the persisted value. "timetz"
+            // (Oid.TIMETZ) keeps the offset.
+            stringValue = fields[columnIndex].getOID() == Oid.TIME
+                ? getTimestampUtils().toString(((OffsetTime) valueObject).toLocalTime())
+                : getTimestampUtils().toString((OffsetTime) valueObject);
           } else if (valueObject instanceof LocalTime) {
             stringValue = getTimestampUtils().toString((LocalTime) valueObject);
           } else {
