@@ -505,7 +505,7 @@ be performed without limits.
 Specifies if the number of rows, fetched in `ResultSet` per request from the database, should be dynamic.
 Using dynamic number of rows, computed by adaptive fetch, will attempt to use maximize the use of the buffer declared in 
 `maxResultBuffer` property. Number of rows would be calculated by dividing `maxResultBuffer` size into max row size observed 
-so far, rounded down. First fetch will have number of rows declared in `defaultRowFetchSize`. Number of rows can be limited
+so far, rounded down, and is at least 1. First fetch will have number of rows declared in `defaultRowFetchSize`. Number of rows can be limited
 by `adaptiveFetchMinimum` and `adaptiveFetchMaximum`. Requires declaring of `maxResultBuffer` and `defaultRowFetchSize` to work.
 By default, `adaptiveFetch` is `false`.
 
