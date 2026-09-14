@@ -7,11 +7,13 @@ package org.postgresql.core.v3;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.core.PGStream;
+import org.postgresql.core.ProtocolViolationException;
 import org.postgresql.test.util.FakeSocket;
 import org.postgresql.test.util.FakeSocketFactory;
 import org.postgresql.test.util.Wire;
@@ -24,6 +26,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.DriverManager;
@@ -54,11 +57,10 @@ import java.util.UUID;
  * <p>Each test serves scripted backend bytes through {@link FakeSocketFactory}, so no server
  * is involved. A script that the driver reads in sync ends in an ErrorResponse with SQLState
  * {@value #SERVER_SQL_STATE}, and a connection attempt that fails with that SQLState therefore
- * read every message before it at its declared length. A length failure reaches the caller with
- * the {@link IOException} as its cause, as SQLState 08001, or as SQLState 08004 inside the
- * AuthenticationSASL mechanism list. The
- * NegotiateProtocolVersion option-count checks and the authentication message limit throw
- * SQLState 08P01 directly.</p>
+ * read every message before it at its declared length. A length or framing refusal reaches the
+ * caller as SQLState 08P01 with the {@link ProtocolViolationException} as its cause, and an end of
+ * stream as SQLState 08001. The NegotiateProtocolVersion option-count checks and the
+ * authentication message limit throw SQLState 08P01 directly.</p>
  */
 public class ConnectionFactoryImplPreAuthMessageTest {
   private static final String SERVER_SQL_STATE = "28P01";
@@ -92,12 +94,10 @@ public class ConnectionFactoryImplPreAuthMessageTest {
     SQLException e = server.connectAndFail(new Properties());
 
     assertAll(
-        () -> assertEquals(PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState(), e.getSQLState(),
-            "SQLState"),
         () -> assertEquals(
             GT.tr("Protocol error. {0} message has length {1}, which exceeds the pgjdbc limit of {2} bytes applied before authentication. This limit cannot be relaxed.",
                 "AuthenticationRequest", "8009", "8008"),
-            ioCause(e).getMessage()),
+            refusal(e).getMessage()),
         () -> server.assertEverySocketBroken());
   }
 
@@ -110,12 +110,10 @@ public class ConnectionFactoryImplPreAuthMessageTest {
     SQLException e = server.connectAndFail(new Properties());
 
     assertAll(
-        () -> assertEquals(PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState(), e.getSQLState(),
-            "SQLState"),
         () -> assertEquals(
             GT.tr("Protocol error. {0} message has invalid length {1} (expected between {2} and {3}).",
                 "AuthenticationRequest", "7", "8", String.valueOf(PGStream.MAX_MESSAGE_SIZE)),
-            ioCause(e).getMessage()),
+            refusal(e).getMessage()),
         () -> server.assertEverySocketBroken());
   }
 
@@ -141,12 +139,10 @@ public class ConnectionFactoryImplPreAuthMessageTest {
     SQLException e = server.connectAndFail(new Properties());
 
     assertAll(
-        () -> assertEquals(PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState(), e.getSQLState(),
-            "SQLState"),
         () -> assertEquals(
             GT.tr("Protocol error. {0} message has {1} unread bytes.",
                 "AuthenticationRequest", "1"),
-            ioCause(e).getMessage()),
+            refusal(e).getMessage()),
         () -> server.assertEverySocketBroken());
   }
 
@@ -164,12 +160,10 @@ public class ConnectionFactoryImplPreAuthMessageTest {
     SQLException e = server.connectAndFail(new Properties());
 
     assertAll(
-        () -> assertEquals(PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState(), e.getSQLState(),
-            "SQLState"),
         () -> assertEquals(
             GT.tr("Protocol error. {0} message was read {1} bytes past its declared length.",
                 "AuthenticationRequest", "4"),
-            ioCause(e).getMessage()),
+            refusal(e).getMessage()),
         () -> server.assertEverySocketBroken());
   }
 
@@ -194,11 +188,9 @@ public class ConnectionFactoryImplPreAuthMessageTest {
 
     FakeSocket socket = server.onlySocket();
     assertAll(
-        () -> assertEquals(PSQLState.CONNECTION_REJECTED.getState(), e.getSQLState(), "SQLState"),
-        () -> assertEquals(GT.tr("Invalid SCRAM client initialization"), e.getMessage()),
         () -> assertEquals(
             GT.tr("Protocol error. {0} message has {1} unread bytes.", "AuthenticationRequest", "1"),
-            ioCause(e).getMessage()),
+            refusal(e).getMessage()),
         () -> assertEquals(startupPacketLength(socket), socket.written().length,
             "bytes written: the startup packet only"),
         () -> server.assertEverySocketBroken());
@@ -234,13 +226,11 @@ public class ConnectionFactoryImplPreAuthMessageTest {
     SQLException e = server.connectAndFail(new Properties());
 
     assertAll(
-        () -> assertEquals(PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState(), e.getSQLState(),
-            "SQLState"),
         () -> assertEquals(
             GT.tr("Protocol error. {0} message has invalid length {1} (expected between {2} and {3}).",
                 "NegotiateProtocolVersion", "11", "12",
                 String.valueOf(PGStream.MAX_MESSAGE_SIZE)),
-            ioCause(e).getMessage()),
+            refusal(e).getMessage()),
         () -> server.assertEverySocketBroken());
   }
 
@@ -254,12 +244,10 @@ public class ConnectionFactoryImplPreAuthMessageTest {
     SQLException e = server.connectAndFail(new Properties());
 
     assertAll(
-        () -> assertEquals(PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState(), e.getSQLState(),
-            "SQLState"),
         () -> assertEquals(
             GT.tr("Protocol error. {0} message has {1} unread bytes.",
                 "NegotiateProtocolVersion", "1"),
-            ioCause(e).getMessage()),
+            refusal(e).getMessage()),
         () -> server.assertEverySocketBroken());
   }
 
@@ -351,12 +339,10 @@ public class ConnectionFactoryImplPreAuthMessageTest {
     SQLException e = server.connectAndFail(new Properties());
 
     assertAll(
-        () -> assertEquals(PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState(), e.getSQLState(),
-            "SQLState"),
         () -> assertEquals(
             GT.tr("Protocol error. {0} message has length {1}, which exceeds the pgjdbc limit of {2} bytes applied before authentication. This limit cannot be relaxed.",
                 "NegotiateProtocolVersion", "1048577", "1048576"),
-            ioCause(e).getMessage()),
+            refusal(e).getMessage()),
         () -> server.assertEverySocketBroken());
   }
 
@@ -534,10 +520,8 @@ public class ConnectionFactoryImplPreAuthMessageTest {
     SQLException e = server.connectAndFail(maxServerTextMessageSize(textMessageLimit));
 
     assertAll(
-        () -> assertEquals(PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState(), e.getSQLState(),
-            "SQLState"),
         () -> assertEquals(preAuthLimitMessage("ErrorResponse", 30001, 30000),
-            ioCause(e).getMessage()),
+            refusal(e).getMessage()),
         () -> server.assertEverySocketBroken());
   }
 
@@ -551,12 +535,10 @@ public class ConnectionFactoryImplPreAuthMessageTest {
     SQLException e = server.connectAndFail(new Properties());
 
     assertAll(
-        () -> assertEquals(PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState(), e.getSQLState(),
-            "SQLState"),
         () -> assertEquals(
             GT.tr("Protocol error. {0} message has invalid length {1} (expected between {2} and {3}).",
                 "ErrorResponse", "4", "5", String.valueOf(PGStream.MAX_MESSAGE_SIZE)),
-            ioCause(e).getMessage()),
+            refusal(e).getMessage()),
         () -> server.assertEverySocketBroken());
   }
 
@@ -597,6 +579,107 @@ public class ConnectionFactoryImplPreAuthMessageTest {
         () -> assertEquals(1, server.sockets.size(), "sockets opened"));
   }
 
+  // SQLState of a failed connection attempt
+
+  /**
+   * The server ends the stream after the length of an AuthenticationRequest, before its type code.
+   */
+  @Test
+  void anEndOfStreamReportsTheConnectionFailureState() {
+    ScriptedServer server = new ScriptedServer(new Wire()
+        .int1('R').int4(8)
+        .toBytes());
+
+    SQLException e = server.connectAndFail(new Properties());
+
+    assertAll(
+        () -> assertEquals(PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState(), e.getSQLState(),
+            "SQLState"),
+        () -> assertInstanceOf(EOFException.class, e.getCause(), "cause"));
+  }
+
+  /**
+   * The stream ends inside the name of the only option a NegotiateProtocolVersion lists. The
+   * C-string scan marks the stream broken on any read failure, so the SQLState follows the type of
+   * the failure, not the broken state of the stream.
+   */
+  @Test
+  void anEndOfStreamThatMarksTheStreamBrokenStillReportsTheConnectionFailureState() {
+    ScriptedServer server = new ScriptedServer(new Wire()
+        .int1('v').int4(4 + 4 + 4 + 4).int4(3 << 16).int4(1)
+        .raw("opt".getBytes(StandardCharsets.US_ASCII))
+        .toBytes());
+
+    SQLException e = server.connectAndFail(new Properties());
+
+    assertAll(
+        () -> assertEquals(PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState(), e.getSQLState(),
+            "SQLState"),
+        () -> assertInstanceOf(EOFException.class, e.getCause(), "cause"),
+        () -> server.assertEverySocketBroken());
+  }
+
+  /**
+   * {@code sslmode=allow} retries over SSL after the plaintext attempt fails with an
+   * {@link IOException}, and a refused length is one. The second socket answers the SSLRequest with
+   * {@code N}.
+   */
+  @Test
+  void aRefusedLengthUnderSslModeAllowIsRetriedOverSsl() {
+    Properties props = new Properties();
+    props.setProperty("sslmode", "allow");
+    ScriptedServer server = new ScriptedServer(
+        new Wire().int1('E').int4(30001).toBytes(),
+        new Wire().int1('N').toBytes());
+
+    SQLException e = server.connectAndFail(props);
+
+    assertAll(
+        () -> assertEquals(2, server.sockets.size(), "sockets opened"),
+        () -> assertTrue(server.sockets.get(0).closed, "first socket closed"),
+        () -> refusal(e));
+  }
+
+  /**
+   * The mechanism list does not fit its message, and the refusal reaches the fallback as a
+   * PSQLException rather than an IOException, so {@code sslmode=allow} does not retry over SSL.
+   */
+  @Test
+  void aRefusedSaslMechanismListUnderSslModeAllowIsNotRetried() {
+    Properties props = new Properties();
+    props.setProperty("sslmode", "allow");
+    byte[] mechanisms = mechanismList("SCRAM-SHA-256");
+    ScriptedServer server = new ScriptedServer(
+        new Wire()
+            .int1('R').int4(4 + 4 + mechanisms.length + 1).int4(AUTH_REQ_SASL)
+            .raw(mechanisms).int1('x')
+            .toBytes(),
+        new Wire().int1('N').toBytes());
+
+    SQLException e = server.connectAndFail(props);
+
+    assertAll(
+        () -> assertEquals(1, server.sockets.size(), "sockets opened"),
+        () -> refusal(e));
+  }
+
+  /**
+   * No other test connects to these ports, so the JVM-wide host status tracker holds no earlier
+   * failure that would drop either host from the candidates.
+   */
+  @Test
+  void aRefusedLengthOnTheFirstHostMovesOnToTheSecondHost() {
+    ScriptedServer server = new ScriptedServer(
+        new Wire().int1('E').int4(30001).toBytes(),
+        errorResponse(SERVER_SQL_STATE, 100));
+
+    SQLException e = server.connectAndFail("localhost:40001,localhost:40002", new Properties());
+
+    assertAll(
+        () -> assertEquals(2, server.sockets.size(), "sockets opened"),
+        () -> assertEquals(SERVER_SQL_STATE, e.getSQLState(), "SQLState"));
+  }
+
   // Read limits after encryption negotiation
 
   /**
@@ -619,7 +702,7 @@ public class ConnectionFactoryImplPreAuthMessageTest {
     assertAll(
         () -> assertEquals(2, server.sockets.size(), "sockets opened"),
         () -> assertEquals(preAuthLimitMessage("ErrorResponse", 30001, 30000),
-            ioCause(e).getMessage()),
+            refusal(e).getMessage()),
         () -> assertTrue(server.sockets.get(0).closed, "first socket closed"),
         () -> assertTrue(server.sockets.get(1).closed, "second socket closed"));
   }
@@ -649,11 +732,20 @@ public class ConnectionFactoryImplPreAuthMessageTest {
         messageName, String.valueOf(length), String.valueOf(limit));
   }
 
-  private static IOException ioCause(SQLException e) {
+  /**
+   * Asserts that {@code e} reports a refusal of what the backend sent: SQLState 08P01, a
+   * {@link ProtocolViolationException} as its cause, and the refusal text in its message.
+   */
+  private static ProtocolViolationException refusal(SQLException e) {
     Throwable cause = e.getCause();
-    assertSame(IOException.class, cause == null ? null : cause.getClass(),
+    assertSame(ProtocolViolationException.class, cause == null ? null : cause.getClass(),
         () -> "cause of " + e);
-    return (IOException) cause;
+    ProtocolViolationException refusal = (ProtocolViolationException) cause;
+    assertAll(
+        () -> assertEquals(PSQLState.PROTOCOL_VIOLATION.getState(), e.getSQLState(), "SQLState"),
+        () -> assertEquals(GT.tr("The connection attempt failed: {0}", refusal.getMessage()),
+            e.getMessage(), "message"));
+    return refusal;
   }
 
   private static Properties maxServerTextMessageSize(@Nullable String value) {
@@ -786,6 +878,10 @@ public class ConnectionFactoryImplPreAuthMessageTest {
     }
 
     SQLException connectAndFail(Properties extra) {
+      return connectAndFail("localhost:5432", extra);
+    }
+
+    SQLException connectAndFail(String hosts, Properties extra) {
       Properties props = new Properties();
       props.setProperty("user", "test");
       props.setProperty("password", "test");
@@ -797,7 +893,7 @@ public class ConnectionFactoryImplPreAuthMessageTest {
       FakeSocketFactory.register(key, this::nextSocket);
       try {
         return assertThrows(SQLException.class,
-            () -> DriverManager.getConnection("jdbc:postgresql://localhost:5432/test", props)
+            () -> DriverManager.getConnection("jdbc:postgresql://" + hosts + "/test", props)
                 .close());
       } finally {
         FakeSocketFactory.unregister(key);

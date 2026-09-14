@@ -1212,7 +1212,7 @@ class QueryExecutorImplMessageLengthTest {
     s.stream.setProtocolVersion(ProtocolVersion.v3_2);
     s.stream.setProtocolHardeningMode(mode);
 
-    IOException e = assertThrowsExactly(IOException.class, s::connect);
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, s::connect);
 
     assertAll(
         () -> assertEquals(GT.tr(INVALID_LENGTH, "BackendKeyData", String.valueOf(declared), "8",
@@ -1226,7 +1226,7 @@ class QueryExecutorImplMessageLengthTest {
     setLimit(s.stream, "100");
     s.stream.setProtocolHardeningMode(ProtocolHardeningMode.FAIL);
 
-    IOException e = assertThrowsExactly(IOException.class, s::connect);
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, s::connect);
 
     assertAll(
         () -> assertEquals(GT.tr(TEXT_LIMIT, "ParameterStatus", "101", "100",
@@ -1296,7 +1296,7 @@ class QueryExecutorImplMessageLengthTest {
     Session s = new Session(new byte[]{'x'}, readyForQuery());
     s.stream.receiveChar();
 
-    IOException e = assertThrowsExactly(IOException.class, s::connect);
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, s::connect);
 
     assertAll(
         () -> assertEquals(GT.tr(AWAY_FROM_BOUNDARY, "1", "preceding"), e.getMessage()),
@@ -1376,7 +1376,7 @@ class QueryExecutorImplMessageLengthTest {
     Throwable cause = e.getCause();
     assertAll(
         () -> assertEquals(PSQLState.CONNECTION_FAILURE.getState(), e.getSQLState(), "SQLState"),
-        () -> assertEquals(IOException.class, cause == null ? null : cause.getClass(), "cause"),
+        () -> assertEquals(ProtocolViolationException.class, cause == null ? null : cause.getClass(), "cause"),
         () -> assertEquals(expectedCauseMessage, cause == null ? null : cause.getMessage()),
         () -> assertTrue(executor.isClosed(), "executor isClosed()"),
         () -> assertBroken(s.stream, s.socket));

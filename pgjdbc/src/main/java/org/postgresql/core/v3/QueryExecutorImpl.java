@@ -84,6 +84,7 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Parser;
 import org.postgresql.core.PgMessageType;
 import org.postgresql.core.ProtocolVersion;
+import org.postgresql.core.ProtocolViolationException;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.QueryExecutorBase;
@@ -1063,12 +1064,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           if (valueLen != -1) {
             if (valueLen < -1) {
-              throw pgStream.markBroken(new IOException(GT.tr(
+              throw pgStream.markBroken(new ProtocolViolationException(GT.tr(
                   "Protocol error. FunctionCallResponse has negative value length {0}.",
                   String.valueOf(valueLen))));
             }
             if (valueLen > msgLen - 8) {
-              throw pgStream.markBroken(new IOException(GT.tr(
+              throw pgStream.markBroken(new ProtocolViolationException(GT.tr(
                   "Protocol error. FunctionCallResponse value length {0} exceeds the {1} bytes left in the message.",
                   String.valueOf(valueLen), String.valueOf(msgLen - 8))));
             }
@@ -1175,7 +1176,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       int rowFormat = pgStream.receiveChar();
       int numFields = pgStream.receiveInteger2();
       if (msgLen != 7 + 2 * numFields) {
-        throw pgStream.markBroken(new IOException(GT.tr(
+        throw pgStream.markBroken(new ProtocolViolationException(GT.tr(
             "Protocol error. {0} field count {1} requires message size {2}, but the message is {3} bytes.",
             messageName, String.valueOf(numFields), String.valueOf(7 + 2 * numFields),
             String.valueOf(msgLen))));
@@ -2498,7 +2499,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // parameters, which does not fit a signed int16.
           int numParams = pgStream.receiveInteger2();
           if (paramDescLen != 6 + 4 * numParams) {
-            throw pgStream.markBroken(new IOException(GT.tr(
+            throw pgStream.markBroken(new ProtocolViolationException(GT.tr(
                 "Protocol error. ParameterDescription parameter count {0} requires message size {1}, but the message is {2} bytes.",
                 String.valueOf(numParams), String.valueOf(6 + 4 * numParams),
                 String.valueOf(paramDescLen))));
@@ -3048,7 +3049,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // + 2 attnum + 4 typeOid + 2 typlen + 4 typmod + 2 format. This is the tightest lower
     // bound the protocol fixes, and it holds for every fork.
     if ((long) size * 19L > msgSize - 6L) {
-      throw pgStream.markBroken(new IOException(GT.tr(
+      throw pgStream.markBroken(new ProtocolViolationException(GT.tr(
           "Protocol error. RowDescription field count {0} requires at least {1} bytes, but the message is only {2} bytes.",
           String.valueOf(size), String.valueOf(6 + size * 19), String.valueOf(msgSize))));
     }

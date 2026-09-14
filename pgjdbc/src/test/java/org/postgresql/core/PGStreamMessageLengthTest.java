@@ -66,7 +66,7 @@ class PGStreamMessageLengthTest {
     PGStream stream = openStream(socket);
     stream.setProtocolHardeningMode(mode);
 
-    IOException e = assertThrowsExactly(IOException.class,
+    IOException e = assertThrowsExactly(ProtocolViolationException.class,
         () -> stream.readMessageLength("BackendKeyData", 8, 264));
     assertAll(
         () -> assertEquals(
@@ -92,7 +92,7 @@ class PGStreamMessageLengthTest {
     FakeSocket socket = new FakeSocket(new Wire().int4(1073741824).toBytes());
     PGStream stream = openStream(socket);
 
-    IOException e = assertThrowsExactly(IOException.class,
+    IOException e = assertThrowsExactly(ProtocolViolationException.class,
         () -> stream.readMessageLength("CopyData", 4));
     assertAll(
         () -> assertEquals(
@@ -135,7 +135,7 @@ class PGStreamMessageLengthTest {
 
     stream.readMessageLength("ParameterStatus", 4, 100);
     stream.receive(7);
-    IOException e = assertThrowsExactly(IOException.class, stream::endMessage);
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, stream::endMessage);
 
     assertAll(
         () -> assertEquals(
@@ -153,7 +153,7 @@ class PGStreamMessageLengthTest {
 
     stream.readMessageLength("ParameterStatus", 4, 100);
     stream.receive(9);
-    IOException e = assertThrowsExactly(IOException.class, stream::endMessage);
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, stream::endMessage);
 
     assertAll(
         () -> assertEquals(
@@ -199,7 +199,7 @@ class PGStreamMessageLengthTest {
     PGStream stream = openStream(new FakeSocket(new Wire().int4(8).bytes(4).toBytes()));
 
     stream.readMessageLength("BackendKeyData", 4, 100);
-    assertThrowsExactly(IOException.class, stream::endMessage);
+    assertThrowsExactly(ProtocolViolationException.class, stream::endMessage);
 
     stream.endMessage();
   }
@@ -246,7 +246,7 @@ class PGStreamMessageLengthTest {
     FakeSocket socket = new FakeSocket(new Wire().int4(length).toBytes());
     PGStream stream = openStream(socket);
 
-    IOException e = assertThrowsExactly(IOException.class,
+    IOException e = assertThrowsExactly(ProtocolViolationException.class,
         () -> stream.readUntrackedLength("GSS token", 0, 100));
     assertAll(
         () -> assertEquals(
@@ -345,7 +345,7 @@ class PGStreamMessageLengthTest {
     PGStream stream = openStream(new FakeSocket(new Wire().int4(100).toBytes()));
 
     assertEquals(100, stream.readPreAuthMessageLength("AuthenticationRequest", 8, 100));
-    IOException e = assertThrowsExactly(IOException.class, stream::endMessage);
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, stream::endMessage);
 
     assertEquals(
         GT.tr("Protocol error. {0} message has {1} unread bytes.", "AuthenticationRequest", "96"),
@@ -359,7 +359,7 @@ class PGStreamMessageLengthTest {
     PGStream stream = openStream(socket);
     stream.setProtocolHardeningMode(mode);
 
-    IOException e = assertThrowsExactly(IOException.class,
+    IOException e = assertThrowsExactly(ProtocolViolationException.class,
         () -> stream.readPreAuthMessageLength("AuthenticationRequest", 8, 100));
     assertAll(
         () -> assertEquals(
@@ -374,7 +374,7 @@ class PGStreamMessageLengthTest {
     FakeSocket socket = new FakeSocket(new Wire().int4(7).toBytes());
     PGStream stream = openStream(socket);
 
-    IOException e = assertThrowsExactly(IOException.class,
+    IOException e = assertThrowsExactly(ProtocolViolationException.class,
         () -> stream.readPreAuthMessageLength("AuthenticationRequest", 8, 100));
     assertAll(
         () -> assertEquals(
@@ -389,7 +389,7 @@ class PGStreamMessageLengthTest {
     PGStream stream = openStream(new FakeSocket(new Wire().int4(8).toBytes()));
 
     stream.readFixedMessageLength("ReadyForQuery", 8);
-    IOException e = assertThrowsExactly(IOException.class, stream::endMessage);
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, stream::endMessage);
 
     assertEquals(
         GT.tr("Protocol error. {0} message has {1} unread bytes.", "ReadyForQuery", "4"),
@@ -409,7 +409,7 @@ class PGStreamMessageLengthTest {
     PGStream stream = openStream(socket);
     stream.setProtocolHardeningMode(mode);
 
-    IOException e = assertThrowsExactly(IOException.class,
+    IOException e = assertThrowsExactly(ProtocolViolationException.class,
         () -> stream.readFixedMessageLength("ReadyForQuery", 8));
     assertAll(
         () -> assertEquals(
@@ -490,7 +490,7 @@ class PGStreamMessageLengthTest {
     PGStream stream = openStream(socket);
     stream.setProtocolHardeningMode(ProtocolHardeningMode.FAIL);
 
-    IOException e = assertThrowsExactly(IOException.class,
+    IOException e = assertThrowsExactly(ProtocolViolationException.class,
         () -> stream.checkServerTextMessageSize("ErrorResponse", 64000001));
     assertAll(
         () -> assertEquals(
@@ -521,7 +521,7 @@ class PGStreamMessageLengthTest {
     stream.setMaxServerTextMessageSize("1000");
 
     stream.checkServerTextMessageSize("NoticeResponse", 1000);
-    IOException e = assertThrowsExactly(IOException.class,
+    IOException e = assertThrowsExactly(ProtocolViolationException.class,
         () -> stream.checkServerTextMessageSize("NoticeResponse", 1001));
 
     assertAll(
@@ -559,7 +559,7 @@ class PGStreamMessageLengthTest {
     PGStream stream = openStream(socket);
     stream.setProtocolHardeningMode(mode);
 
-    IOException e = assertThrowsExactly(IOException.class,
+    IOException e = assertThrowsExactly(ProtocolViolationException.class,
         () -> stream.checkRowDescriptionSize(8388609));
     assertAll(
         () -> assertEquals(

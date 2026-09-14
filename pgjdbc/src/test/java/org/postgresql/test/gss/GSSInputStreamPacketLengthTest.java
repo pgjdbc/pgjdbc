@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.postgresql.core.ProtocolViolationException;
 import org.postgresql.gss.GSSInputStream;
 import org.postgresql.test.util.Wire;
 import org.postgresql.util.GT;
@@ -114,7 +115,7 @@ class GSSInputStreamPacketLengthTest {
         new Wire().int4(declaredLength).bytes(bodyLength).toBytes());
     GSSInputStream stream = streamOver(source);
 
-    IOException e = assertThrowsExactly(IOException.class, () -> readToEnd(stream));
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, () -> readToEnd(stream));
 
     assertAll(
         () -> assertEquals(
@@ -132,7 +133,7 @@ class GSSInputStreamPacketLengthTest {
     source.closeFailure = closeFailure;
     GSSInputStream stream = streamOver(source);
 
-    IOException e = assertThrowsExactly(IOException.class, () -> readToEnd(stream));
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, () -> readToEnd(stream));
 
     assertAll(
         () -> assertEquals(

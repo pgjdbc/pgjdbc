@@ -97,7 +97,7 @@ class PGStreamDataRowTest {
     FakeSocket socket = new FakeSocket(new Wire().int4(5).int2(0).toBytes());
     PGStream stream = openStream(socket);
 
-    IOException e = assertThrowsExactly(IOException.class, stream::receiveTupleV3);
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, stream::receiveTupleV3);
 
     assertAll(
         () -> assertEquals(
@@ -129,7 +129,7 @@ class PGStreamDataRowTest {
     PGStream stream = openStream(socket);
     stream.setProtocolHardeningMode(mode);
 
-    IOException e = assertThrowsExactly(IOException.class, stream::receiveTupleV3);
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, stream::receiveTupleV3);
 
     assertAll(
         () -> assertEquals(
@@ -146,7 +146,7 @@ class PGStreamDataRowTest {
     PGStream stream = openStream(socket);
     stream.setProtocolHardeningMode(mode);
 
-    IOException e = assertThrowsExactly(IOException.class, stream::receiveTupleV3);
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, stream::receiveTupleV3);
 
     assertAll(
         () -> assertEquals(
@@ -176,7 +176,7 @@ class PGStreamDataRowTest {
     PGStream stream = openStream(socket);
     stream.setProtocolHardeningMode(mode);
 
-    IOException e = assertThrowsExactly(IOException.class, stream::receiveTupleV3);
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, stream::receiveTupleV3);
 
     assertAll(
         () -> assertEquals(
@@ -196,7 +196,7 @@ class PGStreamDataRowTest {
         new Wire().int4(20).int2(2).int4(3).bytes(3).int4(4).bytes(4).toBytes());
     PGStream stream = openStream(socket);
 
-    IOException e = assertThrowsExactly(IOException.class, stream::receiveTupleV3);
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, stream::receiveTupleV3);
 
     assertAll(
         () -> assertEquals(
@@ -217,7 +217,7 @@ class PGStreamDataRowTest {
         new Wire().int4(14).int2(1).int4(1697905436).bytes(4).toBytes());
     PGStream stream = openStream(socket);
 
-    IOException e = assertThrowsExactly(IOException.class, stream::receiveTupleV3);
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, stream::receiveTupleV3);
 
     assertAll(
         () -> assertEquals(
@@ -233,7 +233,7 @@ class PGStreamDataRowTest {
         new Wire().int4(16).int2(1).int4(4).bytes(4).bytes(2).toBytes());
     PGStream stream = openStream(socket);
 
-    IOException e = assertThrowsExactly(IOException.class, stream::receiveTupleV3);
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, stream::receiveTupleV3);
 
     assertAll(
         () -> assertEquals(

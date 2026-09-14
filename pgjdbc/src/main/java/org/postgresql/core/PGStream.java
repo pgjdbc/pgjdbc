@@ -405,12 +405,12 @@ public class PGStream implements Closeable, Flushable {
     // A short read and an overrun throw separate errors, each with a positive byte count, so the
     // error text shows which of the two happened.
     if (actual < expected) {
-      throw markBroken(new IOException(GT.tr(
+      throw markBroken(new ProtocolViolationException(GT.tr(
           "Protocol error. {0} message has {1} unread bytes.",
           name, String.valueOf(expected - actual))));
     }
     if (actual > expected) {
-      throw markBroken(new IOException(GT.tr(
+      throw markBroken(new ProtocolViolationException(GT.tr(
           "Protocol error. {0} message was read {1} bytes past its declared length.",
           name, String.valueOf(actual - expected))));
     }
@@ -456,15 +456,15 @@ public class PGStream implements Closeable, Flushable {
     }
     if (messageEndPosition >= 0) {
       if (position < messageEndPosition) {
-        throw markBroken(new IOException(GT.tr(
+        throw markBroken(new ProtocolViolationException(GT.tr(
             "Protocol error. Reading the {0} message stopped with {1} bytes of its body unread, so the connection is no longer positioned on a message boundary.",
             currentMessageNameForError(), String.valueOf(messageEndPosition - position))));
       }
-      throw markBroken(new IOException(GT.tr(
+      throw markBroken(new ProtocolViolationException(GT.tr(
           "Protocol error. The {0} message was read without a closing endMessage call, which is a pgjdbc defect.",
           currentMessageNameForError())));
     }
-    throw markBroken(new IOException(GT.tr(
+    throw markBroken(new ProtocolViolationException(GT.tr(
         "Protocol error. The stream is {0} bytes away from the end of the {1} message, so the next byte is not a message type. Read every backend message through readMessageLength or readFixedMessageLength, and close it with endMessage.",
         String.valueOf(position - messageBoundaryPosition),
         lastMessageName == null ? "preceding" : lastMessageName)));
@@ -542,7 +542,7 @@ public class PGStream implements Closeable, Flushable {
     if (msgLen <= limit || protocolHardeningMode == ProtocolHardeningMode.DISABLE) {
       return;
     }
-    throw markBroken(new IOException(GT.tr(
+    throw markBroken(new ProtocolViolationException(GT.tr(
         "Protocol error. {0} message has length {1}, which exceeds the pgjdbc limit of {2} bytes. Raise the {3} connection property if the backend legitimately sends more, or set -D{4}=disable to skip these limits altogether.",
         messageName, String.valueOf(msgLen), String.valueOf(limit), propertyName,
         ProtocolHardeningMode.SYSTEM_PROPERTY)));
@@ -571,7 +571,7 @@ public class PGStream implements Closeable, Flushable {
    */
   public void checkRowDescriptionSize(int msgLen) throws IOException {
     if (msgLen > MAX_ROW_DESCRIPTION_SIZE) {
-      throw markBroken(new IOException(GT.tr(
+      throw markBroken(new ProtocolViolationException(GT.tr(
           "Protocol error. RowDescription message has length {0}, which exceeds the pgjdbc limit of {1} bytes.",
           String.valueOf(msgLen), String.valueOf(MAX_ROW_DESCRIPTION_SIZE))));
     }
@@ -1121,7 +1121,7 @@ public class PGStream implements Closeable, Flushable {
     }
     int len = receiveInteger4();
     if (len < minLength || len > maxLength) {
-      throw markBroken(new IOException(GT.tr(
+      throw markBroken(new ProtocolViolationException(GT.tr(
           "Protocol error. {0} message has invalid length {1} (expected between {2} and {3}).",
           messageName, String.valueOf(len), String.valueOf(minLength),
           String.valueOf(maxLength))));
@@ -1155,7 +1155,7 @@ public class PGStream implements Closeable, Flushable {
       throws IOException {
     int len = validateMessageLength(messageName, 4, minLength, MAX_MESSAGE_SIZE);
     if (len > limit) {
-      throw markBroken(new IOException(GT.tr(
+      throw markBroken(new ProtocolViolationException(GT.tr(
           "Protocol error. {0} message has length {1}, which exceeds the pgjdbc limit of {2} bytes applied before authentication. This limit cannot be relaxed.",
           messageName, String.valueOf(len), String.valueOf(limit))));
     }
@@ -1178,7 +1178,7 @@ public class PGStream implements Closeable, Flushable {
   public void readFixedMessageLength(String messageName, int expectedLength) throws IOException {
     int len = receiveInteger4();
     if (len != expectedLength) {
-      throw markBroken(new IOException(GT.tr(
+      throw markBroken(new ProtocolViolationException(GT.tr(
           "Protocol error. {0} message has length {1}, expected {2}.",
           messageName, String.valueOf(len), String.valueOf(expectedLength))));
     }
@@ -1283,11 +1283,11 @@ public class PGStream implements Closeable, Flushable {
       // With no message tracked, the error names no message, because no message length was
       // declared, and offers no remedy, because no mode lifts the limit there.
       throw markBroken(messageTracked
-          ? new IOException(GT.tr(
+          ? new ProtocolViolationException(GT.tr(
               "Protocol error. C-string in {0} message of {1} bytes exceeds the pgjdbc limit of {2} bytes on a single C-string. Set -D{3}=disable to skip these limits altogether.",
               currentMessageNameForError(), String.valueOf(currentMessageLength),
               String.valueOf(fieldLimit), ProtocolHardeningMode.SYSTEM_PROPERTY))
-          : new IOException(GT.tr(
+          : new ProtocolViolationException(GT.tr(
               "Protocol error. A C-string read outside a tracked message exceeds the pgjdbc limit of {0} bytes on a single C-string.",
               String.valueOf(fieldLimit))));
     } catch (IOException e) {
@@ -1376,7 +1376,7 @@ public class PGStream implements Closeable, Flushable {
     //size = messageSize - 4 bytes of message size - 2 bytes of field count - 4 bytes for each column length
     int dataToReadSize = messageSize - 4 - 2 - 4 * nf;
     if (dataToReadSize < 0) {
-      throw markBroken(new IOException(GT.tr(
+      throw markBroken(new ProtocolViolationException(GT.tr(
           "Protocol error. DataRow field count {0} requires at least {1} bytes for per-field length prefixes, but the message size is only {2}.",
           String.valueOf(nf), String.valueOf(4 * nf), String.valueOf(messageSize))));
     }
@@ -1430,14 +1430,14 @@ public class PGStream implements Closeable, Flushable {
         if (size < -1) {
           // The wire protocol assigns exactly two meanings to the per-field length: -1 is
           // NULL, any non-negative value is the byte count.
-          throw markBroken(new IOException(GT.tr(
+          throw markBroken(new ProtocolViolationException(GT.tr(
               "Protocol error. DataRow field {0} has negative length {1}.",
               String.valueOf(i), String.valueOf(size))));
         }
         if (size > remaining) {
           // The scenario from issue #4015: a field claiming more bytes than the row
           // still holds drove a ~1.7 GB allocation and an indefinite socket read.
-          throw markBroken(new IOException(GT.tr(
+          throw markBroken(new ProtocolViolationException(GT.tr(
               "Protocol error. DataRow field {0} length {1} exceeds remaining row bytes {2}.",
               String.valueOf(i), String.valueOf(size), String.valueOf(remaining))));
         }

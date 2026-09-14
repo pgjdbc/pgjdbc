@@ -14,6 +14,7 @@ import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.PgMessageType;
 import org.postgresql.core.ProtocolVersion;
+import org.postgresql.core.ProtocolViolationException;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.SetupQueryRunner;
@@ -466,6 +467,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           log(Level.FINE, "IOException occurred while connecting to {0}", ioe, hostSpec);
           // still more addresses to try
           continue;
+        }
+        if (ioe instanceof ProtocolViolationException) {
+          throw new PSQLException(GT.tr("The connection attempt failed: {0}", ioe.getMessage()),
+              PSQLState.PROTOCOL_VIOLATION, ioe);
         }
         throw new PSQLException(GT.tr("The connection attempt failed."),
             PSQLState.CONNECTION_UNABLE_TO_CONNECT, ioe);

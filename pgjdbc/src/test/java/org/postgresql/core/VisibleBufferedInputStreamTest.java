@@ -231,7 +231,7 @@ class VisibleBufferedInputStreamTest {
     byte[] noNul = new byte[3001];
     Arrays.fill(noNul, (byte) 'x');
     VisibleBufferedInputStream in = new VisibleBufferedInputStream(new EndlessAfter(noNul, 700), 1024);
-    IOException e = assertThrowsExactly(IOException.class, () -> in.scanCStringLength(3000, NO_FIELD_LIMIT, "Probe", 3004));
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, () -> in.scanCStringLength(3000, NO_FIELD_LIMIT, "Probe", 3004));
     assertEquals(
         GT.tr("Protocol error. C-string in {0} message of {1} bytes exceeds remaining budget of {2} bytes.",
             "Probe", "3004", "3000"),
@@ -264,7 +264,7 @@ class VisibleBufferedInputStreamTest {
   @ValueSource(ints = {0, -1})
   void scanRejectsANonPositiveLimitWithoutReading(int maxBytes) {
     VisibleBufferedInputStream in = new VisibleBufferedInputStream(new EndlessAfter(new byte[0], 1), 1024);
-    IOException e = assertThrowsExactly(IOException.class, () -> in.scanCStringLength(maxBytes, NO_FIELD_LIMIT, "Probe", 20));
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, () -> in.scanCStringLength(maxBytes, NO_FIELD_LIMIT, "Probe", 20));
     assertEquals(
         GT.tr("Protocol error. {0} message of {1} bytes has no room left for a C-string (remaining budget: {2} bytes).",
             "Probe", "20", String.valueOf(maxBytes)),
@@ -342,7 +342,7 @@ class VisibleBufferedInputStreamTest {
   void scanOverTheBudgetThrowsAPlainIOException(int messageBudget, int fieldLimit) {
     VisibleBufferedInputStream in = new VisibleBufferedInputStream(
         new ChunkedStream("abc\0tail".getBytes(StandardCharsets.US_ASCII), 100), 1024);
-    IOException e = assertThrowsExactly(IOException.class,
+    IOException e = assertThrowsExactly(ProtocolViolationException.class,
         () -> in.scanCStringLength(messageBudget, fieldLimit, "Probe", 104));
     assertEquals(
         GT.tr("Protocol error. C-string in {0} message of {1} bytes exceeds remaining budget of {2} bytes.",

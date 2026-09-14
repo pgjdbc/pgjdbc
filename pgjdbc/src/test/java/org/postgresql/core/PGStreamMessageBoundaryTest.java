@@ -98,7 +98,7 @@ class PGStreamMessageBoundaryTest {
     stream.readMessageLength("ParameterStatus", 4, 100);
     stream.receive(bytesRead);
 
-    IOException e = assertThrowsExactly(IOException.class, stream::receiveMessageType);
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, stream::receiveMessageType);
 
     assertAll(
         () -> assertEquals(GT.tr(BODY_UNREAD, "ParameterStatus", unread), e.getMessage()),
@@ -122,7 +122,7 @@ class PGStreamMessageBoundaryTest {
     stream.readMessageLength("ParameterStatus", 4, 100);
     stream.receive(bytesRead);
 
-    IOException e = assertThrowsExactly(IOException.class, stream::receiveMessageType);
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, stream::receiveMessageType);
 
     assertAll(
         () -> assertEquals(GT.tr(NOT_CLOSED, "ParameterStatus"), e.getMessage()),
@@ -140,7 +140,7 @@ class PGStreamMessageBoundaryTest {
     readClosedMessage(stream, "ParameterStatus");
     stream.receive(2);
 
-    IOException e = assertThrowsExactly(IOException.class, stream::receiveMessageType);
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, stream::receiveMessageType);
 
     assertAll(
         () -> assertEquals(GT.tr(AWAY_FROM_BOUNDARY, "2", "ParameterStatus"), e.getMessage()),
@@ -162,7 +162,7 @@ class PGStreamMessageBoundaryTest {
     stream.readUntrackedLength("GSSEncryptionHandshakeToken", 0, 100);
     stream.receive(3);
 
-    IOException e = assertThrowsExactly(IOException.class, stream::receiveMessageType);
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, stream::receiveMessageType);
 
     assertAll(
         () -> assertEquals(GT.tr(AWAY_FROM_BOUNDARY, "7", "preceding"), e.getMessage()),
@@ -177,7 +177,7 @@ class PGStreamMessageBoundaryTest {
     stream.receive(2);
     stream.endMessage();
 
-    IOException e = assertThrowsExactly(IOException.class, stream::receiveMessageType);
+    IOException e = assertThrowsExactly(ProtocolViolationException.class, stream::receiveMessageType);
 
     assertEquals(GT.tr(AWAY_FROM_BOUNDARY, "2", "ParameterStatus"), e.getMessage());
   }

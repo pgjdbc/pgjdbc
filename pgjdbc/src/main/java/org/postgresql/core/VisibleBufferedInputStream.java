@@ -429,7 +429,7 @@ public class VisibleBufferedInputStream extends InputStream {
           String.valueOf(fieldLimit)));
     }
     if (messageBudget <= 0) {
-      throw new IOException(GT.tr(
+      throw new ProtocolViolationException(GT.tr(
           "Protocol error. {0} message of {1} bytes has no room left for a C-string (remaining budget: {2} bytes).",
           messageName, String.valueOf(messageLength), String.valueOf(messageBudget)));
     }
@@ -450,7 +450,7 @@ public class VisibleBufferedInputStream extends InputStream {
                 "Protocol error. C-string in {0} message of {1} bytes exceeds the pgjdbc limit of {2} bytes on a single C-string.",
                 messageName, String.valueOf(messageLength), String.valueOf(fieldLimit)));
           }
-          throw new IOException(GT.tr(
+          throw new ProtocolViolationException(GT.tr(
               "Protocol error. C-string in {0} message of {1} bytes exceeds remaining budget of {2} bytes.",
               messageName, String.valueOf(messageLength), String.valueOf(messageBudget)));
         }
@@ -473,7 +473,7 @@ public class VisibleBufferedInputStream extends InputStream {
    * tracks: inside a tracked message the error names that mode as the remedy, and elsewhere it
    * names no message.
    */
-  static class CStringLimitException extends IOException {
+  static class CStringLimitException extends ProtocolViolationException {
     private static final long serialVersionUID = 1L;
 
     CStringLimitException(String message) {

@@ -8,6 +8,7 @@ package org.postgresql.core.v3;
 import org.postgresql.PGProperty;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.PgMessageType;
+import org.postgresql.core.ProtocolViolationException;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -74,6 +75,11 @@ final class ScramAuthenticator {
       LOGGER.log(Level.FINEST, () -> " Using SCRAM mechanism: "
           + client.getScramMechanism().getName());
       return client;
+    } catch (ProtocolViolationException e) {
+      // Same SQLState and message as the connection factory gives a refusal it catches. A
+      // PSQLException, so the sslmode fallback in ConnectionFactoryImpl does not retry it.
+      throw new PSQLException(GT.tr("The connection attempt failed: {0}", e.getMessage()),
+          PSQLState.PROTOCOL_VIOLATION, e);
     } catch (IllegalArgumentException | IOException e) {
       throw new PSQLException(
           GT.tr("Invalid SCRAM client initialization"),

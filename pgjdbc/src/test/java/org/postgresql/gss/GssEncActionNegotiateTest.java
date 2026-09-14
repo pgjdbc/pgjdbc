@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.PGStreamTestSupport;
 import org.postgresql.core.ProtocolHardeningMode;
+import org.postgresql.core.ProtocolViolationException;
 import org.postgresql.test.util.FakeSocket;
 import org.postgresql.test.util.Wire;
 import org.postgresql.util.GT;
@@ -181,7 +182,7 @@ class GssEncActionNegotiateTest {
     PGStream stream = stream(socket, mode);
     ScriptedGssContext context = new ScriptedGssContext(ScriptedGssContext.NEVER);
 
-    IOException e = assertThrowsExactly(IOException.class,
+    IOException e = assertThrowsExactly(ProtocolViolationException.class,
         () -> action(stream).negotiate(context));
 
     assertAll(

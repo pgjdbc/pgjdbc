@@ -91,7 +91,7 @@ class PGStreamCStringTest {
       throws IOException {
     try (PGStream stream = openStream(bytes(0, 0, 0, 8, "abcd\0"))) {
       stream.readMessageLength(MESSAGE, 4);
-      IOException e = assertThrowsExactly(IOException.class, () -> reader.read(stream));
+      IOException e = assertThrowsExactly(ProtocolViolationException.class, () -> reader.read(stream));
       assertAll(
           () -> assertEquals(
               GT.tr("Protocol error. C-string in {0} message of {1} bytes exceeds remaining budget of {2} bytes.",
@@ -111,7 +111,7 @@ class PGStreamCStringTest {
     try (PGStream stream = openStream(bytes(0, 0, 0, 7, "abc", "Z", 0, 0, 0, 5, "\0"))) {
       stream.setProtocolHardeningMode(mode);
       stream.readMessageLength(MESSAGE, 4);
-      IOException e = assertThrowsExactly(IOException.class, stream::receiveString);
+      IOException e = assertThrowsExactly(ProtocolViolationException.class, stream::receiveString);
       assertAll(
           () -> assertEquals(
               GT.tr("Protocol error. C-string in {0} message of {1} bytes exceeds remaining budget of {2} bytes.",
@@ -132,7 +132,7 @@ class PGStreamCStringTest {
       stream.setProtocolHardeningMode(mode);
       stream.readMessageLength(MESSAGE, 4);
       stream.receiveString();
-      IOException e = assertThrowsExactly(IOException.class, stream::receiveString);
+      IOException e = assertThrowsExactly(ProtocolViolationException.class, stream::receiveString);
       assertAll(
           () -> assertEquals(
               GT.tr("Protocol error. {0} message of {1} bytes has no room left for a C-string (remaining budget: {2} bytes).",
@@ -196,7 +196,7 @@ class PGStreamCStringTest {
     try (PGStream stream = openStream(bytes(0, 0x10, 0, 7, letters(1048576), "\0b\0"))) {
       stream.setProtocolHardeningMode(ProtocolHardeningMode.FAIL);
       stream.readMessageLength(MESSAGE, 4);
-      IOException e = assertThrowsExactly(IOException.class, () -> reader.read(stream));
+      IOException e = assertThrowsExactly(ProtocolViolationException.class, () -> reader.read(stream));
       assertAll(
           () -> assertEquals(
               GT.tr("Protocol error. C-string in {0} message of {1} bytes exceeds the pgjdbc limit of {2} bytes on a single C-string. Set -D{3}=disable to skip these limits altogether.",
@@ -249,7 +249,7 @@ class PGStreamCStringTest {
       throws IOException {
     try (PGStream stream = openStream(bytes(letters(1048576), "\0x"))) {
       stream.setProtocolHardeningMode(mode);
-      IOException e = assertThrowsExactly(IOException.class, stream::receiveString);
+      IOException e = assertThrowsExactly(ProtocolViolationException.class, stream::receiveString);
       assertAll(
           () -> assertEquals(
               GT.tr("Protocol error. A C-string read outside a tracked message exceeds the pgjdbc limit of {0} bytes on a single C-string.",
@@ -271,7 +271,7 @@ class PGStreamCStringTest {
     try (PGStream stream = PGStreamTestSupport.openStream(new FakeSocket(source))) {
       stream.setProtocolHardeningMode(ProtocolHardeningMode.FAIL);
       assertEquals(64000000, stream.readMessageLength(MESSAGE, 4), "declared length");
-      assertThrowsExactly(IOException.class, stream::receiveString);
+      assertThrowsExactly(ProtocolViolationException.class, stream::receiveString);
       long served = source.served;
       assertAll(
           () -> assertTrue(served <= 4 + 2097152, () -> "bytes read from the socket: " + served),

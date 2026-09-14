@@ -7,6 +7,7 @@ package org.postgresql.gss;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.core.ProtocolViolationException;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 
@@ -145,7 +146,7 @@ public class GSSInputStream extends InputStream {
       // Both byte counts go through String.valueOf so that they reach the message as plain digits.
       // MessageFormat formats an int with the grouping separators of the JVM locale, so an int
       // argument would vary by locale and fail to match a grep of the logs.
-      IOException refusal = new IOException(GT.tr(
+      IOException refusal = new ProtocolViolationException(GT.tr(
           "Protocol error. GSS encrypted packet has invalid length {0} (expected between 1 and {1} bytes).",
           String.valueOf(encryptedLength), String.valueOf(MAX_ENCRYPTED_PACKET_LENGTH)));
       // The stream is off a packet boundary and cannot be read further. Closing the wrapped

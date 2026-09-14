@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.PGStreamTestSupport;
 import org.postgresql.core.ProtocolHardeningMode;
+import org.postgresql.core.ProtocolViolationException;
 import org.postgresql.test.util.FakeSocket;
 import org.postgresql.test.util.Wire;
 import org.postgresql.util.GT;
@@ -164,7 +165,7 @@ class GssActionNegotiateTest {
     FakeSocket socket = new FakeSocket(new Wire().int1('R').int4(8009).toBytes());
     PGStream stream = stream(socket, mode);
 
-    IOException e = assertThrowsExactly(IOException.class,
+    IOException e = assertThrowsExactly(ProtocolViolationException.class,
         () -> action(stream).negotiate(new ScriptedGssContext(ScriptedGssContext.NEVER)));
 
     assertAll(
@@ -181,7 +182,7 @@ class GssActionNegotiateTest {
     FakeSocket socket = new FakeSocket(new Wire().int1('R').int4(7).int4(0).toBytes());
     PGStream stream = stream(socket, mode);
 
-    IOException e = assertThrowsExactly(IOException.class,
+    IOException e = assertThrowsExactly(ProtocolViolationException.class,
         () -> action(stream).negotiate(new ScriptedGssContext(ScriptedGssContext.NEVER)));
 
     assertAll(
@@ -205,7 +206,7 @@ class GssActionNegotiateTest {
     PGStream stream = PGStreamTestSupport.openStream(socket);
     stream.receiveChar();
 
-    IOException e = assertThrowsExactly(IOException.class,
+    IOException e = assertThrowsExactly(ProtocolViolationException.class,
         () -> action(stream).negotiate(new ScriptedGssContext(2)));
 
     assertAll(
@@ -242,7 +243,7 @@ class GssActionNegotiateTest {
     FakeSocket socket = new FakeSocket(new Wire().int1('E').int4(30001).toBytes());
     PGStream stream = stream(socket, mode);
 
-    IOException e = assertThrowsExactly(IOException.class,
+    IOException e = assertThrowsExactly(ProtocolViolationException.class,
         () -> action(stream).negotiate(new ScriptedGssContext(ScriptedGssContext.NEVER)));
 
     assertAll(
@@ -259,7 +260,7 @@ class GssActionNegotiateTest {
     FakeSocket socket = new FakeSocket(new Wire().int1('E').int4(4).int1(0).toBytes());
     PGStream stream = stream(socket, mode);
 
-    IOException e = assertThrowsExactly(IOException.class,
+    IOException e = assertThrowsExactly(ProtocolViolationException.class,
         () -> action(stream).negotiate(new ScriptedGssContext(ScriptedGssContext.NEVER)));
 
     assertAll(
