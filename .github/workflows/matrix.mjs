@@ -304,6 +304,17 @@ matrix.addAxis({
   ]
 });
 
+// pgjdbc.protocolHardeningMode is read once per JVM, so a test can check that a protocol limit
+// holds under disable only in a JVM started with the property set.
+matrix.addAxis({
+  name: 'protocol_hardening_mode',
+  title: x => x.value === 'disable' ? 'protocolHardeningMode=disable' : '',
+  values: [
+    {value: 'disable', weight: 1},
+    {value: 'default', weight: 10},
+  ]
+});
+
 matrix.addAxis({
   name: 'standard_conforming_strings',
   values: [
@@ -325,7 +336,7 @@ matrix.setNamePattern([
     'gss', 'replication', 'slow_tests',
     'adaptive_fetch', 'rewrite_batch_inserts', 'query_timeout', 'socket_timeout',
     'login_timeout', 'connect_timeout',
-    'autosave', 'cleanupSavepoints', 'cpu_count', 'assertions', 'standard_conforming_strings'
+    'autosave', 'cleanupSavepoints', 'cpu_count', 'assertions', 'protocol_hardening_mode', 'standard_conforming_strings'
 ]);
 
 // We take EA builds from Oracle
@@ -415,6 +426,7 @@ const include = matrix.generateRows(Number(process.env.MATRIX_JOBS || 6), {
     ...matrix.allAxisValues('os'),
     ...matrix.allAxisValues('cpu_count'),
     ...matrix.allAxisValues('assertions'),
+    ...matrix.allAxisValues('protocol_hardening_mode'),
   ],
 });
 if (include.length === 0) {
@@ -573,6 +585,10 @@ include.forEach(v => {
       testJvmArgs.push('-ea');
   }
   delete v.assertions;
+  if (v.protocol_hardening_mode.value === 'disable') {
+      testJvmArgs.push('-Dpgjdbc.protocolHardeningMode=disable');
+  }
+  delete v.protocol_hardening_mode;
   v.extraJvmArgs = jvmArgs.join(' ');
   v.testExtraJvmArgs = testJvmArgs.join(' ::: ');
   delete v.hash;
