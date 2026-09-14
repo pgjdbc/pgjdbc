@@ -63,4 +63,17 @@ public class PgMessageType {
   public static final byte TRANSACTION_OPEN = 'T';
   public static final byte TRANSACTION_FAILED = 'E';
 
+  // Responses to an SSLRequest or GSSENCRequest negotiation. These are a single byte
+  // rather than a framed message. An older server that does not understand the request
+  // replies with an ErrorResponse ('E', see ERROR_RESPONSE above); newer servers reply
+  // with one of the bytes below.
+  public static final byte SSL_OK = 'S';
+  public static final byte GSS_ENC_OK = 'G';
+  public static final byte ENCRYPTION_REFUSED = 'N';
+
+  // Replication sub-message types carried inside a CopyData payload
+  public static final byte REPL_KEEPALIVE = 'k';
+  public static final byte REPL_XLOG_DATA = 'w';
+  public static final byte REPL_STANDBY_STATUS_UPDATE = 'r';
+
 }
