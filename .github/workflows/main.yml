@@ -43,14 +43,14 @@ jobs:
     - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       with:
         fetch-depth: 50
-    - name: Test docker/bin/pg-port-lease
-      timeout-minutes: 5
-      run: docker/bin/pg-port-lease-test
     - name: 'Set up JDK 21'
       uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
       with:
         distribution: zulu
         java-version: 21
+    - name: Test docker/bin/pg-port-lease
+      timeout-minutes: 5
+      run: docker/bin/pg-port-lease-test
     - uses: burrunan/gradle-cache-action@404534c34a2faa40430357a3183522a845b04f3b # v3.0.3
       name: Verify code style
       env:

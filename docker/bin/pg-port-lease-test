@@ -14,14 +14,25 @@ set -uo pipefail
 #    docker/bin/pg-port-lease-test
 #
 # PG_PORT_LEASE selects another copy of the lease script, to check that a broken copy
-# fails the tests.
+# fails the tests. Otherwise the tests compile docker/bin/PortLease.java once with javac and run
+# the classes, because docker/bin/pg-port-lease runs it as a source file, which compiles it on
+# every call, and the tests call it dozens of times.
 
 readonly script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-readonly lease="${PG_PORT_LEASE:-${script_dir}/pg-port-lease}"
 # git reports worktree paths with symbolic links resolved, as in /private/var for /var on macOS.
 root="$(cd "$(mktemp -d)" && pwd -P)"
 readonly root
 trap 'rm -rf "${root}"' EXIT
+
+if [[ -n "${PG_PORT_LEASE:-}" ]]; then
+    lease="${PG_PORT_LEASE}"
+else
+    javac -d "${root}/classes" "${script_dir}/PortLease.java" || exit 2
+    printf '#!/usr/bin/env bash\nexec java -cp "%s" PortLease "$@"\n' "${root}/classes" > "${root}/pg-port-lease"
+    chmod +x "${root}/pg-port-lease"
+    lease="${root}/pg-port-lease"
+fi
+readonly lease
 failures=0
 listener=
 
@@ -171,6 +182,9 @@ test_ports_in_use () {
     check "addresses lists 127.0.0.1, and ::1 when the host can bind it" \
         "$([[ "${ipv6}" == yes ]] && echo '127.0.0.1 ::1' || echo 127.0.0.1)" \
         "$(cd "${dir}/wt1" && "${lease}" addresses | paste -sd' ' -)"
+    check "docker/bin/pg-port-lease runs PortLease.java and prints the same addresses" \
+        "$(cd "${dir}/wt1" && "${lease}" addresses | paste -sd' ' -)" \
+        "$(cd "${dir}/wt1" && "${script_dir}/pg-port-lease" addresses | paste -sd' ' -)"
 
     check "a worktree takes slot 0 while its ports are free" "0 20000 20001 20002" "$(acquire_in "${dir}/wt1")"
     listen 20004
@@ -259,9 +273,7 @@ test_server_ports () {
     local dir="${root}/properties/wt1"
     local properties="${dir}/build.local.properties"
     cp -R "${script_dir}/.." "${dir}/docker"
-    if [[ -n "${PG_PORT_LEASE:-}" ]]; then
-        cp "${PG_PORT_LEASE}" "${dir}/docker/bin/pg-port-lease"
-    fi
+    cp "${lease}" "${dir}/docker/bin/pg-port-lease"
     printf 'test.url.PGPORT=5432\n' > "${dir}/build.properties"
     mkdir -p "${root}/fakebin"
     printf '#!/bin/sh\necho "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-}" > "%s/compose-env"\necho "docker $*"\n' \
