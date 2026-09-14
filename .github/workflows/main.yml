@@ -173,7 +173,6 @@ jobs:
         echo "Starting PostgreSQL via docker compose down; PGV=$PGV TZ=$TZ XA=$XA SSL=$SSL SCRAM=$SCRAM CREATE_REPLICAS=$CREATE_REPLICAS STANDARD_CONFORMING_STRINGS=$STANDARD_CONFORMING_STRINGS docker compose up"
 
         docker compose down -v --rmi local || true
-        sed -i -r '/- (543[3-4]):\1/d' docker-compose.yml
         docker compose up -d --wait || { docker compose logs; exit 1; }
         docker compose logs
     - name: Start PostgreSQL PGV=${{ matrix.pg_version }}
