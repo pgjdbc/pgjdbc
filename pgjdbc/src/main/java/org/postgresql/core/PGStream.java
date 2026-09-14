@@ -52,7 +52,7 @@ import javax.net.SocketFactory;
  * <p>The maxima this class enforces come from three places: the protocol
  * ({@link #MAX_MESSAGE_SIZE}), a pgjdbc default where the protocol fixes none
  * ({@link #DEFAULT_MAX_SERVER_TEXT_MESSAGE_SIZE}), and a connection property such as
- * {@code maxResultBuffer}. An error message names the property
+ * {@code maxResultBuffer} or {@code maxCopyDataSize}. An error message names the property
  * wherever one applies.</p>
  *
  * <p>In general, instances of PGStream are not threadsafe; the caller must ensure that only one thread
@@ -82,9 +82,9 @@ public class PGStream implements Closeable, Flushable {
    * 64 MB ({@value #DEFAULT_MAX_SERVER_TEXT_MESSAGE_SIZE} bytes) does that while still
    * bounding the allocation a length from an out-of-sync stream can drive.
    *
-   * <p>Decimal rather than binary: the violation message names the property, and that
-   * property is parsed by {@link PGPropertyMaxResultBufferParser}, whose suffixes are
-   * decimal.
+   * <p>The value is decimal for the same reason as {@link #DEFAULT_MAX_COPY_DATA_SIZE}: the
+   * violation message names the property, and that property is parsed by
+   * {@link PGPropertyMaxResultBufferParser}, whose suffixes are decimal.
    *
    * @see #setMaxServerTextMessageSize(String)
    */
@@ -130,6 +130,28 @@ public class PGStream implements Closeable, Flushable {
    * {@code fe-connect.c}.
    */
   public static final int MAX_PRE_AUTH_ERROR_RESPONSE_SIZE = 30000;
+
+  /**
+   * Largest declared length, in bytes, that pgjdbc accepts for a single CopyData message when
+   * {@code maxCopyDataSize} is not configured: 64 MB
+   * ({@value #DEFAULT_MAX_COPY_DATA_SIZE} bytes). CopyData carries user rows, so the driver
+   * cannot derive a bound from the protocol; without one, {@code new byte[len]} takes its size
+   * straight off the wire, which is what issue #4015 flags: a wire-supplied length driving the
+   * allocation. 64 MB is far above a real COPY row (usually well under a megabyte, or tens of
+   * megabytes with large objects). A length from a stream out of sync, by contrast, is
+   * essentially a random value up to {@link #MAX_MESSAGE_SIZE} (about 1 GB), so roughly 15 out
+   * of 16 such lengths fall above 64 MB and are caught on the first CopyData message.
+   *
+   * <p>The value is decimal rather than binary. The error message suggests raising
+   * {@code maxCopyDataSize}, and {@link PGPropertyMaxResultBufferParser} reads that property's
+   * suffixes as decimal ({@code K} is 1000). An operator who sets {@code maxCopyDataSize=64M}
+   * in response keeps the same limit. Were the default 64 MiB, that setting would lower the
+   * limit by about 3 MB.</p>
+   *
+   * <p>{@link ProtocolHardeningMode#DISABLE} switches this limit off. A configured
+   * {@code maxCopyDataSize} replaces it and applies in every mode, {@code DISABLE} included.</p>
+   */
+  static final int DEFAULT_MAX_COPY_DATA_SIZE = 64_000_000;
 
   private final SocketFactory socketFactory;
   private final HostSpec hostSpec;
@@ -192,6 +214,13 @@ public class PGStream implements Closeable, Flushable {
 
   private long maxResultBuffer = -1;
   private long resultBufferByteCount;
+
+  /**
+   * Largest declared length, in bytes, that {@link #checkCopyDataSize(int)} accepts for a
+   * single CopyData message, as set by {@link #setMaxCopyDataSize(String)}. {@code -1} while
+   * the property is unset, in which case {@link #DEFAULT_MAX_COPY_DATA_SIZE} applies instead.
+   */
+  private long maxCopyDataSize = -1;
 
   /**
    * Largest declared length, in bytes, that {@link #checkServerTextMessageSize(String, int)}
@@ -852,7 +881,8 @@ public class PGStream implements Closeable, Flushable {
    * result data, such as ErrorResponse or RowDescription, so that a length read from a stream out
    * of sync cannot size a large allocation. A message that carries result data, such as DataRow,
    * CopyData, or FunctionCallResponse, gets no such limit. DataRow is bounded instead by
-   * {@code maxResultBuffer}, checked in {@link #receiveTupleV3()}.</p>
+   * {@code maxResultBuffer}, checked in {@link #receiveTupleV3()}, and CopyData by
+   * {@code maxCopyDataSize}, checked in {@link #checkCopyDataSize(int)}.</p>
    *
    * <p>The length field counts its own four bytes; see
    * {@link #readMessageLength(String, int)}.</p>
@@ -1362,6 +1392,19 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
+   * Sets the limit on a single CopyData message, parsed the same way as
+   * {@code maxResultBuffer} so that {@code 64M} and {@code 5p} mean the same thing in both.
+   *
+   * @param value size expressed in bytes, with an optional unit or heap-percent suffix;
+   *              {@code null} or empty leaves the property unset, so the built-in
+   *              {@link #DEFAULT_MAX_COPY_DATA_SIZE} applies
+   * @throws PSQLException if the value cannot be parsed, or parses to zero or below
+   */
+  public void setMaxCopyDataSize(@Nullable String value) throws PSQLException {
+    maxCopyDataSize = PGPropertyMaxResultBufferParser.parseProperty("maxCopyDataSize", value);
+  }
+
+  /**
    * Sets the limit on a backend message whose body is server-generated text (ErrorResponse,
    * NoticeResponse, CommandComplete, ParameterStatus, NotificationResponse), parsed the same
    * way as {@code maxResultBuffer}.
@@ -1375,6 +1418,49 @@ public class PGStream implements Closeable, Flushable {
     // The parser rejects a non-positive value, so only -1, the unset value, reaches the
     // fallback.
     maxServerTextMessageSize = parsed == -1 ? DEFAULT_MAX_SERVER_TEXT_MESSAGE_SIZE : parsed;
+  }
+
+  /**
+   * Rejects a CopyData message longer than {@code maxCopyDataSize}, or longer than
+   * {@link #DEFAULT_MAX_COPY_DATA_SIZE} while that property is unset.
+   *
+   * <p>{@link ProtocolHardeningMode#DISABLE} switches off only the built-in limit, because a
+   * configured {@code maxCopyDataSize} is the user's own number. This also bounds the logical
+   * and physical replication streams, which the backend sends as CopyData.</p>
+   *
+   * @param msgLen the declared message length, as returned by
+   *               {@link #readMessageLength(String, int)}
+   * @throws PSQLException if the message exceeds the limit that applies; the stream is marked
+   *                       broken and its socket closed before the exception is thrown
+   */
+  public void checkCopyDataSize(int msgLen) throws SQLException {
+    if (maxCopyDataSize > 0) {
+      if (msgLen > maxCopyDataSize) {
+        // The reader could skip this message and stay on a message boundary, as it does for a
+        // row over maxResultBuffer. A skipped CopyData, though, is a COPY row lost with no
+        // error, because a COPY has no handleCompletion step to fail the operation afterwards.
+        // So the COPY fails here, and a failed COPY leaves nothing to keep the connection for.
+        throw markBroken(new PSQLException(GT.tr(
+            "CopyData message has length {0}, which exceeds the maxCopyDataSize limit of {1} bytes.",
+            String.valueOf(msgLen), String.valueOf(maxCopyDataSize)),
+            PSQLState.COMMUNICATION_ERROR));
+      }
+      return;
+    }
+    if (msgLen <= DEFAULT_MAX_COPY_DATA_SIZE) {
+      return;
+    }
+    // Where this check fails, it throws a PSQLException rather than an IOException, because
+    // readFromCopy wraps an IOException in "Database connection failed when reading from copy",
+    // which leaves the limit message only in the cause.
+    if (protocolHardeningMode == ProtocolHardeningMode.DISABLE) {
+      return;
+    }
+    throw markBroken(new PSQLException(GT.tr(
+        "Protocol error. CopyData message has length {0}, which exceeds the built-in limit of {1} bytes. Raise the {2} connection property if the backend legitimately sends more, or set -D{3}=disable to skip these limits altogether.",
+        String.valueOf(msgLen), String.valueOf(DEFAULT_MAX_COPY_DATA_SIZE), "maxCopyDataSize",
+        ProtocolHardeningMode.SYSTEM_PROPERTY),
+        PSQLState.COMMUNICATION_ERROR));
   }
 
   /**

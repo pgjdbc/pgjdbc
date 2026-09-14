@@ -1576,11 +1576,18 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
             LOGGER.log(Level.FINEST, " <=BE CopyData");
 
-            len = pgStream.receiveInteger4() - 4;
-
-            assert len > 0 : "Copy Data length must be greater than 4";
+            // CopyData carries user rows, so the protocol fixes no maximum, and
+            // pgStream.receive() below sizes its array from this length (issue #4015).
+            // maxCopyDataSize limits it. While that property is unset, a built-in 64 MB limit
+            // applies, which -Dpgjdbc.protocolHardeningMode=disable switches off.
+            // maxResultBuffer does not apply, because the COPY stream is not a result set.
+            // The protocol allows a CopyData with an empty body, so the length can be 4.
+            int copyDataLen = pgStream.readMessageLength("CopyData", 4);
+            pgStream.checkCopyDataSize(copyDataLen);
+            len = copyDataLen - 4;
 
             byte[] buf = pgStream.receive(len);
+            pgStream.endMessage();
             if (op == null) {
               error = new PSQLException(GT.tr("Got CopyData without an active copy operation"),
                   PSQLState.OBJECT_NOT_IN_STATE);

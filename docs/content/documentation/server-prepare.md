@@ -671,6 +671,12 @@ to stream changes to an external system.
 
 Since the JDBC API does not include replication `PGConnection` implements the PostgreSQL® API
 
+The backend delivers replication data as `CopyData` messages, so the `maxCopyDataSize`
+[connection parameter](/documentation/use/#connection-parameters) limits the size of a single message on a replication
+stream. While the property is unset, a built-in limit of 64 MB applies. A `CopyData` message with no data on a replication
+stream fails the read with `Protocol error. The replication stream received an empty CopyData message, which carries no message type.`
+and SQLState `08P01`.
+
 ## Configure database
 
 Your database should be configured to enable logical or physical replication
@@ -1036,6 +1042,10 @@ The following types of arrays support binary representation in requests and can 
 
 ## CopyManager
 The driver provides an extension for accessing `COPY`. Copy is an extension that PostreSQL provides. see [Copy](https://www.postgresql.org/docs/current/sql-copy.html)
+
+`COPY ... TO STDOUT` output arrives as `CopyData` messages, so the `maxCopyDataSize`
+[connection parameter](/documentation/use/#connection-parameters) limits how large a single message may be. While the
+property is unset, a built-in limit of 64 MB applies. `maxResultBuffer` does not count `COPY` data.
 
 #### Example 9.15 Copying Data in
 ```java

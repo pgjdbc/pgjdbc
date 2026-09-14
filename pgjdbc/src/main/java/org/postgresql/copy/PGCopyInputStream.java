@@ -53,7 +53,9 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
   }
 
   private byte @Nullable [] fillBuffer() throws IOException {
-    if (at >= len) {
+    // A CopyData message may carry no bytes, so keep reading until a buffer has data to return
+    // or the copy ends.
+    while (at >= len) {
       try {
         buf = getOp().readFromCopy();
       } catch (SQLException sqle) {

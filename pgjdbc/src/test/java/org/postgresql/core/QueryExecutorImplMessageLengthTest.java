@@ -19,9 +19,14 @@ import static org.postgresql.core.PGStreamTestSupport.assertBroken;
 import static org.postgresql.core.PGStreamTestSupport.openStream;
 
 import org.postgresql.PGNotification;
+import org.postgresql.copy.CopyDual;
 import org.postgresql.copy.CopyOperation;
 import org.postgresql.copy.CopyOut;
+import org.postgresql.copy.PGCopyInputStream;
 import org.postgresql.core.v3.QueryExecutorImpl;
+import org.postgresql.core.v3.replication.V3PGReplicationStream;
+import org.postgresql.replication.LogSequenceNumber;
+import org.postgresql.replication.ReplicationType;
 import org.postgresql.test.util.FakeSocket;
 import org.postgresql.test.util.Wire;
 import org.postgresql.util.GT;
@@ -29,6 +34,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -37,6 +43,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
@@ -58,11 +65,17 @@ import java.util.stream.Stream;
  * body must be consumed exactly. ErrorResponse, NoticeResponse, CommandComplete, ParameterStatus,
  * and NotificationResponse are limited by {@code maxServerTextMessageSize}, which
  * {@link ProtocolHardeningMode#DISABLE} switches off; the 8 MiB RowDescription limit holds in every
- * mode. Every other check holds in both modes, so each rejection runs under both.</p>
+ * mode. A CopyData read during a copy is limited by {@code maxCopyDataSize}, or by 64 MB
+ * (64000000 bytes) while that property is unset, and {@link ProtocolHardeningMode#DISABLE} switches
+ * off only the 64 MB limit. Every other check holds in both modes, so each rejection runs under
+ * both.</p>
  *
  * <p>The executor reads from bytes built here through a fake socket, so no server is involved. A
  * rejection reaches the caller as SQLState 08006 with the reader's {@link IOException} as the
- * cause, except during startup, where the constructor throws the reader's exception itself.</p>
+ * cause, with three exceptions: during startup the constructor throws the reader's exception
+ * itself, a CopyData over its limit reaches the caller as a {@link PSQLException} with SQLState
+ * 08S01 whose own message names the limit, and an empty CopyData on a replication stream reaches
+ * the caller as a {@link PSQLException} with SQLState 08P01 and leaves the connection open.</p>
  */
 class QueryExecutorImplMessageLengthTest {
   private static final String MAX = String.valueOf(PGStream.MAX_MESSAGE_SIZE);
@@ -863,6 +876,228 @@ class QueryExecutorImplMessageLengthTest {
     assertThrowsExactly(PSQLException.class, copyOut::readFromCopy);
 
     assertFalse(copyOut.isActive(), "isActive() after the failed read");
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // CopyData during a copy: maxCopyDataSize
+
+  private static final String COPY_DATA_BUILT_IN_LIMIT =
+      "Protocol error. CopyData message has length {0}, which exceeds the built-in limit of {1} bytes. Raise the {2} connection property if the backend legitimately sends more, or set -D{3}=disable to skip these limits altogether.";
+  private static final String COPY_DATA_CONFIGURED_LIMIT =
+      "CopyData message has length {0}, which exceeds the maxCopyDataSize limit of {1} bytes.";
+
+  /** A copy response of {@code kind} with no fields. */
+  private static byte[] copyResponse(CopyResponse kind) {
+    return message(kind.type, new Wire().int1(0).int2(0).toBytes());
+  }
+
+  /**
+   * A copy-out that sends 2 bytes, an empty CopyData, 3 bytes, and CopyDone. The protocol allows a
+   * CopyData with an empty body.
+   */
+  private static Session copyOutWithAnEmptyCopyDataBetweenTwoRows() {
+    return new Session(readyForQuery(), copyOutResponse(), message('d', letters(2)),
+        header('d', 4), message('d', letters(3)), header('c', 4), message('C', cstring("COPY 3")),
+        readyForQuery());
+  }
+
+  /**
+   * The CopyData after the empty one is read as its own message, so the empty one was closed at
+   * its declared length of 4.
+   */
+  @Test
+  void anEmptyCopyDataIsReturnedAsAnEmptyArray() throws Exception {
+    Session s = copyOutWithAnEmptyCopyDataBetweenTwoRows();
+    QueryExecutorImpl executor = s.connect();
+    CopyOut copyOut = (CopyOut) executor.startCopy(COPY_STATEMENT, true);
+
+    byte[] first = copyOut.readFromCopy();
+    byte[] empty = copyOut.readFromCopy();
+    byte[] second = copyOut.readFromCopy();
+    byte[] end = copyOut.readFromCopy();
+
+    assertAll(
+        () -> assertArrayEquals(letters(2), first, "first readFromCopy()"),
+        () -> assertArrayEquals(new byte[0], empty, "second readFromCopy(), the empty CopyData"),
+        () -> assertArrayEquals(letters(3), second, "third readFromCopy()"),
+        () -> assertNull(end, "fourth readFromCopy(), after CopyDone"),
+        () -> assertFalse(executor.isClosed(), "executor isClosed()"));
+  }
+
+  @Test
+  void aCopyInputStreamReadsSingleBytesAcrossAnEmptyCopyData() throws Exception {
+    Session s = copyOutWithAnEmptyCopyDataBetweenTwoRows();
+    QueryExecutorImpl executor = s.connect();
+    PGCopyInputStream in =
+        new PGCopyInputStream((CopyOut) executor.startCopy(COPY_STATEMENT, true));
+
+    int[] read = new int[6];
+    for (int i = 0; i < read.length; i++) {
+      read[i] = in.read();
+    }
+
+    assertArrayEquals(new int[]{'a', 'b', 'a', 'b', 'c', -1}, read, "six read() calls");
+  }
+
+  @Test
+  void aCopyInputStreamReadsAnArrayAcrossAnEmptyCopyData() throws Exception {
+    Session s = copyOutWithAnEmptyCopyDataBetweenTwoRows();
+    QueryExecutorImpl executor = s.connect();
+    PGCopyInputStream in =
+        new PGCopyInputStream((CopyOut) executor.startCopy(COPY_STATEMENT, true));
+    byte[] buf = new byte[10];
+
+    int count = in.read(buf, 0, buf.length);
+
+    assertAll(
+        () -> assertEquals(5, count, "read(buf, 0, 10)"),
+        () -> assertArrayEquals(new byte[]{'a', 'b', 'a', 'b', 'c'}, Arrays.copyOf(buf, 5),
+            "bytes read"),
+        () -> assertEquals(-1, in.read(buf, 0, buf.length), "read(buf, 0, 10) after CopyDone"));
+  }
+
+  @Test
+  void aCopyInputStreamReadFromCopySkipsAnEmptyCopyData() throws Exception {
+    Session s = copyOutWithAnEmptyCopyDataBetweenTwoRows();
+    QueryExecutorImpl executor = s.connect();
+    PGCopyInputStream in =
+        new PGCopyInputStream((CopyOut) executor.startCopy(COPY_STATEMENT, true));
+
+    byte[] first = in.readFromCopy();
+    byte[] second = in.readFromCopy();
+    byte[] end = in.readFromCopy();
+
+    assertAll(
+        () -> assertArrayEquals(letters(2), first, "first readFromCopy()"),
+        () -> assertArrayEquals(letters(3), second, "second readFromCopy(), past the empty CopyData"),
+        () -> assertNull(end, "third readFromCopy(), after CopyDone"));
+  }
+
+  /** An XLogData replication message: type {@code w}, three 8-byte fields, then the payload. */
+  private static byte[] xLogData(long startLsn, byte[] payload) {
+    return ByteBuffer.allocate(1 + 8 + 8 + 8 + payload.length)
+        .put((byte) 'w').putLong(startLsn).putLong(startLsn).putLong(0).put(payload)
+        .array();
+  }
+
+  private static byte[] remaining(@Nullable ByteBuffer buffer) {
+    byte[] bytes = new byte[castNonNull(buffer).remaining()];
+    buffer.get(bytes);
+    return bytes;
+  }
+
+  /**
+   * Every replication message starts with a type code, so an empty CopyData between two XLogData
+   * messages is a protocol violation, reported like an unknown message type: the connection stays
+   * open, on the boundary of the next message, which the next read returns.
+   */
+  @Test
+  void anEmptyCopyDataOnAReplicationStreamIsAProtocolViolation() throws Exception {
+    Session s = new Session(readyForQuery(), copyResponse(CopyResponse.COPY_BOTH),
+        message('d', xLogData(16, letters(2))), header('d', 4),
+        message('d', xLogData(32, letters(3))));
+    QueryExecutorImpl executor = s.connect();
+    CopyDual copyDual = (CopyDual) executor.startCopy(COPY_STATEMENT, true);
+    V3PGReplicationStream stream = new V3PGReplicationStream(copyDual,
+        LogSequenceNumber.valueOf(0), 0, false, ReplicationType.LOGICAL);
+
+    byte[] first = remaining(stream.read());
+    PSQLException e = assertThrowsExactly(PSQLException.class, stream::read);
+    boolean closedAfterRejection = executor.isClosed();
+    byte[] third = remaining(stream.read());
+
+    assertAll(
+        () -> assertArrayEquals(letters(2), first, "first read()"),
+        () -> assertEquals(PSQLState.PROTOCOL_VIOLATION.getState(), e.getSQLState(), "SQLState"),
+        () -> assertEquals(
+            GT.tr("Protocol error. The replication stream received an empty CopyData message, which carries no message type."),
+            e.getMessage()),
+        () -> assertFalse(closedAfterRejection, "executor isClosed() after the rejection"),
+        () -> assertArrayEquals(letters(3), third, "read() after the rejection"));
+  }
+
+  /** A CopyData length field of 3 cannot count its own four bytes. */
+  @ParameterizedTest
+  @EnumSource(ProtocolHardeningMode.class)
+  void aCopyDataLengthBelowFourDuringACopyOutBreaksTheConnection(ProtocolHardeningMode mode)
+      throws Exception {
+    Session s = new Session(readyForQuery(), copyOutResponse(), header('d', 3), new byte[8]);
+    s.stream.setProtocolHardeningMode(mode);
+    QueryExecutorImpl executor = s.connect();
+    CopyOut copyOut = (CopyOut) executor.startCopy(COPY_STATEMENT, true);
+
+    SQLException e = assertThrows(SQLException.class, copyOut::readFromCopy);
+
+    assertConnectionBroken(s, executor, e, GT.tr(INVALID_LENGTH, "CopyData", "3", "4", MAX));
+  }
+
+  /**
+   * The backend sends only the declared length, so a reader that read the 64000001 bytes before
+   * the check would fail on end of stream with a different exception. A CopyBothResponse starts the
+   * copy a replication stream uses.
+   */
+  @ParameterizedTest
+  @EnumSource(value = CopyResponse.class, names = {"COPY_OUT", "COPY_BOTH"})
+  void aCopyDataOverTheBuiltInLimitFailsTheCopyAndBreaksTheConnection(CopyResponse kind)
+      throws Exception {
+    Session s = new Session(readyForQuery(), copyResponse(kind), header('d', 64000001));
+    s.stream.setProtocolHardeningMode(ProtocolHardeningMode.FAIL);
+    QueryExecutorImpl executor = s.connect();
+    CopyOut copyOut = (CopyOut) executor.startCopy(COPY_STATEMENT, true);
+
+    PSQLException e = assertThrowsExactly(PSQLException.class, copyOut::readFromCopy);
+
+    assertAll(
+        () -> assertEquals(PSQLState.COMMUNICATION_ERROR.getState(), e.getSQLState(), "SQLState"),
+        () -> assertEquals(GT.tr(COPY_DATA_BUILT_IN_LIMIT, "64000001", "64000000",
+            "maxCopyDataSize", "pgjdbc.protocolHardeningMode"), e.getMessage()),
+        () -> assertTrue(executor.isClosed(), "executor isClosed()"),
+        () -> assertBroken(s.stream, s.socket));
+  }
+
+  static Stream<Arguments> copyOutAndCopyBothInEveryMode() {
+    return inEveryMode(Stream.of(CopyResponse.COPY_OUT, CopyResponse.COPY_BOTH)
+        .map(kind -> argumentSet(kind.protocolName, kind)));
+  }
+
+  /** The message of length 11 carries 7 bytes of data. */
+  @ParameterizedTest
+  @MethodSource("copyOutAndCopyBothInEveryMode")
+  void aCopyDataOverAConfiguredLimitFailsTheCopyInEveryMode(CopyResponse kind,
+      ProtocolHardeningMode mode) throws Exception {
+    Session s = new Session(readyForQuery(), copyResponse(kind), message('d', letters(7)));
+    s.stream.setProtocolHardeningMode(mode);
+    s.stream.setMaxCopyDataSize("10");
+    QueryExecutorImpl executor = s.connect();
+    CopyOut copyOut = (CopyOut) executor.startCopy(COPY_STATEMENT, true);
+
+    PSQLException e = assertThrowsExactly(PSQLException.class, copyOut::readFromCopy);
+
+    assertAll(
+        () -> assertEquals(PSQLState.COMMUNICATION_ERROR.getState(), e.getSQLState(), "SQLState"),
+        () -> assertEquals(GT.tr(COPY_DATA_CONFIGURED_LIMIT, "11", "10"), e.getMessage()),
+        () -> assertTrue(executor.isClosed(), "executor isClosed()"),
+        () -> assertBroken(s.stream, s.socket));
+  }
+
+  @Test
+  void aCopyDataAtAConfiguredLimitIsReturned() throws Exception {
+    Session s = new Session(readyForQuery(), copyOutResponse(), message('d', letters(6)));
+    s.stream.setMaxCopyDataSize("10");
+    QueryExecutorImpl executor = s.connect();
+    CopyOut copyOut = (CopyOut) executor.startCopy(COPY_STATEMENT, true);
+
+    assertArrayEquals(letters(6), copyOut.readFromCopy(), "readFromCopy()");
+  }
+
+  @Test
+  void maxResultBufferDoesNotLimitCopyData() throws Exception {
+    Session s = new Session(readyForQuery(), copyOutResponse(), message('d', letters(100)));
+    s.stream.setMaxResultBuffer("10");
+    QueryExecutorImpl executor = s.connect();
+    CopyOut copyOut = (CopyOut) executor.startCopy(COPY_STATEMENT, true);
+
+    assertArrayEquals(letters(100), copyOut.readFromCopy(), "readFromCopy()");
   }
 
   // ---------------------------------------------------------------------------------------------

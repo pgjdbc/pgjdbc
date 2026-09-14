@@ -220,6 +220,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
    */
   private static void applyReadLimits(PGStream stream, Properties info) throws PSQLException {
     stream.setMaxResultBuffer(PGProperty.MAX_RESULT_BUFFER.getOrDefault(info));
+    stream.setMaxCopyDataSize(PGProperty.MAX_COPY_DATA_SIZE.getOrDefault(info));
     stream.setMaxServerTextMessageSize(
         PGProperty.MAX_SERVER_TEXT_MESSAGE_SIZE.getOrDefault(info));
   }

@@ -27,8 +27,12 @@ import java.util.Properties;
 
 /**
  * The {@code maxServerTextMessageSize} connection property reaches the {@link PGStream} of an
- * open connection, which applies 64 MB (64000000 bytes) while the property is unset. A size
- * property that is not a positive size fails the connection attempt with SQLState 22023.
+ * open connection, and a {@code maxServerTextMessageSize}, {@code maxResultBuffer}, or
+ * {@code maxCopyDataSize} value that is not a positive size fails the connection attempt with
+ * SQLState 22023.
+ *
+ * <p>While {@code maxServerTextMessageSize} is unset, the stream applies 64 MB (64000000
+ * bytes).</p>
  *
  * <p>Needs a running server.</p>
  */
@@ -75,7 +79,7 @@ class MaxServerTextMessageSizeConnectionTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"maxServerTextMessageSize", "maxResultBuffer"})
+  @ValueSource(strings = {"maxServerTextMessageSize", "maxResultBuffer", "maxCopyDataSize"})
   void aSizeThatIsNotPositiveFailsTheConnection(String propertyName) {
     Properties props = new Properties();
     props.setProperty(propertyName, "-1");
@@ -90,7 +94,7 @@ class MaxServerTextMessageSizeConnectionTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"maxServerTextMessageSize", "maxResultBuffer"})
+  @ValueSource(strings = {"maxServerTextMessageSize", "maxResultBuffer", "maxCopyDataSize"})
   void aValueOutsideTheSizeSyntaxFailsTheConnection(String propertyName) {
     Properties props = new Properties();
     props.setProperty(propertyName, "abcM");

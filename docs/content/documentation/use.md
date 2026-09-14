@@ -505,6 +505,13 @@ Specifies size of result buffer in bytes, which can't be exceeded during reading
   * a percentage of max heap memory: `10p`, `15pct`, `20percent`.
 Either style is limited to 90% of max heap memory, and a larger value is lowered to that. The size must be positive: a value of zero or below is rejected when the connection opens, with `The maxResultBuffer connection property must be a positive size, but its value is V. Give a byte count such as 150M or a share of the heap such as 10p, or leave the property unset.` A value that is not in either style, such as `10%` or `abcM`, is rejected when the connection opens with `The maxResultBuffer connection property has the value V, which is not a valid size. Give a byte count such as 150M or a share of the heap with the p suffix, such as 10p.` Both errors carry SQLState `22023`.
 
+* **`maxCopyDataSize (`*String*`)`** *Default `null`, which applies a built-in limit of 64 MB (64000000 bytes) unless `pgjdbc.protocolHardeningMode=disable` is set*\
+Largest single `CopyData` message the driver accepts. `CopyData` carries `COPY ... TO STDOUT` output and both logical and physical replication data, so this property bounds `PGReplicationStream` as well: a value below the largest message a replication slot sends fails the stream.\
+Uses the same value syntax as `maxResultBuffer` (`100`, `150M`, `10p`). It is limited to 90% of max heap memory the same way, and a value of zero or below is rejected when the connection opens. The suffixes are decimal, so `64M` is 64000000 bytes, exactly the built-in limit.\
+The driver fails the `COPY` on a message over the limit, with `CopyData message has length N, which exceeds the maxCopyDataSize limit of M bytes.`, and closes the connection. While the property is unset, the error names the built-in limit instead, and adds the remedy: `Protocol error. CopyData message has length N, which exceeds the built-in limit of M bytes. Raise the maxCopyDataSize connection property if the backend legitimately sends more, or set -Dpgjdbc.protocolHardeningMode=disable to skip these limits altogether.`\
+Raise the property when a `COPY` or a replication slot legitimately sends larger messages. A value you set applies in either [protocol hardening mode](#protocol-message-limits), since you chose the number; `pgjdbc.protocolHardeningMode=disable` skips only the built-in limit.
+  Since: 42.7.14
+
 * **`maxServerTextMessageSize (`*String*`)`** *Default `null`, which applies a built-in limit of 64 MB (64000000 bytes)*\
 Largest `ErrorResponse`, `NoticeResponse`, `CommandComplete`, `ParameterStatus` or `NotificationResponse` the driver accepts after the server has authenticated. Neither the protocol nor the server fixes a maximum for these, so a `RAISE NOTICE` payload or an error `DETAIL` arrives at whatever size the server produced.\
 Uses the same value syntax as `maxResultBuffer`. It is limited to 90% of max heap memory the same way, and a value of zero or below is rejected when the connection opens.\
@@ -596,12 +603,13 @@ will be made to connect to all the hosts in the URL, in order.
 
 ## Protocol message limits
 
-A message over the limit that applies fails with `Protocol error. <message type> message has length N, which exceeds the pgjdbc limit of M bytes.` Where `disable` would skip the limit, the error continues with the remedy: `Raise the <property> connection property if the backend legitimately sends more, or set -Dpgjdbc.protocolHardeningMode=disable to skip these limits altogether.` The driver then closes the connection and marks it broken, so `Connection.isClosed()` returns `true` and a pool that tests a connection on borrow discards it rather than reusing a stream whose position is unknown.
+The driver checks the declared length of a backend message before it allocates anything to hold the message. A message over the limit that applies fails with `Protocol error. <message type> message has length N, which exceeds the pgjdbc limit of M bytes.` Where `disable` would skip the limit, the error continues with the remedy: `Raise the <property> connection property if the backend legitimately sends more, or set -Dpgjdbc.protocolHardeningMode=disable to skip these limits altogether.` The `CopyData` errors differ and are quoted in the `maxCopyDataSize` entry under [Connection Parameters](#connection-parameters). The driver then closes the connection and marks it broken, so `Connection.isClosed()` returns `true` and a pool that tests a connection on borrow discards it rather than reusing a stream whose position is unknown.
 
 A limit whose right value depends on the workload is a connection property, and raising it leaves the other limits in force. The driver fixes every other limit. `pgjdbc.protocolHardeningMode=disable` skips only the limits the last column marks.
 
 | Message | Limit | Property that raises it | `disable` skips it |
 | --- | --- | --- | --- |
+| `CopyData`, which carries `COPY ... TO STDOUT` output and replication data | 64 MB (64000000 bytes) | `maxCopyDataSize` | only while the property is unset |
 | `ErrorResponse`, `NoticeResponse`, `CommandComplete`, `ParameterStatus`, `NotificationResponse` after the server has authenticated | 64 MB (64000000 bytes) | `maxServerTextMessageSize` | yes |
 | `RowDescription` | 8 MiB (8388608 bytes) | none | no |
 | `AuthenticationRequest`, `AuthenticationGSSContinue` | 8008 bytes | none | no |
