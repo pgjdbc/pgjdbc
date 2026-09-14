@@ -270,6 +270,34 @@ class ParserTest {
     assertFalse(parseInfo.isFunction(), () -> "isFunction() should be false for: " + sql);
   }
 
+  /**
+   * The separator between an escape keyword and its value may be any whitespace, not only a plain
+   * space. A tab or a newline used to leave the escape unprocessed, and the server then answered
+   * with a syntax error on the brace.
+   */
+  @Test
+  void escapeKeywordAcceptsAnyWhitespace() throws Exception {
+    for (String space : new String[]{" ", "\t", "\n", "\r", "\f", "  \t\n "}) {
+      assertEquals("DATE '1999-01-09'",
+          Parser.replaceProcessing("{d" + space + "'1999-01-09'}", true, false), "{d<ws>...}");
+      assertEquals("TIMESTAMP '1999-01-09 20:11:11'",
+          Parser.replaceProcessing("{ts" + space + "'1999-01-09 20:11:11'}", true, false));
+      assertEquals("ESCAPE '_'",
+          Parser.replaceProcessing("{escape" + space + "'_'}", true, false));
+      assertEquals("cos(1)", Parser.replaceProcessing("{fn" + space + "cos(1)}", true, false));
+    }
+  }
+
+  /**
+   * A brace that is not an escape is still left alone, whatever whitespace follows.
+   */
+  @Test
+  void nonEscapeBraceIsUntouchedWhateverTheWhitespace() throws Exception {
+    assertEquals("{obj\t: 1}", Parser.replaceProcessing("{obj\t: 1}", true, false));
+    assertEquals("{d\t}", Parser.replaceProcessing("{d\t}", true, false));
+    assertEquals("{d\t", Parser.replaceProcessing("{d\t", true, false));
+  }
+
   @Test
   void unterminatedEscape() throws Exception {
     assertEquals("{oj ", Parser.replaceProcessing("{oj ", true, false));
