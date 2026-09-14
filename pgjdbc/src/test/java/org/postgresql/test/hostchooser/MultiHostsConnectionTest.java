@@ -34,6 +34,7 @@ import org.postgresql.util.PSQLState;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -45,6 +46,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+@Isolated("Clears GlobalHostStatusTracker and sets default_transaction_read_only on the test database")
 public class MultiHostsConnectionTest {
 
   private static final String user = TestUtil.getUser();
@@ -53,6 +55,9 @@ public class MultiHostsConnectionTest {
   private static final String secondary1 = getSecondaryServer1() + ":" + getSecondaryPort1();
   private static final String secondary2 = getSecondaryServer2() + ":" + getSecondaryPort2();
   private static final String fake1 = "127.127.217.217:1";
+  // A connection attempt another test abandoned can still record its host after that test ends
+  private static final Set<HostSpec> allHostSpecs = new HashSet<>(asList(
+      hostSpec(fake1), hostSpec(primary1), hostSpec(secondary1), hostSpec(secondary2)));
 
   private String primaryIp;
   private String secondaryIP;
@@ -358,7 +363,8 @@ public class MultiHostsConnectionTest {
       getConnection(preferPrimary, true, true, fake1, secondary1, secondary2, primary1);
       connectedHosts.add(getRemoteHostSpec());
       tryConnectedHosts.addAll(hostStatusMap.keySet());
-      if (tryConnectedHosts.size() == 4) {
+      tryConnectedHosts.retainAll(allHostSpecs);
+      if (tryConnectedHosts.equals(allHostSpecs)) {
         break;
       }
     }
@@ -367,7 +373,7 @@ public class MultiHostsConnectionTest {
     assertEquals(new HashSet<String>(asList(primaryIp)),
         connectedHosts,
         "Connected to hosts other than primary");
-    assertEquals(4, tryConnectedHosts.size(), "Never tried to connect to fake node");
+    assertEquals(allHostSpecs, tryConnectedHosts, "Hosts the driver tried to connect to");
 
     getConnection(preferPrimary, false, true, fake1, secondary1, primary1);
     assertRemote(primaryIp);
@@ -401,14 +407,15 @@ public class MultiHostsConnectionTest {
       getConnection(preferSecondary, true, true, fake1, primary1, secondary1, secondary2);
       connectedHosts.add(getRemoteHostSpec());
       tryConnectedHosts.addAll(hostStatusMap.keySet());
-      if (tryConnectedHosts.size() == 4) {
+      tryConnectedHosts.retainAll(allHostSpecs);
+      if (tryConnectedHosts.equals(allHostSpecs)) {
         break;
       }
     }
     assertEquals(new HashSet<String>(asList(secondaryIP, secondaryIP2)),
         connectedHosts,
         "Never connected to all secondary hosts");
-    assertEquals(4, tryConnectedHosts.size(), "Never tried to connect to fake node");
+    assertEquals(allHostSpecs, tryConnectedHosts, "Hosts the driver tried to connect to");
 
     getConnection(preferSecondary, false, true, fake1, primary1, secondary1);
     assertRemote(secondaryIP);
@@ -440,14 +447,15 @@ public class MultiHostsConnectionTest {
       getConnection(secondary, true, true, fake1, primary1, secondary1, secondary2);
       connectedHosts.add(getRemoteHostSpec());
       tryConnectedHosts.addAll(hostStatusMap.keySet());
-      if (tryConnectedHosts.size() == 4) {
+      tryConnectedHosts.retainAll(allHostSpecs);
+      if (tryConnectedHosts.equals(allHostSpecs)) {
         break;
       }
     }
     assertEquals(new HashSet<String>(asList(secondaryIP, secondaryIP2)),
         connectedHosts,
         "Did not attempt to connect to all secondary hosts");
-    assertEquals(4, tryConnectedHosts.size(), "Did not attempt to connect to primary and fake node");
+    assertEquals(allHostSpecs, tryConnectedHosts, "Hosts the driver tried to connect to");
 
     getConnection(preferSecondary, false, true, fake1, primary1, secondary1);
     assertRemote(secondaryIP);
