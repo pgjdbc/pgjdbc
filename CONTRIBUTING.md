@@ -71,6 +71,20 @@ Here are a few important things you should know about contributing code:
   3. Pull request needs to be approved and merged by maintainers into the master branch.
   4. Pull requests needs to fully pass CI tests.
 
+### Asking for a review
+
+GitHub's pull request status helps maintainers see which changes are waiting for them. New commits and comments don't
+change that status, so a few clicks can help your pull request get noticed sooner:
+
+  - If your change is an early draft, you can open the pull request as a draft, and click **Ready for review** at the
+    bottom when you think it's ready.
+  - After you address requested changes, you can click the **Re-request review** icon next to the reviewer's name in
+    the **Reviewers** list. A comment is welcome too; the button sends the reviewer a new review request.
+
+A maintainer may convert your pull request to a draft if it can't be reviewed yet, for example when it has no
+description. This doesn't mean the pull request is declined: the maintainer leaves a comment with what is missing, and
+you can click **Ready for review** once it's addressed.
+
 ### Build requirements
 
 In order to build the source code for PgJDBC you will need the following tools:
