@@ -287,7 +287,7 @@ Project code style is located at `pgjdbc/src/main/checkstyle/pgjdbc-intellij-jav
 In order to import it, copy the file to `$IDEA_CONFIG_LOCATION/codestyles` folder, restart IDEA,
 then choose "GoogleStyle (PgJDBC)" style for the Preferences -> Editor -> CodeStyle setting.
 
-For instance, for macOS it would be `~/Library/Preferences/IntelliJIdeaXX/codestyles`.
+For instance, for macOS it would be `~/Library/Application Support/Jetbrains/IntelliJIdeaXX/codestyles`.
 More details here: https://intellij-support.jetbrains.com/hc/en-us/articles/206827437-Directories-used-by-the-IDE-to-store-settings-caches-plugins-and-logs
 
 ### Eclipse
