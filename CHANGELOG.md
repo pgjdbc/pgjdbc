@@ -20,6 +20,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * fix: the driver checks that each backend message was consumed exactly before reading the next message type, so a reader that stops short of its declared length is refused rather than misreading what follows [Issue #4015](https://github.com/pgjdbc/pgjdbc/issues/4015)
 * fix: the authentication loop, the GSS encryption handshake and the GSS authentication handshake each stop after 64 round trips. A zero-length GSS token is a valid continuation, so a server could previously keep a client exchanging tokens forever before any credentials were exchanged [Issue #4015](https://github.com/pgjdbc/pgjdbc/issues/4015)
 * fix: `ErrorResponse` before authentication is limited to 30000 bytes rather than 32 MiB, matching libpq's limit for messages outside `VALID_LONG_MESSAGE_TYPE`, and a C string inside a declared message is no longer scanned past the end of that message. Both were allocations an unauthenticated peer could cause [Issue #4015](https://github.com/pgjdbc/pgjdbc/issues/4015)
+* fix: an `ErrorResponse` or `NoticeResponse` longer than 32 MiB is truncated to that size rather than refused. The body past the limit is drained and the shortened message is delivered, so the connection stays usable [Issue #4015](https://github.com/pgjdbc/pgjdbc/issues/4015)
+* fix: the read buffer returns to its initial size once the message that grew it is drained, so a connection no longer retains 32 MiB after one large error [Issue #4015](https://github.com/pgjdbc/pgjdbc/issues/4015)
+* fix: exceeding `maxResultBuffer` closes the connection. The row is not read past the limit, so the connection cannot continue, and it is now dropped where the limit is exceeded rather than refused as a protocol violation at the next message. The error reported is the limit alone, with SQLState `08S01` as before [Issue #4015](https://github.com/pgjdbc/pgjdbc/issues/4015)
 
 ## [42.7.13] (2026-07-06)
 
