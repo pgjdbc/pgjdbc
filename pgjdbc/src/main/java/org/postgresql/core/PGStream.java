@@ -1023,18 +1023,25 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * Whether a length or a count off the wire has been refused on this stream.
+   * Whether this stream has been given up on, so that nothing further may be read from it or
+   * written to it. The socket has already been dropped by {@link #setBroken()} at this point.
    *
-   * @return true once the stream is known to be out of step with the protocol
+   * <p>The reasons fall into two groups. Either the peer broke the protocol, which covers a
+   * message length or an element count that cannot be reconciled with the message declaring it,
+   * an unrecognized message type, and a handshake that never finishes; or the driver stopped
+   * reading a message partway through and can no longer find the next message boundary, which is
+   * what exceeding {@code maxResultBuffer} does.</p>
+   *
+   * @return true once the stream can no longer be used
    */
   public boolean isBroken() {
     return broken;
   }
 
   /**
-   * Marks the stream out of sync with the protocol and drops the socket. Nothing after a
-   * refused length can be read, so {@link #isClosed()} reports the stream closed from here on
-   * and a pool that tests on borrow discards it.
+   * Gives up on the stream and drops the socket. Nothing further can be read, so
+   * {@link #isClosed()} reports the stream closed from here on and a pool that tests on borrow
+   * discards it. {@link #isBroken()} describes the conditions that lead here.
    *
    * <p>The socket is closed here rather than through {@link #close()}, which would flush
    * {@code pgOutput} to a peer that is already discarding it. {@code SO_LINGER 0} makes the close
