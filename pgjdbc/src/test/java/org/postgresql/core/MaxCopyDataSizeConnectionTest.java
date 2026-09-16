@@ -43,7 +43,7 @@ import java.util.Properties;
 class MaxCopyDataSizeConnectionTest {
 
   private static final String CONFIGURED_LIMIT =
-      "CopyData message has length {0}, which exceeds the maxCopyDataSize limit of {1} bytes.";
+      "Protocol error. CopyData message has length {0}, which exceeds the maxCopyDataSize limit of {1} bytes.";
 
   /** Sends one row of 1000 letters, which arrives as a CopyData message of length 1005. */
   private static final String COPY_ONE_ROW = "COPY (SELECT repeat('a', 1000)) TO STDOUT";

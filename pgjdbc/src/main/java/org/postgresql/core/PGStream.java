@@ -1676,7 +1676,7 @@ public class PGStream implements Closeable, Flushable {
         // error, because a COPY has no handleCompletion step to fail the operation afterwards.
         // So the COPY fails here, and a failed COPY leaves nothing to keep the connection for.
         throw markBroken(new PSQLException(GT.tr(
-            "CopyData message has length {0}, which exceeds the maxCopyDataSize limit of {1} bytes.",
+            "Protocol error. CopyData message has length {0}, which exceeds the maxCopyDataSize limit of {1} bytes.",
             String.valueOf(msgLen), String.valueOf(maxCopyDataSize)),
             PSQLState.COMMUNICATION_ERROR));
       }

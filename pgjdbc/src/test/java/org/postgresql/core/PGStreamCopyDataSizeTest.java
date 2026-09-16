@@ -42,7 +42,7 @@ class PGStreamCopyDataSizeTest {
   private static final String BUILT_IN_LIMIT =
       "Protocol error. CopyData message has length {0}, which exceeds the built-in limit of {1} bytes. Raise the {2} connection property if the backend legitimately sends more, or set -D{3}=disable to skip these limits altogether.";
   private static final String CONFIGURED_LIMIT =
-      "CopyData message has length {0}, which exceeds the maxCopyDataSize limit of {1} bytes.";
+      "Protocol error. CopyData message has length {0}, which exceeds the maxCopyDataSize limit of {1} bytes.";
 
   @Test
   void aCopyDataAtTheBuiltInLimitIsAccepted() throws SQLException {
