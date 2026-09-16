@@ -32,8 +32,16 @@ matrix.addAxis({
   ]
 });
 
+// The newest Java major that has reached general availability. Renovate bumps it when Adoptium
+// publishes the next one (see the custom manager in renovate.json), and jdk.java.net starts
+// serving early-access builds of the release after that on the same day.
+// renovate: datasource=java-version depName=java-jdk versioning=regex:^(?<major>\d+)
+const gaJava = '26';
+
+// The release that follows the newest generally available one. jdk.java.net serves early-access
+// builds for it, and drops them once it goes GA, so this has to move together with gaJava.
 // We can't yet use EA here, see https://github.com/oracle-actions/setup-java/issues/65
-const eaJava = '26';
+const eaJava = String(Number(gaJava) + 1);
 
 // Below versions will be used for testing only
 matrix.addAxis({
@@ -46,6 +54,7 @@ matrix.addAxis({
     '17',
     '21',
     '25',
+    gaJava,
     eaJava,
   ]
 });
