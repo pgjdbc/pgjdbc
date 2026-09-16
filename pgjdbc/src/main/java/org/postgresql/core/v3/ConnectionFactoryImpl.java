@@ -337,7 +337,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       sendStartupPacket(newStream, ProtocolVersion.fromMajorMinor(protocolMajor,protocolMinor), paramList);
 
       // Do authentication (until AuthenticationOk).
-      doAuthentication(newStream, hostSpec.getHost(), user, info);
+      doAuthentication(newStream, hostSpec.getHost(), user, info, paramList.size());
 
       return newStream;
     } catch (Exception e) {
@@ -830,7 +830,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
-  private static void doAuthentication(PGStream pgStream, String host, String user, Properties info) throws IOException, SQLException {
+  /**
+   * Runs the authentication exchange until the backend reports AuthenticationOk.
+   *
+   * <p>A NegotiateProtocolVersion settles the protocol version, which this method stores on
+   * {@code pgStream} through {@link PGStream#setProtocolVersion}.</p>
+   *
+   * @param startupParamCount number of parameters the startup packet carried, which bounds the
+   *     unrecognised options a NegotiateProtocolVersion may report
+   */
+  private static void doAuthentication(PGStream pgStream, String host, String user,
+      Properties info, int startupParamCount) throws IOException, SQLException {
     // Now get the response from the backend, either an error message
     // or an authentication request
 
@@ -865,13 +875,25 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // NegotiateProtocolVersion is 12 bytes before the options: 4 for the length field
             // itself, 4 for the protocol version and 4 for the option count. Each unrecognised
             // option follows as a C-string.
-            int negotiateMsgLen = pgStream.readMessageLength("NegotiateProtocolVersion", 12);
+            int negotiateMsgLen = pgStream.readPreAuthMessageLength(
+                "NegotiateProtocolVersion", 12, PGStream.MAX_NEGOTIATE_PROTOCOL_VERSION_SIZE);
             protocol = pgStream.receiveInteger4();
             int numOptionsNotRecognized = pgStream.receiveInteger4();
             if (numOptionsNotRecognized < 0) {
               throw pgStream.markBroken(new PSQLException(GT.tr(
                   "Protocol error. NegotiateProtocolVersion reports a negative option count of {0}.",
                   String.valueOf(numOptionsNotRecognized)),
+                  PSQLState.PROTOCOL_VIOLATION));
+            }
+            // The backend reports the startup-packet options it did not recognise, so it
+            // cannot report more of them than the driver sent. The check against the bytes left
+            // in the body is weaker: it admits one option per body byte, so about a million
+            // empty names fit under MAX_NEGOTIATE_PROTOCOL_VERSION_SIZE, and the driver calls
+            // receiveString once for each of them.
+            if (numOptionsNotRecognized > startupParamCount) {
+              throw pgStream.markBroken(new PSQLException(GT.tr(
+                  "Protocol error. NegotiateProtocolVersion reports {0} unrecognised options, but the startup packet carried only {1}.",
+                  String.valueOf(numOptionsNotRecognized), String.valueOf(startupParamCount)),
                   PSQLState.PROTOCOL_VIOLATION));
             }
             // Each unrecognised option is at least a NUL byte, so the count cannot exceed
@@ -885,12 +907,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             }
             if (numOptionsNotRecognized > 0) {
               // do not connect and throw an error
-              String errorMessage = "Protocol error, received invalid options: ";
+              List<String> names = new ArrayList<>(numOptionsNotRecognized);
               for (int i = 0; i < numOptionsNotRecognized; i++) {
-                errorMessage += (i > 0 ? "," : "") + pgStream.receiveString();
+                names.add(pgStream.receiveString());
               }
-              LOGGER.log(Level.FINEST, errorMessage);
-              throw pgStream.markBroken(new PSQLException(errorMessage, PSQLState.PROTOCOL_VIOLATION));
+              String failure = GT.tr("Protocol error, received invalid options: {0}",
+                  String.join(",", names));
+              LOGGER.log(Level.FINEST, failure);
+              throw pgStream.markBroken(new PSQLException(failure, PSQLState.PROTOCOL_VIOLATION));
             }
             pgStream.endMessage();
             int major = protocol >> 16 & 0xff;

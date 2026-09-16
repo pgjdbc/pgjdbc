@@ -42,10 +42,12 @@ import java.util.UUID;
  * length, within the limit that applies to it, and a violation fails the connection attempt and
  * closes the socket.
  *
- * <p>The limits are 8008 bytes for AuthenticationRequest, 30000 bytes for ErrorResponse, and 64
- * messages for the whole authentication exchange. A NegotiateProtocolVersion option count must fit
- * in the bytes left in its message. The limits are applied to the stream the connection continues
- * on after SSL and GSS negotiation, including a stream opened by reconnecting.
+ * <p>The limits are 8008 bytes for AuthenticationRequest, 30000 bytes for ErrorResponse, 1 MiB
+ * (1048576 bytes) for NegotiateProtocolVersion, and 64 messages for the whole authentication
+ * exchange. A NegotiateProtocolVersion option count must not exceed the number of
+ * parameters the startup packet carried, and must fit in the bytes left in its message. The limits
+ * are applied to the stream the connection continues on after SSL and GSS negotiation, including a
+ * stream opened by reconnecting.
  * These limits apply in every {@code pgjdbc.protocolHardeningMode}, so every test here passes
  * whichever mode the JVM runs in, and CI runs the suite in both.</p>
  *
@@ -311,11 +313,128 @@ public class ConnectionFactoryImplPreAuthMessageTest {
 
     SQLException e = server.connectAndFail(new Properties());
 
-    // The driver builds this message without GT.tr, so no translation changes it.
     assertAll(
         () -> assertEquals(PSQLState.PROTOCOL_VIOLATION.getState(), e.getSQLState(), "SQLState"),
-        () -> assertEquals("Protocol error, received invalid options: ,", e.getMessage()),
+        () -> assertEquals(GT.tr("Protocol error, received invalid options: {0}", ","), e.getMessage()),
         () -> server.assertEverySocketBroken());
+  }
+
+  /**
+   * The message holds one option whose name fills the body, so the driver reads all 1048576 bytes
+   * and reports that name in full.
+   */
+  @Test
+  void aNegotiateProtocolVersionOf1048576BytesIsRead() throws SQLException {
+    char[] name = new char[1048576 - 12 - 1];
+    Arrays.fill(name, 'o');
+    ScriptedServer server = new ScriptedServer(
+        negotiateProtocolVersion(1, Collections.singletonList(new String(name))));
+
+    SQLException e = server.connectAndFail(new Properties());
+
+    String expected = GT.tr("Protocol error, received invalid options: {0}", new String(name));
+    assertAll(
+        () -> assertEquals(PSQLState.PROTOCOL_VIOLATION.getState(), e.getSQLState(), "SQLState"),
+        () -> assertEquals(expected.length(), e.getMessage().length(),
+            "length of the error message"),
+        () -> assertEquals(expected, e.getMessage(),
+            "the localized text with the whole option name"));
+  }
+
+  /** The limit cannot be relaxed, so it holds under {@code pgjdbc.protocolHardeningMode=disable}. */
+  @Test
+  void aNegotiateProtocolVersionOf1048577BytesIsRefused() throws SQLException {
+    ScriptedServer server = new ScriptedServer(new Wire()
+        .int1('v').int4(1048577).int4(3 << 16).int4(0)
+        .toBytes());
+
+    SQLException e = server.connectAndFail(new Properties());
+
+    assertAll(
+        () -> assertEquals(PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState(), e.getSQLState(),
+            "SQLState"),
+        () -> assertEquals(
+            GT.tr("Protocol error. {0} message has length {1}, which exceeds the pgjdbc limit of {2} bytes applied before authentication. This limit cannot be relaxed.",
+                "NegotiateProtocolVersion", "1048577", "1048576"),
+            ioCause(e).getMessage()),
+        () -> server.assertEverySocketBroken());
+  }
+
+  @Test
+  void anOptionCountEqualToTheStartupParameterCountIsReadAsInvalidOptions() throws SQLException {
+    int sent = startupParameterCount();
+    List<String> names = new ArrayList<>();
+    for (int i = 0; i < sent; i++) {
+      names.add("option" + i);
+    }
+    ScriptedServer server = new ScriptedServer(negotiateProtocolVersion(sent, names));
+
+    SQLException e = server.connectAndFail(new Properties());
+
+    assertAll(
+        () -> assertEquals(PSQLState.PROTOCOL_VIOLATION.getState(), e.getSQLState(), "SQLState"),
+        () -> assertEquals(GT.tr("Protocol error, received invalid options: {0}", String.join(",", names)), e.getMessage()),
+        () -> server.assertEverySocketBroken());
+  }
+
+  /**
+   * The option names are present and fit in the body, so only the startup parameter count
+   * refuses them.
+   */
+  @Test
+  void anOptionCountAboveTheStartupParameterCountIsRefused() throws SQLException {
+    int sent = startupParameterCount();
+    List<String> names = new ArrayList<>();
+    for (int i = 0; i <= sent; i++) {
+      names.add("option" + i);
+    }
+    ScriptedServer server = new ScriptedServer(negotiateProtocolVersion(sent + 1, names));
+
+    SQLException e = server.connectAndFail(new Properties());
+
+    assertAll(
+        () -> assertEquals(PSQLState.PROTOCOL_VIOLATION.getState(), e.getSQLState(), "SQLState"),
+        () -> assertEquals(
+            GT.tr("Protocol error. NegotiateProtocolVersion reports {0} unrecognised options, but the startup packet carried only {1}.",
+                String.valueOf(sent + 1), String.valueOf(sent)),
+            e.getMessage()),
+        () -> server.assertEverySocketBroken());
+  }
+
+  /**
+   * The message declares 1048576 bytes and 1048564 options, one per body byte, but the script ends
+   * after the option count. A driver that read an option name would reach end of stream and fail
+   * with SQLState 08001 instead.
+   */
+  @Test
+  void aHugeOptionCountIsRefusedBeforeAnyOptionNameIsRead() throws SQLException {
+    int sent = startupParameterCount();
+    ScriptedServer server = new ScriptedServer(new Wire()
+        .int1('v').int4(1048576).int4(3 << 16).int4(1048564)
+        .toBytes());
+
+    SQLException e = server.connectAndFail(new Properties());
+
+    assertAll(
+        () -> assertEquals(PSQLState.PROTOCOL_VIOLATION.getState(), e.getSQLState(), "SQLState"),
+        () -> assertEquals(
+            GT.tr("Protocol error. NegotiateProtocolVersion reports {0} unrecognised options, but the startup packet carried only {1}.",
+                "1048564", String.valueOf(sent)),
+            e.getMessage()),
+        () -> server.assertEverySocketBroken());
+  }
+
+  @Test
+  void invalidOptionsAreListedByNameInTheOrderReceived() throws SQLException {
+    assertTrue(startupParameterCount() >= 3, "the startup packet carries at least 3 parameters");
+    ScriptedServer server = new ScriptedServer(
+        negotiateProtocolVersion(3, Arrays.asList("gamma", "alpha", "beta")));
+
+    SQLException e = server.connectAndFail(new Properties());
+
+    assertAll(
+        () -> assertEquals(PSQLState.PROTOCOL_VIOLATION.getState(), e.getSQLState(), "SQLState"),
+        () -> assertEquals(GT.tr("Protocol error, received invalid options: {0}", "gamma,alpha,beta"), e.getMessage()));
   }
 
   // The authentication message limit
@@ -595,6 +714,45 @@ public class ConnectionFactoryImplPreAuthMessageTest {
 
   private static byte[] negotiateProtocolVersion(int optionCount) {
     return new Wire().int1('v').int4(12).int4(3 << 16).int4(optionCount).toBytes();
+  }
+
+  /**
+   * Builds a NegotiateProtocolVersion that declares {@code optionCount} options and carries
+   * {@code names} as NUL-terminated option names, with a length field that covers exactly them.
+   */
+  private static byte[] negotiateProtocolVersion(int optionCount, List<String> names) {
+    Wire options = new Wire();
+    for (String name : names) {
+      options.raw(name.getBytes(StandardCharsets.US_ASCII)).int1(0);
+    }
+    byte[] optionBytes = options.toBytes();
+    return new Wire()
+        .int1('v').int4(12 + optionBytes.length).int4(3 << 16).int4(optionCount)
+        .raw(optionBytes)
+        .toBytes();
+  }
+
+  /**
+   * Counts the name and value pairs in the startup packet the driver sends with no extra
+   * connection properties, read off a connection attempt that the server refuses at once.
+   */
+  private static int startupParameterCount() throws SQLException {
+    ScriptedServer probe = new ScriptedServer(errorResponse(SERVER_SQL_STATE, 100));
+    probe.connectAndFail(new Properties());
+    byte[] out = probe.onlySocket().written();
+    // 4 bytes of length and 4 of protocol version precede the pairs; a lone NUL ends them.
+    int pos = 8;
+    int count = 0;
+    while (out[pos] != 0) {
+      for (int field = 0; field < 2; field++) {
+        while (out[pos] != 0) {
+          pos++;
+        }
+        pos++;
+      }
+      count++;
+    }
+    return count;
   }
 
   /**

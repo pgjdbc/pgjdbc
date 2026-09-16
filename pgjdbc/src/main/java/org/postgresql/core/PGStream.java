@@ -102,6 +102,16 @@ public class PGStream implements Closeable, Flushable {
   public static final int MAX_ROW_DESCRIPTION_SIZE = 8 * 1024 * 1024;
 
   /**
+   * Largest declared length, in bytes, that pgjdbc accepts for NegotiateProtocolVersion:
+   * 1 MiB ({@value #MAX_NEGOTIATE_PROTOCOL_VERSION_SIZE} bytes). The message lists the
+   * startup-packet options the backend did not recognise, so a conforming backend never sends one
+   * larger than the startup packet the driver just sent: every option it lists is a parameter
+   * name the driver chose. Those are GUC names, and a startup packet is a few hundred bytes, so 1 MiB is
+   * orders of magnitude over anything reachable and does not vary with the workload.
+   */
+  public static final int MAX_NEGOTIATE_PROTOCOL_VERSION_SIZE = 1 << 20;
+
+  /**
    * Largest declared length, in bytes, that pgjdbc accepts for AuthenticationRequest and
    * AuthenticationGSSContinue: {@value #MAX_AUTHENTICATION_MESSAGE_SIZE} bytes, 8 bytes of
    * header plus an 8000-byte payload. The payload is a SCRAM, MD5 or GSS continuation token.
