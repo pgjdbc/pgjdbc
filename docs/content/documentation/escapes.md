@@ -2,7 +2,7 @@
 title: "JDBC escapes"
 date: 2022-06-19T22:46:55+05:30
 draft: false
-weight: 7
+weight: 130
 toc: true
 aliases:
     - "/documentation/head/escapes.html"
