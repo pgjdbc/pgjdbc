@@ -1943,7 +1943,7 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public PreparedStatement prepareStatement(String sql, int @Nullable [] columnIndexes) throws SQLException {
-    if (columnIndexes != null && columnIndexes.length == 0) {
+    if (columnIndexes == null || columnIndexes.length == 0) {
       return prepareStatement(sql);
     }
 
