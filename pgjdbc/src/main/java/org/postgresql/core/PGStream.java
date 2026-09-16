@@ -599,9 +599,14 @@ public class PGStream implements Closeable, Flushable {
    * framed and are read with {@link #receiveChar()}.</p>
    *
    * @return the message type byte
-   * @throws IOException if the previous message was not consumed exactly, or on an I/O error
+   * @throws IOException if the stream is broken, if the previous message was not consumed
+   *         exactly, or on an I/O error
    */
   public int receiveMessageType() throws IOException {
+    if (broken) {
+      // Nothing after a refusal can be read. Report that rather than whatever fails next.
+      throw new IOException(GT.tr("The connection was dropped after a protocol violation."));
+    }
     long end = messageEnd;
     if (end >= 0) {
       messageEnd = -1;

@@ -186,6 +186,19 @@ class BackendMessageLengthTest {
     assertTrue(stream.isBroken(), "the refusal must mark the stream broken");
   }
 
+  /** A read after a refusal reports the refusal, not whatever fails next. */
+  @Test
+  void refusesToReadPastABrokenStream() throws IOException {
+    // A refused length, then a message type that would otherwise be readable.
+    PGStream stream = streamOf(new byte[]{0, 0, 0, 3, 'Z'});
+
+    assertThrows(IOException.class,
+        () -> stream.receiveMessageLength("ErrorResponse", 5, PGStream.MAX_SMALL_MESSAGE_LENGTH));
+
+    IOException e = assertThrows(IOException.class, () -> stream.receiveMessageType());
+    assertTrue(e.getMessage().contains("protocol violation"), e.getMessage());
+  }
+
   @Test
   void leavesAnAcceptedLengthAlone() throws IOException {
     PGStream stream = streamOf(int4(PGStream.MAX_SMALL_MESSAGE_LENGTH));
