@@ -1,0 +1,10 @@
+# Compose override that exposes the server's Unix domain socket directory to the host, so tests can
+# connect via org.postgresql.unixsocket.UnixDomainSocketFactory. It is applied only for the
+# domain_socket CI runs (docker compose -f docker-compose.yml -f docker-compose.domain-socket.yml).
+# The host path lives outside the repository so that Docker creating it as root does not interfere
+# with the Gradle build directory. The entrypoint (DOMAIN_SOCKET=yes) widens the socket permissions
+# so the host user can reach it.
+services:
+  pgdb:
+    volumes:
+      - ${PG_SOCKET_DIR:-/tmp/pgjdbc-postgresql-socket}:/var/run/postgresql
