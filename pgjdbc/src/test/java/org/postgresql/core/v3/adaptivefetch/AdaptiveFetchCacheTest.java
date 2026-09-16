@@ -946,6 +946,66 @@ class AdaptiveFetchCacheTest {
     assertEquals(startSize, resultInfo.getSize());
   }
 
+  /**
+   * A fetch size of 0 or less in an Execute message makes the server return every remaining row,
+   * so the computed size must stay at least 1 when no adaptiveFetchMinimum is set. A row larger
+   * than maxResultBuffer used to yield 0.
+   */
+  @Test
+  void aRowLargerThanTheBufferFetchesOneRow() throws SQLException {
+    adaptiveFetchCache = new AdaptiveFetchCache(1000, new Properties());
+    Query query = new MockUpQuery("test-query-1");
+    adaptiveFetchCache.addNewQuery(true, query);
+
+    adaptiveFetchCache.updateQueryFetchSize(true, query, 1001);
+
+    assertEquals(1, adaptiveFetchCache.getFetchSizeForQuery(true, query),
+        "maxResultBuffer=1000, row size 1001");
+  }
+
+  @Test
+  void aRowEqualToTheBufferFetchesOneRow() throws SQLException {
+    adaptiveFetchCache = new AdaptiveFetchCache(1000, new Properties());
+    Query query = new MockUpQuery("test-query-1");
+    adaptiveFetchCache.addNewQuery(true, query);
+
+    adaptiveFetchCache.updateQueryFetchSize(true, query, 1000);
+
+    assertEquals(1, adaptiveFetchCache.getFetchSizeForQuery(true, query),
+        "maxResultBuffer=1000, row size 1000");
+  }
+
+  /**
+   * A buffer of 2^31 bytes or more divided by a small row size exceeds the int range. The
+   * quotient used to be cast to int, which turned 2^31 into Integer.MIN_VALUE, and the server
+   * then returned every remaining row.
+   */
+  @Test
+  void aFetchSizeBeyondTheIntRangeIsLimitedToIntegerMaxValue() throws SQLException {
+    adaptiveFetchCache = new AdaptiveFetchCache(1L << 31, new Properties());
+    Query query = new MockUpQuery("test-query-1");
+    adaptiveFetchCache.addNewQuery(true, query);
+
+    adaptiveFetchCache.updateQueryFetchSize(true, query, 1);
+
+    assertEquals(Integer.MAX_VALUE, adaptiveFetchCache.getFetchSizeForQuery(true, query),
+        "maxResultBuffer=2147483648, row size 1");
+  }
+
+  @Test
+  void aFetchSizeBeyondTheIntRangeIsLimitedByAdaptiveFetchMaximum() throws SQLException {
+    Properties properties = new Properties();
+    PGProperty.ADAPTIVE_FETCH_MAXIMUM.set(properties, 100);
+    adaptiveFetchCache = new AdaptiveFetchCache(1L << 31, properties);
+    Query query = new MockUpQuery("test-query-1");
+    adaptiveFetchCache.addNewQuery(true, query);
+
+    adaptiveFetchCache.updateQueryFetchSize(true, query, 1);
+
+    assertEquals(100, adaptiveFetchCache.getFetchSizeForQuery(true, query),
+        "maxResultBuffer=2147483648, adaptiveFetchMaximum=100, row size 1");
+  }
+
   // Here are methods for retrieving values from adaptiveFetchCache without calling methods
 
   private Map<String, AdaptiveFetchCacheEntry> getInfoMapVariable()
