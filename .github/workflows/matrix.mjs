@@ -43,20 +43,22 @@ const gaJava = '26';
 // We can't yet use EA here, see https://github.com/oracle-actions/setup-java/issues/65
 const eaJava = String(Number(gaJava) + 1);
 
+// Java 8, 11 and 17 come from the three-year cadence Oracle used before Java 21, so they are
+// listed by hand. From 21 on a long-term support release ships every two years, which is every
+// fourth major, so 21, 25, 29 and so on are generated up to the newest GA release.
+const oldCadenceLtsJava = ['8', '11', '17'];
+const ltsJava = [];
+for (let major = 21; major <= Number(gaJava); major += 4) {
+  ltsJava.push(String(major));
+}
+
 // Below versions will be used for testing only
 matrix.addAxis({
   name: 'java_version',
   title: x => 'Java ' + x,
   // Strings allow versions like 18-ea
-  values: [
-    '8',
-    '11',
-    '17',
-    '21',
-    '25',
-    gaJava,
-    eaJava,
-  ]
+  // A LTS release that is also the newest GA one would otherwise be listed twice.
+  values: [...new Set([...oldCadenceLtsJava, ...ltsJava, gaJava, eaJava])]
 });
 
 // The newest stable PostgreSQL major. It generates the pg_version axis (10..MAX_PG)
