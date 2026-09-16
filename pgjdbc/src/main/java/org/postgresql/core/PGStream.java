@@ -67,8 +67,9 @@ public class PGStream implements Closeable, Flushable {
    *
    * <p>ErrorResponse and NoticeResponse buffer this much and drain the rest, so a long one is
    * truncated rather than refused. ParameterStatus and NotificationResponse are refused above it
-   * instead, which costs nothing in practice: a NOTIFY payload is at most 8000 bytes, and libpq
-   * itself drops the connection on a ParameterStatus above 30000.</p>
+   * instead, which costs nothing in practice: a NOTIFY payload stays under 8000 bytes at the
+   * default block size, and libpq itself drops the connection on a ParameterStatus above
+   * 30000.</p>
    *
    * <p>The body is four bytes shorter than the message, so a message of exactly this length
    * still fits the buffer.</p>
@@ -78,9 +79,9 @@ public class PGStream implements Closeable, Flushable {
 
   /**
    * Limit for an ErrorResponse before authentication, where a five byte header from an
-   * unauthenticated peer sets the allocation size. libpq refuses a message outside
-   * {@code VALID_LONG_MESSAGE_TYPE} whose declared length exceeds 30000, so this is the same
-   * limit.
+   * unauthenticated peer sets the allocation size. The value is libpq's {@code MAX_ERRLEN}, the
+   * limit it puts on an ErrorResponse read during connection setup. Above it libpq stops reading
+   * the message as protocol v3 and treats the data as an error from a pre-3.0 server.
    */
   public static final int MAX_PRE_AUTH_MESSAGE_LENGTH = 30000;
 
@@ -596,8 +597,9 @@ public class PGStream implements Closeable, Flushable {
    * by misreading what follows.
    *
    * <p>Only messages whose length came through {@link #receiveMessageLength} are checked. The
-   * single byte SSL and GSS encryption replies and the raw GSS token exchange are not message
-   * framed and are read with {@link #receiveChar()}.</p>
+   * SSL and GSS encryption replies are a single byte read with {@link #receiveChar()}, and the GSS
+   * handshake tokens carry a length of their own that no message type precedes, so neither of them
+   * is message framed and neither sets an end to check.</p>
    *
    * @return the message type byte
    * @throws IOException if the stream is broken, if the previous message was not consumed
