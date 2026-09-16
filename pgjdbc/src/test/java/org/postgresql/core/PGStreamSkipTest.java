@@ -5,14 +5,16 @@
 
 package org.postgresql.core;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.util.HostSpec;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -29,178 +31,130 @@ import java.util.concurrent.TimeUnit;
 import javax.net.SocketFactory;
 
 /**
- * Fails when {@link PGStream#skip(int)} does not discard exactly the bytes it was asked for.
+ * {@link PGStream#skip(int)} discards exactly the bytes it was asked for, and throws
+ * {@link EOFException} when end of stream comes first. A size of zero or less discards nothing.
  *
- * <p>To discard bytes, the driver calls {@link InputStream#skip(long)}, which may return 0 even
- * when more data is coming. A stream at end-of-stream also returns 0, on every call.
- * {@code skip()} must distinguish the two: a 0 at end-of-stream must raise {@link EOFException},
- * while a 0 from a live stream must be followed by a read, not treated as the end. Confusing them
- * either hangs the connection (retrying a stream at end-of-stream forever) or breaks a working one
- * (giving up on a live stream). Discarding the wrong number of bytes leaves the connection off a
- * message boundary, which a later read reports as a protocol error.</p>
+ * <p>A short discard leaves the connection off a message boundary, which a later read reports as
+ * a protocol error, and a discard that never finishes hangs the connection.</p>
  *
- * <p>The streams below simulate what a custom {@code socketFactory} may hand the driver: an
- * {@link InputStream} implementation the driver did not write and cannot make assumptions
- * about.</p>
+ * <p>{@link PGStream#skip(int)} treats a count short of the request as end of stream, which holds
+ * because {@link VisibleBufferedInputStream#skip(long)} returns one only there. The source stream
+ * stands in for one supplied through the {@code socketFactory} connection property, and its
+ * {@link InputStream#skip(long)} skips nothing, which that method may do while data is still
+ * coming. A {@link VisibleBufferedInputStream} that passed the discard on to it would fail these
+ * tests.</p>
  */
-// Before the fix, a stream that never makes progress made skip() spin forever. Cap the wait
-// so that a hang fails the test instead of stalling the build. SEPARATE_THREAD is required:
-// the default timeout mode only checks the clock after the test method returns, so it can
-// never interrupt a test that is spinning.
+// VisibleBufferedInputStream.skip discards in a loop, so a wrong loop condition spins instead of
+// returning, and PGStream.skip spun at end of stream before PR #4358. The timeout turns a spin into
+// a failure of the code under test instead of a stalled build, and it needs the separate thread
+// mode to do that: the default mode checks the clock only after the test method returns, and a
+// spinning method never returns
 @Timeout(value = 30, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
 class PGStreamSkipTest {
+  private static final int LENGTH = 50000;
+
   /**
-   * Payload the stream serves. Every byte differs from its neighbours, so a skip that lands at the
-   * wrong offset is visible in the byte read after it.
+   * Payload the stream serves. A byte cannot encode an offset in a payload this long, so the
+   * pattern separates the offsets a wrong discard is most likely to land on: multiplying by seven
+   * separates neighbors, and adding {@code i >> 8} separates offsets a multiple of 256 apart. The
+   * closest offsets it leaves equal are 73 apart, so the test also counts the bytes left after
+   * the discard.
    */
-  private static final byte[] DATA = new byte[256];
+  private static final byte[] DATA = new byte[LENGTH];
 
   static {
     for (int i = 0; i < DATA.length; i++) {
-      DATA[i] = (byte) (i * 7 + 1);
+      DATA[i] = (byte) (i * 7 + 1 + (i >> 8));
     }
   }
 
   /**
-   * How many bytes a wrapped stream agrees to skip per call.
+   * 20000 needs several fills of the 8192-byte buffer under {@link PGStream}, so a single call to
+   * {@link VisibleBufferedInputStream#skip(long)} has to discard across them, and
+   * {@code LENGTH - 1} leaves one byte before end of stream.
    */
-  enum SkipStyle {
-    /** Skips the full amount requested (the normal case). */
-    HONEST,
-    /** Always skips 0, which InputStream.skip() is allowed to do. */
-    REFUSES,
-    /** Skips one byte per call: real progress, but slow. */
-    ONE_AT_A_TIME
-  }
+  @ParameterizedTest
+  @ValueSource(ints = {0, 1, 20000, LENGTH - 1})
+  void skipDiscardsExactlyTheRequestedBytes(int size) throws Exception {
+    try (PGStream stream = openStream()) {
+      stream.skip(size);
+      int next = stream.receiveChar();
+      int left = drain(stream);
 
-  @Test
-  void skipDiscardsExactlyTheRequestedBytes() throws Exception {
-    // A zero-byte skip never calls down to the wrapped stream, and the read buffer starts empty
-    // on a fresh stream, so every other size here reaches the wrapped stream on its first skip.
-    // DATA.length is included so a skip of exactly the payload is covered: the byte-after-the-skip
-    // assertion below is then skipped, since there is no byte after it.
-    for (SkipStyle style : SkipStyle.values()) {
-      for (int size : new int[]{0, 1, 100, DATA.length - 1, DATA.length}) {
-        CountingStream source = new CountingStream(new ByteArrayInputStream(DATA), style);
-        try (PGStream stream = openStream(source)) {
-          String label = style + " skip=" + size;
-          stream.skip(size);
-          if (size < DATA.length) {
-            assertEquals(DATA[size] & 0xFF, stream.receiveChar(), label + ": byte after the skip");
-          }
-          assertTrue(source.skipCalls > 0 || size == 0,
-              label + ": the wrapped stream must have been asked to skip");
-        }
-      }
+      assertAll(
+          () -> assertEquals(DATA[size] & 0xFF, next, "receiveChar() after the discard"),
+          () -> assertEquals(LENGTH - size - 1, left, "bytes left after receiveChar()"));
     }
   }
 
   @Test
-  void skipReportsAStreamThatEndsEarly() throws Exception {
-    for (SkipStyle style : SkipStyle.values()) {
-      CountingStream source = new CountingStream(new ByteArrayInputStream(DATA), style);
-      try (PGStream stream = openStream(source)) {
-        assertThrows(EOFException.class, () -> stream.skip(DATA.length + 1),
-            style + ": a stream that ends before the count must be reported, not waited on");
-      }
+  void skipOfTheWholePayloadLeavesNothingToRead() throws Exception {
+    try (PGStream stream = openStream()) {
+      stream.skip(LENGTH);
+
+      assertEquals(0, drain(stream), "bytes left after skip(" + LENGTH + ")");
     }
   }
 
   /**
-   * A stream that refuses to skip must not degrade to one read per byte: the read that breaks the
-   * refusal primes the buffer, and the next skip drains it wholesale.
+   * {@link PGStream#skip(int)} passes a negative size on to
+   * {@link VisibleBufferedInputStream#skip(long)}, which returns 0 for it, so the short-count check
+   * must not read that 0 as end of stream.
    */
   @Test
-  void skipDoesNotFallBackToReadingByteByByte() throws Exception {
-    byte[] payload = new byte[50000];
-    CountingStream source =
-        new CountingStream(new ByteArrayInputStream(payload), SkipStyle.REFUSES);
-    try (PGStream stream = openStream(source)) {
-      stream.skip(payload.length);
-      assertTrue(source.readCalls < 100,
-          "expected the buffer to carry the skip, got " + source.readCalls + " reads");
+  void skipOfANegativeSizeDiscardsNothing() throws Exception {
+    try (PGStream stream = openStream()) {
+      stream.skip(-1);
+
+      assertEquals(DATA[0] & 0xFF, stream.receiveChar(), "receiveChar() after skip(-1)");
+    }
+  }
+
+  @Test
+  void skipPastEndOfStreamThrowsEOFException() throws Exception {
+    try (PGStream stream = openStream()) {
+      assertThrows(EOFException.class, () -> stream.skip(LENGTH + 1),
+          "skip(" + (LENGTH + 1) + ") on a " + LENGTH + "-byte payload");
+    }
+  }
+
+  /** Reads to end of stream and returns how many bytes were still there. */
+  private static int drain(PGStream stream) throws IOException {
+    int read = 0;
+    while (true) {
+      try {
+        stream.receiveChar();
+      } catch (EOFException e) {
+        return read;
+      }
+      read++;
     }
   }
 
   /**
-   * Opens a {@link PGStream} that reads from {@code source}, with no server behind it. The 8192
+   * Opens a {@link PGStream} that reads {@link #DATA}, with no server behind it. The 8192
    * argument sizes the send buffer; it does not size the buffer the driver reads through when it
    * skips, which is a separate fixed 8192 set up when the socket is attached.
    */
-  private static PGStream openStream(InputStream source) throws IOException {
-    return new PGStream(new FixedSocketFactory(source), new HostSpec("localhost", 5432), 0, 8192);
+  private static PGStream openStream() throws IOException {
+    return new PGStream(new FixedSocketFactory(new SkipsNothingStream(new ByteArrayInputStream(DATA))),
+        new HostSpec("localhost", 5432), 0, 8192);
   }
 
-  /**
-   * Counts what the driver asked of the stream, and answers skip as the style dictates.
-   *
-   * <p>Guards against a caller that ignores a 0 return from {@link #skip(long)}: after
-   * {@link #ZERO_SKIP_LIMIT} consecutive zero-skips with no intervening read, it throws with an
-   * explanatory message instead of letting the caller spin. This turns the bug under test into an
-   * immediate, self-describing failure rather than one the {@code @Timeout} has to catch.</p>
-   */
-  static final class CountingStream extends FilterInputStream {
-    /**
-     * Number of consecutive skip()==0 calls, with no read() between them, that we treat as a
-     * caller stuck making no progress. A read() resets the count, since reading is the correct
-     * response to a skip that returned 0.
-     */
-    static final int ZERO_SKIP_LIMIT = 10;
-
-    private final SkipStyle style;
-    private int zeroSkipsInARow;
-    int skipCalls;
-    int readCalls;
-
-    CountingStream(InputStream in, SkipStyle style) {
+  /** Serves the wrapped stream and skips nothing. */
+  static final class SkipsNothingStream extends FilterInputStream {
+    SkipsNothingStream(InputStream in) {
       super(in);
-      this.style = style;
     }
 
     @Override
-    public long skip(long n) throws IOException {
-      skipCalls++;
-      long skipped;
-      switch (style) {
-        case HONEST:
-          skipped = super.skip(n);
-          break;
-        case ONE_AT_A_TIME:
-          skipped = n == 0 ? 0 : super.skip(1);
-          break;
-        default:
-          skipped = 0;
-          break;
-      }
-      if (skipped > 0 || n == 0) {
-        zeroSkipsInARow = 0;
-        return skipped;
-      }
-      if (++zeroSkipsInARow > ZERO_SKIP_LIMIT) {
-        throw new IllegalStateException("skip() returned 0 " + zeroSkipsInARow
-            + " times in a row and the caller kept calling skip() without reading anything."
-            + " A caller that does that makes no progress and never stops.");
-      }
+    public long skip(long n) {
       return 0;
     }
-
-    @Override
-    public int read() throws IOException {
-      readCalls++;
-      zeroSkipsInARow = 0;
-      return super.read();
-    }
-
-    @Override
-    public int read(byte[] b, int off, int len) throws IOException {
-      readCalls++;
-      zeroSkipsInARow = 0;
-      return super.read(b, off, len);
-    }
   }
 
   /**
-   * Hands the driver a socket whose input is the given stream, so no server is involved.
+   * Supplies a socket whose input is the given stream, so no server is involved.
    */
   static final class FixedSocketFactory extends SocketFactory {
     private final InputStream input;

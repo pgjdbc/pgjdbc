@@ -673,28 +673,14 @@ public class PGStream implements Closeable, Flushable {
    * Discards a given number of bytes from the backend.
    *
    * @param size number of bytes to discard
-   * @throws EOFException if the connection ends before that many bytes arrive
+   * @throws EOFException if end of stream is reached before that many bytes arrive
    * @throws IOException if a data I/O error occurs
    */
   public void skip(int size) throws IOException {
-    long s = 0;
-    while (s < size) {
-      long skipped = pgInput.skip(size - s);
-      if (skipped == 0) {
-        // InputStream.skip() may return 0 for two different reasons: the stream still
-        // has data but chose not to skip any right now, or the stream has reached
-        // end-of-stream and will return 0 on every future call. We cannot tell which
-        // from skip() alone, so we read one byte: read() blocks until a byte is
-        // available and returns -1 only at end-of-stream, which is the reliable signal.
-        if (pgInput.read() == -1) {
-          throw new EOFException();
-        }
-        // The byte we just read is one of the bytes we were asked to discard, so count
-        // it. It also fills the underlying buffer, so the next skip() can discard many
-        // bytes at once instead of one per read.
-        skipped = 1;
-      }
-      s += skipped;
+    // Unlike InputStream.skip, VisibleBufferedInputStream.skip returns a short count only at end
+    // of stream, so one call discards everything and a short count means end of stream
+    if (pgInput.skip(size) < size) {
+      throw new EOFException();
     }
   }
 

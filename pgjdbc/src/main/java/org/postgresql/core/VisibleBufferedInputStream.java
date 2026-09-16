@@ -297,20 +297,45 @@ public class VisibleBufferedInputStream extends InputStream {
 
   /**
    * {@inheritDoc}
+   *
+   * <p>Returns only after {@code n} bytes are discarded or end of stream is reached, so a count
+   * less than {@code n} means end of stream. An {@code n} of zero or less discards nothing and
+   * returns {@code 0}.</p>
+   *
+   * <p>The bytes are read through this stream's buffer, and the wrapped stream's
+   * {@link InputStream#skip(long)} is never called, so a discard does not depend on how a stream
+   * supplied through the {@code socketFactory} connection property implements it. A discard
+   * handles a {@link SocketTimeoutException} as a read does: it is waited out unless
+   * {@link #setTimeoutRequested(boolean)} is set, as {@link PGStream#setNetworkTimeout(int)} does
+   * for a non-zero timeout.</p>
+   *
+   * <p>A discard that throws part-way is not restartable: the bytes it already took stay
+   * discarded, and the exception does not report how many there were.</p>
    */
   @Override
   public long skip(long n) throws IOException {
-    int avail = endIndex - index;
-    if (avail >= n) {
-      // Cast to int is safe here since the number of available bytes within the buffer
-      // always fits within int
-      index += (int) n;
-      return n;
+    if (n <= 0) {
+      return 0;
     }
-    n -= avail;
-    index = 0;
-    endIndex = 0;
-    return avail + wrapped.skip(n);
+    long skipped = 0;
+    while (skipped < n) {
+      int buffered = endIndex - index;
+      if (buffered == 0) {
+        // read() needs only one byte in the buffer, so a discard never grows it. read() blocks
+        // until the byte arrives, returns -1 at end of stream, and fills the buffer for the
+        // next pass
+        if (read() < 0) {
+          break;
+        }
+        skipped++;
+        continue;
+      }
+      // The minimum cannot exceed buffered, which is an int, so the cast is safe
+      int take = (int) Math.min(buffered, n - skipped);
+      index += take;
+      skipped += take;
+    }
+    return skipped;
   }
 
   /**
