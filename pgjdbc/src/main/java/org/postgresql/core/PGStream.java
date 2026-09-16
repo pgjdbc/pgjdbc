@@ -5,6 +5,7 @@
 
 package org.postgresql.core;
 
+import org.postgresql.PGProperty;
 import org.postgresql.gss.GSSInputStream;
 import org.postgresql.gss.GSSOutputStream;
 import org.postgresql.util.ByteStreamWriter;
@@ -62,13 +63,14 @@ public class PGStream implements Closeable, Flushable {
   public static final int MAX_SMALL_MESSAGE_LENGTH = 10000;
 
   /**
-   * Largest message buffered whole by {@link #receiveString(int)} or
-   * {@link #receiveErrorString(int)}. DataRow and CopyData read straight into their destination.
+   * Largest message buffered whole by {@link #receiveString(int)}. DataRow and CopyData read
+   * straight into their destination.
    *
-   * <p>ErrorResponse and NoticeResponse buffer this much and drain the rest, so a long one is
-   * truncated rather than refused. ParameterStatus and NotificationResponse are refused above
-   * it. A NOTIFY payload is at most 8000 bytes, and libpq drops the connection on a
-   * ParameterStatus above 30000.</p>
+   * <p>ParameterStatus and NotificationResponse are refused above it. A NOTIFY payload is at
+   * most 8000 bytes, and libpq drops the connection on a ParameterStatus above 30000.
+   * ErrorResponse and NoticeResponse are not bound by it. A body that does not fit the buffer
+   * is read into an array of its own, and their truncation points are the
+   * {@code maxErrorResponseLength} and {@code maxNoticeResponseLength} connection properties.</p>
    *
    * <p>The body is four bytes shorter than the message, so a message of exactly this length
    * still fits the buffer.</p>
@@ -162,6 +164,9 @@ public class PGStream implements Closeable, Flushable {
   private Encoding encoding;
 
   private long maxResultBuffer = -1;
+  // Message lengths at which an ErrorResponse or NoticeResponse is truncated.
+  private int maxErrorResponseLength = MAX_MESSAGE_LENGTH;
+  private int maxNoticeResponseLength = MAX_MESSAGE_LENGTH;
   private long resultBufferByteCount;
 
   private int maxRowSizeBytes = -1;
@@ -234,6 +239,8 @@ public class PGStream implements Closeable, Flushable {
     this.hostSpec = pgStream.hostSpec;
     this.maxSendBufferSize = pgStream.maxSendBufferSize;
     this.maxResultBuffer = pgStream.maxResultBuffer;
+    this.maxErrorResponseLength = pgStream.maxErrorResponseLength;
+    this.maxNoticeResponseLength = pgStream.maxNoticeResponseLength;
 
     Socket socket = createSocket(timeout);
     changeSocket(socket);
@@ -650,13 +657,16 @@ public class PGStream implements Closeable, Flushable {
 
   /**
    * Receives a fixed-size string from the backend, and tries to avoid "UTF-8 decode failed"
-   * errors.
+   * errors. A string longer than the read buffer can hold is read into an array of its own.
    *
    * @param len the length of the string to receive, in bytes.
    * @return the decoded string
    * @throws IOException if something wrong happens
    */
   public EncodingPredictor.DecodeResult receiveErrorString(int len) throws IOException {
+    if (len > VisibleBufferedInputStream.MAX_BUFFER_SIZE) {
+      return decodeErrorString(receive(len), 0, len);
+    }
     if (!pgInput.ensureBytes(len)) {
       throw new EOFException();
     }
@@ -937,6 +947,49 @@ public class PGStream implements Closeable, Flushable {
 
   public int getNetworkTimeout() throws IOException {
     return connection.getSoTimeout();
+  }
+
+  /**
+   * Sets the message length at which an ErrorResponse is truncated. -1 is no limit and becomes
+   * the protocol maximum. Any other value must be at least 5, the length field and one byte of
+   * body, and at most the protocol maximum.
+   *
+   * @param length the {@code maxErrorResponseLength} connection property
+   * @throws PSQLException if the value is out of range
+   */
+  public void setMaxErrorResponseLength(int length) throws PSQLException {
+    maxErrorResponseLength = messageLengthLimit(PGProperty.MAX_ERROR_RESPONSE_LENGTH, length);
+  }
+
+  public int getMaxErrorResponseLength() {
+    return maxErrorResponseLength;
+  }
+
+  /**
+   * Sets the message length at which a NoticeResponse is truncated, with the same rules as
+   * {@link #setMaxErrorResponseLength(int)}.
+   *
+   * @param length the {@code maxNoticeResponseLength} connection property
+   * @throws PSQLException if the value is out of range
+   */
+  public void setMaxNoticeResponseLength(int length) throws PSQLException {
+    maxNoticeResponseLength = messageLengthLimit(PGProperty.MAX_NOTICE_RESPONSE_LENGTH, length);
+  }
+
+  public int getMaxNoticeResponseLength() {
+    return maxNoticeResponseLength;
+  }
+
+  private static int messageLengthLimit(PGProperty property, int limit) throws PSQLException {
+    if (limit == -1) {
+      return MAX_MESSAGE_LENGTH;
+    }
+    if (limit < 5 || limit > MAX_MESSAGE_LENGTH) {
+      throw new PSQLException(GT.tr("{0} must be -1 or between 5 and {1} but was: {2}",
+          property.getName(), String.valueOf(MAX_MESSAGE_LENGTH), String.valueOf(limit)),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+    return limit;
   }
 
   /**

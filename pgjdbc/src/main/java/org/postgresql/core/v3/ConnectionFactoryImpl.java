@@ -228,6 +228,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
       String maxResultBuffer = PGProperty.MAX_RESULT_BUFFER.getOrDefault(info);
       newStream.setMaxResultBuffer(maxResultBuffer);
+      newStream.setMaxErrorResponseLength(PGProperty.MAX_ERROR_RESPONSE_LENGTH.getInt(info));
+      newStream.setMaxNoticeResponseLength(PGProperty.MAX_NOTICE_RESPONSE_LENGTH.getInt(info));
 
       // Enable TCP keep-alive probe if required.
       boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
