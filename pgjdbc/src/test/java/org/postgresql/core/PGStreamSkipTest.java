@@ -8,25 +8,24 @@ package org.postgresql.core;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
-import org.postgresql.util.HostSpec;
+import org.postgresql.test.util.FakeSocket;
+import org.postgresql.test.util.Wire;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
 import java.util.concurrent.TimeUnit;
-
-import javax.net.SocketFactory;
+import java.util.stream.Stream;
 
 /**
  * Fails when {@link PGStream#skip(int)} does not discard exactly the bytes it was asked for.
@@ -122,13 +121,40 @@ class PGStreamSkipTest {
     }
   }
 
+  static Stream<Arguments> skipRoutes() {
+    return Stream.of(
+        argumentSet("body inside the buffer", 100, SkipStyle.HONEST),
+        argumentSet("wrapped stream skips past the buffer", 20000, SkipStyle.HONEST),
+        argumentSet("wrapped stream refuses to skip", 20000, SkipStyle.REFUSES));
+  }
+
   /**
-   * Opens a {@link PGStream} that reads from {@code source}, with no server behind it. The 8192
-   * argument sizes the send buffer; it does not size the buffer the driver reads through when it
-   * skips, which is a separate fixed 8192 set up when the socket is attached.
+   * {@code endMessage} compares the stream position with the end of the message, so a skipped
+   * message body has to count as consumed on every route {@code skip} takes: out of the read
+   * buffer, through the wrapped stream's {@code skip}, and through the one-byte read that follows
+   * a refused skip.
    */
-  private static PGStream openStream(InputStream source) throws IOException {
-    return new PGStream(new FixedSocketFactory(source), new HostSpec("localhost", 5432), 0, 8192);
+  @ParameterizedTest
+  @MethodSource("skipRoutes")
+  void skipAdvancesTheMessagePositionByWhatItDiscarded(int bodyLength, SkipStyle style)
+      throws Exception {
+    byte[] message = new Wire().int4(4 + bodyLength).bytes(bodyLength).int1('Z').toBytes();
+    CountingStream source = new CountingStream(new ByteArrayInputStream(message), style);
+    try (PGStream stream = openStream(source)) {
+      stream.readMessageLength("NoticeResponse", 4);
+      stream.skip(bodyLength);
+      stream.endMessage();
+
+      assertEquals('Z', stream.receiveChar(), "byte after the skipped message");
+    }
+  }
+
+  /**
+   * Opens a {@link PGStream} that reads from {@code source}, with no server behind it. The driver
+   * reads through a fixed 8192-byte buffer set up when the socket is attached.
+   */
+  private static PGStream openStream(InputStream source) {
+    return PGStreamTestSupport.openStream(new FakeSocket(source));
   }
 
   /**
@@ -196,77 +222,6 @@ class PGStreamSkipTest {
       readCalls++;
       zeroSkipsInARow = 0;
       return super.read(b, off, len);
-    }
-  }
-
-  /**
-   * Hands the driver a socket whose input is the given stream, so no server is involved.
-   */
-  static final class FixedSocketFactory extends SocketFactory {
-    private final InputStream input;
-
-    FixedSocketFactory(InputStream input) {
-      this.input = input;
-    }
-
-    @Override
-    public Socket createSocket() {
-      return new Socket() {
-        private final OutputStream output = new ByteArrayOutputStream();
-
-        @Override
-        public boolean isConnected() {
-          return true;
-        }
-
-        @Override
-        public void connect(SocketAddress endpoint, int timeout) {
-        }
-
-        @Override
-        public void setTcpNoDelay(boolean on) {
-        }
-
-        @Override
-        public int getSendBufferSize() {
-          return 8192;
-        }
-
-        @Override
-        public InputStream getInputStream() {
-          return input;
-        }
-
-        @Override
-        public OutputStream getOutputStream() {
-          return output;
-        }
-
-        @Override
-        public void close() {
-        }
-      };
-    }
-
-    @Override
-    public Socket createSocket(String host, int port) {
-      return createSocket();
-    }
-
-    @Override
-    public Socket createSocket(String host, int port, InetAddress localHost, int localPort) {
-      return createSocket();
-    }
-
-    @Override
-    public Socket createSocket(InetAddress host, int port) {
-      return createSocket();
-    }
-
-    @Override
-    public Socket createSocket(InetAddress address, int port, InetAddress localAddress,
-        int localPort) {
-      return createSocket();
     }
   }
 }

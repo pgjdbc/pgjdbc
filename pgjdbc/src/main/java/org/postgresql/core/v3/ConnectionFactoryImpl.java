@@ -14,6 +14,7 @@ import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.PgMessageType;
 import org.postgresql.core.ProtocolVersion;
+import org.postgresql.core.ProtocolViolationException;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.SetupQueryRunner;
@@ -116,6 +117,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   private static final int AUTH_REQ_SASL_CONTINUE = 11;
   private static final int AUTH_REQ_SASL_FINAL = 12;
 
+  /**
+   * Largest number of messages the authentication loop dispatches on before authentication
+   * completes. SCRAM completes in 4 (SASL, SASLContinue, SASLFinal, and Ok) and SSPI adds one
+   * per continuation token, so {@value #MAX_AUTH_ITERATIONS} leaves room for any real handshake
+   * while stopping a malicious server from looping the client before authentication completes.
+   * {@link MakeGSS} exchanges its tokens within one iteration, under a limit of its own.
+   */
+  private static final int MAX_AUTH_ITERATIONS = 64;
+
   private static final String IN_HOT_STANDBY = "in_hot_standby";
 
   private static ISSPIClient createSSPI(PGStream pgStream,
@@ -202,6 +212,27 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     return remaining <= 0 ? 1 : (int) Math.min(remaining, Integer.MAX_VALUE);
   }
 
+  /**
+   * Applies the read limits configured in {@code info} to {@code stream}, which otherwise keeps the
+   * defaults a new {@link PGStream} starts with.
+   *
+   * @throws PSQLException if a limit property holds a value that cannot be parsed or is not
+   *     positive
+   */
+  private static void applyReadLimits(PGStream stream, Properties info) throws PSQLException {
+    stream.setMaxResultBuffer(PGProperty.MAX_RESULT_BUFFER.getOrDefault(info));
+    stream.setMaxCopyDataSize(PGProperty.MAX_COPY_DATA_SIZE.getOrDefault(info));
+    stream.setMaxServerTextMessageSize(
+        PGProperty.MAX_SERVER_TEXT_MESSAGE_SIZE.getOrDefault(info));
+  }
+
+  /**
+   * Opens a stream to {@code hostSpec} and takes it through encryption negotiation, the startup
+   * packet and authentication.
+   *
+   * <p>A failure closes the stream before the exception leaves this method, so the caller has
+   * nothing to clean up.</p>
+   */
   private PGStream tryConnect(Properties info, SocketFactory socketFactory, HostSpec hostSpec,
       SslMode sslMode, GSSEncMode gssEncMode, int connectTimeoutMs, long startNanos)
       throws SQLException, IOException {
@@ -225,9 +256,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       if (socketTimeout > 0) {
         newStream.setNetworkTimeout(socketTimeout * 1000);
       }
-
-      String maxResultBuffer = PGProperty.MAX_RESULT_BUFFER.getOrDefault(info);
-      newStream.setMaxResultBuffer(maxResultBuffer);
 
       // Enable TCP keep-alive probe if required.
       boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
@@ -287,6 +315,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         newStream.setNetworkTimeout(socketTimeout * 1000);
       }
 
+      // GSS and SSL negotiation can reconnect and return a PGStream other than the one they were
+      // given, and a replacement starts with the default read limits.
+      applyReadLimits(newStream, info);
+
       List<StartupParam> paramList = getParametersForStartup(user, database, info);
       String protocolVersion = PGProperty.PROTOCOL_VERSION.getOrDefault(info);
       int protocolMajor = 3;
@@ -306,7 +338,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       sendStartupPacket(newStream, ProtocolVersion.fromMajorMinor(protocolMajor,protocolMinor), paramList);
 
       // Do authentication (until AuthenticationOk).
-      doAuthentication(newStream, hostSpec.getHost(), user, info);
+      doAuthentication(newStream, hostSpec.getHost(), user, info, paramList.size());
 
       return newStream;
     } catch (Exception e) {
@@ -436,6 +468,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           // still more addresses to try
           continue;
         }
+        if (ioe instanceof ProtocolViolationException) {
+          throw new PSQLException(GT.tr("The connection attempt failed: {0}", ioe.getMessage()),
+              PSQLState.PROTOCOL_VIOLATION, ioe);
+        }
         throw new PSQLException(GT.tr("The connection attempt failed."),
             PSQLState.CONNECTION_UNABLE_TO_CONNECT, ioe);
       } catch (SQLException se) {
@@ -536,6 +572,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     return start + tz.substring(4);
   }
 
+  /**
+   * Negotiates GSS encryption unless {@code gssEncMode} is {@link GSSEncMode#DISABLE} or
+   * {@link GSSEncMode#ALLOW}.
+   *
+   * @return the stream to continue on: {@code pgStream}, GSS-encrypted when the handshake
+   *     succeeded, or a replacement on a path that closes {@code pgStream} and reconnects
+   */
   private static PGStream enableGSSEncrypted(PGStream pgStream, GSSEncMode gssEncMode, String host, Properties info,
       int connectTimeout)
       throws IOException, PSQLException {
@@ -584,8 +627,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.sendInteger2(1234);
     pgStream.sendInteger2(5680);
     pgStream.flush();
-    // Now get the response from the backend, one of N, E, S.
+    // The GSSENCRequest reply is one byte, N or G, rather than a framed message. This is where
+    // the framed dialogue resumes. An E starts an ErrorResponse, which the E branch does not read
+    // because it abandons this stream.
     int beresp = pgStream.receiveChar();
+    pgStream.markMessageBoundary();
     pgStream.setNetworkTimeout(currentTimeout);
     switch (beresp) {
       case 'E':
@@ -638,11 +684,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         // fallthrough
 
       default:
-        throw new PSQLException(GT.tr("An error occurred while setting up the GSS Encoded connection."),
-            PSQLState.PROTOCOL_VIOLATION);
+        throw pgStream.markBroken(new PSQLException(GT.tr("An error occurred while setting up the GSS Encoded connection."),
+            PSQLState.PROTOCOL_VIOLATION));
     }
   }
 
+  /**
+   * Negotiates SSL unless {@code sslMode} is {@link SslMode#DISABLE} or {@link SslMode#ALLOW}.
+   *
+   * @return the stream to continue on: {@code pgStream}, over an SSL socket when the handshake
+   *     succeeded, or a replacement on the path that closes {@code pgStream} and reconnects
+   */
   private static PGStream enableSSL(PGStream pgStream, SslMode sslMode, Properties info,
       int connectTimeout)
       throws IOException, PSQLException {
@@ -678,8 +730,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.sendInteger2(5679);
     pgStream.flush();
 
-    // Now get the response from the backend, one of N, E, S.
+    // The SSLRequest reply is one byte, N or S, rather than a framed message. This is where
+    // the framed dialogue resumes. An E starts an ErrorResponse, which the E branch does not read
+    // because it abandons this stream.
     int beresp = pgStream.receiveChar();
+    pgStream.markMessageBoundary();
     pgStream.setNetworkTimeout(currentTimeout);
 
     switch (beresp) {
@@ -714,8 +769,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         return pgStream;
 
       default:
-        throw new PSQLException(GT.tr("An error occurred while setting up the SSL connection."),
-            PSQLState.PROTOCOL_VIOLATION);
+        throw pgStream.markBroken(new PSQLException(GT.tr("An error occurred while setting up the SSL connection."),
+            PSQLState.PROTOCOL_VIOLATION));
     }
   }
 
@@ -780,7 +835,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
-  private static void doAuthentication(PGStream pgStream, String host, String user, Properties info) throws IOException, SQLException {
+  /**
+   * Runs the authentication exchange until the backend reports AuthenticationOk.
+   *
+   * <p>A NegotiateProtocolVersion settles the protocol version, which this method stores on
+   * {@code pgStream} through {@link PGStream#setProtocolVersion}.</p>
+   *
+   * @param startupParamCount number of parameters the startup packet carried, which bounds the
+   *     unrecognised options a NegotiateProtocolVersion may report
+   */
+  private static void doAuthentication(PGStream pgStream, String host, String user,
+      Properties info, int startupParamCount) throws IOException, SQLException {
     // Now get the response from the backend, either an error message
     // or an authentication request
 
@@ -800,24 +865,63 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     @Nullable EnumSet<AuthMethod> authMethods = AuthMethod.parseRequireAuth(requireAuth);
 
     try {
+      int authIterations = 0;
       authloop: while (true) {
-        int beresp = pgStream.receiveChar();
+        if (++authIterations > MAX_AUTH_ITERATIONS) {
+          throw pgStream.markBroken(new PSQLException(GT.tr(
+              "Protocol error. Authentication did not complete within {0} authentication messages.",
+              String.valueOf(MAX_AUTH_ITERATIONS)),
+              PSQLState.PROTOCOL_VIOLATION));
+        }
+        int beresp = pgStream.receiveMessageType();
 
         switch (beresp) {
           case PgMessageType.NEGOTIATE_PROTOCOL_RESPONSE:  // Negotiate Protocol Version
-            // read the length and ignore it.
-            pgStream.receiveInteger4();
+            // NegotiateProtocolVersion is 12 bytes before the options: 4 for the length field
+            // itself, 4 for the protocol version and 4 for the option count. Each unrecognised
+            // option follows as a C-string.
+            int negotiateMsgLen = pgStream.readPreAuthMessageLength(
+                "NegotiateProtocolVersion", 12, PGStream.MAX_NEGOTIATE_PROTOCOL_VERSION_SIZE);
             protocol = pgStream.receiveInteger4();
             int numOptionsNotRecognized = pgStream.receiveInteger4();
+            if (numOptionsNotRecognized < 0) {
+              throw pgStream.markBroken(new PSQLException(GT.tr(
+                  "Protocol error. NegotiateProtocolVersion reports a negative option count of {0}.",
+                  String.valueOf(numOptionsNotRecognized)),
+                  PSQLState.PROTOCOL_VIOLATION));
+            }
+            // The backend reports the startup-packet options it did not recognise, so it
+            // cannot report more of them than the driver sent. The check against the bytes left
+            // in the body is weaker: it admits one option per body byte, so about a million
+            // empty names fit under MAX_NEGOTIATE_PROTOCOL_VERSION_SIZE, and the driver calls
+            // receiveString once for each of them.
+            if (numOptionsNotRecognized > startupParamCount) {
+              throw pgStream.markBroken(new PSQLException(GT.tr(
+                  "Protocol error. NegotiateProtocolVersion reports {0} unrecognised options, but the startup packet carried only {1}.",
+                  String.valueOf(numOptionsNotRecognized), String.valueOf(startupParamCount)),
+                  PSQLState.PROTOCOL_VIOLATION));
+            }
+            // Each unrecognised option is at least a NUL byte, so the count cannot exceed
+            // the bytes left in the body.
+            if (numOptionsNotRecognized > negotiateMsgLen - 12) {
+              throw pgStream.markBroken(new PSQLException(GT.tr(
+                  "Protocol error. NegotiateProtocolVersion reports {0} unrecognised options, but only {1} bytes remain in the message body.",
+                  String.valueOf(numOptionsNotRecognized),
+                  String.valueOf(negotiateMsgLen - 12)),
+                  PSQLState.PROTOCOL_VIOLATION));
+            }
             if (numOptionsNotRecognized > 0) {
               // do not connect and throw an error
-              String errorMessage = "Protocol error, received invalid options: ";
+              List<String> names = new ArrayList<>(numOptionsNotRecognized);
               for (int i = 0; i < numOptionsNotRecognized; i++) {
-                errorMessage  += (i > 0 ? "," : "") + pgStream.receiveString();
+                names.add(pgStream.receiveString());
               }
-              LOGGER.log(Level.FINEST, errorMessage);
-              throw new PSQLException(errorMessage, PSQLState.PROTOCOL_VIOLATION);
+              String failure = GT.tr("Protocol error, received invalid options: {0}",
+                  String.join(",", names));
+              LOGGER.log(Level.FINEST, failure);
+              throw pgStream.markBroken(new PSQLException(failure, PSQLState.PROTOCOL_VIOLATION));
             }
+            pgStream.endMessage();
             int major = protocol >> 16 & 0xff;
             int minor = protocol & 0xff;
             pgStream.setProtocolVersion( ProtocolVersion.fromMajorMinor(major, minor));
@@ -829,7 +933,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // The most common one to be thrown here is:
             // "User authentication failed"
             //
-            int elen = pgStream.receiveInteger4();
+            int elen = pgStream.readPreAuthMessageLength(
+                "ErrorResponse", 5, PGStream.MAX_PRE_AUTH_ERROR_RESPONSE_SIZE);
 
             ServerErrorMessage errorMsg =
                 new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
@@ -837,9 +942,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             throw new PSQLException(errorMsg, PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
 
           case PgMessageType.AUTHENTICATION_RESPONSE:
-            // Authentication request.
-            // Get the message length
-            int msgLen = pgStream.receiveInteger4();
+            // AuthenticationRequest is 8 bytes before the payload: 4 for the length field
+            // itself and 4 for the request type. Only some request types carry a payload.
+            int msgLen = pgStream.readPreAuthMessageLength(
+                "AuthenticationRequest", 8, PGStream.MAX_AUTHENTICATION_MESSAGE_SIZE);
 
             // Get the type of request
             int areq = pgStream.receiveInteger4();
@@ -914,6 +1020,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               case AUTH_REQ_GSS:
               case AUTH_REQ_SSPI:
                 AuthMethod.checkAuth(authMethods, areq == AUTH_REQ_GSS ? AuthMethod.GSS : AuthMethod.SSPI);
+                // On the JSSE GSSAPI path, MakeGSS.authenticate reads the following messages
+                // itself, and its first receiveMessageType checks that the stream sits on a
+                // message boundary. The body is the request type and nothing else, so closing
+                // the message here records that boundary; the endMessage after the switch then
+                // does nothing.
+                pgStream.endMessage();
                 /*
                  * Use GSSAPI if requested on all platforms, via JSSE.
                  *
@@ -1045,6 +1157,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 }
                 /* Cleanup after successful authentication */
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationOk");
+                pgStream.endMessage();
                 break authloop; // We're done.
 
               default:
@@ -1053,12 +1166,16 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                     "The authentication type {0} is not supported. Check that you have configured the pg_hba.conf file to include the client''s IP address or subnet, and that it is using an authentication scheme supported by the driver.",
                     areq), PSQLState.CONNECTION_REJECTED);
             }
+            // Every areq branch must consume the whole body or throw; this call catches one
+            // that did not. A branch that closed the message itself, as AUTH_REQ_SASL does
+            // inside advertisedMechanisms, leaves this call nothing to do.
+            pgStream.endMessage();
 
             break;
 
           default:
-            throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-                PSQLState.PROTOCOL_VIOLATION);
+            throw pgStream.markBroken(new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+                PSQLState.PROTOCOL_VIOLATION));
         }
       }
     } finally {

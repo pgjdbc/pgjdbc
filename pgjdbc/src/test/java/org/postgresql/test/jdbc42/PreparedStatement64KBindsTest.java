@@ -62,8 +62,14 @@ public class PreparedStatement64KBindsTest extends BaseTest4 {
     setBinaryMode(binaryMode);
   }
 
+  /**
+   * The v3 protocol counts bind parameters in an unsigned int16, so up to 65535 binds are
+   * described and round-trip, and {@code prepareStatement} refuses more with
+   * {@link PSQLState#INVALID_PARAMETER_VALUE}. {@link PreferQueryMode#SIMPLE} inlines the values
+   * into the SQL text instead of binding them, so it accepts any count.
+   */
   @Test
-  public void executeWith65535BindsWorks() throws SQLException {
+  public void upTo65535BindsAreDescribedAndRoundTripAndMoreAreRefused() throws SQLException {
     String sql = Collections.nCopies(numBinds, "?").stream()
         .collect(Collectors.joining(",", "select ARRAY[", "]"));
 
@@ -76,6 +82,13 @@ public class PreparedStatement64KBindsTest extends BaseTest4 {
               .mapToObj(i -> "v" + i).toArray()
       );
 
+      if (preferQueryMode != PreferQueryMode.SIMPLE) {
+        // Only Describe Statement, which getParameterMetaData() sends, makes the server send
+        // ParameterDescription, so no other call here reads that 6 + 4 * numBinds byte message.
+        assertEquals(numBinds, ps.getParameterMetaData().getParameterCount(),
+            "ps.getParameterMetaData().getParameterCount()");
+      }
+
       try (ResultSet rs = ps.executeQuery()) {
         rs.next();
         Array res = rs.getArray(1);
@@ -83,7 +96,7 @@ public class PreparedStatement64KBindsTest extends BaseTest4 {
         String actual = Arrays.toString(elements);
 
         if (preferQueryMode == PreferQueryMode.SIMPLE || numBinds <= 65535) {
-          assertEquals(actual, expected, () -> "SELECT query with " + numBinds + " should work");
+          assertEquals(expected, actual, () -> "SELECT query with " + numBinds + " binds");
         } else {
           fail("con.prepareStatement(..." + numBinds + " binds) should fail since the wire protocol allows only 65535 parameters");
         }
@@ -93,7 +106,7 @@ public class PreparedStatement64KBindsTest extends BaseTest4 {
         assertEquals(
             PSQLState.INVALID_PARAMETER_VALUE.getState(),
             e.getSQLState(),
-            () -> "con.prepareStatement(..." + numBinds + " binds) should fail since the wire protocol allows only 65535 parameters. SQL State is "
+            () -> "con.prepareStatement(..." + numBinds + " binds) should fail since the wire protocol allows only 65535 parameters"
         );
       } else {
         throw e;

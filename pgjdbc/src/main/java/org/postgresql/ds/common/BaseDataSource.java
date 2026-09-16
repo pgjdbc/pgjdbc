@@ -1858,6 +1858,47 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.MAX_RESULT_BUFFER.set(properties, maxResultBuffer);
   }
 
+  /**
+   * @return size of the largest CopyData message the driver accepts, as a byte count with an
+   *         optional decimal multiplier ({@code 64M}) or as a percentage of the maximum heap
+   *         ({@code 5p}), or {@code null} while the driver's own limit applies
+   * @see PGProperty#MAX_COPY_DATA_SIZE
+   */
+  public @Nullable String getMaxCopyDataSize() {
+    return PGProperty.MAX_COPY_DATA_SIZE.getOrDefault(properties);
+  }
+
+  /**
+   * @param maxCopyDataSize byte count with an optional decimal multiplier ({@code 64M}) or a
+   *        percentage of the maximum heap ({@code 5p}); {@code null} restores the driver's own
+   *        limit
+   * @see PGProperty#MAX_COPY_DATA_SIZE
+   */
+  public void setMaxCopyDataSize(@Nullable String maxCopyDataSize) {
+    PGProperty.MAX_COPY_DATA_SIZE.set(properties, maxCopyDataSize);
+  }
+
+  /**
+   * @return size of the largest server-generated text message the driver accepts, in the same
+   *         form as {@link #getMaxCopyDataSize()}, or {@code null} while the driver's own limit
+   *         applies; the text messages are ErrorResponse, NoticeResponse, CommandComplete,
+   *         ParameterStatus, and NotificationResponse
+   * @see PGProperty#MAX_SERVER_TEXT_MESSAGE_SIZE
+   */
+  public @Nullable String getMaxServerTextMessageSize() {
+    return PGProperty.MAX_SERVER_TEXT_MESSAGE_SIZE.getOrDefault(properties);
+  }
+
+  /**
+   * @param maxServerTextMessageSize byte count with an optional decimal multiplier ({@code 64M})
+   *        or a percentage of the maximum heap ({@code 5p}); {@code null} restores the driver's
+   *        own limit
+   * @see PGProperty#MAX_SERVER_TEXT_MESSAGE_SIZE
+   */
+  public void setMaxServerTextMessageSize(@Nullable String maxServerTextMessageSize) {
+    PGProperty.MAX_SERVER_TEXT_MESSAGE_SIZE.set(properties, maxServerTextMessageSize);
+  }
+
   public boolean getAdaptiveFetch() {
     return PGProperty.ADAPTIVE_FETCH.getBoolean(properties);
   }

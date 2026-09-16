@@ -136,6 +136,13 @@ public class V3PGReplicationStream implements PGReplicationStream {
       if (buffer == null) {
         return null;
       }
+      // Every replication message starts with a type code, so an empty CopyData is reported the
+      // same way as an unknown type.
+      if (!buffer.hasRemaining()) {
+        throw new PSQLException(
+            GT.tr("Protocol error. The replication stream received an empty CopyData message, which carries no message type."),
+            PSQLState.PROTOCOL_VIOLATION);
+      }
 
       int code = buffer.get();
 

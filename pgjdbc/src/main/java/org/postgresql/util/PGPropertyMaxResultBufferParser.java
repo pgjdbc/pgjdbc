@@ -13,6 +13,10 @@ import java.util.function.LongSupplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Parses the size syntax of {@code maxResultBuffer}, which some other size-valued connection
+ * properties also accept.
+ */
 public class PGPropertyMaxResultBufferParser {
 
   private static final Logger LOGGER = Logger.getLogger(PGPropertyMaxResultBufferParser.class.getName());
@@ -33,27 +37,66 @@ public class PGPropertyMaxResultBufferParser {
   };
 
   /**
-   * Method to parse value of max result buffer size.
+   * Parses a {@code maxResultBuffer} value, naming that property in the error.
    *
-   * @param value string containing size of bytes with optional multiplier (T, G, M or K) or percent
-   *              value to declare max percent of heap memory to use.
-   * @return value of max result buffer size.
-   * @throws PSQLException Exception when given value can't be parsed.
+   * @param value a byte count with an optional multiplier (T, G, M or K), or a percent of the
+   *              maximum heap
+   * @return the size in bytes, lowered to 90% of the maximum heap when it is larger, or {@code -1}
+   *     when {@code value} is unset
+   * @throws PSQLException if the value cannot be parsed, or parses to zero or below
+   * @see #parseProperty(String, String)
    */
   public static long parseProperty(@Nullable String value) throws PSQLException {
-    return parseProperty(value, PGPropertyMaxResultBufferParser::defaultMaxHeapBytesOrNegativeOne);
+    return parseProperty("maxResultBuffer", value);
+  }
+
+  /**
+   * Parses a size property in the {@code maxResultBuffer} syntax: a byte count with an optional
+   * decimal multiplier ({@code 150M} is 150000000 bytes) or a share of the maximum heap
+   * ({@code 10p}).
+   *
+   * <p>{@code null} and the empty string mean unset and parse to {@code -1}. A value that parses
+   * to zero or below throws rather than meaning unset or unlimited, so a mistyped value means the
+   * same thing in every property that shares this syntax.
+   *
+   * @param propertyName connection property the value belongs to, named in the error
+   * @param value        the value to parse
+   * @return the size in bytes, lowered to 90% of the maximum heap when it is larger, or {@code -1}
+   *     when {@code value} is unset
+   * @throws PSQLException if the value cannot be parsed, or parses to zero or below
+   */
+  public static long parseProperty(String propertyName, @Nullable String value)
+      throws PSQLException {
+    return parseProperty(propertyName, value,
+        PGPropertyMaxResultBufferParser::defaultMaxHeapBytesOrNegativeOne);
   }
 
   static long parseProperty(@Nullable String value, LongSupplier maxHeapBytesSupplier)
       throws PSQLException {
+    return parseProperty("maxResultBuffer", value, maxHeapBytesSupplier);
+  }
+
+  static long parseProperty(String propertyName, @Nullable String value,
+      LongSupplier maxHeapBytesSupplier) throws PSQLException {
     long result = -1;
     //noinspection StatementWithEmptyBody
     if (value == null) {
       // default branch
-    } else if (checkIfValueContainsPercent(value)) {
-      result = parseBytePercentValue(value, maxHeapBytesSupplier);
-    } else if (!value.isEmpty()) {
-      result = parseByteValue(value);
+    } else {
+      try {
+        if (checkIfValueContainsPercent(value)) {
+          result = parseBytePercentValue(propertyName, value, maxHeapBytesSupplier);
+        } else if (!value.isEmpty()) {
+          result = parseByteValue(propertyName, value);
+        }
+      } catch (NumberFormatException | ArithmeticException e) {
+        throw invalidSize(propertyName, value, e);
+      }
+    }
+    if (value != null && !value.isEmpty() && result <= 0) {
+      throw new PSQLException(GT.tr(
+          "The {0} connection property must be a positive size, but its value is {1}. Give a byte count such as 150M or a share of the heap such as 10p, or leave the property unset.",
+          propertyName, value), PSQLState.INVALID_PARAMETER_VALUE);
     }
     result = adjustResultSize(result, maxHeapBytesSupplier);
     return result;
@@ -77,8 +120,8 @@ public class PGPropertyMaxResultBufferParser {
    * @return percent value of max result buffer size.
    * @throws PSQLException Exception when given value can't be parsed.
    */
-  private static long parseBytePercentValue(String value, LongSupplier maxHeapBytesSupplier)
-      throws PSQLException {
+  private static long parseBytePercentValue(String propertyName, String value,
+      LongSupplier maxHeapBytesSupplier) throws PSQLException {
     long result = -1;
     int length;
 
@@ -86,12 +129,10 @@ public class PGPropertyMaxResultBufferParser {
       length = getPercentPhraseLengthIfContains(value);
 
       if (length == -1) {
-        throwExceptionAboutParsingError(
-            "Received MaxResultBuffer parameter can't be parsed. Value received to parse: {0}",
-            value);
+        throw invalidSize(propertyName, value, null);
       }
 
-      result = calculatePercentOfMemory(value, length, maxHeapBytesSupplier);
+      result = calculatePercentOfMemory(propertyName, value, length, maxHeapBytesSupplier);
     }
     return result;
   }
@@ -137,12 +178,15 @@ public class PGPropertyMaxResultBufferParser {
   /**
    * Method to calculate percent of given max heap memory.
    *
+   * @param propertyName        connection property the value belongs to, named in the error
    * @param value               String which contains percent + percent phrase which gonna be used
    *                            during calculations.
    * @param percentPhraseLength Length of percent phrase inside given value.
+   * @param maxHeapBytesSupplier the maximum heap in bytes, or a negative number when it is unknown
    * @return Size of byte buffer based on percent of max heap memory.
+   * @throws PSQLException if the maximum heap is unknown
    */
-  private static long calculatePercentOfMemory(
+  private static long calculatePercentOfMemory(String propertyName,
       String value, int percentPhraseLength, LongSupplier maxHeapBytesSupplier)
       throws PSQLException {
     String realValue = value.substring(0, value.length() - percentPhraseLength);
@@ -150,8 +194,8 @@ public class PGPropertyMaxResultBufferParser {
     long maxHeapMemory = maxHeapBytesSupplier.getAsLong();
     if (maxHeapMemory < 0) {
       throw new PSQLException(GT.tr(
-          "Could not parse maxResultBuffer value {0}; percent values require {1}.",
-          value, MANAGEMENT_FACTORY_CLASS_NAME), PSQLState.INVALID_PARAMETER_VALUE);
+          "Could not parse {0} value {1}; percent values require {2}.",
+          propertyName, value, MANAGEMENT_FACTORY_CLASS_NAME), PSQLState.INVALID_PARAMETER_VALUE);
     }
     return (long) (percent * maxHeapMemory);
   }
@@ -160,11 +204,15 @@ public class PGPropertyMaxResultBufferParser {
    * Method to get size based on given string value. String can contains just a number or number +
    * multiplier sign (like T, G, M or K).
    *
+   * @param propertyName connection property the value belongs to, named in the error
    * @param value Given string to be parsed.
    * @return Size based on given string.
-   * @throws PSQLException Exception when given value can't be parsed.
+   * @throws PSQLException if the value ends in neither a digit nor a multiplier
+   * @throws NumberFormatException if the digits before the multiplier do not form an {@code int},
+   *     or a value without a multiplier does not form a {@code long}
+   * @throws ArithmeticException if the size in bytes overflows {@code long}
    */
-  private static long parseByteValue(String value) throws PSQLException {
+  private static long parseByteValue(String propertyName, String value) throws PSQLException {
     long result = -1;
     long multiplier = 1;
     long mul = 1000;
@@ -192,19 +240,14 @@ public class PGPropertyMaxResultBufferParser {
       case 'k':
         multiplier *= mul;
         realValue = value.substring(0, value.length() - 1);
-        result = Integer.parseInt(realValue) * multiplier;
+        result = Math.multiplyExact((long) Integer.parseInt(realValue), multiplier);
         break;
-
-      case '%':
-        return result;
 
       default:
         if (sign >= '0' && sign <= '9') {
           result = Long.parseLong(value);
         } else {
-          throwExceptionAboutParsingError(
-              "Received MaxResultBuffer parameter can't be parsed. Value received to parse: {0}",
-              value);
+          throw invalidSize(propertyName, value, null);
         }
         break;
     }
@@ -257,16 +300,14 @@ public class PGPropertyMaxResultBufferParser {
   }
 
   /**
-   * Method to throw message for parsing MaxResultBuffer.
+   * Returns the exception for a value of {@code propertyName} that is not in the size syntax.
    *
-   * @param message Message to be added to exception.
-   * @param values  Values to be put inside exception message.
-   * @throws PSQLException Exception when given value can't be parsed.
+   * @param cause the parse failure, or {@code null} when the syntax check found the problem
    */
-  private static void throwExceptionAboutParsingError(String message, Object... values) throws PSQLException {
-    throw new PSQLException(GT.tr(
-      message,
-      values),
-      PSQLState.SYNTAX_ERROR);
+  private static PSQLException invalidSize(String propertyName, String value,
+      @Nullable Throwable cause) {
+    return new PSQLException(GT.tr(
+        "The {0} connection property has the value {1}, which is not a valid size. Give a byte count such as 150M or a share of the heap with the p suffix, such as 10p.",
+        propertyName, value), PSQLState.INVALID_PARAMETER_VALUE, cause);
   }
 }

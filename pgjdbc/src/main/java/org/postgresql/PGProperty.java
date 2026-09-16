@@ -465,6 +465,19 @@ public enum PGProperty {
       "When connections that are not explicitly closed are garbage collected, log the stacktrace from the opening of the connection to trace the leak source"),
 
   /**
+   * Largest single CopyData message the driver accepts, in bytes. The backend delivers COPY
+   * output and both logical and physical replication data as CopyData, so this also bounds a
+   * replication stream. The property is unset by default, and the driver then applies a
+   * built-in limit of 64 MB (64000000 bytes), which the system property
+   * {@code -Dpgjdbc.protocolHardeningMode=disable} switches off. A value set here applies in
+   * every mode. Suffixes are decimal, so {@code 64M} is 64000000 bytes.
+   */
+  MAX_COPY_DATA_SIZE(
+      "maxCopyDataSize",
+      null,
+      "Specifies the largest single CopyData message the driver accepts. COPY output and logical and physical replication data arrive as CopyData, so this also limits replication streams. When unset, the driver applies a built-in limit of 64 MB (64000000 bytes) unless -Dpgjdbc.protocolHardeningMode=disable is set; a value set here applies in every mode. Can be specified as a size or a percent of heap memory."),
+
+  /**
    * Specifies size of buffer during fetching result set. Can be specified as specified size or
    * percent of heap memory.
    */
@@ -480,6 +493,21 @@ public enum PGProperty {
       "maxSendBufferSize",
       "8192",
       "Maximum amount of bytes buffered before sending to the backend"),
+
+  /**
+   * Largest ErrorResponse, NoticeResponse, CommandComplete, ParameterStatus or
+   * NotificationResponse the driver accepts after authentication, in bytes. The protocol fixes
+   * no maximum for these server-generated text messages, so the driver applies its own limit of
+   * 64 MB (64000000 bytes) by default. Raise it if the backend legitimately sends larger notices
+   * or error details. The system property {@code -Dpgjdbc.protocolHardeningMode=disable}
+   * switches the limit off. Suffixes are decimal, so {@code 64M} is 64000000 bytes. An
+   * ErrorResponse that arrives before authentication has a fixed limit of 30000 bytes, which
+   * this property does not change.
+   */
+  MAX_SERVER_TEXT_MESSAGE_SIZE(
+      "maxServerTextMessageSize",
+      null,
+      "Specifies the largest ErrorResponse, NoticeResponse, CommandComplete, ParameterStatus or NotificationResponse the driver accepts after authentication. When unset, the driver applies a built-in limit of 64 MB (64000000 bytes). -Dpgjdbc.protocolHardeningMode=disable switches the limit off, whether or not this property is set. An ErrorResponse that arrives before authentication has a fixed limit of 30000 bytes, which this property does not change. Can be specified as a size or a percent of heap memory."),
 
   /**
    * Specify 'options' connection initialization parameter.

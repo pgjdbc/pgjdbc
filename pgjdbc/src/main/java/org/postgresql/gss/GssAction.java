@@ -34,6 +34,16 @@ import javax.security.auth.Subject;
 class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Nullable Exception> {
 
   private static final Logger LOGGER = Logger.getLogger(GssAction.class.getName());
+
+  /**
+   * Largest number of round-trips the GSS authentication exchange may take. {@link #negotiate}
+   * runs inside a single iteration of the authentication loop in {@code ConnectionFactoryImpl},
+   * so {@code MAX_AUTH_ITERATIONS} does not bound it, and nothing else stops a server that sends
+   * another AuthenticationGSSContinue after every token. {@link GssEncAction} applies the same
+   * value to the encryption handshake.
+   */
+  private static final int MAX_HANDSHAKE_ITERATIONS = 64;
+
   private final PGStream pgStream;
   private final String host;
   private final String kerberosServerName;
@@ -69,6 +79,11 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
     return false;
   }
 
+  /**
+   * Acquires a GSS credential and negotiates authentication with the backend.
+   *
+   * @return {@code null} once authentication succeeds, or the exception to report
+   */
   @Override
   public @Nullable Exception run() {
     try {
@@ -124,58 +139,84 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
           GSSContext.DEFAULT_LIFETIME);
       secContext.requestMutualAuth(true);
 
-      byte[] inToken = new byte[0];
-      byte[] outToken = null;
-
-      boolean established = false;
-      while (!established) {
-        outToken = secContext.initSecContext(inToken, 0, inToken.length);
-
-        if (outToken != null) {
-          LOGGER.log(Level.FINEST, " FE=> Password(GSS Authentication Token)");
-
-          pgStream.sendChar(PgMessageType.GSS_TOKEN_REQUEST);
-          pgStream.sendInteger4(4 + outToken.length);
-          pgStream.send(outToken);
-          pgStream.flush();
-        }
-
-        if (!secContext.isEstablished()) {
-          int response = pgStream.receiveChar();
-          // Error
-          switch (response) {
-            case PgMessageType.ERROR_RESPONSE:
-              int elen = pgStream.receiveInteger4();
-              ServerErrorMessage errorMsg
-                  = new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
-
-              LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
-
-              return new PSQLException(errorMsg, logServerErrorDetail);
-            case PgMessageType.AUTHENTICATION_RESPONSE:
-              LOGGER.log(Level.FINEST, " <=BE AuthenticationGSSContinue");
-              int len = pgStream.receiveInteger4();
-              @SuppressWarnings("unused")
-              int type = pgStream.receiveInteger4(); // Specifies that this message contains GSSAPI or SSPI data
-              // should check type = 8
-              inToken = pgStream.receive(len - 8);
-              break;
-            default:
-              // Unknown/unexpected message type.
-              return new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-                  PSQLState.CONNECTION_UNABLE_TO_CONNECT);
-          }
-        } else {
-          established = true;
-        }
-      }
-
+      return negotiate(secContext);
     } catch (IOException e) {
       return e;
     } catch (GSSException gsse) {
       return new PSQLException(GT.tr("GSS Authentication failed"), PSQLState.CONNECTION_FAILURE,
           gsse);
     }
+  }
+
+  /**
+   * Exchanges tokens with the backend until {@code secContext} is established.
+   *
+   * @param secContext the context to establish
+   * @return {@code null} once the context is established, or the failure to report. Running past
+   *     {@value #MAX_HANDSHAKE_ITERATIONS} round-trips also marks the connection broken
+   * @throws IOException if a read or write fails, or a message length is outside its limit; for
+   *     a length outside its limit the stream is marked broken first
+   * @throws GSSException if the GSS context rejects a token while it initiates the security
+   *     context
+   */
+  @Nullable Exception negotiate(GSSContext secContext) throws IOException, GSSException {
+    byte[] inToken = new byte[0];
+    byte[] outToken = null;
+
+    boolean established = false;
+    int handshakeIterations = 0;
+    while (!established) {
+      if (++handshakeIterations > MAX_HANDSHAKE_ITERATIONS) {
+        // A zero-length token is a valid continuation, so the token length cannot end the
+        // exchange.
+        return pgStream.markBroken(new PSQLException(GT.tr(
+            "Protocol error. GSS authentication did not complete within {0} round-trips.",
+            String.valueOf(MAX_HANDSHAKE_ITERATIONS)), PSQLState.PROTOCOL_VIOLATION));
+      }
+      outToken = secContext.initSecContext(inToken, 0, inToken.length);
+
+      if (outToken != null) {
+        LOGGER.log(Level.FINEST, " FE=> Password(GSS Authentication Token)");
+
+        pgStream.sendChar(PgMessageType.GSS_TOKEN_REQUEST);
+        pgStream.sendInteger4(4 + outToken.length);
+        pgStream.send(outToken);
+        pgStream.flush();
+      }
+
+      if (!secContext.isEstablished()) {
+        int response = pgStream.receiveMessageType();
+        switch (response) {
+          case PgMessageType.ERROR_RESPONSE:
+            int elen = pgStream.readPreAuthMessageLength(
+                "ErrorResponse", 5, PGStream.MAX_PRE_AUTH_ERROR_RESPONSE_SIZE);
+            ServerErrorMessage errorMsg
+                = new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
+
+            LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
+
+            return new PSQLException(errorMsg, logServerErrorDetail);
+          case PgMessageType.AUTHENTICATION_RESPONSE:
+            LOGGER.log(Level.FINEST, " <=BE AuthenticationGSSContinue");
+            // The AuthenticationGSSContinue length counts its own 4 bytes and the 4-byte
+            // authentication type, so the GSS token takes the remaining len - 8 bytes.
+            int len = pgStream.readPreAuthMessageLength(
+                "AuthenticationGSSContinue", 8, PGStream.MAX_AUTHENTICATION_MESSAGE_SIZE);
+            @SuppressWarnings("unused")
+            int type = pgStream.receiveInteger4(); // Specifies that this message contains GSSAPI or SSPI data
+            // The driver should check that the authentication type is 8, AuthenticationGSSContinue.
+            inToken = pgStream.receive(len - 8);
+            pgStream.endMessage();
+            break;
+          default:
+            return new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+                PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+        }
+      } else {
+        established = true;
+      }
+    }
+
     return null;
   }
 
