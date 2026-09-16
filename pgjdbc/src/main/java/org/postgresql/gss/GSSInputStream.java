@@ -133,7 +133,7 @@ public class GSSInputStream extends InputStream {
       }
     }
     encryptedLength = ByteConverter.int4(int4Buf, 0);
-    // Within the payload maximum the length always fits the buffer.
+    // A length within MAX_PAYLOAD_SIZE always fits the fixed encrypted buffer.
     if (encryptedLength < 1 || encryptedLength > MAX_PAYLOAD_SIZE) {
       onProtocolViolation.run();
       throw new IOException(GT.tr("Backend declared a GSS packet of {0} bytes, the maximum is {1}.",

@@ -55,9 +55,9 @@ public class PGStream implements Closeable, Flushable {
   /**
    * Limit for messages that never carry bulk data: CommandComplete, AuthenticationRequest,
    * AuthenticationGSSContinue, BackendKeyData, NegotiateProtocolVersion and CopyDone. The value
-   * is the backend's {@code MAX_STARTUP_PACKET_LENGTH}, reused for a short control message.
-   * libpq allows 2000 for {@code 'R'} and {@code 'v'} during setup and 30000 for any other
-   * message outside {@code VALID_LONG_MESSAGE_TYPE}.
+   * is the backend's {@code MAX_STARTUP_PACKET_LENGTH}, reused for a short control message. For
+   * comparison, libpq allows 2000 for {@code 'R'} and {@code 'v'} during setup and 30000 for any
+   * other message outside {@code VALID_LONG_MESSAGE_TYPE}.
    */
   public static final int MAX_SMALL_MESSAGE_LENGTH = 10000;
 
@@ -66,9 +66,9 @@ public class PGStream implements Closeable, Flushable {
    * {@link #receiveErrorString(int)}. DataRow and CopyData read straight into their destination.
    *
    * <p>ErrorResponse and NoticeResponse buffer this much and drain the rest, so a long one is
-   * truncated rather than refused. ParameterStatus and NotificationResponse are refused above
-   * it. A NOTIFY payload is at most 8000 bytes, and libpq drops the connection on a
-   * ParameterStatus above 30000.</p>
+   * truncated rather than refused. ParameterStatus and NotificationResponse are refused above it
+   * instead, which costs nothing in practice: a NOTIFY payload is at most 8000 bytes, and libpq
+   * itself drops the connection on a ParameterStatus above 30000.</p>
    *
    * <p>The body is four bytes shorter than the message, so a message of exactly this length
    * still fits the buffer.</p>
@@ -86,8 +86,8 @@ public class PGStream implements Closeable, Flushable {
 
   /**
    * Limit on the round trips in the authentication loop and the two GSS handshakes. Without it
-   * the loop runs for as long as the server answers every token with another. Sixty four is an
-   * order of magnitude above any real handshake. The longest is SASL at four.
+   * the loop runs for as long as the server answers every token with another. Sixty-four is far
+   * more than any real handshake needs; the longest is SASL, which takes four.
    */
   public static final int MAX_AUTH_ROUND_TRIPS = 64;
 
@@ -107,9 +107,10 @@ public class PGStream implements Closeable, Flushable {
   private long messageEnd = -1;
 
   /**
-   * Callback for the buffered and GSS streams, so their refusals mark this stream broken. A
-   * method rather than a field, because the Checker Framework rejects an anonymous class in a
-   * field initializer calling setBroken on the not yet initialized instance.
+   * Callback for the buffered and GSS streams, so that their refusals mark this stream broken.
+   * This is a method rather than a field because the Checker Framework rejects a field
+   * initializer whose anonymous class calls setBroken on an instance that is not yet
+   * initialized.
    */
   private Runnable markBroken() {
     return new Runnable() {
@@ -569,7 +570,7 @@ public class PGStream implements Closeable, Flushable {
    * Receives a message length and checks it. Everything the driver reads or allocates for the
    * message is sized from this field. The length includes the four bytes of the field itself.
    *
-   * @param packetName wire-protocol name of the message, used in the error
+   * @param packetName wire-protocol name of the message, used in the error message
    * @param minLength smallest length the message layout permits, at least 4
    * @param maxLength largest length accepted for the message type
    * @return the message length
@@ -756,7 +757,7 @@ public class PGStream implements Closeable, Flushable {
     int messageSize = receiveMessageLength("DataRow", 6, MAX_MESSAGE_LENGTH);
     int nf = receiveInteger2();
     //size = messageSize - 4 bytes of message size - 2 bytes of field count - 4 bytes for each column length
-    // Cannot overflow, nf is an unsigned int2.
+    // Cannot overflow, because nf is an unsigned int2.
     int dataToReadSize = messageSize - 4 - 2 - 4 * nf;
     if (dataToReadSize < 0) {
       throw protocolViolation(GT.tr("DataRow of {0} bytes cannot hold {1} column lengths.",

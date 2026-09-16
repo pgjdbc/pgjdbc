@@ -73,8 +73,8 @@ public class VisibleBufferedInputStream extends InputStream {
   private int endIndex;
 
   /**
-   * Bytes read from this stream since it was created. It only grows, so a caller can record where
-   * a message ends and compare later.
+   * Bytes read from this stream since it was created. The count only grows, so a caller can
+   * record where a message ends and compare that against the count later.
    */
   private long position;
 
@@ -101,7 +101,7 @@ public class VisibleBufferedInputStream extends InputStream {
    *
    * @param in The stream to buffer.
    * @param bufferSize The initial size of the buffer.
-   * @param onProtocolViolation run when a read is refused, so the owner can mark itself broken.
+   * @param onProtocolViolation Run when a read is refused, so the owner can mark itself broken.
    */
   public VisibleBufferedInputStream(InputStream in, int bufferSize, Runnable onProtocolViolation) {
     wrapped = in;
@@ -268,9 +268,9 @@ public class VisibleBufferedInputStream extends InputStream {
           "Backend asked for {0} bytes of buffer, the maximum is {1} bytes.",
           String.valueOf(required), String.valueOf(MAX_BUFFER_SIZE)));
     }
-    // Compact only if that leaves room for a reasonably sized read, or a nearly full buffer
-    // compacts on every call and each socket read is a few bytes. At the maximum there is
-    // nothing to grow into, so compact anyway.
+    // Compact only if that leaves room for a reasonably sized read. Otherwise a nearly full
+    // buffer would compact on every call and each socket read would be only a few bytes. At the
+    // maximum there is nothing to grow into, so compact anyway.
     if (required + MINIMUM_READ <= buffer.length || buffer.length >= MAX_BUFFER_SIZE) {
       compact();
       return;
@@ -468,7 +468,7 @@ public class VisibleBufferedInputStream extends InputStream {
    * Scans the length of the next null terminated string (C-style string) from the stream, looking
    * no further than the given number of bytes.
    *
-   * @param maxLength the most bytes the string may occupy, including its terminator.
+   * @param maxLength The most bytes the string may occupy, including its terminator.
    * @return The length of the next null terminated string.
    * @throws IOException If reading of stream fails, or no terminator is within maxLength.
    * @throws EOFException If the stream did not contain any null terminators.
