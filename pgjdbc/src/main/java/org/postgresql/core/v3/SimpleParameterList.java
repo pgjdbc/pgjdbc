@@ -495,6 +495,44 @@ class SimpleParameterList implements V3ParameterList {
     return (byte) (flags[index] & INOUT);
   }
 
+  /**
+   * Cheap size estimate for logging only. Avoids encoding or fully rendering the value.
+   *
+   * <p>Recognized value types ({@code byte[]}, {@code String}, {@link StreamWrapper},
+   * {@link ByteStreamWriter}) return a non-negative lower bound on rendered log size. Unset and
+   * SQL-null parameters return the length of their fixed log forms ({@code "?"} /
+   * {@code "(NULL)"}). Any other value type returns {@code -1} (unknown size) so callers can avoid
+   * unbounded {@code toString} materialization.</p>
+   *
+   * @return non-negative estimated size in characters (or raw bytes for binary payloads — a lower
+   *         bound on rendered length), or {@code -1} when the size is unknown
+   */
+  int estimateLogSize(@Positive int index) {
+    Object value = paramValues[index - 1];
+    if (value == null) {
+      // Unset parameter renders as "?" in toString.
+      return 1;
+    }
+    if (value == NULL_OBJECT) {
+      // SQL null renders as "(NULL)".
+      return 6;
+    }
+    if (value instanceof byte[]) {
+      return ((byte[]) value).length;
+    }
+    if (value instanceof String) {
+      return ((String) value).length();
+    }
+    if (value instanceof StreamWrapper) {
+      return ((StreamWrapper) value).getLength();
+    }
+    if (value instanceof ByteStreamWriter) {
+      return ((ByteStreamWriter) value).getLength();
+    }
+    // Unrecognized type: callers must not assume the value is small enough to render.
+    return -1;
+  }
+
   int getV3Length(@Positive int index) {
     --index;
 

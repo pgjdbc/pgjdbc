@@ -522,6 +522,12 @@ Whether to include server error details in exceptions and log messages (for exam
 Setting to `false` will only include minimal, not sensitive messages.
 By default, this is set to `true`, server error details are propagated. This may include sensitive details such as query parameters.
 
+* **`maxLogMessageLength (`*int*`)`** *Default `16384`*\
+Maximum length in characters of a single driver log message. Caps FINEST protocol dumps such as Bind
+parameter lists so that very large or numerous bind values cannot exhaust memory while logging.
+Set to `0` to disable the limit (legacy unbounded behaviour). Messages that exceed the limit are
+truncated and end with `...(truncated)`.
+
 * **`quoteReturningIdentifiers (`*boolean*`)`** *Default `true`*\
 Quote returning columns. There are some ORM's that quote everything, including returning columns
 If we quote them, then we end up sending ""colname"" to the backend instead of "colname" which will not be found.

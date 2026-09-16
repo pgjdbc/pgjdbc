@@ -24,6 +24,13 @@ to enable logging that it is replaced by the use of `java.util.logging` in curre
 > Please note that while most people asked the use of a Logging Framework for a long time, this support is mainly to
 > debug the driver itself and not for general SQL query debug.
 
+> **NOTE**
+>
+> FINEST protocol dumps (especially `FE=> Bind(...)` with many or large parameters) are capped by the
+> `maxLogMessageLength` connection property (default `16384` characters). Set it to `0` for unlimited
+> messages. See the `maxLogMessageLength` property in the connection parameters documentation for details.
+
+
 ## Configuration
 
 The Logging APIs offer both static and dynamic configuration control. Static control enables field service staff to set
