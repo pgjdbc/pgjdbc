@@ -87,8 +87,8 @@ public class PGStream implements Closeable, Flushable {
 
   /**
    * Limit on the round trips in the authentication loop and the two GSS handshakes. Without it
-   * the loop runs for as long as the server answers every token with another. 64 round trips is far
-   * more than any real handshake needs; the longest is SASL, which takes four.
+   * the loop runs for as long as the server answers every token with another. The longest real
+   * handshake, SASL, takes four.
    */
   public static final int MAX_AUTH_ROUND_TRIPS = 64;
 
