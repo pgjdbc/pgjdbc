@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -17,11 +18,14 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import org.postgresql.PGConnection;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.GT;
+import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.ByteArrayInputStream;
 import java.io.StringReader;
@@ -1011,6 +1015,65 @@ public class UpdateableResultTest extends BaseTest4 {
       assertEquals(ts, rs.getObject(3, LocalDateTime.class));
       assertEquals(d, rs.getObject(4, LocalDate.class));
       assertEquals(t, rs.getObject(5, LocalTime.class));
+    }
+  }
+
+  /**
+   * {@code updateRow()} binds an {@link OffsetDateTime} as {@code timestamptz}, and the server
+   * converts it into the session time zone before storing it in a {@code timestamp}, {@code date},
+   * {@code time}, or {@code timetz} column. A {@code timestamp} column used to store that
+   * session-dependent value, and the other three failed in {@code updateRow()} with
+   * {@code ClassCastException}.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"ts", "d", "t", "ttz"})
+  void offsetDateTimeIsRefusedForADateOrTimeColumnOtherThanTimestamptz(String column)
+      throws SQLException {
+    OffsetDateTime value = OffsetDateTime.of(2024, 1, 31, 12, 34, 56, 0, ZoneOffset.ofHours(5));
+    try (Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs =
+            st.executeQuery("SELECT id, " + column + " FROM datetimetable WHERE id = 1")) {
+      assertTrue(rs.next(), "datetimetable must contain the seeded row with id = 1");
+      SQLException e = assertThrows(SQLException.class, () -> rs.updateObject(column, value));
+      assertEquals(PSQLState.INVALID_PARAMETER_TYPE.getState(), e.getSQLState(),
+          () -> "updateObject(\"" + column + "\", " + value + ")");
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"ts", "d", "t", "ttz"})
+  void offsetDateTimeIsRefusedForADateOrTimeColumnOtherThanTimestamptzOnTheInsertRow(String column)
+      throws SQLException {
+    OffsetDateTime value = OffsetDateTime.of(2024, 1, 31, 12, 34, 56, 0, ZoneOffset.ofHours(5));
+    try (Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = st.executeQuery("SELECT id, " + column + " FROM datetimetable")) {
+      rs.moveToInsertRow();
+      SQLException e = assertThrows(SQLException.class, () -> rs.updateObject(column, value));
+      assertEquals(PSQLState.INVALID_PARAMETER_TYPE.getState(), e.getSQLState(),
+          () -> "updateObject(\"" + column + "\", " + value + ") on the insert row");
+    }
+  }
+
+  /**
+   * After the refused {@code updateObject}, the row has no pending change, so {@code updateRow()}
+   * sends no statement and the column keeps its {@code NULL}.
+   */
+  @Test
+  void aRefusedOffsetDateTimeLeavesNoPendingUpdate() throws SQLException {
+    OffsetDateTime value = OffsetDateTime.of(2024, 1, 31, 12, 34, 56, 0, ZoneOffset.ofHours(5));
+    try (Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = st.executeQuery("SELECT id, ts FROM datetimetable WHERE id = 1")) {
+      assertTrue(rs.next(), "datetimetable must contain the seeded row with id = 1");
+      assertThrows(SQLException.class, () -> rs.updateObject("ts", value));
+      rs.updateRow();
+    }
+    try (Statement st = con.createStatement();
+        ResultSet rs = st.executeQuery("SELECT ts FROM datetimetable WHERE id = 1")) {
+      assertTrue(rs.next(), "datetimetable must contain the seeded row with id = 1");
+      assertNull(rs.getObject(1), "ts after updateRow() that followed the refused updateObject");
     }
   }
 
