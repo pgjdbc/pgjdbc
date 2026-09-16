@@ -67,8 +67,8 @@ public class PGStream implements Closeable, Flushable {
    *
    * <p>ErrorResponse and NoticeResponse buffer this much and drain the rest, so a long one is
    * truncated rather than refused. ParameterStatus and NotificationResponse are refused above it
-   * instead, which costs nothing in practice: a NOTIFY payload stays under 8000 bytes at the
-   * default block size, and libpq itself drops the connection on a ParameterStatus above
+   * instead. Neither one grows anywhere near this size: a NOTIFY payload is under 8000 bytes at
+   * the default block size, and libpq itself drops the connection on a ParameterStatus above
    * 30000.</p>
    *
    * <p>The body is four bytes shorter than the message, so a message of exactly this length
