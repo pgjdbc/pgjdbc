@@ -469,7 +469,6 @@ val sourceDistribution = tasks.register<Tar>("sourceDistribution") {
     into("src/test") {
         from("$withoutAnnotations/src/test") {
             exclude("*/org/postgresql/test/osgi/**")
-            exclude("**/*Suite*")
             exclude("*/org/postgresql/test/sspi/*.java")
             exclude("*/org/postgresql/replication/**")
         }
