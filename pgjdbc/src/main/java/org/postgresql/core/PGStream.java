@@ -597,9 +597,9 @@ public class PGStream implements Closeable, Flushable {
    * by misreading what follows.
    *
    * <p>Only messages whose length came through {@link #receiveMessageLength} are checked. The
-   * SSL and GSS encryption replies are a single byte read with {@link #receiveChar()}, and the GSS
-   * handshake tokens carry a length of their own that no message type precedes, so neither of them
-   * is message framed and neither sets an end to check.</p>
+   * SSL and GSS encryption replies are a single byte read with {@link #receiveChar()}, and the
+   * GSS encryption handshake exchanges raw tokens under a length of their own that no message
+   * type precedes, so neither read is message framed and neither sets an end to check.</p>
    *
    * @return the message type byte
    * @throws IOException if the stream is broken, if the previous message was not consumed
