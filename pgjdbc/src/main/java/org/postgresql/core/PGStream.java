@@ -759,7 +759,7 @@ public class PGStream implements Closeable, Flushable {
     int messageSize = receiveMessageLength("DataRow", 6, MAX_MESSAGE_LENGTH);
     int nf = receiveInteger2();
     //size = messageSize - 4 bytes of message size - 2 bytes of field count - 4 bytes for each column length
-    // Cannot overflow, because nf is an unsigned int2.
+    // Cannot overflow, nf is an unsigned int2.
     int dataToReadSize = messageSize - 4 - 2 - 4 * nf;
     if (dataToReadSize < 0) {
       throw protocolViolation(GT.tr("DataRow of {0} bytes cannot hold {1} column lengths.",
