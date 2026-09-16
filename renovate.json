@@ -23,6 +23,16 @@
       "matchStrings": [
         "// renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+) versioning=(?<versioning>\\S+)\\s+const MAX_PG = '(?<currentValue>\\d+)'"
       ]
+    },
+    {
+      "customType": "regex",
+      "description": "Track the newest generally available Java major (gaJava in matrix.mjs) against the Adoptium release list. matrix.mjs derives the early-access major from it, since jdk.java.net serves early-access builds for the release that follows the newest GA one. The regex versioning keeps only the major, so Renovate bumps gaJava when the next major ships, not on 26.0.x updates.",
+      "managerFilePatterns": [
+        "/\\.github/workflows/matrix\\.mjs$/"
+      ],
+      "matchStrings": [
+        "// renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+) versioning=(?<versioning>\\S+)\\s+const gaJava = '(?<currentValue>\\d+)'"
+      ]
     }
   ],
   "packageRules": [
