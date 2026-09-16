@@ -309,6 +309,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       doAuthentication(newStream, hostSpec.getHost(), user, info);
 
       return newStream;
+    } catch (IOException e) {
+      // A refused length is a protocol violation, not a transport failure. Reporting it as one
+      // excludes it from the sslMode=allow/prefer retry below, which is for a peer that dropped
+      // the connection.
+      boolean broken = newStream.isBroken();
+      closeStream(newStream, e);
+      if (broken) {
+        throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+            PSQLState.PROTOCOL_VIOLATION, e);
+      }
+      throw e;
     } catch (Exception e) {
       closeStream(newStream, e);
       throw e;
@@ -584,7 +595,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.sendInteger2(1234);
     pgStream.sendInteger2(5680);
     pgStream.flush();
-    // Now get the response from the backend, one of N, E, S.
+    // Now get the response from the backend, one of N, E, S. A bare byte, not a message.
     int beresp = pgStream.receiveChar();
     pgStream.setNetworkTimeout(currentTimeout);
     switch (beresp) {
@@ -678,7 +689,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.sendInteger2(5679);
     pgStream.flush();
 
-    // Now get the response from the backend, one of N, E, S.
+    // Now get the response from the backend, one of N, E, S. A bare byte, not a message.
     int beresp = pgStream.receiveChar();
     pgStream.setNetworkTimeout(currentTimeout);
 
@@ -800,15 +811,41 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     @Nullable EnumSet<AuthMethod> authMethods = AuthMethod.parseRequireAuth(requireAuth);
 
     try {
+      int messages = 0;
       authloop: while (true) {
-        int beresp = pgStream.receiveChar();
+        // Nothing else bounds this loop. Without it a server could send
+        // AuthenticationCleartextPassword any number of times and get a password each time.
+        if (++messages > PGStream.MAX_AUTH_ROUND_TRIPS) {
+          pgStream.setBroken();
+          throw new PSQLException(GT.tr(
+              "Backend sent more than {0} messages without finishing authentication.",
+              PGStream.MAX_AUTH_ROUND_TRIPS), PSQLState.PROTOCOL_VIOLATION);
+        }
+        int beresp = pgStream.receiveMessageType();
 
         switch (beresp) {
           case PgMessageType.NEGOTIATE_PROTOCOL_RESPONSE:  // Negotiate Protocol Version
-            // read the length and ignore it.
-            pgStream.receiveInteger4();
+            // 4 (length) + 4 (protocol version) + 4 (option count), then a terminator each.
+            int negotiateLen = pgStream.receiveMessageLength("NegotiateProtocolVersion", 12,
+                PGStream.MAX_SMALL_MESSAGE_LENGTH);
             protocol = pgStream.receiveInteger4();
             int numOptionsNotRecognized = pgStream.receiveInteger4();
+            // The count is the number of unrecognized protocol options whose NUL-terminated
+            // names follow. It cannot be negative or exceed the remaining message bytes.
+            if (numOptionsNotRecognized < 0 || numOptionsNotRecognized > negotiateLen - 12) {
+              pgStream.setBroken();
+              throw new PSQLException(GT.tr(
+                  "Backend reported {0} unrecognized options in a message of {1} bytes.",
+                  String.valueOf(numOptionsNotRecognized), String.valueOf(negotiateLen)),
+                  PSQLState.PROTOCOL_VIOLATION);
+            }
+            // With no options the message is exactly its fixed part.
+            if (numOptionsNotRecognized == 0 && negotiateLen != 12) {
+              pgStream.setBroken();
+              throw new PSQLException(GT.tr(
+                  "Backend sent a {0} byte NegotiateProtocolVersion with no unrecognized options.",
+                  String.valueOf(negotiateLen)), PSQLState.PROTOCOL_VIOLATION);
+            }
             if (numOptionsNotRecognized > 0) {
               // do not connect and throw an error
               String errorMessage = "Protocol error, received invalid options: ";
@@ -829,7 +866,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // The most common one to be thrown here is:
             // "User authentication failed"
             //
-            int elen = pgStream.receiveInteger4();
+            // Read before authentication, so this limit is what bounds a hostile server's
+            // allocation.
+            int elen = pgStream.receiveMessageLength("ErrorResponse", 5,
+                PGStream.MAX_PRE_AUTH_MESSAGE_LENGTH);
 
             ServerErrorMessage errorMsg =
                 new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
@@ -838,8 +878,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
           case PgMessageType.AUTHENTICATION_RESPONSE:
             // Authentication request.
-            // Get the message length
-            int msgLen = pgStream.receiveInteger4();
+            // Get the message length. Read before authentication, so this small limit is what
+            // bounds a hostile server's allocation.
+            int msgLen = pgStream.receiveMessageLength("AuthenticationRequest", 8,
+                PGStream.MAX_SMALL_MESSAGE_LENGTH);
 
             // Get the type of request
             int areq = pgStream.receiveInteger4();
@@ -1057,6 +1099,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             break;
 
           default:
+            pgStream.setBroken();
             throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
                 PSQLState.PROTOCOL_VIOLATION);
         }

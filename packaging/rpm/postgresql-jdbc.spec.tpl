@@ -42,7 +42,16 @@
 # [4] https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc-ci/
 # ============================================================================
 
+# Compiling the pgjdbc tests needs JUnit 5.13, and running them needs 5.14: a test class
+# that combines @ParameterizedClass with @Isolated fails on 5.13 with "Dynamic test
+# descriptors must not declare exclusive resources". Fedora 45 and rawhide ship JUnit
+# 5.14.4, while 43 and 44 are still on 5.13.3, so run the suite from Fedora 45 up and
+# skip it below. Drop the condition once every chroot has 5.14.
+%if 0%{?fedora} >= 45
 %{!?runselftest:%global runselftest 1}
+%else
+%{!?runselftest:%global runselftest 0}
+%endif
 
 %global section		devel
 %global source_path	pgjdbc/src/main/java/org/postgresql
@@ -60,7 +69,9 @@ Provides:	pgjdbc = %version-%release
 BuildArch:	noarch
 ExclusiveArch:  %{java_arches} noarch
 BuildRequires:	java-devel >= 1.8
-BuildRequires:	maven-local
+# Fedora split maven-local per JDK, and Fedora 44 dropped the unversioned package.
+# A boolean dependency lets one template work on every chroot.
+BuildRequires:	(maven-local-openjdk25 or maven-local-openjdk21)
 BuildRequires:	maven-bundle-plugin
 
 BuildRequires:	mvn(com.ongres.scram:scram-client)

@@ -304,8 +304,19 @@ matrix.addAxis({
   ]
 });
 
+matrix.addAxis({
+  name: 'standard_conforming_strings',
+  values: [
+    {value: 'yes', title: '', weight: 90},
+    // pgjdbc is known to have bugs with standard_conforming_strings=no
+    // so skip tests with 'no' until https://github.com/pgjdbc/pgjdbc/pull/4404 is merged
+    // {value: 'no', title: 'standard_conforming_strings=no', weight: 10},
+  ]
+});
+
 function lessThan(minVersion) {
-    return value => Number(value) < Number(minVersion);
+    // HEAD is the development branch, so it is newer than every numbered major.
+    return value => value === 'HEAD' ? false : Number(value) < Number(minVersion);
 }
 
 matrix.setNamePattern([
@@ -314,7 +325,7 @@ matrix.setNamePattern([
     'gss', 'replication', 'slow_tests',
     'adaptive_fetch', 'rewrite_batch_inserts', 'query_timeout', 'socket_timeout',
     'login_timeout', 'connect_timeout',
-    'autosave', 'cleanupSavepoints', 'cpu_count', 'assertions'
+    'autosave', 'cleanupSavepoints', 'cpu_count', 'assertions', 'standard_conforming_strings'
 ]);
 
 // We take EA builds from Oracle
@@ -339,6 +350,10 @@ matrix.exclude({os: {value: ['windows-latest', 'macos-latest']}, pg_version: les
 matrix.imply({pg_version: 'HEAD'}, {os: {value: 'ubuntu-latest'}});
 // cleanupSavepoints is not relevant when autosave=never
 matrix.imply({autosave: {value: 'never'}}, {cleanupSavepoints: {value: 'false'}});
+// PostgreSQL 19 accepts standard_conforming_strings=on only, and rejects off with
+// "non-standard string literals are not supported".
+// See https://git.postgresql.org/gitweb/?p=postgresql.git;a=commit;h=4576208
+matrix.imply({standard_conforming_strings: {value: 'no'}}, {pg_version: lessThan('19')});
 
 // Collect coverage from a single job that turns on every feature that moves coverage (ssl,
 // scram, xa, replication, the latest stable server, one query mode). The other flags add at
@@ -463,6 +478,7 @@ include.forEach(v => {
   v.rewrite_batch_inserts = v.rewrite_batch_inserts.value;
   v.autosave = v.autosave.value;
   v.cleanupSavepoints = v.cleanupSavepoints.value;
+  v.standard_conforming_strings = v.standard_conforming_strings.value;
 
   let includeTestTags = [];
   // See https://junit.org/junit5/docs/current/user-guide/#running-tests-tag-expressions

@@ -213,6 +213,26 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private static final int SEARCH_PATH_SCAN_LIMIT = 1024;
 
   /**
+   * The longest copy response is 4 (length) + 1 (overall format) + 2 (field count) + 2 per
+   * field. The count is read through {@link PGStream#receiveInteger2()}, which is unsigned, so
+   * 0xFFFF and not Short.MAX_VALUE.
+   */
+  private static final int MAX_COPY_RESPONSE_LENGTH = 7 + 2 * 0xFFFF;
+
+  /**
+   * The longest ParameterDescription is 4 (length) + 2 (parameter count) + 4 per parameter.
+   * The count is unsigned and a statement can have 65535 parameters, so the whole range is
+   * reachable.
+   */
+  private static final int MAX_PARAMETER_DESCRIPTION_LENGTH = 6 + 4 * 0xFFFF;
+
+  /**
+   * The shortest field description in a RowDescription is an empty name and its terminator,
+   * then table OID, column position, type OID, type length, type modifier and format code.
+   */
+  private static final int MIN_FIELD_DESCRIPTION_LENGTH = 1 + 4 + 2 + 4 + 2 + 4 + 2;
+
+  /**
    * This caches the latest observed {@code set search_path} query so the reset of prepared
    * statement cache can be skipped if using repeated calls for the same {@code set search_path}
    * value.
@@ -325,6 +345,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
+  /**
   /**
    * Gives up on the connection after an I/O failure during COPY. A copy that holds the lock keeps
    * it, since a desynchronized protocol stream is not free for anyone else to use; closing the
@@ -978,7 +999,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (useTimeout && timeoutMillis >= 0) {
             setSocketTimeout(timeoutMillis);
           }
-          int c = pgStream.receiveChar();
+          int c = pgStream.receiveMessageType();
           if (useTimeout && timeoutMillis >= 0) {
             setSocketTimeout(0); // Don't timeout after first char
           }
@@ -1003,6 +1024,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               }
               break;
             default:
+              pgStream.setBroken();
               throw new PSQLException(GT.tr("Unknown Response Type {0}.", (char) c),
                   PSQLState.CONNECTION_FAILURE);
           }
@@ -1038,7 +1060,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     byte[] returnValue = null;
 
     while (!endQuery) {
-      int c = pgStream.receiveChar();
+      int c = pgStream.receiveMessageType();
       switch (c) {
         case PgMessageType.ASYNCHRONOUS_NOTICE:
           receiveAsyncNotify();
@@ -1066,9 +1088,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case PgMessageType.FUNCTION_CALL_RESPONSE:
-          @SuppressWarnings("unused")
-          int msgLen = pgStream.receiveInteger4();
+          int msgLen = pgStream.receiveMessageLength("FunctionCallResponse", 8,
+              PGStream.MAX_MESSAGE_LENGTH);
           int valueLen = pgStream.receiveInteger4();
+          // -1 is null and carries no bytes. Any other length fills the message exactly.
+          int expectedLen = valueLen == -1 ? 8 : 8 + valueLen;
+          if (valueLen < -1 || msgLen != expectedLen) {
+            throw pgStream.protocolViolation(GT.tr("Function call result of {0} bytes does not"
+                + " fill a message of {1} bytes.", String.valueOf(valueLen),
+                String.valueOf(msgLen)));
+          }
 
           LOGGER.log(Level.FINEST, " <=BE FunctionCallResponse({0} bytes)", valueLen);
 
@@ -1094,6 +1123,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         default:
+          pgStream.setBroken();
           throw new PSQLException(GT.tr("Unknown Response Type {0}.", (char) c),
               PSQLState.CONNECTION_FAILURE);
       }
@@ -1164,9 +1194,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private void initCopy(CopyOperationImpl op) throws SQLException, IOException {
     try (ResourceLock ignore = lock.obtain()) {
-      pgStream.receiveInteger4(); // length not used
+      int len = pgStream.receiveMessageLength("CopyResponse", 7, MAX_COPY_RESPONSE_LENGTH);
       int rowFormat = pgStream.receiveChar();
       int numFields = pgStream.receiveInteger2();
+      // The formats are the whole body, so the count is determined by the length.
+      if (len != 7 + 2 * numFields) {
+        throw pgStream.protocolViolation(GT.tr(
+            "Copy response of {0} bytes does not hold exactly {1} field formats.",
+            String.valueOf(len), String.valueOf(numFields)));
+      }
       int[] fieldFormats = new int[numFields];
 
       for (int i = 0; i < numFields; i++) {
@@ -1551,9 +1587,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
                 LOGGER.log(Level.FINEST, " <=BE CopyData");
 
-                len = pgStream.receiveInteger4() - 4;
-
-                assert len > 0 : "Copy Data length must be greater than 4";
+                // CopyData keeps the MaxAllocSize limit. The protocol gives it no smaller one, and
+                // a COPY row or a logical replication message can be that large, so if the stream
+                // goes out of sync inside a COPY the driver can still make one large allocation.
+                // maxResultBuffer is documented for result sets, so it is not used here.
+                len = pgStream.receiveMessageLength("CopyData", 4, PGStream.MAX_MESSAGE_LENGTH) - 4;
 
                 byte[] buf = pgStream.receive(len);
                 if (op == null) {
@@ -1573,7 +1611,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
                 LOGGER.log(Level.FINEST, " <=BE CopyDone");
 
-                len = pgStream.receiveInteger4() - 4;
+                len = pgStream.receiveMessageLength("CopyDone", 4, PGStream.MAX_SMALL_MESSAGE_LENGTH) - 4;
                 if (len > 0) {
                   pgStream.receive(len); // not in specification; should never appear
                 }
@@ -1610,24 +1648,24 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               case PgMessageType.ROW_DESCRIPTION_RESPONSE: // Row Description (response to Describe)
                 LOGGER.log(Level.FINEST, " <=BE RowDescription (during copy ignored)");
 
-                skipMessage();
+                skipMessage("RowDescription", PGStream.MAX_MESSAGE_LENGTH);
                 break;
 
               case PgMessageType.DATA_ROW_RESPONSE: // DataRow
                 LOGGER.log(Level.FINEST, " <=BE DataRow (during copy ignored)");
 
-                skipMessage();
+                skipMessage("DataRow", PGStream.MAX_MESSAGE_LENGTH);
                 break;
 
               default:
-                throw new IOException(
+                throw pgStream.protocolViolation(
                     GT.tr("Unexpected packet type during copy: {0}", Integer.toString(c)));
             }
           } catch (SocketTimeoutException ste) {
-            // The type byte is already out of the stream, so there is no way back to a
-            // message boundary. Report it as the connection failure it is rather than as
-            // something the caller can resume from, which would read the middle of this
-            // message as the start of the next one
+            // The type byte is already out of the stream, so there is no way back to a message
+            // boundary. Report it as the connection failure it is rather than as something the
+            // caller can resume from, which would read the middle of this message as the start
+            // of the next one
             IOException desynchronized = new IOException(GT.tr(
                 "Read timed out inside a backend message, so the copy stream is out of step"), ste);
             if (errors != null) {
@@ -1647,7 +1685,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             error = null;
           }
         }
-
       } catch (SocketTimeoutException ste) {
         if (errors != null) {
           // The backend has already reported this copy failed. Handing the caller a timeout
@@ -2440,14 +2477,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     boolean doneAfterRowDescNoData = false;
 
     while (!endQuery) {
-      c = pgStream.receiveChar();
+      c = pgStream.receiveMessageType();
       switch (c) {
         case 'A': // Asynchronous Notify
           receiveAsyncNotify();
           break;
 
         case PgMessageType.PARSE_COMPLETE_RESPONSE: // Parse Complete (response to Parse)
-          pgStream.receiveInteger4(); // len, discarded
+          pgStream.receiveMessageLength("ParseComplete", 4, 4);
 
           SimpleQuery parsedQuery = pendingParseQueue.removeFirst();
           String parsedStatementName = parsedQuery.getStatementName();
@@ -2457,7 +2494,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case PgMessageType.PARAMETER_DESCRIPTION_RESPONSE: {
-          pgStream.receiveInteger4(); // len, discarded
+          // 4 (length) + 2 (parameter count) + 4 per parameter.
+          int paramDescLen = pgStream.receiveMessageLength("ParameterDescription", 6,
+              MAX_PARAMETER_DESCRIPTION_LENGTH);
 
           LOGGER.log(Level.FINEST, " <=BE ParameterDescription");
 
@@ -2469,6 +2508,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           String origStatementName = describeData.statementName;
 
           int numParams = pgStream.receiveInteger2();
+          // The type OIDs are the whole body, so the count is determined by the length.
+          if (paramDescLen != 6 + 4 * numParams) {
+            throw pgStream.protocolViolation(GT.tr(
+                "ParameterDescription of {0} bytes does not hold exactly {1} parameter types.",
+                String.valueOf(paramDescLen), String.valueOf(numParams)));
+          }
 
           for (int i = 1; i <= numParams; i++) {
             int typeOid = pgStream.receiveInteger4();
@@ -2495,7 +2540,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         }
 
         case PgMessageType.BIND_COMPLETE_RESPONSE: // (response to Bind)
-          pgStream.receiveInteger4(); // len, discarded
+          pgStream.receiveMessageLength("BindComplete", 4, 4);
 
           Portal boundPortal = pendingBindQueue.removeFirst();
           LOGGER.log(Level.FINEST, " <=BE BindComplete [{0}]", boundPortal);
@@ -2504,12 +2549,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case PgMessageType.CLOSE_COMPLETE_RESPONSE: // response to Close
-          pgStream.receiveInteger4(); // len, discarded
+          pgStream.receiveMessageLength("CloseComplete", 4, 4);
           LOGGER.log(Level.FINEST, " <=BE CloseComplete");
           break;
 
         case PgMessageType.NO_DATA_RESPONSE: // response to Describe
-          pgStream.receiveInteger4(); // len, discarded
+          pgStream.receiveMessageLength("NoData", 4, 4);
           LOGGER.log(Level.FINEST, " <=BE NoData");
 
           pendingDescribePortalQueue.removeFirst();
@@ -2532,7 +2577,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // nb: this appears *instead* of CommandStatus.
           // Must be a SELECT if we suspended, so don't worry about it.
 
-          pgStream.receiveInteger4(); // len, discarded
+          pgStream.receiveMessageLength("PortalSuspended", 4, 4);
           LOGGER.log(Level.FINEST, " <=BE PortalSuspended");
 
           ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
@@ -2689,6 +2734,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             }
           } catch (SQLException e) {
             handler.handleError(e);
+            if (pgStream.isBroken()) {
+              // The connection was dropped at the limit, so there is nothing left to read.
+              endQuery = true;
+            }
           }
           if (!noResults) {
             if (tuples == null) {
@@ -2729,7 +2778,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case PgMessageType.EMPTY_QUERY_RESPONSE: { // Empty Query (end of Execute)
-          pgStream.receiveInteger4();
+          pgStream.receiveMessageLength("EmptyQueryResponse", 4, 4);
 
           LOGGER.log(Level.FINEST, " <=BE EmptyQuery");
 
@@ -2842,13 +2891,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           pgStream.sendChar(0);
           sendSync(); // send sync message
           pgStream.flush();
-          skipMessage(); // skip the response message
+          skipMessage("CopyInResponse", MAX_COPY_RESPONSE_LENGTH);
           break;
 
         case PgMessageType.COPY_OUT_RESPONSE:
           LOGGER.log(Level.FINEST, " <=BE CopyOutResponse");
 
-          skipMessage();
+          skipMessage("CopyOutResponse", MAX_COPY_RESPONSE_LENGTH);
           // In case of CopyOutResponse, we cannot abort data transfer,
           // so just throw an error and ignore CopyData messages
           handler.handleError(
@@ -2857,17 +2906,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case PgMessageType.COPY_DONE:
-          skipMessage();
+          skipMessage("CopyDone", PGStream.MAX_SMALL_MESSAGE_LENGTH);
           LOGGER.log(Level.FINEST, " <=BE CopyDone");
           break;
 
         case PgMessageType.COPY_DATA:
-          skipMessage();
+          skipMessage("CopyData", PGStream.MAX_MESSAGE_LENGTH);
           LOGGER.log(Level.FINEST, " <=BE CopyData");
           break;
 
         default:
-          throw new IOException("Unexpected packet type: " + c);
+          throw pgStream.protocolViolation("Unexpected packet type: " + c);
       }
 
     }
@@ -2898,10 +2947,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * Ignore the response message by reading the message length and skipping over those bytes in the
    * communication stream.
    */
-  private void skipMessage() throws IOException {
-    int len = pgStream.receiveInteger4();
-
-    assert len >= 4 : "Length from skip message must be at least 4 ";
+  private void skipMessage(String packetName, int maxLength) throws IOException {
+    int len = pgStream.receiveMessageLength(packetName, 4, maxLength);
 
     // skip len-4 (length includes the 4 bytes for message length itself
     pgStream.skip(len - 4);
@@ -2994,8 +3041,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * Receive the field descriptions from the back end.
    */
   private Field[] receiveFields() throws IOException {
-    pgStream.receiveInteger4(); // MESSAGE SIZE
+    // 4 (length) + 2 (field count), then one field description each.
+    int len = pgStream.receiveMessageLength("RowDescription", 6, PGStream.MAX_MESSAGE_LENGTH);
     int size = pgStream.receiveInteger2();
+    // Without this a short message reads its field descriptions out of what follows it.
+    if (len - 6 < MIN_FIELD_DESCRIPTION_LENGTH * size) {
+      throw pgStream.protocolViolation(GT.tr(
+          "RowDescription of {0} bytes cannot hold {1} field descriptions.",
+          String.valueOf(len), String.valueOf(size)));
+    }
     Field[] fields = new Field[size];
 
     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -3021,8 +3075,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void receiveAsyncNotify() throws IOException {
-    int len = pgStream.receiveInteger4(); // MESSAGE SIZE
-    assert len > 4 : "Length for AsyncNotify must be at least 4";
+    pgStream.receiveMessageLength("NotificationResponse", 10,
+        PGStream.MAX_BUFFERED_MESSAGE_LENGTH);
 
     int pid = pgStream.receiveInteger4();
     String msg = pgStream.receiveCanonicalString();
@@ -3040,10 +3094,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // so, append messages to a string buffer and keep processing
     // check at the bottom to see if we need to throw an exception
 
-    int elen = pgStream.receiveInteger4();
-    assert elen > 4 : "Error response length must be greater than 4";
+    int elen = pgStream.receiveMessageLength("ErrorResponse", 5, PGStream.MAX_MESSAGE_LENGTH);
 
-    EncodingPredictor.DecodeResult totalMessage = pgStream.receiveErrorString(elen - 4);
+    // A body past the buffer maximum is truncated there and the rest drained. The fields before
+    // the truncation point are kept, later ones such as the query text are lost.
+    int body = Math.min(elen, PGStream.MAX_BUFFERED_MESSAGE_LENGTH) - 4;
+    EncodingPredictor.DecodeResult totalMessage = pgStream.receiveErrorString(body);
+    pgStream.skip(elen - 4 - body);
     ServerErrorMessage errorMsg = new ServerErrorMessage(totalMessage);
 
     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -3060,10 +3117,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private SQLWarning receiveNoticeResponse() throws IOException {
-    int nlen = pgStream.receiveInteger4();
-    assert nlen > 4 : "Notice Response length must be greater than 4";
+    int nlen = pgStream.receiveMessageLength("NoticeResponse", 5, PGStream.MAX_MESSAGE_LENGTH);
 
-    ServerErrorMessage warnMsg = new ServerErrorMessage(pgStream.receiveString(nlen - 4));
+    // Truncated like ErrorResponse, with the same tolerant decoding so a multibyte character
+    // split by the truncation does not fail the read.
+    int body = Math.min(nlen, PGStream.MAX_BUFFERED_MESSAGE_LENGTH) - 4;
+    ServerErrorMessage warnMsg = new ServerErrorMessage(pgStream.receiveErrorString(body));
+    pgStream.skip(nlen - 4 - body);
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, " <=BE NoticeResponse({0})", warnMsg.toString());
@@ -3073,8 +3133,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private String receiveCommandStatus() throws IOException {
-    // TODO: better handle the msg len
-    int len = pgStream.receiveInteger4();
+    int len = pgStream.receiveMessageLength("CommandComplete", 5,
+        PGStream.MAX_SMALL_MESSAGE_LENGTH);
     // read len -5 bytes (-4 for len and -1 for trailing \0)
     String status = pgStream.receiveString(len - 5);
     // now read and discard the trailing \0
@@ -3099,9 +3159,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void receiveRFQ() throws IOException {
-    if (pgStream.receiveInteger4() != 5) {
-      throw new IOException("unexpected length of ReadyForQuery message");
-    }
+    pgStream.receiveMessageLength("ReadyForQuery", 5, 5);
 
     char tStatus = (char) pgStream.receiveChar();
     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -3122,7 +3180,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         setTransactionState(TransactionState.FAILED);
         break;
       default:
-        throw new IOException(
+        throw pgStream.protocolViolation(
             "unexpected transaction state in ReadyForQuery message: " + (int) tStatus);
     }
   }
@@ -3135,7 +3193,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   public void readStartupMessages() throws IOException, SQLException {
     for (int i = 0; i < 1000; i++) {
-      int beresp = pgStream.receiveChar();
+      int beresp = pgStream.receiveMessageType();
       switch (beresp) {
         case PgMessageType.READY_FOR_QUERY_RESPONSE:
           receiveRFQ();
@@ -3144,7 +3202,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case PgMessageType.BACKEND_KEY_DATA_RESPONSE:
           // BackendKeyData
-          int msgLen = pgStream.receiveInteger4();
+          int msgLen = pgStream.receiveMessageLength("BackendKeyData", 8,
+              PGStream.MAX_SMALL_MESSAGE_LENGTH);
           int pid = pgStream.receiveInteger4();
           int keyLen = msgLen - 8;
           byte[] ckey;
@@ -3192,17 +3251,20 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, "  invalid message type={0}", (char) beresp);
           }
+          pgStream.setBroken();
           throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
               PSQLState.PROTOCOL_VIOLATION);
       }
     }
+    pgStream.setBroken();
     throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
         PSQLState.PROTOCOL_VIOLATION);
   }
 
   public void receiveParameterStatus() throws IOException, SQLException {
     // ParameterStatus
-    pgStream.receiveInteger4(); // MESSAGE SIZE
+    // 4 (length) + a terminator for each of the two strings.
+    pgStream.receiveMessageLength("ParameterStatus", 6, PGStream.MAX_BUFFERED_MESSAGE_LENGTH);
     final String name = pgStream.receiveCanonicalStringIfPresent();
     final String value = pgStream.receiveCanonicalStringIfPresent();
 

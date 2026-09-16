@@ -34,6 +34,24 @@
       "groupName": "{{{replace ':.*' '' depName}}}"
     },
     {
+      "description": "The com.ongres SCRAM and stringprep libraries are shaded into the driver, so a minor or major update changes the driver's own code. Keep patch updates in a branch of their own: without separateMinorPatch, Renovate offers only the newest non-major version, and a pending minor update would hide every patch update.",
+      "matchPackageNames": [
+        "com.ongres.**"
+      ],
+      "separateMinorPatch": true
+    },
+    {
+      "description": "A minor or major com.ongres update waits for a pgjdbc minor release. Renovate lists it on the Dependency Dashboard and opens the pull request once its checkbox is ticked.",
+      "matchPackageNames": [
+        "com.ongres.**"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor"
+      ],
+      "dependencyDashboardApproval": true
+    },
+    {
       "groupName": "checkerframework",
       "matchPackageNames": [
         "org.checkerframework{/,}**"
