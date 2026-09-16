@@ -34,6 +34,17 @@
         "(?<depName>rhysd/actionlint):(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]{64})"
       ],
       "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "Track the newest generally available Java major (gaJava in matrix.mjs) against the Adoptium release list. matrix.mjs derives the early-access major from it, since jdk.java.net serves early-access builds for the release that follows the newest GA one. The java-version datasource returns full versions such as 28.0.1+9, and extractVersionTemplate reduces each to its major, so Renovate writes 28 into gaJava when the next major ships and ignores 27.0.x updates.",
+      "managerFilePatterns": [
+        "/\\.github/workflows/matrix\\.mjs$/"
+      ],
+      "matchStrings": [
+        "// renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+) versioning=(?<versioning>\\S+)\\s+const gaJava = '(?<currentValue>\\d+)'"
+      ],
+      "extractVersionTemplate": "^(?<version>\\d+)"
     }
   ],
   "packageRules": [
