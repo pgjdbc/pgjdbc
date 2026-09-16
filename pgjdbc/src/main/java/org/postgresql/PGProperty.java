@@ -482,6 +482,21 @@ public enum PGProperty {
       "Maximum amount of bytes buffered before sending to the backend"),
 
   /**
+   * Largest ErrorResponse, NoticeResponse, CommandComplete, ParameterStatus or
+   * NotificationResponse the driver accepts after authentication, in bytes. The protocol fixes
+   * no maximum for these server-generated text messages, so the driver applies its own limit of
+   * 64 MB (64000000 bytes) by default. Raise it if the backend legitimately sends larger notices
+   * or error details. The system property {@code -Dpgjdbc.protocolHardeningMode=disable}
+   * switches the limit off. Suffixes are decimal, so {@code 64M} is 64000000 bytes. An
+   * ErrorResponse that arrives before authentication has a fixed limit of 30000 bytes, which
+   * this property does not change.
+   */
+  MAX_SERVER_TEXT_MESSAGE_SIZE(
+      "maxServerTextMessageSize",
+      null,
+      "Specifies the largest ErrorResponse, NoticeResponse, CommandComplete, ParameterStatus or NotificationResponse the driver accepts after authentication. When unset, the driver applies a built-in limit of 64 MB (64000000 bytes). -Dpgjdbc.protocolHardeningMode=disable switches the limit off, whether or not this property is set. An ErrorResponse that arrives before authentication has a fixed limit of 30000 bytes, which this property does not change. Can be specified as a size or a percent of heap memory."),
+
+  /**
    * Specify 'options' connection initialization parameter.
    * The value of this parameter may contain spaces and other special characters or their URL representation.
    */

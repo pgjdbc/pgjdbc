@@ -96,6 +96,12 @@ To connect, you need to get a `Connection` instance from JDBC. To do this, you u
 ### System Properties
 `pgjdbc.config.cleanup.thread.ttl` (milliseconds, default: 30000). The driver has an internal cleanup thread which monitors and cleans up unclosed connections. This property sets the duration the cleanup thread will keep running if there is nothing to clean up.
 
+`pgjdbc.protocolHardeningMode` (`fail` | `disable`, default: `fail`). Whether the driver enforces the limits it applies to a backend message where the v3 protocol fixes no maximum of its own. Under `fail`, the driver closes the connection when a message is over one of those limits; under `disable`, it reads the message anyway. An unset, empty or unrecognized value selects `fail`, and an unrecognized one is logged at `WARNING`: `System property pgjdbc.protocolHardeningMode has the unrecognized value V; expected fail or disable. Using fail, so the protocol limits stay enforced.` [Protocol message limits](#protocol-message-limits) lists the limits `disable` skips, and the ones that stay in force in either mode.
+
+Where the error names a connection property, raise that property instead, since that keeps the remaining limits in force. Use `disable` only as a temporary workaround while a false positive is investigated, and [open an issue](https://github.com/pgjdbc/pgjdbc/issues) for the limit that fired.
+
+The value is read once, at the first connection attempt in the JVM, so it covers every connection in the JVM and a value set afterwards has no effect. It is deliberately not a connection parameter, so that a connection string cannot switch a protocol check off.
+
 ### Connection Parameters
 
 In addition to the standard connection parameters the driver supports a number of additional properties which can be used to specify additional driver behaviour specific to PostgreSQL®. These properties may be specified in either the connection
@@ -493,13 +499,18 @@ In `escapeSyntaxCallMode=callIfNoReturn` mode, the driver uses a CALL statement 
 is no return parameter specified, otherwise the driver uses a SELECT statement. In `escapeSyntaxCallMode=call` mode, 
 the driver always uses a CALL statement (allowing procedure invocation only). 
 
-* **`maxResultBuffer (`*String*`)`** *Default `null`*\
+* **`maxResultBuffer (`*String*`)`** *Default `null`, no limit*\
 Specifies size of result buffer in bytes, which can't be exceeded during reading result set. Property can be specified in two styles:
-  * as size of bytes (i.e. 100, 150M, 300K, 400G, 1T);
-  * as percent of max heap memory (i.e. 10p, 15pct, 20percent);
-A limit during setting of property is 90% of max heap memory. All given values, which are going to be higher than the limit,
-will be lowered to the limit. By default, maxResultBuffer is not set (is null), which means that reading of results will
-be performed without limits.
+  * a number of bytes with an optional suffix: `100`, `300K`, `150M`, `400G`, `1T`. The suffixes are decimal, so `1K` is 1000 bytes and `1M` is 1000000 bytes, not 1048576;
+  * a percentage of max heap memory: `10p`, `15pct`, `20percent`.
+Either style is limited to 90% of max heap memory, and a larger value is lowered to that. The size must be positive: a value of zero or below is rejected when the connection opens, with `The maxResultBuffer connection property must be a positive size, but its value is V. Give a byte count such as 150M or a share of the heap such as 10p, or leave the property unset.` A value that is not in either style, such as `10%` or `abcM`, is rejected when the connection opens with `The maxResultBuffer connection property has the value V, which is not a valid size. Give a byte count such as 150M or a share of the heap with the p suffix, such as 10p.` Both errors carry SQLState `22023`.
+
+* **`maxServerTextMessageSize (`*String*`)`** *Default `null`, which applies a built-in limit of 64 MB (64000000 bytes)*\
+Largest `ErrorResponse`, `NoticeResponse`, `CommandComplete`, `ParameterStatus` or `NotificationResponse` the driver accepts after the server has authenticated. Neither the protocol nor the server fixes a maximum for these, so a `RAISE NOTICE` payload or an error `DETAIL` arrives at whatever size the server produced.\
+Uses the same value syntax as `maxResultBuffer`. It is limited to 90% of max heap memory the same way, and a value of zero or below is rejected when the connection opens.\
+The driver closes the connection on a message over the limit, with `Protocol error. <message type> message has length N, which exceeds the pgjdbc limit of M bytes. Raise the maxServerTextMessageSize connection property if the backend legitimately sends more, or set -Dpgjdbc.protocolHardeningMode=disable to skip these limits altogether.`\
+Raise the property if the server emits notices or error details larger than 64 MB (64000000 bytes). `pgjdbc.protocolHardeningMode=disable` switches this limit off, whether or not the property is set. An `ErrorResponse` that arrives before the server has authenticated has a fixed limit of 30000 bytes instead, which neither the property nor [`pgjdbc.protocolHardeningMode`](#protocol-message-limits) changes.
+  Since: 42.7.14
 
 * **`adaptiveFetch (`*boolean*`)`** *Default `false`*\
 Specifies if the number of rows, fetched in `ResultSet` per request from the database, should be dynamic.
@@ -582,3 +593,31 @@ are available: `jdbc:postgresql://node1,node2,node3/accounting?targetServerType=
 If a secondary fails, all secondaries in the list will be tried first. In the case that there are no available secondaries
 the primary will be tried. If all the servers are marked as "can't connect" in the cache then an attempt
 will be made to connect to all the hosts in the URL, in order.
+
+## Protocol message limits
+
+A message over the limit that applies fails with `Protocol error. <message type> message has length N, which exceeds the pgjdbc limit of M bytes.` Where `disable` would skip the limit, the error continues with the remedy: `Raise the <property> connection property if the backend legitimately sends more, or set -Dpgjdbc.protocolHardeningMode=disable to skip these limits altogether.` The driver then closes the connection and marks it broken, so `Connection.isClosed()` returns `true` and a pool that tests a connection on borrow discards it rather than reusing a stream whose position is unknown.
+
+A limit whose right value depends on the workload is a connection property, and raising it leaves the other limits in force. The driver fixes every other limit. `pgjdbc.protocolHardeningMode=disable` skips only the limits the last column marks.
+
+| Message | Limit | Property that raises it | `disable` skips it |
+| --- | --- | --- | --- |
+| `ErrorResponse`, `NoticeResponse`, `CommandComplete`, `ParameterStatus`, `NotificationResponse` after the server has authenticated | 64 MB (64000000 bytes) | `maxServerTextMessageSize` | yes |
+| `RowDescription` | 8 MiB (8388608 bytes) | none | no |
+| `AuthenticationRequest` | 8008 bytes | none | no |
+| `ErrorResponse` before the server has authenticated | 30000 bytes | none | no |
+
+Each fixed limit is orders of magnitude above what PostgreSQL sends. A `RowDescription` for a result of 1664 columns, the most PostgreSQL returns, is about 133 KiB.
+
+### Limits no setting relaxes
+
+`pgjdbc.protocolHardeningMode=disable` skips only the limits the table above marks. Where a check below rejects a length no wire-compatible backend can send, reading on would leave the driver blocked on the socket indefinitely, or give a later query a result read out of the middle of an abandoned message. Each of these checks closes the connection in either mode:
+
+* A declared length outside the range the protocol allows for that message type. No such range extends past 1073741823 bytes (just under 1 GiB), the largest allocation the backend itself makes: `Protocol error. <message type> message has invalid length N (expected between A and B).`
+* A message whose reader consumed fewer bytes than its declared length, `Protocol error. <message type> message has N unread bytes.`, or more, `Protocol error. <message type> message was read N bytes past its declared length.`
+* A field count whose per-field entries do not fit the message, such as `Protocol error. DataRow field count N requires at least A bytes for per-field length prefixes, but the message size is only B.` or, for a `CopyInResponse`, `CopyOutResponse` or `CopyBothResponse`, `Protocol error. <message type> field count N requires message size A, but the message is B bytes.`
+* A field or value that claims more bytes than its message still holds, which is the failure behind [issue #4015](https://github.com/pgjdbc/pgjdbc/issues/4015): `Protocol error. DataRow field N length A exceeds remaining row bytes B.` or `Protocol error. FunctionCallResponse value length A exceeds the B bytes left in the message.`
+* Every limit that applies before the server has authenticated, since nothing has yet established who the peer is: `Protocol error. <message type> message has length N, which exceeds the pgjdbc limit of M bytes applied before authentication. This limit cannot be relaxed.`
+* An authentication exchange still unfinished after 64 authentication messages, `Protocol error. Authentication did not complete within N authentication messages.`
+
+`maxResultBuffer` limits the memory a result set may occupy rather than the length of a message, so no mode affects it either; see its entry under [Connection Parameters](#connection-parameters).

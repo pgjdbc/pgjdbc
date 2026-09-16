@@ -53,6 +53,16 @@ public class QueryExecutorCloseAction implements Closeable {
     }
   }
 
+  /**
+   * Terminates the connection and releases the socket.
+   *
+   * <p>Sends a Terminate message first, unless {@link PGStream#isClosed()} already returns
+   * {@code true}, in which case the socket is released without flushing. Only the first call to
+   * this method or to {@link #abort()} releases anything; every later call returns without
+   * touching the socket.</p>
+   *
+   * @throws IOException if the Terminate message cannot be sent, or the socket cannot be closed
+   */
   @Override
   public void close() throws IOException {
     LOGGER.log(Level.FINEST, " FE=> Terminate");
@@ -63,11 +73,18 @@ public class QueryExecutorCloseAction implements Closeable {
     }
     sendCloseMessage(pgStream);
 
-    // Technically speaking, this check should not be needed,
-    // however org.postgresql.test.jdbc2.ConnectionTest.testPGStreamSettings
-    // closes pgStream reflectively, so here's an extra check to prevent failures
-    // when getNetworkTimeout is called on a closed stream
+    // isClosed() is true for a stream that markBroken() flagged, and also after
+    // org.postgresql.test.jdbc2.ConnectionTest.testPGStreamSettings closes pgStream reflectively.
     if (pgStream.isClosed()) {
+      // markBroken closes the socket only on a best-effort basis, so the descriptor may still be
+      // open. Release it directly rather than through PGStream.close(): that closes pgOutput
+      // first, and
+      // FilterOutputStream.close() flushes. The flush pushes the tail of a half-written request
+      // at a server that is already discarding it. Where markBroken could not close the socket,
+      // that flush most likely fails, and its exception escapes from Connection.close().
+      if (!pgStream.isSocketClosed()) {
+        pgStream.getSocket().close();
+      }
       return;
     }
     pgStream.flush();
@@ -75,10 +92,10 @@ public class QueryExecutorCloseAction implements Closeable {
   }
 
   public void sendCloseMessage(PGStream pgStream) throws IOException {
-    // Technically speaking, this check should not be needed,
-    // however org.postgresql.test.jdbc2.ConnectionTest.testPGStreamSettings
-    // closes pgStream reflectively, so here's an extra check to prevent failures
-    // when getNetworkTimeout is called on a closed stream
+    // Nothing is written to a stream that reports isClosed(): one that markBroken() flagged,
+    // whose next bytes the server cannot trust, or one whose socket is closed, where
+    // getNetworkTimeout below would fail. close() calls this method before its own isClosed()
+    // check.
     if (pgStream.isClosed()) {
       return;
     }

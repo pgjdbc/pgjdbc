@@ -7,13 +7,10 @@ package org.postgresql.test.util;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.test.annotations.DisableLogger;
 import org.postgresql.util.PGPropertyMaxResultBufferParser;
-import org.postgresql.util.PSQLException;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -64,13 +61,6 @@ public class PGPropertyMaxResultBufferParserTest {
     assertDoesNotThrow(() -> {
       long result = PGPropertyMaxResultBufferParser.parseProperty(valueToParse);
       assertEquals(expectedResult, result);
-    });
-  }
-
-  @Test
-  void getMaxResultBufferValueException() throws PSQLException {
-    assertThrows(PSQLException.class, () -> {
-      long ignore = PGPropertyMaxResultBufferParser.parseProperty("abc");
     });
   }
 }

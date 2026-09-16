@@ -76,19 +76,34 @@ final class ScramAuthenticator {
       return client;
     } catch (IllegalArgumentException | IOException e) {
       throw new PSQLException(
-          GT.tr("Invalid SCRAM client initialization", e),
-          PSQLState.CONNECTION_REJECTED);
+          GT.tr("Invalid SCRAM client initialization"),
+          PSQLState.CONNECTION_REJECTED, e);
     }
   }
 
+  /**
+   * Reads the SASL mechanism list that ends an AuthenticationSASL message.
+   *
+   * @param stream positioned after the authentication-request type code; this method reads the
+   *     rest of the message and closes it with {@link PGStream#endMessage()}
+   * @return the mechanism names the server advertised, in the order it sent them
+   * @throws PSQLException if the server advertised no mechanism, or if {@code channelBinding} is
+   *     {@link ChannelBinding#REQUIRE} and no advertised name ends in {@code -PLUS}
+   * @throws IOException on an I/O failure, or if the body does not end where the message length
+   *     declared
+   */
   private static List<String> advertisedMechanisms(PGStream stream, ChannelBinding channelBinding)
       throws PSQLException, IOException {
     List<String> mechanisms = new ArrayList<>();
-    do {
+    // A body of just the list terminator is zero mechanisms, not one empty mechanism.
+    while (stream.peekChar() != 0) {
       mechanisms.add(stream.receiveString());
-    } while (stream.peekChar() != 0);
+    }
     int c = stream.receiveChar();
     assert c == 0;
+    // The mechanism list is the rest of the AuthenticationSASL body: the terminator ends
+    // the message.
+    stream.endMessage();
     if (mechanisms.isEmpty()) {
       throw new PSQLException(
           GT.tr("Received AuthenticationSASL message with 0 mechanisms!"),

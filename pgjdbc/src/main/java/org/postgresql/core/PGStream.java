@@ -120,6 +120,17 @@ public class PGStream implements Closeable, Flushable {
    */
   public static final int MAX_AUTHENTICATION_MESSAGE_SIZE = 8 + 8000;
 
+  /**
+   * Largest declared length, in bytes, that pgjdbc accepts for an ErrorResponse that arrives
+   * before authentication completes: {@value #MAX_PRE_AUTH_ERROR_RESPONSE_SIZE} bytes.
+   *
+   * <p>The peer is not yet trusted, so no connection property raises this limit, and
+   * {@code maxServerTextMessageSize} applies only after authentication. The value matches
+   * {@code MAX_ERRLEN}, the limit libpq applies to an ErrorResponse during connection startup in
+   * {@code fe-connect.c}.
+   */
+  public static final int MAX_PRE_AUTH_ERROR_RESPONSE_SIZE = 30000;
+
   private final SocketFactory socketFactory;
   private final HostSpec hostSpec;
   private final int maxSendBufferSize;
@@ -1333,12 +1344,12 @@ public class PGStream implements Closeable, Flushable {
   /**
    * Sets the {@code maxResultBuffer} limit on the result-set bytes this stream buffers.
    *
-   * @param value value of new max result buffer as string (cause we can expect % or chars to use
-   *              multiplier)
-   * @throws PSQLException exception returned when occurred parsing problem.
+   * @param value a byte count with an optional decimal multiplier ({@code 150M}) or a percent of
+   *              the maximum heap ({@code 10p}); {@code null} or empty leaves the limit unset
+   * @throws PSQLException if the value cannot be parsed, or parses to zero or below
    */
   public void setMaxResultBuffer(@Nullable String value) throws PSQLException {
-    maxResultBuffer = PGPropertyMaxResultBufferParser.parseProperty(value);
+    maxResultBuffer = PGPropertyMaxResultBufferParser.parseProperty("maxResultBuffer", value);
   }
 
   /**
@@ -1355,13 +1366,15 @@ public class PGStream implements Closeable, Flushable {
    * NoticeResponse, CommandComplete, ParameterStatus, NotificationResponse), parsed the same
    * way as {@code maxResultBuffer}.
    *
-   * @param value size with an optional unit or heap-percent suffix; {@code null} or unparsed
-   *              leaves {@link #DEFAULT_MAX_SERVER_TEXT_MESSAGE_SIZE} in effect
-   * @throws PSQLException if the value cannot be parsed
+   * @param value size with an optional unit or heap-percent suffix; {@code null} or empty leaves
+   *              {@link #DEFAULT_MAX_SERVER_TEXT_MESSAGE_SIZE} in effect
+   * @throws PSQLException if the value cannot be parsed, or parses to zero or below
    */
   public void setMaxServerTextMessageSize(@Nullable String value) throws PSQLException {
-    long parsed = PGPropertyMaxResultBufferParser.parseProperty(value);
-    maxServerTextMessageSize = parsed > 0 ? parsed : DEFAULT_MAX_SERVER_TEXT_MESSAGE_SIZE;
+    long parsed = PGPropertyMaxResultBufferParser.parseProperty("maxServerTextMessageSize", value);
+    // The parser rejects a non-positive value, so only -1, the unset value, reaches the
+    // fallback.
+    maxServerTextMessageSize = parsed == -1 ? DEFAULT_MAX_SERVER_TEXT_MESSAGE_SIZE : parsed;
   }
 
   /**
