@@ -19,6 +19,7 @@ Environment variables
    See the [list of available tags](https://github.com/docker-library/docs/blob/master/postgres/README.md#supported-tags-and-respective-dockerfile-links) at the official page.
 * `SCRAM=yes|no` (default: `yes`). Configures `password_encryption=scram-sha-256`
 * `SSL=yes|no` (default: `yes`). Configures SSL
+* `OAUTH=yes|no` (default: `no`). Configures the server to support OAuth authentication
 
 Example usages
 ==============

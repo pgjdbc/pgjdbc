@@ -13,6 +13,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.util.internal.FileUtils;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
@@ -84,6 +85,7 @@ public class DataSourceFactoryTest {
 
   @Test
   public void createDataSource() throws SQLException {
+    assumeNotOAuthAllMode();
     Properties props = getProperties();
     DataSource dataSource = dataSourceFactory.createDataSource(props);
     Connection con = dataSource.getConnection();
@@ -92,6 +94,7 @@ public class DataSourceFactoryTest {
 
   @Test
   public void createXADataSource() throws SQLException {
+    assumeNotOAuthAllMode();
     Properties props = getProperties();
     XADataSource dataSource = dataSourceFactory.createXADataSource(props);
     XAConnection con = dataSource.getXAConnection();
@@ -100,10 +103,20 @@ public class DataSourceFactoryTest {
 
   @Test
   public void createDriver() throws SQLException {
+    assumeNotOAuthAllMode();
     Properties props = getProperties();
     Driver driver = dataSourceFactory.createDriver(new Properties());
     Connection con = driver.connect(getUrl(), props);
     testConnection(con);
+  }
+
+  /**
+   * Skip these tests in OAuth "all" mode as this bundle cannot import the testkit bundle.
+   */
+  private static void assumeNotOAuthAllMode() {
+    Assume.assumeFalse(
+        "OAuth all-mode routes the test role through OAUTHBEARER, which the OSGi bundle cannot satisfy",
+        "oauth".equals(System.getProperty("authMode")));
   }
 
   private static void testConnection(Connection con) throws SQLException {

@@ -1562,6 +1562,135 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.AUTHENTICATION_PLUGIN_CLASS_NAME.set(properties, className);
   }
 
+  /**
+   * @return OAuth 2.0 bearer token, or null if unset
+   */
+  public @Nullable String getOAuthToken() {
+    return PGProperty.OAUTH_TOKEN.getOrDefault(properties);
+  }
+
+  /**
+   * @param token OAuth 2.0 bearer token for authentication
+   */
+  public void setOAuthToken(String token) {
+    PGProperty.OAUTH_TOKEN.set(properties, token);
+  }
+
+  /**
+   * @return the class name to use for token provider, can be null
+   */
+  public @Nullable String getOAuthTokenProviderClassName() {
+    return PGProperty.OAUTH_TOKEN_PROVIDER_CLASS_NAME.getOrDefault(properties);
+  }
+
+  /**
+   * @param className fully-qualified class implementing {@link org.postgresql.plugin.OAuthTokenProvider}
+   *                  This class will be used to obtain the OAuth 2.0 bearer token.
+   */
+  public void setOAuthTokenProviderClassName(@Nullable String className) {
+    PGProperty.OAUTH_TOKEN_PROVIDER_CLASS_NAME.set(properties, className);
+  }
+
+  /**
+   * @return OAuth issuer URL
+   */
+  public @Nullable String getOAuthIssuer() {
+    return PGProperty.OAUTH_ISSUER.getOrDefault(properties);
+  }
+
+  /**
+   * @param issuer OAuth issuer URL
+   */
+  public void setOAuthIssuer(String issuer) {
+    PGProperty.OAUTH_ISSUER.set(properties, issuer);
+  }
+
+  /**
+   * @return whether a non-HTTPS OAuth issuer URL is allowed
+   */
+  public boolean getOAuthAllowInsecureIssuer() {
+    return PGProperty.OAUTH_ALLOW_INSECURE_ISSUER.getBoolean(properties);
+  }
+
+  /**
+   * @param allowInsecure whether to allow a non-HTTPS OAuth issuer URL;
+   *     set to {@code true} only for development/testing
+   */
+  public void setOAuthAllowInsecureIssuer(boolean allowInsecure) {
+    PGProperty.OAUTH_ALLOW_INSECURE_ISSUER.set(properties, allowInsecure);
+  }
+
+  /**
+   * @return OAuth client ID
+   */
+  public @Nullable String getOAuthClientId() {
+    return PGProperty.OAUTH_CLIENT_ID.getOrDefault(properties);
+  }
+
+  /**
+   * @param clientId OAuth client ID
+   */
+  public void setOAuthClientId(String clientId) {
+    PGProperty.OAUTH_CLIENT_ID.set(properties, clientId);
+  }
+
+  /**
+   * @return OAuth client secret
+   */
+  public @Nullable String getOAuthClientSecret() {
+    return PGProperty.OAUTH_CLIENT_SECRET.getOrDefault(properties);
+  }
+
+  /**
+   * @param clientSecret OAuth client secret
+   */
+  public void setOAuthClientSecret(String clientSecret) {
+    PGProperty.OAUTH_CLIENT_SECRET.set(properties, clientSecret);
+  }
+
+  /**
+   * @return OAuth scope
+   */
+  public @Nullable String getOAuthScope() {
+    return PGProperty.OAUTH_SCOPE.getOrDefault(properties);
+  }
+
+  /**
+   * @param scope OAuth scope
+   */
+  public void setOAuthScope(String scope) {
+    PGProperty.OAUTH_SCOPE.set(properties, scope);
+  }
+
+  /**
+   * @return OAuth username
+   */
+  public @Nullable String getOAuthUsername() {
+    return PGProperty.OAUTH_USERNAME.getOrDefault(properties);
+  }
+
+  /**
+   * @param username OAuth username
+   */
+  public void setOAuthUsername(String username) {
+    PGProperty.OAUTH_USERNAME.set(properties, username);
+  }
+
+  /**
+   * @return true if OAUTHBEARER is permitted over a connection not encrypted by TLS or GSS.
+   */
+  public boolean getOAuthAllowUnencryptedConnection() {
+    return PGProperty.OAUTH_ALLOW_UNENCRYPTED_CONNECTION.getBoolean(properties);
+  }
+
+  /**
+   * @param allow permits OAUTHBEARER authentication over a connection not
+   *              encrypted by TLS or GSS. Intended for development only.
+   */
+  public void setOAuthAllowUnencryptedConnection(boolean allow) {
+    PGProperty.OAUTH_ALLOW_UNENCRYPTED_CONNECTION.set(properties, allow);
+  }
+
   public @Nullable String getProperty(String name) throws SQLException {
     PGProperty pgProperty = PGProperty.forName(name);
     if (pgProperty != null) {

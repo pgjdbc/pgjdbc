@@ -40,6 +40,8 @@ public class LoginTimeoutInterruptTest {
 
   @Test
   void loginTimeoutInterruptsAuthPluginSleep() throws Exception {
+    // This test drives a password/auth-plugin flow, which is incompatible with OAuth.
+    TestUtil.assumeNotOAuthMode();
     SleepThenThrowAuthPlugin.PLUGIN_INVOKED.set(false);
     SleepThenThrowAuthPlugin.INTERRUPTED_DURING_SLEEP.set(false);
     SleepThenThrowAuthPlugin.POST_SLEEP_REACHED.set(false);
