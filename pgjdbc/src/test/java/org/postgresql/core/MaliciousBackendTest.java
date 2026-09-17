@@ -341,7 +341,7 @@ class MaliciousBackendTest {
    */
   @Test
   @Timeout(value = 30, unit = TimeUnit.SECONDS)
-  void stopsAnsweringAfterTheAuthenticationMessageLimit() throws Exception {
+  void stopsTheAuthenticationLoopAtTheMessageLimit() throws Exception {
     CannedSocketFactory factory =
         new CannedSocketFactory(passwordRequests(PGStream.MAX_AUTH_ROUND_TRIPS + 10));
     PGStream stream = new PGStream(factory, new HostSpec("localhost", 5432), 0, 8192);
@@ -354,7 +354,7 @@ class MaliciousBackendTest {
     assertTrue(e.getMessage().contains("messages"), e.getMessage());
     assertTrue(stream.isBroken(), "the stream must not look reusable");
     assertEquals(PGStream.MAX_AUTH_ROUND_TRIPS, countPasswordMessages(factory.getWritten()),
-        "the driver must answer exactly the number of requests the limit allows");
+        "the driver must send exactly the number of password messages the limit allows");
   }
 
   /** AuthenticationCleartextPassword, repeated. */
