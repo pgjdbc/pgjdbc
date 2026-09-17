@@ -609,10 +609,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
 
         // We have to reconnect to continue.
-        pgStream.close();
-        int maxSendBufferSize = PGProperty.MAX_SEND_BUFFER_SIZE.getInt(info);
-        return new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), connectTimeout,
-            maxSendBufferSize);
+        return new PGStream(pgStream, connectTimeout);
 
       case 'N':
         LOGGER.log(Level.FINEST, " <=BE GSSEncrypted Refused");

@@ -233,6 +233,7 @@ public class PGStream implements Closeable, Flushable {
     this.socketFactory = pgStream.socketFactory;
     this.hostSpec = pgStream.hostSpec;
     this.maxSendBufferSize = pgStream.maxSendBufferSize;
+    this.maxResultBuffer = pgStream.maxResultBuffer;
 
     Socket socket = createSocket(timeout);
     changeSocket(socket);
