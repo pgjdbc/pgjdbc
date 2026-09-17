@@ -47,28 +47,40 @@ import javax.net.SocketFactory;
  */
 public class PGStream implements Closeable, Flushable {
   /**
-   * Largest message the driver accepts. {@code 0x3FFFFFFF} is the backend's
-   * {@code MaxAllocSize}, the most it can allocate for an outgoing message.
+   * Largest length any backend message may declare, {@value #MAX_MESSAGE_LENGTH} bytes. The value
+   * is the backend's {@code MaxAllocSize}, the most it can allocate for one message, so a working
+   * server never sends a longer message than this.
+   *
+   * <p>Six message types are checked against this limit rather than a smaller one: DataRow,
+   * CopyData, FunctionCallResponse, RowDescription, and ErrorResponse and NoticeResponse once the
+   * connection is up. Every other message type is checked against a smaller limit.</p>
    */
   public static final int MAX_MESSAGE_LENGTH = 0x3FFFFFFF;
 
   /**
-   * Limit for messages that never carry bulk data: CommandComplete, AuthenticationRequest,
-   * AuthenticationGSSContinue, BackendKeyData, NegotiateProtocolVersion and CopyDone. The value
-   * is the backend's {@code MAX_STARTUP_PACKET_LENGTH}, reused for a short control message.
-   * libpq allows 2000 for {@code 'R'} and {@code 'v'} during setup and 30000 for any other
-   * message outside {@code VALID_LONG_MESSAGE_TYPE}.
+   * Limit for six messages: CommandComplete, AuthenticationRequest, AuthenticationGSSContinue,
+   * BackendKeyData, NegotiateProtocolVersion and CopyDone. They are listed rather than described
+   * because the protocol does not separate them from the other short messages, and
+   * ErrorResponse and NoticeResponse are read under {@link #MAX_MESSAGE_LENGTH} instead.
+   *
+   * <p>The value, {@value #MAX_SMALL_MESSAGE_LENGTH}, is the backend's
+   * {@code MAX_STARTUP_PACKET_LENGTH}, reused for a short control message. For comparison, libpq
+   * allows 2000 for {@code 'R'} and {@code 'v'} during setup and 30000 for any other message
+   * outside {@code VALID_LONG_MESSAGE_TYPE}.</p>
    */
   public static final int MAX_SMALL_MESSAGE_LENGTH = 10000;
 
   /**
    * Largest message buffered whole by {@link #receiveString(int)} or
    * {@link #receiveErrorString(int)}. DataRow and CopyData read straight into their destination.
+   * The value comes from {@link VisibleBufferedInputStream#MAX_BUFFER_SIZE}, which is what the
+   * buffer will actually grow to.
    *
    * <p>ErrorResponse and NoticeResponse buffer this much and drain the rest, so a long one is
-   * truncated rather than refused. ParameterStatus and NotificationResponse are refused above
-   * it. A NOTIFY payload is at most 8000 bytes, and libpq drops the connection on a
-   * ParameterStatus above 30000.</p>
+   * truncated rather than refused. ParameterStatus and NotificationResponse are refused instead
+   * when they declare more than this. Neither one grows anywhere near this size: a NOTIFY payload
+   * is under 8000 bytes at the default block size, and libpq itself drops the connection on a
+   * ParameterStatus longer than 30000 bytes.</p>
    *
    * <p>The body is four bytes shorter than the message, so a message of exactly this length
    * still fits the buffer.</p>
@@ -78,16 +90,17 @@ public class PGStream implements Closeable, Flushable {
 
   /**
    * Limit for an ErrorResponse before authentication, where a five byte header from an
-   * unauthenticated peer sets the allocation size. libpq refuses a message outside
-   * {@code VALID_LONG_MESSAGE_TYPE} whose declared length exceeds 30000, so this is the same
-   * limit.
+   * unauthenticated peer sets the allocation size. The value is libpq's {@code MAX_ERRLEN}, the
+   * limit it puts on an ErrorResponse read during connection setup. Given a longer length, libpq
+   * stops reading the message as protocol v3 and treats the data as an error from a pre-3.0
+   * server.
    */
   public static final int MAX_PRE_AUTH_MESSAGE_LENGTH = 30000;
 
   /**
-   * Limit on the round trips in the authentication loop and the two GSS handshakes. Without it
-   * the loop runs for as long as the server answers every token with another. Sixty four is an
-   * order of magnitude above any real handshake. The longest is SASL at four.
+   * Limit on the round trips in the authentication loop and the two GSS handshakes,
+   * {@value #MAX_AUTH_ROUND_TRIPS}. Without it the loop runs for as long as the server keeps
+   * sending another request or token. The longest real handshake, SASL, takes four.
    */
   public static final int MAX_AUTH_ROUND_TRIPS = 64;
 
@@ -102,14 +115,19 @@ public class PGStream implements Closeable, Flushable {
 
   /**
    * Stream position at which the message being read ends, or -1 when no declared length is
-   * outstanding. Set by {@link #receiveMessageLength} and checked by {@link #receiveMessageType}.
+   * outstanding. {@link #receiveMessageLength} sets it, {@link #receiveMessageType} checks the
+   * message was consumed exactly and then clears it, and {@link #scanCStringLength()} reads it to
+   * stop a string scan at the end of its message. Replacing the stream in
+   * {@link #changeSocket(Socket)} or {@link #setSecContext(GSSContext)} clears it as well, because
+   * the new stream counts its own bytes from zero.
    */
   private long messageEnd = -1;
 
   /**
-   * Callback for the buffered and GSS streams, so their refusals mark this stream broken. A
-   * method rather than a field, because the Checker Framework rejects an anonymous class in a
-   * field initializer calling setBroken on the not yet initialized instance.
+   * Callback for the buffered and GSS streams, so that their refusals mark this stream broken.
+   * This is a method rather than a field because the Checker Framework rejects a field
+   * initializer whose anonymous class calls {@link #setBroken()} on an instance that is not yet
+   * initialized.
    */
   private Runnable markBroken() {
     return new Runnable() {
@@ -138,7 +156,6 @@ public class PGStream implements Closeable, Flushable {
 
   public void setSecContext(GSSContext secContext) throws GSSException {
     MessageProp messageProp =  new MessageProp(0, true);
-    // The new stream starts its own byte count, and the handshake is not message framed.
     messageEnd = -1;
     pgInput = new VisibleBufferedInputStream(
         new GSSInputStream(pgInput, secContext, messageProp, markBroken()), 8192, markBroken());
@@ -364,7 +381,6 @@ public class PGStream implements Closeable, Flushable {
         + " excessive changeSocket calls";
 
     this.connection = socket;
-    // The new stream starts its own byte count.
     messageEnd = -1;
 
     // Submitted by Jason Venner <jason@idiom.com>. Disable Nagle
@@ -569,19 +585,19 @@ public class PGStream implements Closeable, Flushable {
    * Receives a message length and checks it. Everything the driver reads or allocates for the
    * message is sized from this field. The length includes the four bytes of the field itself.
    *
-   * @param packetName wire-protocol name of the message, used in the error
+   * @param messageName the message's name in the protocol, which appears in the error text
    * @param minLength smallest length the message layout permits, at least 4
    * @param maxLength largest length accepted for the message type
    * @return the message length
    * @throws IOException if the declared length is out of range
    */
-  public int receiveMessageLength(String packetName, int minLength, int maxLength)
+  public int receiveMessageLength(String messageName, int minLength, int maxLength)
       throws IOException {
     int length = receiveInteger4();
     if (length < minLength || length > maxLength) {
       throw protocolViolation(GT.tr(
           "Backend declared a {0} message length of {1} bytes, expected {2} to {3} bytes.",
-          packetName, String.valueOf(length), String.valueOf(minLength),
+          messageName, String.valueOf(length), String.valueOf(minLength),
           String.valueOf(maxLength)));
     }
     // The length counts its own four bytes, which have just been read.
@@ -594,9 +610,11 @@ public class PGStream implements Closeable, Flushable {
    * consumed exactly. A reader that stops short of its declared length fails here rather than
    * by misreading what follows.
    *
-   * <p>Only messages whose length came through {@link #receiveMessageLength} are checked. The
-   * single byte SSL and GSS encryption replies and the raw GSS token exchange are not message
-   * framed and are read with {@link #receiveChar()}.</p>
+   * <p>Only messages whose length came through {@link #receiveMessageLength} are checked. Two
+   * kinds of read do not go through it: the SSL and GSS encryption replies, which are a single
+   * byte read with {@link #receiveChar()}, and the raw tokens of the GSS encryption handshake,
+   * which carry a length of their own with no message type in front of it. Neither one records
+   * where a message ends, so after either read this method has no end to compare against.</p>
    *
    * @return the message type byte
    * @throws IOException if the stream is broken, if the previous message was not consumed
@@ -604,7 +622,8 @@ public class PGStream implements Closeable, Flushable {
    */
   public int receiveMessageType() throws IOException {
     if (broken) {
-      // Nothing after a refusal can be read. Report that rather than whatever fails next.
+      // A refusal has already dropped the socket, so no later message can be read. Report
+      // that rather than whatever fails next.
       throw new IOException(GT.tr("The connection was dropped after a protocol violation."));
     }
     long end = messageEnd;
@@ -752,7 +771,7 @@ public class PGStream implements Closeable, Flushable {
    * @throws SQLException if read more bytes than set maxResultBuffer
    */
   public Tuple receiveTupleV3() throws IOException, OutOfMemoryError, SQLException {
-    // 4 (length) + 2 (field count)
+    // 4 (length) + 2 (field count), then a length and a value for each column.
     int messageSize = receiveMessageLength("DataRow", 6, MAX_MESSAGE_LENGTH);
     int nf = receiveInteger2();
     //size = messageSize - 4 bytes of message size - 2 bytes of field count - 4 bytes for each column length
@@ -772,7 +791,8 @@ public class PGStream implements Closeable, Flushable {
     for (int i = 0; i < nf; i++) {
       int size = receiveInteger4();
       if (size != -1) {
-        // -1 is null. Nothing else negative is valid, and no column exceeds what is left.
+        // A length of -1 is a SQL NULL and carries no bytes. No other negative length is valid,
+        // and no column can be longer than the part of the message still unread.
         if (size < 0 || size > remaining) {
           throw protocolViolation(GT.tr("DataRow column of {0} bytes does not fit in the {1} bytes"
               + " left of the message.", String.valueOf(size), String.valueOf(remaining)));
@@ -916,8 +936,10 @@ public class PGStream implements Closeable, Flushable {
   @Override
   public void close() throws IOException {
     if (!broken) {
-      // Flushing would send the rest of a half written request to a peer that is already
-      // discarding it.
+      // Closing pgOutput flushes it. On a broken stream setBroken() has already dropped the
+      // socket, so the flush would fail and its exception would leave pgInput and the socket
+      // unclosed. The unsent bytes are of no use anyway: a peer that broke the protocol is not
+      // going to read the rest of a half written request.
       pgOutput.close();
     }
     pgInput.close();
@@ -1022,18 +1044,25 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * Whether a length or a count off the wire has been refused on this stream.
+   * Whether this stream has been given up on, so that it can no longer be read from or written
+   * to. The socket has already been dropped by {@link #setBroken()} at this point.
    *
-   * @return true once the stream is known to be out of step with the protocol
+   * <p>The reasons fall into two groups. Either the peer broke the protocol, which covers a
+   * message length or an element count that cannot be reconciled with the message declaring it,
+   * an unrecognized message type, and a handshake that never finishes; or the driver stopped
+   * reading a message partway through and can no longer find the next message boundary, which is
+   * what exceeding {@code maxResultBuffer} does.</p>
+   *
+   * @return true once the stream can no longer be used
    */
   public boolean isBroken() {
     return broken;
   }
 
   /**
-   * Marks the stream out of sync with the protocol and drops the socket. Nothing after a
-   * refused length can be read, so {@link #isClosed()} reports the stream closed from here on
-   * and a pool that tests on borrow discards it.
+   * Gives up on the stream and drops the socket. The stream can no longer be read, so
+   * {@link #isClosed()} reports the stream closed from here on and a pool that tests on borrow
+   * discards it. {@link #isBroken()} describes the conditions that lead here.
    *
    * <p>The socket is closed here rather than through {@link #close()}, which would flush
    * {@code pgOutput} to a peer that is already discarding it. {@code SO_LINGER 0} makes the close
@@ -1047,7 +1076,7 @@ public class PGStream implements Closeable, Flushable {
     try {
       connection.setSoLinger(true, 0);
     } catch (Exception e) {
-      // Without it the close is graceful rather than a reset, which is fine.
+      // Without SO_LINGER the close is graceful rather than a reset, which is fine.
     }
     try {
       connection.close();
@@ -1059,6 +1088,11 @@ public class PGStream implements Closeable, Flushable {
   /**
    * Marks the stream broken and builds the exception for a refused length or count, so no
    * refusal leaves a connection that looks reusable.
+   *
+   * <p>The exception carries no SQLState of its own. A refusal during connection setup reaches
+   * the caller as {@link PSQLState#PROTOCOL_VIOLATION}, and one after setup as
+   * {@link PSQLState#CONNECTION_FAILURE}, which is how the query executor reports any I/O
+   * failure.</p>
    *
    * @param message the already translated message
    * @return the exception to throw

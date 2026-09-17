@@ -149,8 +149,8 @@ public class GssEncAction implements PrivilegedAction<@Nullable Exception>, Call
   @Nullable Exception negotiate(GSSContext secContext) throws GSSException, IOException {
     byte[] inToken = new byte[0];
 
-    // A zero length token is a valid continuation, so without the limit the loop runs for as
-    // long as the server answers every token with another.
+    // A zero length token is a valid continuation, so the round trip limit is the only thing
+    // that ends the loop: the server can answer every token with another one.
     for (int round = 0; round < PGStream.MAX_AUTH_ROUND_TRIPS; round++) {
       byte[] outToken = secContext.initSecContext(inToken, 0, inToken.length);
 

@@ -62,7 +62,7 @@ public class QueryExecutorCloseAction implements Closeable {
       return;
     }
     if (pgStream.isBroken()) {
-      // Nothing may be written to a broken stream, and the close in setBroken may have
+      // A broken stream must not be written to, and the close in setBroken may have
       // failed, so release the descriptor here.
       pgStream.getSocket().close();
       return;
