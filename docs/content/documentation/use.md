@@ -501,6 +501,20 @@ A limit during setting of property is 90% of max heap memory. All given values, 
 will be lowered to the limit. By default, maxResultBuffer is not set (is null), which means that reading of results will
 be performed without limits.
 
+* **`maxErrorResponseLength (`*int*`)`** *Default `-1`*\
+Largest `ErrorResponse` message the driver delivers whole, in bytes as declared on the wire. A longer one is truncated
+to this length and the rest of it discarded, so the connection stays usable. The fields before the truncation point are
+kept, and later ones such as the query text are lost. `-1` is no limit beyond the protocol maximum of 0x3FFFFFFF bytes,
+just under 1 GiB, and the driver then allocates as much as the message declares. Any other value must be between 5 and
+that maximum. An error before authentication is refused above 30000 bytes regardless.
+  Since: 42.7.14
+
+* **`maxNoticeResponseLength (`*int*`)`** *Default `-1`*\
+Largest `NoticeResponse` message the driver delivers whole, in bytes as declared on the wire. A longer one is truncated
+to this length and the rest of it discarded, in the same way as `maxErrorResponseLength`. `-1` is no limit beyond the
+protocol maximum.
+  Since: 42.7.14
+
 * **`adaptiveFetch (`*boolean*`)`** *Default `false`*\
 Specifies if the number of rows, fetched in `ResultSet` per request from the database, should be dynamic.
 Using dynamic number of rows, computed by adaptive fetch, will attempt to use maximize the use of the buffer declared in 
