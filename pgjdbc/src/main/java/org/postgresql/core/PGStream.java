@@ -660,22 +660,27 @@ public class PGStream implements Closeable, Flushable {
     if (!pgInput.ensureBytes(len)) {
       throw new EOFException();
     }
-
-    EncodingPredictor.DecodeResult res;
-    try {
-      String value = encoding.decode(pgInput.getBuffer(), pgInput.getIndex(), len);
-      // no autodetect warning as the message was converted on its own
-      res = new EncodingPredictor.DecodeResult(value, null);
-    } catch (IOException e) {
-      res = EncodingPredictor.decode(pgInput.getBuffer(), pgInput.getIndex(), len);
-      if (res == null) {
-        Encoding enc = Encoding.defaultEncoding();
-        String value = enc.decode(pgInput.getBuffer(), pgInput.getIndex(), len);
-        res = new EncodingPredictor.DecodeResult(value, enc.name());
-      }
-    }
+    EncodingPredictor.DecodeResult res =
+        decodeErrorString(pgInput.getBuffer(), pgInput.getIndex(), len);
     pgInput.skip(len);
     return res;
+  }
+
+  private EncodingPredictor.DecodeResult decodeErrorString(byte[] bytes, int offset, int len)
+      throws IOException {
+    try {
+      String value = encoding.decode(bytes, offset, len);
+      // no autodetect warning as the message was converted on its own
+      return new EncodingPredictor.DecodeResult(value, null);
+    } catch (IOException e) {
+      EncodingPredictor.DecodeResult res = EncodingPredictor.decode(bytes, offset, len);
+      if (res == null) {
+        Encoding enc = Encoding.defaultEncoding();
+        String value = enc.decode(bytes, offset, len);
+        res = new EncodingPredictor.DecodeResult(value, enc.name());
+      }
+      return res;
+    }
   }
 
   /**
