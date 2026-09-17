@@ -141,8 +141,7 @@ class AdaptiveFetchCacheTest {
     assertEquals(expectedMinimumSizeValue, getMinimumSizeVariable());
     assertEquals(expectedMaximumSizeValue, getMaximumSizeVariable());
   }
-
-
+  
   /**
    * Test for calling addNewQuery method.
    */
