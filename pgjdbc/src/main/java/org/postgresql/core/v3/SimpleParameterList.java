@@ -209,10 +209,20 @@ class SimpleParameterList implements V3ParameterList {
    * -------
    * {}
    * </pre>
+   *
+   * <p>With {@code standardConformingStrings} false the value goes into an escape string constant,
+   * {@code (E'a\\b'::text)}, because the escaping doubles every backslash. A plain literal reads a
+   * doubled backslash the same way, but a server with {@code escape_string_warning} on sends the
+   * warning {@code nonstandard use of \\ in a string literal} for each such literal, and each one
+   * reaches the caller as an {@link java.sql.SQLWarning} on the statement.</p>
+   *
+   * <p>The escape string constant also keeps the value right where the server has
+   * {@code standard_conforming_strings} on but reported it off: a plain literal would store the
+   * doubled backslashes as they stand.</p>
    **/
   private static String quoteAndCast(String text, @Nullable String type, boolean standardConformingStrings) {
     StringBuilder sb = new StringBuilder((text.length() + 10) / 10 * 11); // Add 10% for escaping.
-    sb.append("('");
+    sb.append(standardConformingStrings ? "('" : "(E'");
     try {
       Utils.escapeLiteral(sb, text, standardConformingStrings);
     } catch (SQLException e) {
