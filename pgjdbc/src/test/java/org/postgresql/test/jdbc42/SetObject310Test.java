@@ -7,11 +7,13 @@ package org.postgresql.test.jdbc42;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
+import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -416,6 +418,44 @@ public class SetObject310Test extends BaseTest4 {
       }
       localTimestamps(ZoneOffset.UTC, bcDate, expected);
     }
+  }
+
+  /**
+   * Regression test for <a href="https://github.com/pgjdbc/pgjdbc/issues/3428">#3428</a>.
+   * A {@code timestamp without time zone} carries no offset, so {@code setObject(i, value,
+   * Types.TIMESTAMP)} rejects an {@code OffsetDateTime} rather than silently discarding it: the
+   * JDBC spec pairs {@code OffsetDateTime} with {@code TIMESTAMP_WITH_TIMEZONE}, not
+   * {@code TIMESTAMP}. The BC value of #3428 used to surface as a confusing
+   * {@code NumberFormatException}; both AD and BC now fail with a clear
+   * {@code INVALID_PARAMETER_TYPE} error. Callers that want the local part can pass a
+   * {@code LocalDateTime}; callers that want the instant can use {@code TIMESTAMP_WITH_TIMEZONE}.
+   */
+  @Test
+  public void testSetObjectRejectsOffsetDateTimeForTimestamp() throws SQLException {
+    List<OffsetDateTime> values = Arrays.asList(
+        OffsetDateTime.parse("2020-01-01T00:00:00+08:00"),
+        OffsetDateTime.parse("-3000-01-01T00:00:00+08:00"));
+    for (OffsetDateTime value : values) {
+      SQLException e = assertThrows(SQLException.class,
+          () -> insert(value, "timestamp_without_time_zone_column", Types.TIMESTAMP));
+      assertEquals(PSQLState.INVALID_PARAMETER_TYPE.getState(), e.getSQLState(),
+          () -> "setObject(OffsetDateTime=" + value + ", Types.TIMESTAMP) must be rejected");
+    }
+  }
+
+  /**
+   * A {@code date} has neither time nor offset, so {@code setObject(i, value, Types.DATE)} rejects
+   * an {@code OffsetDateTime} rather than silently discarding them (the JDBC spec pairs
+   * {@code OffsetDateTime} with {@code TIMESTAMP_WITH_TIMEZONE}). Pass a {@code LocalDate} to store
+   * the date part.
+   */
+  @Test
+  public void testSetObjectRejectsOffsetDateTimeForDate() throws SQLException {
+    OffsetDateTime value = OffsetDateTime.parse("2024-01-31T12:34:56+08:00");
+    SQLException e = assertThrows(SQLException.class,
+        () -> insert(value, "date_column", Types.DATE));
+    assertEquals(PSQLState.INVALID_PARAMETER_TYPE.getState(), e.getSQLState(),
+        "setObject(OffsetDateTime, Types.DATE) must be rejected");
   }
 
   /**

@@ -639,6 +639,14 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           } else if (in instanceof LocalDate) {
             setDate(parameterIndex, (LocalDate) in);
             break;
+          } else if (in instanceof OffsetDateTime) {
+            // A date has neither time nor offset, so an OffsetDateTime cannot be stored without
+            // silently discarding them. Reject it: pass a LocalDate to store the date part.
+            // (The JDBC spec pairs OffsetDateTime with TIMESTAMP_WITH_TIMEZONE.)
+            throw new PSQLException(
+                GT.tr("Cannot cast an instance of {0} to type {1}",
+                    in.getClass().getName(), "Types.DATE"),
+                PSQLState.INVALID_PARAMETER_TYPE);
           } else {
             tmpd = getTimestampUtils().toDate(getDefaultCalendar(), in.toString());
           }
@@ -682,6 +690,15 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           } else if (in instanceof LocalDateTime) {
             setTimestamp(parameterIndex, (LocalDateTime) in);
             break;
+          } else if (in instanceof OffsetDateTime) {
+            // A timestamp (without time zone) carries no offset, so an OffsetDateTime cannot be
+            // stored without silently discarding it. Reject it instead: use
+            // Types.TIMESTAMP_WITH_TIMEZONE to keep the instant, or pass a LocalDateTime to store
+            // the local part. (The JDBC spec pairs OffsetDateTime with TIMESTAMP_WITH_TIMEZONE.)
+            throw new PSQLException(
+                GT.tr("Cannot cast an instance of {0} to type {1}",
+                    in.getClass().getName(), "Types.TIMESTAMP"),
+                PSQLState.INVALID_PARAMETER_TYPE);
           } else {
             Charset connectionCharset = Charset.forName(connection.getEncoding().name());
             tmpts = getTimestampUtils().toTimestamp(getDefaultCalendar(), in.toString().getBytes(connectionCharset));
