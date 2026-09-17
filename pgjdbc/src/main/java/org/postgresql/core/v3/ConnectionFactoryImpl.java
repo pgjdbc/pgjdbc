@@ -596,14 +596,16 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.sendInteger2(1234);
     pgStream.sendInteger2(5680);
     pgStream.flush();
-    // Now get the response from the backend, one of N, E, S. A bare byte, not a message.
+    // Now get the response from the backend: G to proceed, N to refuse, or E if the server failed
+    // before it could answer, which covers a server older than the request itself. A bare byte,
+    // not a message.
     int beresp = pgStream.receiveChar();
     pgStream.setNetworkTimeout(currentTimeout);
     switch (beresp) {
       case 'E':
         LOGGER.log(Level.FINEST, " <=BE GSSEncrypted Error");
 
-        // Server doesn't even know about the SSL handshake protocol
+        // The exchange failed, so this connection cannot carry GSS encryption.
         if (gssEncMode.requireEncryption()) {
           throw new PSQLException(GT.tr("The server does not support GSS Encoding."),
               PSQLState.CONNECTION_REJECTED);
@@ -690,7 +692,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.sendInteger2(5679);
     pgStream.flush();
 
-    // Now get the response from the backend, one of N, E, S. A bare byte, not a message.
+    // Now get the response from the backend: S to proceed, N to refuse, or E if the server failed
+    // before it could answer. A bare byte, not a message.
     int beresp = pgStream.receiveChar();
     pgStream.setNetworkTimeout(currentTimeout);
 
@@ -814,7 +817,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     try {
       int messages = 0;
       authloop: while (true) {
-        // Nothing else bounds this loop. Without it a server could send
+        // This limit is the only bound on the loop. Without it a server could send
         // AuthenticationCleartextPassword any number of times and get a password each time.
         if (++messages > PGStream.MAX_AUTH_ROUND_TRIPS) {
           pgStream.setBroken();
@@ -826,7 +829,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         switch (beresp) {
           case PgMessageType.NEGOTIATE_PROTOCOL_RESPONSE:  // Negotiate Protocol Version
-            // 4 (length) + 4 (protocol version) + 4 (option count), then a terminator each.
+            // 4 (length) + 4 (protocol version) + 4 (option count), then a terminated name for
+            // each unrecognized option.
             int negotiateLen = pgStream.receiveMessageLength("NegotiateProtocolVersion", 12,
                 PGStream.MAX_SMALL_MESSAGE_LENGTH);
             protocol = pgStream.receiveInteger4();
@@ -867,8 +871,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // The most common one to be thrown here is:
             // "User authentication failed"
             //
-            // Read before authentication, so this limit is what bounds a hostile server's
-            // allocation.
             int elen = pgStream.receiveMessageLength("ErrorResponse", 5,
                 PGStream.MAX_PRE_AUTH_MESSAGE_LENGTH);
 
@@ -879,8 +881,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
           case PgMessageType.AUTHENTICATION_RESPONSE:
             // Authentication request.
-            // Get the message length. Read before authentication, so this small limit is what
-            // bounds a hostile server's allocation.
+            // The SASL and SSPI handlers size their buffers from this length, and the peer is
+            // still unauthenticated here, so it is checked against the small limit rather than
+            // the general one.
             int msgLen = pgStream.receiveMessageLength("AuthenticationRequest", 8,
                 PGStream.MAX_SMALL_MESSAGE_LENGTH);
 

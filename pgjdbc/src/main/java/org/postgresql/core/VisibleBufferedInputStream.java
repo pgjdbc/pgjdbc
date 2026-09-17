@@ -34,11 +34,9 @@ public class VisibleBufferedInputStream extends InputStream {
   private static final int STRING_SCAN_SPAN = 1024;
 
   /**
-   * The largest the buffer will grow. Only control messages and strings are buffered, bulk data
-   * is read straight into its destination, so this is also the limit on a message body read
-   * through {@code PGStream.receiveString}. The protocol does not impose it. Rather than refuse a
-   * longer ErrorResponse or NoticeResponse, the v3 query executor reads this much of it and drains
-   * the rest, so such a message arrives truncated.
+   * The largest the buffer will grow. The protocol does not impose it, it is what the driver is
+   * willing to allocate for one message. {@link PGStream#MAX_BUFFERED_MESSAGE_LENGTH} is the same
+   * number seen from the message side, and says which messages are read through the buffer at all.
    */
   static final int MAX_BUFFER_SIZE = 32 * 1024 * 1024;
 
@@ -272,7 +270,7 @@ public class VisibleBufferedInputStream extends InputStream {
     }
     // Compact only if that leaves room for a reasonably sized read. Otherwise a nearly full
     // buffer would compact on every call and each socket read would be only a few bytes. At the
-    // maximum there is nothing to grow into, so compact anyway.
+    // maximum the buffer cannot grow any further, so compact anyway.
     if (required + MINIMUM_READ <= buffer.length || buffer.length >= MAX_BUFFER_SIZE) {
       compact();
       return;
@@ -306,7 +304,8 @@ public class VisibleBufferedInputStream extends InputStream {
 
   /**
    * Returns the buffer to its initial size once it is empty, so the memory for one large message
-   * is not retained for the rest of the connection. The buffer is empty, so nothing is copied.
+   * is not retained for the rest of the connection. It runs only when the buffer is empty, so
+   * the replacement starts empty and no bytes are copied into it.
    */
   private void shrinkIfDrained() {
     if (index == endIndex && buffer.length > initialSize) {
@@ -460,7 +459,7 @@ public class VisibleBufferedInputStream extends InputStream {
    *
    * @return The length of the next null terminated string.
    * @throws IOException If reading of stream fails.
-   * @throws EOFException If the stream did not contain any null terminators.
+   * @throws EOFException If the stream ends before a terminator is reached.
    */
   public int scanCStringLength() throws IOException {
     return scanCStringLength(Integer.MAX_VALUE);
@@ -472,8 +471,9 @@ public class VisibleBufferedInputStream extends InputStream {
    *
    * @param maxLength The most bytes the string may occupy, including its terminator.
    * @return The length of the next null terminated string.
-   * @throws IOException If reading of stream fails, or no terminator is within maxLength.
-   * @throws EOFException If the stream did not contain any null terminators.
+   * @throws IOException If {@code maxLength} bytes go by without a terminator, or reading of
+   *         stream fails.
+   * @throws EOFException If the stream ends before a terminator is reached.
    */
   public int scanCStringLength(int maxLength) throws IOException {
     int scanned = 0;
