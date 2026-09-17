@@ -47,17 +47,23 @@ import javax.net.SocketFactory;
  */
 public class PGStream implements Closeable, Flushable {
   /**
-   * Largest message the driver accepts. {@code 0x3FFFFFFF} is the backend's
-   * {@code MaxAllocSize}, the most it can allocate for an outgoing message.
+   * Largest length any backend message may declare, {@value #MAX_MESSAGE_LENGTH} bytes. The value
+   * is the backend's {@code MaxAllocSize}, which is the most it can allocate for a message it
+   * sends, so nothing valid arrives above it. Most message types are checked against a smaller
+   * limit of their own.
    */
   public static final int MAX_MESSAGE_LENGTH = 0x3FFFFFFF;
 
   /**
-   * Limit for messages that never carry bulk data: CommandComplete, AuthenticationRequest,
-   * AuthenticationGSSContinue, BackendKeyData, NegotiateProtocolVersion and CopyDone. The value
-   * is the backend's {@code MAX_STARTUP_PACKET_LENGTH}, reused for a short control message. For
-   * comparison, libpq allows 2000 for {@code 'R'} and {@code 'v'} during setup and 30000 for any
-   * other message outside {@code VALID_LONG_MESSAGE_TYPE}.
+   * Limit for six messages: CommandComplete, AuthenticationRequest, AuthenticationGSSContinue,
+   * BackendKeyData, NegotiateProtocolVersion and CopyDone. They are listed rather than described
+   * because nothing in the protocol separates them from the other short messages, and
+   * ErrorResponse and NoticeResponse are read under {@link #MAX_MESSAGE_LENGTH} instead.
+   *
+   * <p>The value, {@value #MAX_SMALL_MESSAGE_LENGTH}, is the backend's
+   * {@code MAX_STARTUP_PACKET_LENGTH}, reused for a short control message. For comparison, libpq
+   * allows 2000 for {@code 'R'} and {@code 'v'} during setup and 30000 for any other message
+   * outside {@code VALID_LONG_MESSAGE_TYPE}.</p>
    */
   public static final int MAX_SMALL_MESSAGE_LENGTH = 10000;
 
@@ -86,9 +92,9 @@ public class PGStream implements Closeable, Flushable {
   public static final int MAX_PRE_AUTH_MESSAGE_LENGTH = 30000;
 
   /**
-   * Limit on the round trips in the authentication loop and the two GSS handshakes. Without it
-   * the loop runs for as long as the server answers every token with another. The longest real
-   * handshake, SASL, takes four.
+   * Limit on the round trips in the authentication loop and the two GSS handshakes,
+   * {@value #MAX_AUTH_ROUND_TRIPS}. Without it the loop runs for as long as the server keeps
+   * sending another request or token. The longest real handshake, SASL, takes four.
    */
   public static final int MAX_AUTH_ROUND_TRIPS = 64;
 
@@ -103,14 +109,18 @@ public class PGStream implements Closeable, Flushable {
 
   /**
    * Stream position at which the message being read ends, or -1 when no declared length is
-   * outstanding. Set by {@link #receiveMessageLength} and checked by {@link #receiveMessageType}.
+   * outstanding. {@link #receiveMessageLength} sets it, {@link #receiveMessageType} checks the
+   * message was consumed exactly and then clears it, and {@link #scanCStringLength()} reads it to
+   * stop a string scan at the end of its message. Replacing the stream in
+   * {@link #changeSocket(Socket)} or {@link #setSecContext(GSSContext)} clears it as well, because
+   * the new stream counts its own bytes from zero.
    */
   private long messageEnd = -1;
 
   /**
    * Callback for the buffered and GSS streams, so that their refusals mark this stream broken.
    * This is a method rather than a field because the Checker Framework rejects a field
-   * initializer whose anonymous class calls setBroken on an instance that is not yet
+   * initializer whose anonymous class calls {@link #setBroken()} on an instance that is not yet
    * initialized.
    */
   private Runnable markBroken() {

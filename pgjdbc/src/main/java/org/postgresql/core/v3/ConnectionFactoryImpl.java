@@ -311,8 +311,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       return newStream;
     } catch (IOException e) {
       // A refused length is a protocol violation, not a transport failure. Reporting it as one
-      // excludes it from the sslMode=allow/prefer retry below, which is for a peer that dropped
-      // the connection.
+      // keeps it out of the sslMode=allow retry, which is meant for a peer that dropped the
+      // connection rather than for one whose message the driver refused. The sslMode=prefer
+      // retry only ever saw a SocketTimeoutException, so it never covered this.
       boolean broken = newStream.isBroken();
       closeStream(newStream, e);
       if (broken) {
