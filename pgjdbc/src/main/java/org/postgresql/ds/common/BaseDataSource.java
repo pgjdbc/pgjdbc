@@ -898,6 +898,69 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available.
+   * @param value the maximum number of keep-alive probes to be sent before a connection is considered to be broken.
+   * @see PGProperty#TCP_KEEP_ALIVE_COUNT
+   */
+  public void setTcpKeepAliveCount(@Nullable Integer value) {
+    PGProperty.TCP_KEEP_ALIVE_COUNT.setInteger(properties, value);
+  }
+
+  /**
+   * @return the maximum number of keep-alive probes to be sent
+   * @see PGProperty#TCP_KEEP_ALIVE_COUNT
+   */
+  public @Nullable Integer getTcpKeepAliveCount() {
+    try {
+      return PGProperty.TCP_KEEP_ALIVE_COUNT.getInteger(properties);
+    } catch (PSQLException e) {
+      return null;
+    }
+  }
+
+  /**
+   * Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available.
+   * @param value the number of seconds of idle time before keep-alive initiates a probe.
+   * @see PGProperty#TCP_KEEP_ALIVE_IDLE
+   */
+  public void setTcpKeepAliveIdle(@Nullable Integer value) {
+    PGProperty.TCP_KEEP_ALIVE_IDLE.setInteger(properties, value);
+  }
+
+  /**
+   * @return the number of seconds of idle time before keep-alive initiates a probe
+   * @see PGProperty#TCP_KEEP_ALIVE_IDLE
+   */
+  public @Nullable Integer getTcpKeepAliveIdle() {
+    try {
+      return PGProperty.TCP_KEEP_ALIVE_IDLE.getInteger(properties);
+    } catch (PSQLException e) {
+      return null;
+    }
+  }
+
+  /**
+   * Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available.
+   * @param value the number of seconds to wait before retransmitting a keep-alive probe.
+   * @see PGProperty#TCP_KEEP_ALIVE_INTERVAL
+   */
+  public void setTcpKeepAliveInterval(@Nullable Integer value) {
+    PGProperty.TCP_KEEP_ALIVE_INTERVAL.setInteger(properties, value);
+  }
+
+  /**
+   * @return the number of seconds to wait before retransmitting a keep-alive probe
+   * @see PGProperty#TCP_KEEP_ALIVE_INTERVAL
+   */
+  public @Nullable Integer getTcpKeepAliveInterval() {
+    try {
+      return PGProperty.TCP_KEEP_ALIVE_INTERVAL.getInteger(properties);
+    } catch (PSQLException e) {
+      return null;
+    }
+  }
+
+  /**
    * @param enabled if TCP no delay should be enabled
    * @see PGProperty#TCP_NO_DELAY
    */
