@@ -136,7 +136,6 @@ class PgPassParserTest {
     });
   }
 
-
   // "org.postgresql.pgpassfile" : exist
   // "PGPASSFILE"                : exist
   // ".pgpass"                   : exist
