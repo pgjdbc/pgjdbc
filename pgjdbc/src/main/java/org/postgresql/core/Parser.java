@@ -1441,9 +1441,33 @@ public class Parser {
     return i;
   }
 
+  /**
+   * Finds the {@code (} that opens the argument list of a {@code {fn name(...)}} escape. The search
+   * stops at the {@code }} that ends the escape, so a {@code (} belonging to the surrounding SQL is
+   * not mistaken for the argument list. A quoted identifier or a comment is skipped whole, because
+   * a {@code (} or {@code }} inside one is not the escape's own.
+   *
+   * @param sql input SQL text
+   * @param i offset of the function name
+   * @return offset of the {@code (}, or an offset at or past the {@code }} that ends the escape
+   *     when the escape has no argument list. Callers must test with {@code sql[result] != '('}
+   *     after a bounds check rather than comparing against {@code sql.length}, since an
+   *     unterminated nested comment can leave the scan one past the end.
+   */
   private static int findOpenParenthesis(char[] sql, int i) {
     int posArgs = i;
-    while (posArgs < sql.length && sql[posArgs] != '(') {
+    while (posArgs < sql.length && sql[posArgs] != '(' && sql[posArgs] != '}') {
+      char ch = sql[posArgs];
+      if (ch == '"') {
+        posArgs = parseDoubleQuotes(sql, posArgs);
+      } else if (ch == '-') {
+        posArgs = parseLineComment(sql, posArgs);
+      } else if (ch == '/') {
+        posArgs = parseBlockComment(sql, posArgs);
+      }
+      if (posArgs >= sql.length) {
+        break;
+      }
       posArgs++;
     }
     return posArgs;
@@ -1461,20 +1485,78 @@ public class Parser {
   }
 
   private static int escapeFunction(char[] sql, int i, StringBuilder newsql, boolean stdStrings) throws SQLException {
-    String functionName;
     int argPos = findOpenParenthesis(sql, i);
-    if (argPos < sql.length) {
-      functionName = new String(sql, i, argPos - i).trim();
-      // extract arguments
-      i = argPos + 1;// we start the scan after the first (
-      i = escapeFunctionArguments(newsql, functionName, sql, i, stdStrings);
+    if (argPos >= sql.length) {
+      // The scan ran out of input, so the escape, an identifier or a comment was never closed
+      throw new PSQLException(
+          GT.tr("Unterminated JDBC escape function call whose name starts at position {0} in SQL "
+              + "{1}. Expected a closing brace", i, new String(sql)),
+          PSQLState.SYNTAX_ERROR);
     }
+    if (sql[argPos] != '(') {
+      throw new PSQLException(
+          GT.tr("JDBC escape function name at position {0} in SQL {1} has no argument list. "
+              + "Expected a name followed by parentheses, as in '{'fn now()'}'",
+              i, new String(sql)),
+          PSQLState.SYNTAX_ERROR);
+    }
+    String functionName = escapeFunctionName(sql, i, argPos);
+    // extract arguments
+    i = argPos + 1;// we start the scan after the first (
+    i = escapeFunctionArguments(newsql, functionName, sql, i, stdStrings);
     // go to the end of the function copying anything found
     i++;
     while (i < sql.length && sql[i] != '}') {
       newsql.append(sql[i++]);
     }
     return i;
+  }
+
+  /**
+   * Reads the name of a {@code {fn ...}} escape, which runs from {@code start} to the opening
+   * parenthesis of its argument list.
+   *
+   * <p>A comment between the name and the parenthesis belongs to the escape rather than to the
+   * name, so it gives way to a space and the trim removes it along with the whitespace around it.
+   * A line comment has to go: the newline that ended it does not survive the trim, so the comment
+   * would take the argument list with it. The space matters where the comment sits between two
+   * tokens rather than beside one: a comment separates tokens in PostgreSQL, so a name that only
+   * looks whole once the comment is gone must not become one.</p>
+   *
+   * @param sql    SQL text
+   * @param start  offset of the function name
+   * @param argPos offset of the opening parenthesis of the argument list
+   * @return the function name, with comments and surrounding whitespace removed
+   */
+  private static String escapeFunctionName(char[] sql, int start, int argPos) {
+    StringBuilder name = new StringBuilder(argPos - start);
+    int i = start;
+    while (i < argPos) {
+      char ch = sql[i];
+      if (ch == '"') {
+        // A delimited identifier may hold anything, including what looks like a comment
+        int end = Math.min(parseDoubleQuotes(sql, i), argPos - 1);
+        name.append(sql, i, end - i + 1);
+        i = end + 1;
+      } else if (ch == '-' || ch == '/') {
+        int end = ch == '-' ? parseLineComment(sql, i) : parseBlockComment(sql, i);
+        if (end > i) {
+          // A comment separates tokens, so it leaves a space behind rather than nothing. Without
+          // it "con/**/cat" would read as the name concat, which the lookup rewrites and the
+          // server never would: PostgreSQL rejects "con/**/cat(...)" as a syntax error.
+          name.append(' ');
+          i = end + 1;
+        } else {
+          // Not a comment after all, so it is part of the name
+          name.append(ch);
+          i++;
+        }
+      } else {
+        name.append(ch);
+        i++;
+      }
+    }
+    return name.toString().trim();
   }
 
   /**
