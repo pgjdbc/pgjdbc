@@ -1298,8 +1298,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     PreparedStatement stmt = prepareMetaDataStatement(sql.toString(), args);
     ResultSet rs = stmt.executeQuery();
     while (rs.next()) {
-      byte[] schema = rs.getBytes("nspname");
-      byte[] procedureName = rs.getBytes("proname");
+      byte[] schema = connection.encodeString(castNonNull(rs.getString("nspname")));
+      byte[] procedureName = connection.encodeString(castNonNull(rs.getString("proname")));
       byte[] specificName =
                 connection.encodeString(rs.getString("proname") + "_" + rs.getString("oid"));
       int returnType = (int) rs.getLong("prorettype");
@@ -1424,7 +1424,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           tuple[0] = catalogName;
           tuple[1] = schema;
           tuple[2] = procedureName;
-          tuple[3] = columnrs.getBytes("attname");
+          tuple[3] = connection.encodeString(columnrs.getString("attname"));
           tuple[4] = connection
               .encodeString(Integer.toString(DatabaseMetaData.procedureColumnResult));
           tuple[5] = connection
@@ -1819,9 +1819,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       int typeMod = rs.getInt("atttypmod");
 
       tuple[0] = currentCatalog.getBytes(Charset.defaultCharset()); // Catalog (database) name
-      tuple[1] = rs.getBytes("nspname"); // Schema name
-      tuple[2] = rs.getBytes("relname"); // Table name
-      tuple[3] = rs.getBytes("attname"); // Column name
+      tuple[1] = connection.encodeString(rs.getString("nspname")); // Schema name
+      tuple[2] = connection.encodeString(rs.getString("relname")); // Table name
+      tuple[3] = connection.encodeString(rs.getString("attname")); // Column name
 
       String typtype = rs.getString("typtype");
       int sqlType;
@@ -1906,8 +1906,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
       tuple[10] = connection.encodeString(Integer.toString(rs.getBoolean("attnotnull")
           ? DatabaseMetaData.columnNoNulls : DatabaseMetaData.columnNullable)); // Nullable
-      tuple[11] = rs.getBytes("description"); // Description (if any)
-      tuple[12] = rs.getBytes("adsrc"); // Column default
+      tuple[11] = connection.encodeString(rs.getString("description")); // Description (if any)
+      tuple[12] = connection.encodeString(rs.getString("adsrc")); // Column default
       tuple[13] = null; // sql data type (unused)
       tuple[14] = null; // sql datetime sub (unused)
       // CHAR_OCTET_LENGTH applies to character and binary types only; it equals COLUMN_SIZE
@@ -2013,9 +2013,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     ResultSet rs = stmt.executeQuery();
     byte[] catalogName = currentCatalog.getBytes(Charset.defaultCharset());
     while (rs.next()) {
-      byte[] schemaName = rs.getBytes("nspname");
-      byte[] tableName = rs.getBytes("relname");
-      byte[] column = rs.getBytes("attname");
+      byte[] schemaName = connection.encodeString(castNonNull(rs.getString("nspname")));
+      byte[] tableName = connection.encodeString(castNonNull(rs.getString("relname")));
+      byte[] column = connection.encodeString(castNonNull(rs.getString("attname")));
       String owner = castNonNull(rs.getString("rolname"));
       String relAcl = rs.getString("relacl");
 
@@ -2098,8 +2098,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     ResultSet rs = stmt.executeQuery();
     byte[] catalogName = currentCatalog.getBytes(Charset.defaultCharset());
     while (rs.next()) {
-      byte[] schema = rs.getBytes("nspname");
-      byte[] table = rs.getBytes("relname");
+      byte[] schema = connection.encodeString(castNonNull(rs.getString("nspname")));
+      byte[] table = connection.encodeString(castNonNull(rs.getString("relname")));
       String owner = castNonNull(rs.getString("rolname"));
       String acl = rs.getString("relacl");
       Map<String, Map<String, List<@Nullable String[]>>> permissions = parseACL(acl, owner);
@@ -2359,7 +2359,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         columnSize = connection.getTypeInfo().getDisplaySize(typeOid, typeMod);
       }
       tuple[0] = connection.encodeString(Integer.toString(scope));
-      tuple[1] = rs.getBytes("attname");
+      tuple[1] = connection.encodeString(rs.getString("attname"));
       tuple[2] =
           connection.encodeString(Integer.toString(sqlType));
       tuple[3] = connection.encodeString(connection.getTypeInfo().getPGType(typeOid));
@@ -3387,8 +3387,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     ResultSet rs = stmt.executeQuery();
     byte[] catalogName = currentCatalog.getBytes(Charset.defaultCharset());
     while (rs.next()) {
-      byte[] schema = rs.getBytes("nspname");
-      byte[] functionName = rs.getBytes("proname");
+      byte[] schema = connection.encodeString(castNonNull(rs.getString("nspname")));
+      byte[] functionName = connection.encodeString(castNonNull(rs.getString("proname")));
       byte[] specificName =
           connection.encodeString(rs.getString("proname") + "_" + rs.getString("oid"));
       int returnType = (int) rs.getLong("prorettype");
@@ -3514,7 +3514,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           tuple[0] = catalogName;
           tuple[1] = schema;
           tuple[2] = functionName;
-          tuple[3] = columnrs.getBytes("attname");
+          tuple[3] = connection.encodeString(columnrs.getString("attname"));
           tuple[4] = connection
               .encodeString(Integer.toString(DatabaseMetaData.functionColumnResult));
           tuple[5] = connection

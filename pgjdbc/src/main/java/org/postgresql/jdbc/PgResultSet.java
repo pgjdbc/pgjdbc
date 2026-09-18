@@ -2954,11 +2954,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   /**
    * {@inheritDoc}
    *
-   * <p>In normal use, the bytes represent the raw values returned by the backend. However, if the
-   * column is an OID, then it is assumed to refer to a Large Object, and that object is returned as
-   * a byte array.</p>
-   *
-   * <p><b>Be warned</b> If the large object is huge, then you may run out of memory.</p>
+   * <p>PostgreSQL supports this conversion for {@code bytea} columns.</p>
    */
   @Pure
   @Override
@@ -2969,15 +2965,18 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return null;
     }
 
+    int oid = fields[columnIndex - 1].getOID();
+    if (oid != Oid.BYTEA) {
+      throw new PSQLException(
+          GT.tr("Cannot convert the column of type {0} to requested type {1}.",
+              Oid.toString(oid), "byte[]"),
+          PSQLState.CANNOT_COERCE);
+    }
+
     if (isBinary(columnIndex)) {
-      // If the data is already binary then just return it
       return value;
     }
-    if (fields[columnIndex - 1].getOID() == Oid.BYTEA) {
-      return trimBytes(columnIndex, PGbytea.toBytes(value));
-    } else {
-      return trimBytes(columnIndex, value);
-    }
+    return trimBytes(columnIndex, PGbytea.toBytes(value));
   }
 
   @Override
