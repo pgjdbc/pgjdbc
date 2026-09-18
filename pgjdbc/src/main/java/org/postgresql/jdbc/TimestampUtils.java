@@ -1103,7 +1103,7 @@ public class TimestampUtils {
     try (ResourceLock ignore = lock.obtain()) {
       sbuf.setLength(0);
 
-      final LocalTime localTime = offsetTime.toLocalTime();
+      LocalTime localTime = offsetTime.toLocalTime();
       if (localTime.isAfter(MAX_TIME)) {
         sbuf.append("24:00:00");
         appendTimeZone(sbuf, offsetTime.getOffset());
