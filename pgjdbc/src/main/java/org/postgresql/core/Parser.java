@@ -610,7 +610,7 @@ public class Parser {
    * @return boolean indicates presence of word
    */
   public static boolean parseInsertKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 7)) {
+    if (query.length < (offset + 6)) {
       return false;
     }
 
@@ -631,7 +631,7 @@ public class Parser {
    */
 
   public static boolean parseBeginKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 6)) {
+    if (query.length < (offset + 5)) {
       return false;
     }
     return (query[offset] | 32) == 'b'
@@ -649,7 +649,7 @@ public class Parser {
    * @return boolean indicates presence of word
    */
   public static boolean parseAtomicKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 7)) {
+    if (query.length < (offset + 6)) {
       return false;
     }
     return (query[offset] | 32) == 'a'
