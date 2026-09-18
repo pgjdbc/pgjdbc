@@ -325,11 +325,13 @@ public class XADataSourceTest {
   }
 
   /**
-   * Large object operations must work inside an active XA branch. Before 42.7.13 {@code start()}
-   * forced {@code autoCommit=false} for the duration of the branch and restored it afterwards, so
-   * {@code LargeObjectManager} saw a transaction. Since #4114 {@code start()} no longer changes
-   * {@code autoCommit}, so it stays {@code true} here even though a transaction is open, and the
-   * manager must look at the transaction state rather than {@code autoCommit} alone.
+   * Large object operations must work inside an active XA branch.
+   *
+   * <p>{@code start()} leaves {@code autoCommit} at the value the caller set, {@code true} here, so
+   * the flag still reads {@code true} while a transaction is open, and {@code LargeObjectManager}
+   * has to read the transaction state rather than {@code autoCommit} alone. Before 42.7.13
+   * {@code start()} forced {@code autoCommit=false} for the duration of the branch and restored it
+   * afterwards, so {@code autoCommit} alone was enough to detect the transaction.</p>
    *
    * @see <a href="https://github.com/pgjdbc/pgjdbc/issues/4309">Issue #4309</a>
    */
@@ -340,8 +342,8 @@ public class XADataSourceTest {
 
     xaRes.start(xid, XAResource.TMNOFLAGS);
     try {
-      // Regression precondition (#4309): the XA branch is active, yet autoCommit stays true, so
-      // LargeObjectManager can no longer rely on getAutoCommit() to detect the surrounding transaction.
+      // Precondition for the case that issue #4309 reported: the branch is active and autoCommit is
+      // still true.
       assertTrue(conn.getAutoCommit(), "XA start() must leave autoCommit unchanged");
 
       LargeObjectManager lom = ((PGConnection) conn).getLargeObjectAPI();
@@ -354,7 +356,7 @@ public class XADataSourceTest {
       }
     } finally {
       xaRes.end(xid, XAResource.TMSUCCESS);
-      // Roll back so the large object created above never leaks past the test.
+      // Roll back so the test leaves no large object behind.
       xaRes.rollback(xid);
     }
   }
@@ -362,14 +364,15 @@ public class XADataSourceTest {
   /**
    * Fails when the driver reports a statement of a failing batch as committed inside an XA branch.
    *
-   * <p>The driver forces a mid-batch {@code Sync} once its estimated receive buffer (64 KB) fills,
-   * and that is the only path that reaches {@code BatchResultHandler.secureProgress()} while an XA
-   * branch is active. The branch keeps {@code autoCommit=true}, so a handler that trusts that flag
-   * alone secures the flushed rows and reports their update counts as {@code 1}. Nothing is durable
-   * until the transaction manager commits, so every entry must be {@code EXECUTE_FAILED}.</p>
+   * <p>The driver forces a mid-batch {@code Sync} once its estimated receive buffer reaches
+   * {@code QueryExecutorImpl.MAX_BUFFERED_RECV_BYTES} (64000 bytes), and only that Sync reaches
+   * {@code BatchResultHandler.secureProgress()} while an XA branch is active. The branch keeps
+   * {@code autoCommit=true}, so a handler that reads that flag alone secures the flushed rows and
+   * reports their update counts as {@code 1}. Nothing is durable until the transaction manager
+   * commits, so every entry must be {@code EXECUTE_FAILED}.</p>
    *
-   * <p>Each unprepared statement is estimated at 250 bytes, so a few hundred statements guarantee at
-   * least one forced Sync before the failing entry.</p>
+   * <p>The driver estimates each unprepared statement at 250 bytes, so a few hundred statements
+   * force at least one Sync before the failing entry.</p>
    *
    * @see <a href="https://github.com/pgjdbc/pgjdbc/issues/4309">Issue #4309</a>
    */
@@ -386,7 +389,7 @@ public class XADataSourceTest {
       for (int i = 1; i <= rows; i++) {
         stmt.addBatch("INSERT INTO testxa2 VALUES (" + i + ")");
       }
-      // A duplicate primary key fails after the forced Sync has already flushed earlier rows.
+      // This INSERT violates the primary key after the forced Sync has already flushed earlier rows.
       stmt.addBatch("INSERT INTO testxa2 VALUES (1)");
 
       try {
@@ -413,8 +416,9 @@ public class XADataSourceTest {
     // per normal JDBC rules.
     assertTrue(conn.getAutoCommit());
 
-    // XAResource methods leave the JDBC autoCommit flag invariant (see xaMethods_doNotChangeAutoCommit
-    // for the full per-method check). Spot-check the one-phase and two-phase paths here.
+    // XAResource methods leave the JDBC autoCommit flag at the value the caller set. This test adds
+    // the one-phase commit and the rollback of a prepared branch, which
+    // xaMethods_doNotChangeAutoCommit leaves out.
     xaRes.start(xid, XAResource.TMNOFLAGS);
     assertTrue(conn.getAutoCommit(), "start() must not change autoCommit");
     xaRes.end(xid, XAResource.TMSUCCESS);
@@ -429,20 +433,19 @@ public class XADataSourceTest {
     xaRes.commit(xid, false);
     assertTrue(conn.getAutoCommit(), "two-phase commit() must not change autoCommit");
 
-    // Same for a 1-phase rollback
     xaRes.start(xid, XAResource.TMNOFLAGS);
     xaRes.end(xid, XAResource.TMSUCCESS);
     xaRes.rollback(xid);
     assertTrue(conn.getAutoCommit(), "1-phase rollback() must not change autoCommit");
 
-    // Same for a 2-phase rollback
     xaRes.start(xid, XAResource.TMNOFLAGS);
     xaRes.end(xid, XAResource.TMSUCCESS);
     xaRes.prepare(xid);
     xaRes.rollback(xid);
     assertTrue(conn.getAutoCommit(), "2-phase rollback() must not change autoCommit");
 
-    // close()+getConnection() during an active XA branch returns to the same server transaction
+    // close() followed by getConnection() during an active XA branch keeps the same server
+    // transaction
     conn = xaconn.getConnection();
     assertTrue(conn.getAutoCommit());
 
@@ -454,14 +457,14 @@ public class XADataSourceTest {
 
     conn.close();
     conn = xaconn.getConnection();
-    // state != IDLE on getConnection(), so the JDBC handle is not reset to autoCommit=true here.
-    // The physical connection's autoCommit is whatever it was before start() (true in this test).
+    // The XA state is not IDLE here, so the handle keeps the physical connection's autoCommit,
+    // which is the value it had before start(): true in this test.
     assertTrue(conn.getAutoCommit());
 
     Timestamp ts2 = getTransactionTimestamp(conn);
 
     /*
-     * Check that we're still in the same transaction. close+getConnection() should not rollback the
+     * Check that we're still in the same transaction. close() followed by getConnection() should not rollback the
      * XA-transaction implicitly.
      */
     assertEquals(ts1, ts2);
@@ -499,7 +502,7 @@ public class XADataSourceTest {
   }
 
   @Test
-  void restoreOfAutoCommit() throws Exception {
+  void onePhaseBranch_leavesAutoCommitUnchanged() throws Exception {
     conn.setAutoCommit(false);
 
     Xid xid = new CustomXid(14);
@@ -509,7 +512,7 @@ public class XADataSourceTest {
 
     assertFalse(
         conn.getAutoCommit(),
-        "XaResource should have restored connection autocommit mode after commit or rollback to the initial state.");
+        "a one-phase branch must leave autoCommit at false, the value set before start()");
 
     // Test true case
     conn.setAutoCommit(true);
@@ -521,12 +524,12 @@ public class XADataSourceTest {
 
     assertTrue(
         conn.getAutoCommit(),
-        "XaResource should have restored connection autocommit mode after commit or rollback to the initial state.");
+        "a one-phase branch must leave autoCommit at true, the value set before start()");
 
   }
 
   @Test
-  void restoreOfAutoCommitEndThenJoin() throws Exception {
+  void endThenJoinBranch_leavesAutoCommitUnchanged() throws Exception {
     // Test with TMJOIN
     conn.setAutoCommit(true);
 
@@ -539,7 +542,7 @@ public class XADataSourceTest {
 
     assertTrue(
         conn.getAutoCommit(),
-        "XaResource should have restored connection autocommit mode after start(TMNOFLAGS) end() start(TMJOIN) and then commit or rollback to the initial state.");
+        "start(TMNOFLAGS) end() start(TMJOIN) end() commit() must leave autoCommit at true");
 
   }
 
@@ -944,10 +947,11 @@ public class XADataSourceTest {
   }
 
   /**
-   * recover() on a connection with autoCommit=false must not leave the connection in OPEN: the
-   * SELECT against pg_prepared_xacts uses QUERY_SUPPRESS_BEGIN, so pgjdbc does not prepend a BEGIN.
-   * A follow-up commit(xid, false) on the recovered xid then succeeds, instead of failing the
-   * "2nd phase commit must be issued using an idle connection" precondition.
+   * recover() on a connection with autoCommit=false leaves the transaction state at IDLE, so a
+   * following commit(xid, false) on the recovered xid succeeds. The SELECT against
+   * pg_prepared_xacts uses QUERY_SUPPRESS_BEGIN, so the driver opens no transaction of its own.
+   * Before 42.7.13 that commit(xid, false) failed with "2nd phase commit must be issued using an
+   * idle connection".
    */
   @Test
   void recover_withAutoCommitFalse_doesNotOpenTransaction() throws Exception {
@@ -957,8 +961,8 @@ public class XADataSourceTest {
     xaRes.end(xid, XAResource.TMSUCCESS);
     xaRes.prepare(xid);
 
-    // Simulate the managed-datasource scenario: the recovery flow lands on a connection that the
-    // pool has put into autoCommit=false.
+    // The managed-datasource scenario: the recovery flow runs on a connection the pool has put
+    // into autoCommit=false.
     conn.setAutoCommit(false);
     assertEquals(TransactionState.IDLE, transactionState(conn),
         "autoCommit=false alone must not start a transaction");
@@ -968,31 +972,32 @@ public class XADataSourceTest {
     assertEquals(TransactionState.IDLE, transactionState(conn),
         "recover() must leave transactionState=IDLE on an autoCommit=false connection");
 
-    // Same XAResource, same xid → 2nd phase commit must succeed.
+    // The same XAResource and the same xid, so the 2nd phase commit succeeds.
     xaRes.commit(xid, false);
     assertEquals(TransactionState.IDLE, transactionState(conn));
   }
 
   /**
-   * recover() called on a connection that already has an open local transaction must not commit
-   * or roll back that transaction. The SELECT against pg_prepared_xacts runs inside the caller's
-   * transaction with QUERY_SUPPRESS_BEGIN; transactionState ends where it started.
+   * recover() called on a connection that already has an open local transaction leaves that
+   * transaction open, and neither commits nor rolls it back. The SELECT against pg_prepared_xacts
+   * runs inside the caller's transaction with QUERY_SUPPRESS_BEGIN, so transactionState is OPEN
+   * before and after.
    */
   @Test
   void recover_withUserTransactionInFlight_doesNotCommitUserWork() throws Exception {
-    // First, prepare a transaction so recover() has something to return.
+    // Prepare a transaction so recover() returns at least one xid.
     Xid prepared = new CustomXid(0xa1000002);
     xaRes.start(prepared, XAResource.TMNOFLAGS);
     conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (2)");
     xaRes.end(prepared, XAResource.TMSUCCESS);
     xaRes.prepare(prepared);
 
-    // Now open a local transaction on the same physical connection with an unrelated INSERT.
+    // Open a local transaction on the same physical connection with an unrelated INSERT.
     conn.setAutoCommit(false);
     conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (99)");
     assertEquals(TransactionState.OPEN, transactionState(conn));
 
-    // recover() must see the prepared xid and leave the local transaction OPEN.
+    // recover() must return the prepared xid and leave the local transaction OPEN.
     Xid[] recovered = xaRes.recover(XAResource.TMSTARTRSCAN);
     assertTrue(Arrays.asList(recovered).contains(prepared), "Did not recover prepared xid");
     assertEquals(TransactionState.OPEN, transactionState(conn),
@@ -1005,15 +1010,14 @@ public class XADataSourceTest {
       assertEquals(0, rs.getInt(1), "recover() must not have committed the caller's INSERT");
     }
 
-    // Clean up the prepared transaction.
     conn.setAutoCommit(true);
     xaRes.rollback(prepared);
   }
 
   /**
-   * When the caller's local transaction is already in FAILED state, recover() cannot read
-   * pg_prepared_xacts (PG rejects the SELECT with "current transaction is aborted"). The driver
-   * surfaces this as XAException(XAER_RMERR); the caller's transaction is left untouched.
+   * recover() on a connection whose local transaction is already FAILED throws
+   * XAException(XAER_RMERR) and leaves that transaction FAILED. PostgreSQL rejects the SELECT
+   * against pg_prepared_xacts with "current transaction is aborted".
    */
   @Test
   void recover_inFailedTransaction_failsWithRMERR() throws Exception {
@@ -1038,7 +1042,7 @@ public class XADataSourceTest {
     assertEquals(TransactionState.FAILED, transactionState(conn),
         "recover() must not silently reset the caller's transaction");
 
-    // Clean up so the @AfterEach connection close does not complain.
+    // Leave the connection idle for teardown.
     conn.rollback();
     conn.setAutoCommit(true);
   }
@@ -1050,7 +1054,7 @@ public class XADataSourceTest {
    */
   @Test
   void commitPrepared_failsCleanlyOnDirtyConnection() throws Exception {
-    // Prepare a transaction on a separate XAConnection so we can attempt the 2-phase commit on a
+    // Prepare the transaction on a separate XAConnection, so the 2-phase commit runs on a
     // connection that is also holding a local transaction.
     Xid prepared = new CustomXid(0xa1000003);
     XAConnection xaconn2 = xaDs.getXAConnection();
@@ -1080,16 +1084,15 @@ public class XADataSourceTest {
     assertEquals(TransactionState.OPEN, transactionState(conn),
         "commit(prepared, false) must not touch the caller's transaction");
 
-    // Clean up.
     conn.rollback();
     conn.setAutoCommit(true);
     xaRes.rollback(prepared);
   }
 
   /**
-   * Symmetric to {@link #commitPrepared_failsCleanlyOnDirtyConnection()}: rollback(xid) of a
-   * prepared transaction on a connection with an open local transaction must fail with
-   * XAER_RMFAIL, not silently roll back the caller's work.
+   * rollback(xid) of a prepared transaction on a connection with an open local transaction must
+   * fail with XAER_RMFAIL, not silently roll back the caller's work. This is the rollback
+   * counterpart of {@link #commitPrepared_failsCleanlyOnDirtyConnection()}.
    */
   @Test
   void rollbackPrepared_failsCleanlyOnDirtyConnection() throws Exception {
@@ -1120,15 +1123,17 @@ public class XADataSourceTest {
     assertEquals(TransactionState.OPEN, transactionState(conn),
         "rollback(prepared) must not touch the caller's transaction");
 
-    // Clean up.
     conn.rollback();
     conn.setAutoCommit(true);
     xaRes.rollback(prepared);
   }
 
   /**
-   * XAResource methods must not change the caller's JDBC autoCommit flag on either the success or
-   * the failure path. Verified on every method in the lifecycle.
+   * XAResource methods leave the caller's JDBC autoCommit flag at the value the caller set, on the
+   * success path and on the failure path. start(), end(), prepare(), two-phase commit() and
+   * recover() are checked with autoCommit starting at {@code true} and at {@code false}; a
+   * PREPARE TRANSACTION rejected by a deferred constraint, and the rollback that follows it, are
+   * checked at {@code true}.
    */
   @Test
   void xaMethods_doNotChangeAutoCommit() throws Exception {
@@ -1158,12 +1163,13 @@ public class XADataSourceTest {
       assertEquals(initial, conn.getAutoCommit(), "2-phase commit() must not change autoCommit");
 
       Xid[] recovered = xaRes.recover(XAResource.TMSTARTRSCAN);
-      Arrays.toString(recovered); // silence unused warnings; the call is the point
+      // recover() must run here; the xids it returns are not part of this check
+      Arrays.toString(recovered);
       assertEquals(initial, conn.getAutoCommit(), "recover() must not change autoCommit");
     }
 
-    // Also check the failure path: a forced PREPARE TRANSACTION failure via a deferred FK
-    // violation must leave autoCommit untouched.
+    // The failure path: a PREPARE TRANSACTION that fails on a deferred FK violation must still
+    // leave autoCommit at the caller's value.
     Xid xid = new CustomXid(0xa1000020);
     conn.setAutoCommit(true);
     xaRes.start(xid, XAResource.TMNOFLAGS);
@@ -1184,11 +1190,11 @@ public class XADataSourceTest {
   }
 
   /**
-   * When PREPARE TRANSACTION fails (here, on a deferred foreign-key constraint), the driver must leave the XA
-   * branch in a state where the transaction manager can recover it by calling rollback(xid).
-   * That means {@code state == ENDED} with {@code currentXid == xid}, so rollback(xid) takes the
-   * active-branch path and issues a plain ROLLBACK — not the prepared-branch path that would
-   * issue ROLLBACK PREPARED against a non-existent gid.
+   * When PREPARE TRANSACTION fails, here on a deferred foreign-key constraint, the driver leaves
+   * the XA branch recoverable by rollback(xid): {@code state} stays {@code ENDED} with
+   * {@code currentXid == xid}, so rollback(xid) takes the active-branch path and issues a plain
+   * ROLLBACK. The driver used to move the state to IDLE before the SQL ran, and rollback(xid) then
+   * took the prepared-branch path and issued ROLLBACK PREPARED for a gid the server never had.
    *
    * <p>Reproduces the scenario from
    * <a href="https://github.com/pgjdbc/pgjdbc/issues/3123">Issue #3123</a> (Narayana escalating
@@ -1213,11 +1219,6 @@ public class XADataSourceTest {
       // ignore
     }
 
-    // The driver must still let us roll back the active branch. The successful rollback issues
-    // ROLLBACK (active-branch path) and clears the INSERT from the server transaction. If state
-    // had been mutated to IDLE before SQL — as the pre-fix code did — rollback(xid) would have
-    // taken the prepared-branch path and tried ROLLBACK PREPARED against a gid the server has
-    // never seen.
     xaRes.rollback(xid);
 
     try (ResultSet rs = dbConn.createStatement().executeQuery("SELECT count(*) FROM testxa3 WHERE foo = 777")) {
@@ -1228,8 +1229,8 @@ public class XADataSourceTest {
 
   /**
    * The ConnectionHandler proxy must reject both setAutoCommit(true) and setAutoCommit(false)
-   * while an XA branch is active on the connection, per JTA 1.2 §3.4. The previous behaviour
-   * blocked only setAutoCommit(true).
+   * while an XA branch is active on the connection, per JTA 1.2 §3.4. The guard used to reject
+   * setAutoCommit(true) alone.
    */
   @Test
   void connectionHandler_rejectsBothAutoCommitDirections() throws Exception {
@@ -1255,10 +1256,9 @@ public class XADataSourceTest {
   }
 
   /**
-   * The ConnectionHandler must also reject {@code setSavepoint()} and {@code setSavepoint(name)}
-   * while an XA branch is active, per JTA 1.2 §3.4. Until this fix the guard misspelled the
-   * method name as {@code setSavePoint}, so savepoints silently went through to the underlying
-   * connection.
+   * The ConnectionHandler must reject {@code setSavepoint()} and {@code setSavepoint(name)} while
+   * an XA branch is active, per JTA 1.2 §3.4. The guard used to misspell the method name as
+   * {@code setSavePoint}, so savepoints silently went through to the underlying connection.
    */
   @Test
   void connectionHandler_rejectsSetSavepoint() throws Exception {
