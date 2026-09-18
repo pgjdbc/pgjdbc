@@ -14,9 +14,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.Connection;
 import java.sql.DriverPropertyInfo;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * All connection parameters that can be either set in JDBC URL, in Driver properties or in
@@ -1067,6 +1070,12 @@ public enum PGProperty {
   }
 
   /**
+   * These parameters should not be disclosed.
+   */
+  private static final Set<PGProperty> SENSITIVE_PROPERTIES = Collections.unmodifiableSet(
+      EnumSet.of(PASSWORD, SSL_PASSWORD, OAUTH_TOKEN, OAUTH_CLIENT_SECRET));
+
+  /**
    * Returns the name of the connection parameter. The name is the key that must be used in JDBC URL
    * or in Driver properties
    *
@@ -1092,6 +1101,15 @@ public enum PGProperty {
    */
   public boolean isRequired() {
     return required;
+  }
+
+  /**
+   * Returns whether the value of this parameter is sensitive.
+   *
+   * @return whether the value of this parameter is sensitive
+   */
+  public boolean isSensitive() {
+    return SENSITIVE_PROPERTIES.contains(this);
   }
 
   /**
