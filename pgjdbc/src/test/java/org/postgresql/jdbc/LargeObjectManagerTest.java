@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -13,6 +15,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.fastpath.Fastpath;
+import org.postgresql.fastpath.FastpathArg;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.test.TestUtil;
@@ -22,6 +26,8 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -204,6 +210,226 @@ class LargeObjectManagerTest {
       assertThrows(PSQLException.class, () -> lom.open(1L, LargeObjectManager.READWRITE),
           "open() must be refused in auto-commit mode with no open transaction");
     }
+  }
+
+  /**
+   * Stores the data at {@code off} and leaves the rest of the destination array untouched.
+   *
+   * <p>The read used to go through {@link LargeObject#read(int)}, which allocates an array the size
+   * of the chunk the server sent, and copy that array into the caller's
+   * (<a href="https://github.com/pgjdbc/pgjdbc/issues/3043">issue #3043</a>).</p>
+   */
+  @Test
+  void readStoresTheObjectAtTheOffset() throws Exception {
+    byte[] data = new byte[1000];
+    new Random(42).nextBytes(data);
+    withLargeObject(data, (con, lom, loId) -> {
+      try (LargeObject lo = lom.open(loId, LargeObjectManager.READ)) {
+        byte[] buf = new byte[data.length + 20];
+        Arrays.fill(buf, (byte) 0x5A);
+        int read = lo.read(buf, 10, data.length);
+        byte[] padding = new byte[10];
+        Arrays.fill(padding, (byte) 0x5A);
+        assertAll(
+            () -> assertEquals(data.length, read, "read(new byte[1020], 10, 1000)"),
+            () -> assertArrayEquals(data, Arrays.copyOfRange(buf, 10, 10 + data.length),
+                "buf[10, 1010)"),
+            () -> assertArrayEquals(padding, Arrays.copyOfRange(buf, 0, 10), "buf[0, 10)"),
+            () -> assertArrayEquals(padding, Arrays.copyOfRange(buf, 1010, 1020),
+                "buf[1010, 1020)"));
+      }
+    });
+  }
+
+  @Test
+  void readServesARangeEndingAtTheEndOfTheArray() throws Exception {
+    byte[] data = new byte[64];
+    new Random(13).nextBytes(data);
+    withLargeObject(data, (con, lom, loId) -> {
+      try (LargeObject lo = lom.open(loId, LargeObjectManager.READ)) {
+        byte[] buf = new byte[10];
+        int read = lo.read(buf, 5, 5);
+        assertAll(
+            () -> assertEquals(5, read, "read(new byte[10], 5, 5)"),
+            () -> assertArrayEquals(Arrays.copyOfRange(data, 0, 5), Arrays.copyOfRange(buf, 5, 10),
+                "buf[5, 10)"));
+      }
+    });
+  }
+
+  @Test
+  void readReturnsTheBytesLeftWhenTheObjectIsShorterThanTheRequest() throws Exception {
+    byte[] data = new byte[64];
+    new Random(13).nextBytes(data);
+    withLargeObject(data, (con, lom, loId) -> {
+      try (LargeObject lo = lom.open(loId, LargeObjectManager.READ)) {
+        lo.seek(61);
+        byte[] buf = new byte[10];
+        int read = lo.read(buf, 0, 10);
+        assertAll(
+            () -> assertEquals(3, read, "read(new byte[10], 0, 10) at position 61 of 64"),
+            () -> assertArrayEquals(Arrays.copyOfRange(data, 61, 64),
+                Arrays.copyOfRange(buf, 0, 3), "buf[0, 3)"));
+      }
+    });
+  }
+
+  @Test
+  void readAtTheEndOfTheObjectReturnsZero() throws Exception {
+    byte[] data = new byte[64];
+    new Random(13).nextBytes(data);
+    withLargeObject(data, (con, lom, loId) -> {
+      try (LargeObject lo = lom.open(loId, LargeObjectManager.READ)) {
+        lo.seek(data.length);
+        byte[] buf = new byte[10];
+        Arrays.fill(buf, (byte) 0x5A);
+        byte[] untouched = new byte[10];
+        Arrays.fill(untouched, (byte) 0x5A);
+        int read = lo.read(buf, 0, buf.length);
+        assertAll(
+            () -> assertEquals(0, read, "read(new byte[10], 0, 10) at position 64 of 64"),
+            () -> assertArrayEquals(untouched, buf, "destination array after the empty read"));
+      }
+    });
+  }
+
+  /**
+   * Refuses a range outside the destination array before any request goes out. The read position
+   * {@link LargeObject#tell()} reports stays at 0, which establishes that nothing was sent.
+   *
+   * <p>A negative {@code len} used to return 0, because the server clamps a negative {@code loread}
+   * request to zero bytes. The other ranges used to depend on the read position: the reply was
+   * fetched first and only then copied, so the same arguments threw or succeeded according to how
+   * many bytes the object had left.</p>
+   */
+  @ParameterizedTest
+  @CsvSource({
+      "-1, 4",
+      "0, -1",
+      "11, 4",
+      "10, 1",
+      "0, 11",
+      "5, 10",
+  })
+  void readRefusesARangeOutsideTheDestinationArray(int off, int len) throws Exception {
+    byte[] data = new byte[64];
+    new Random(13).nextBytes(data);
+    withLargeObject(data, (con, lom, loId) -> {
+      try (LargeObject lo = lom.open(loId, LargeObjectManager.READ)) {
+        byte[] buf = new byte[10];
+        Arrays.fill(buf, (byte) 0x5A);
+        byte[] untouched = new byte[10];
+        Arrays.fill(untouched, (byte) 0x5A);
+        assertAll(
+            () -> assertThrows(ArrayIndexOutOfBoundsException.class, () -> lo.read(buf, off, len),
+                "read(new byte[10], " + off + ", " + len + ")"),
+            () -> assertArrayEquals(untouched, buf, "destination array after the refused read"),
+            () -> assertEquals(0, lo.tell(), "read position after the refused read"));
+      }
+    });
+  }
+
+  /**
+   * Refuses a range outside the destination array at the {@link Fastpath} entry point too. The
+   * {@code loread} that follows returns the object from position 0, which establishes that the
+   * refused call sent nothing.
+   *
+   * <p>{@link Fastpath#fastpath(String, FastpathArg[], byte[], int, int)} is a public entry point
+   * of its own, so it cannot rely on {@link LargeObject} to check the range for it.</p>
+   */
+  @ParameterizedTest
+  @CsvSource({
+      "-1, 4",
+      "0, -1",
+      "5, 10",
+  })
+  void fastpathRefusesARangeOutsideTheDestinationArray(int off, int len) throws Exception {
+    byte[] data = new byte[100];
+    new Random(11).nextBytes(data);
+    withLargeObject(data, (con, lom, loId) -> {
+      Fastpath fp = con.getFastpathAPI();
+      int fd = fp.getInteger("lo_open", new FastpathArg[]{
+          new FastpathArg((int) loId), new FastpathArg(LargeObjectManager.READ)});
+      FastpathArg[] readArgs = {new FastpathArg(fd), new FastpathArg(data.length)};
+      byte[] buf = new byte[10];
+      Arrays.fill(buf, (byte) 0x5A);
+      byte[] untouched = new byte[10];
+      Arrays.fill(untouched, (byte) 0x5A);
+      byte[] whole = new byte[data.length];
+      assertAll(
+          () -> assertThrows(ArrayIndexOutOfBoundsException.class,
+              () -> fp.fastpath("loread", readArgs, buf, off, len),
+              "fastpath(\"loread\", args, new byte[10], " + off + ", " + len + ")"),
+          () -> assertArrayEquals(untouched, buf, "destination array after the refused call"),
+          () -> assertEquals(data.length, fp.fastpath("loread", readArgs, whole, 0, whole.length),
+              "bytes returned by the loread that follows the refused call"),
+          () -> assertArrayEquals(data, whole, "bytes returned by the loread that follows"));
+    });
+  }
+
+  /**
+   * Refuses a fastpath result larger than the destination array. The response is read from the
+   * connection before the failure is raised, so the {@code loread} that follows succeeds.
+   *
+   * <p>{@link LargeObject#read(byte[], int, int)} can no longer reach this path: its range check
+   * leaves the server no way to return more bytes than the array has room for.</p>
+   */
+  @Test
+  void fastpathRefusesAResultLargerThanTheDestinationArray() throws Exception {
+    byte[] data = new byte[100];
+    new Random(7).nextBytes(data);
+    withLargeObject(data, (con, lom, loId) -> {
+      Fastpath fp = con.getFastpathAPI();
+      int fd = fp.getInteger("lo_open", new FastpathArg[]{
+          new FastpathArg((int) loId), new FastpathArg(LargeObjectManager.READ)});
+      byte[] small = new byte[10];
+      Arrays.fill(small, (byte) 0x5A);
+      byte[] untouched = new byte[10];
+      Arrays.fill(untouched, (byte) 0x5A);
+      PSQLException e = assertThrows(PSQLException.class,
+          () -> fp.fastpath("loread",
+              new FastpathArg[]{new FastpathArg(fd), new FastpathArg(data.length)},
+              small, 0, small.length),
+          "fastpath(\"loread\", args, new byte[10], 0, 10) for a 100 byte object");
+      byte[] whole = new byte[data.length];
+      int read;
+      try (LargeObject lo = lom.open(loId, LargeObjectManager.READ)) {
+        read = lo.read(whole, 0, whole.length);
+      }
+      assertAll(
+          () -> assertEquals(PSQLState.INVALID_PARAMETER_VALUE.getState(), e.getSQLState(),
+              "SQLState of the oversized fastpath result"),
+          () -> assertArrayEquals(untouched, small,
+              "destination array after the oversized result"),
+          () -> assertEquals(data.length, read,
+              "bytes returned by the loread that follows the oversized result"),
+          () -> assertArrayEquals(data, whole, "bytes returned by the loread that follows"));
+    });
+  }
+
+  /**
+   * Runs {@code body} against a large object holding {@code data}, on a connection in a
+   * transaction. The object is deleted and the transaction committed afterwards.
+   */
+  private static void withLargeObject(byte[] data, LargeObjectBody body) throws Exception {
+    try (PgConnection con = (PgConnection) TestUtil.openDB()) {
+      con.setAutoCommit(false);
+      LargeObjectManager lom = con.getLargeObjectAPI();
+      long loId = lom.createLO();
+      try {
+        try (LargeObject lo = lom.open(loId, LargeObjectManager.WRITE)) {
+          lo.write(data);
+        }
+        body.run(con, lom, loId);
+      } finally {
+        lom.delete(loId);
+        con.commit();
+      }
+    }
+  }
+
+  private interface LargeObjectBody {
+    void run(PgConnection con, LargeObjectManager lom, long loId) throws Exception;
   }
 
   @Test
