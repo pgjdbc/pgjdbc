@@ -8,7 +8,6 @@ package org.postgresql.test.jdbc2;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -18,7 +17,6 @@ import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.annotations.EnabledForServerVersionRange;
-import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -28,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -55,6 +52,14 @@ class BlobTest {
 
   private static final int LOOP = 0; // LargeObject API using loop
   private static final int NATIVE_STREAM = 1; // LargeObject API using OutputStream
+
+  /**
+   * Largest position {@code BlobInputStream} seeks to without first locating the end of the large
+   * object, kept in step with the driver's own constant, which is private. It is
+   * {@code INT_MAX * LOBLKSIZE} at the smallest block size PostgreSQL can be built with, so every
+   * server accepts a seek this far.
+   */
+  private static final long MAX_UNCHECKED_SEEK_POSITION = 256L * Integer.MAX_VALUE;
 
   private Connection con;
 
@@ -434,25 +439,148 @@ class BlobTest {
     }
   }
 
-  @Test
+  /**
+   * A skip that lands at or below {@link #MAX_UNCHECKED_SEEK_POSITION} keeps the sparse behavior:
+   * the stream seeks blind, lands past the end of the object, and reports the full distance. This
+   * is the cheap side of the threshold, so a change that starts locating the end here would cost
+   * every ordinary skip a round-trip.
+   *
+   * <p>Both distances are past {@link Integer#MAX_VALUE}, so the seek needs {@code lo_lseek64}.
+   * On an older server the ceiling is 2 GiB and the stream locates the end of the object instead,
+   * which is {@link #skipPastIntMaxWithout64BitOffsets}'s subject rather than this one's.</p>
+   *
+   * @param n distance to skip from the start of the stream, so also the position it lands on
+   */
+  @ParameterizedTest
+  @ValueSource(longs = {MAX_UNCHECKED_SEEK_POSITION - 1, MAX_UNCHECKED_SEEK_POSITION})
   @EnabledForServerVersionRange(gte = "9.3")
-  void skipPastMax() throws Exception {
+  void skipUpToUncheckedSeekLimit(long n) throws Exception {
     LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
     long loid = createMediumLargeObject();
 
-    // Not try-with-resources: seeking beyond the server maximum fails and aborts the transaction,
-    // so a later close() on the same connection would fail too
-    LargeObject blob = lom.open(loid, LargeObjectManager.READ);
-    InputStream bis = blob.getInputStream();
-    assertEquals(0, bis.read());
-    assertThrows(IOException.class, () -> bis.skip(Long.MAX_VALUE / 2));
-
-    // The failed seek aborted the transaction, so further statements fail until rolled back
-    try (Statement stmt = con.createStatement()) {
-      SQLException ex = assertThrows(SQLException.class, () -> stmt.execute("SELECT 1"));
-      assertEquals(PSQLState.IN_FAILED_SQL_TRANSACTION.getState(), ex.getSQLState());
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      InputStream bis = blob.getInputStream();
+      assertEquals(n, bis.skip(n), () -> "skip(" + n + ") is within the distance the stream seeks "
+          + "to without locating the end of the object, so it should report the full distance");
+      assertEquals(-1, bis.read());
     }
-    con.rollback();
+  }
+
+  /**
+   * Without {@code lo_lseek64} the stream cannot seek past {@link Integer#MAX_VALUE}, so from
+   * there, rather than from {@link #MAX_UNCHECKED_SEEK_POSITION}, it locates the end of the object
+   * and stops. Here a blind seek fails before it reaches the server rather than aborting the
+   * transaction: {@code LargeObjectManager} takes the large object function oids from
+   * {@code pg_proc}, and a pre-9.3 catalog has no {@code lo_lseek64} row, so the skip dies on
+   * "The fastpath function lo_lseek64 is unknown". The skip is lost either way.
+   *
+   * <p>This is the pre-9.3 half of {@link #skipUpToUncheckedSeekLimit}. 3 GiB sits inside the band
+   * where the two ceilings disagree, which makes it the only kind of distance that tells them
+   * apart: everything shorter is a blind seek under either ceiling, and everything longer is
+   * clamped under either.</p>
+   */
+  @Test
+  @EnabledForServerVersionRange(lt = "9.3")
+  void skipPastIntMaxWithout64BitOffsets() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      InputStream bis = blob.getInputStream();
+      assertEquals(96 * 1024, bis.skip(3L * 1024 * 1024 * 1024));
+      assertEquals(-1, bis.read());
+    }
+  }
+
+  /**
+   * A skip that lands past {@link #MAX_UNCHECKED_SEEK_POSITION} stops at the end of the object.
+   * Beyond that the server may refuse the seek, and the refusal is a failed fastpath call that
+   * aborts the caller's transaction, so the stream must never issue it.
+   *
+   * <p>A server built with the default 8 KiB block size accepts a seek to
+   * {@code MAX_UNCHECKED_SEEK_POSITION + 1}, since its {@code MAX_LARGE_OBJECT_SIZE} is eight
+   * times larger, and the driver stops earlier because it does not ask for the block size. The two
+   * {@code Long.MAX_VALUE} distances are past what any build accepts.</p>
+   *
+   * @param n distance to skip, large enough to land past the largest position the stream seeks to
+   *     without locating the end of the object
+   */
+  @ParameterizedTest
+  @ValueSource(longs = {MAX_UNCHECKED_SEEK_POSITION + 1, Long.MAX_VALUE / 2, Long.MAX_VALUE})
+  void skipPastMax(long n) throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      InputStream bis = blob.getInputStream();
+      assertEquals(0, bis.read());
+      assertEquals(96 * 1024 - 1, bis.skip(n), () -> "skip(" + n + ") should stop at the end of "
+          + "the large object, which holds 96 * 1024 bytes, one of which is already read");
+      assertEquals(-1, bis.read());
+    }
+
+    // The transaction is still usable, so no seek was rejected
+    try (Statement stmt = con.createStatement()) {
+      assertTrue(stmt.execute("SELECT 1"));
+    }
+  }
+
+  @Test
+  void skipPastMaxWhenAlreadyPastEnd() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      InputStream bis = blob.getInputStream();
+      // Large objects are sparse, so this lands past the end without an error
+      assertEquals(1024 * 1024, bis.skip(1024 * 1024));
+      // Nothing left to skip, and skip does not move backwards to the end of the object
+      assertEquals(0, bis.skip(Long.MAX_VALUE));
+      assertEquals(-1, bis.read());
+    }
+  }
+
+  /**
+   * A limit below zero leaves the end of the stream before its start, and skip reports that as
+   * nothing skipped. Where the large object sits decides how the stream would otherwise break,
+   * since the limit is resolved relative to that position: from offset 0 it stays below zero and
+   * the seek is one the server refuses, taking the transaction with it; from a later offset it
+   * resolves above zero and the seek succeeds, but skip returns a negative count, which
+   * {@link InputStream#skip(long)} does not allow.
+   *
+   * @param startOffset where the large object is positioned when the stream is built
+   */
+  @ParameterizedTest
+  @ValueSource(ints = {0, 1024})
+  void skipWithNegativeLimit(int startOffset) throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      blob.seek(startOffset);
+      // -1 is the "no limit" sentinel, so -2 is the negative limit closest to it
+      InputStream bis = blob.getInputStream(-2);
+      assertEquals(0, bis.skip(50));
+      assertEquals(-1, bis.read());
+    }
+
+    // The transaction is still usable, so no seek was rejected
+    try (Statement stmt = con.createStatement()) {
+      assertTrue(stmt.execute("SELECT 1"));
+    }
+  }
+
+  @Test
+  void skipPastMaxWithLimit() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      // The limit is closer than the end of the object, so it is what bounds the skip
+      InputStream bis = blob.getInputStream(65 * 1024);
+      assertEquals(65 * 1024L, bis.skip(Long.MAX_VALUE));
+      assertEquals(-1, bis.read());
+    }
   }
 
   @Test

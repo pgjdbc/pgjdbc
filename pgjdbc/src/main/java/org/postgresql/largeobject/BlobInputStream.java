@@ -25,6 +25,20 @@ public class BlobInputStream extends InputStream {
   static final int INITIAL_BUFFER_SIZE = 64 * 1024;
 
   /**
+   * Largest position in bytes this stream seeks to, on a server that has the 64-bit large object
+   * API, without first locating the end of the object.
+   *
+   * <p>The server rejects a seek beyond {@code INT_MAX * LOBLKSIZE}, where {@code LOBLKSIZE} is
+   * {@code BLCKSZ / 4} and {@code BLCKSZ} is a build-time setting between 1 and 32 KiB. A driver
+   * that does not ask the server for its block size can only rely on the smallest of those maxima,
+   * which is the value here: 512 GiB, from the 1 KiB block size.</p>
+   *
+   * @see <a href="https://www.postgresql.org/docs/current/runtime-config-preset.html">Preset
+   *     Options: block_size</a>
+   */
+  private static final long MAX_UNCHECKED_SEEK_POSITION = 256L * Integer.MAX_VALUE;
+
+  /**
    * The parent LargeObject.
    */
   private @Nullable LargeObject lo;
@@ -358,10 +372,18 @@ public class BlobInputStream extends InputStream {
    * Subsequent reads then return {@code -1}, and the skipped count still reflects the requested
    * distance, as the {@link InputStream#skip(long)} contract permits.</p>
    *
+   * <p>A skip that would land past 512 GiB stops at the end of the object instead, so
+   * {@code skip(Long.MAX_VALUE)} means "skip whatever is left". That is the smallest maximum any
+   * server build imposes on a seek, and a seek the server refuses aborts the caller's transaction,
+   * so beyond it the stream locates the end of the object first, at the cost of a few extra
+   * round-trips.</p>
+   *
+   * <p>A server older than PostgreSQL 9.3 has no {@code lo_lseek64}, so there the ceiling is
+   * {@link Integer#MAX_VALUE} and the same treatment applies past it.</p>
+   *
    * @param n the number of bytes to be skipped
    * @return the actual number of bytes skipped, which may be zero
-   * @throws IOException if the underlying seek fails, in particular when the target position
-   *     exceeds the maximum large object size the server accepts
+   * @throws IOException if repositioning the large object fails
    * @see java.io.InputStream#skip(long)
    * @see <a href="https://www.postgresql.org/docs/14/lo-implementation.html">Large Objects:
    *     Implementation Features</a>
@@ -377,13 +399,38 @@ public class BlobInputStream extends InputStream {
       LargeObject lo = getLo();
       long loId = lo.getLongOID();
 
-      long targetPosition = absolutePosition + n;
+      long currentPosition = absolutePosition;
+      long targetPosition = currentPosition + n;
       if (targetPosition > limit || targetPosition < 0) {
         // Clamp to the limit, and guard against overflow when n is close to Long.MAX_VALUE
         targetPosition = limit;
       }
-      long currentPosition = absolutePosition;
+      // Without lo_lseek64 the server can only be asked to seek within the 32-bit range
+      long uncheckedSeekLimit =
+          lo.supports64BitOffsets() ? MAX_UNCHECKED_SEEK_POSITION : Integer.MAX_VALUE;
+      if (targetPosition > uncheckedSeekLimit) {
+        try {
+          // Past the ceiling a seek either never reaches the server, for want of lo_lseek64, or
+          // is refused as beyond its maximum large object size, and a refused fastpath call aborts
+          // the caller's transaction. Stop at the end of the object instead
+          long size = lo.supports64BitOffsets() ? lo.size64() : lo.size();
+          // A previous skip may already have moved past the end, and skip does not go backwards
+          targetPosition = Math.max(currentPosition, Math.min(targetPosition, size));
+        } catch (SQLException e) {
+          throw new IOException(
+              GT.tr("Can not skip stream for large object {0} by {1} (currently @{2})",
+                  loId, n, currentPosition),
+              e);
+        }
+      }
       long skipped = targetPosition - currentPosition;
+      if (skipped <= 0) {
+        // The stream is already at the target, so there is no seek to make. A target behind the
+        // current position comes from a limit that resolves behind it: seeking there would move
+        // backwards and report a negative count, and a limit that resolves below zero is a seek
+        // the server refuses, which aborts the caller's transaction
+        return 0;
+      }
 
       if (buffer != null && buffer.length - bufferPosition > skipped) {
         // The target is still inside the current buffer, so just advance within it
