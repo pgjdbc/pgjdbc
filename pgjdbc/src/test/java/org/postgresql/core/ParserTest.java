@@ -270,6 +270,78 @@ class ParserTest {
     assertFalse(parseInfo.isFunction(), () -> "isFunction() should be false for: " + sql);
   }
 
+  /**
+   * JDBC requires an argument list after the function name. Without it the escape used to be
+   * rewritten into nonsense: the first character of the name was dropped, and the search for the
+   * argument list ran past the closing brace into the rest of the statement.
+   */
+  @Test
+  void escapeFunctionWithoutArgumentListIsRejected() {
+    for (String sql : new String[]{"select {fn now}", "select {fn now} from (t)",
+        "select {fn now} from t", "{fn now}"}) {
+      PSQLException e = assertThrows(PSQLException.class,
+          () -> Parser.replaceProcessing(sql, true, true), sql);
+      assertEquals(PSQLState.SYNTAX_ERROR.getState(), e.getSQLState(), sql);
+    }
+  }
+
+  /**
+   * The argument list is still found when it is there, including across whitespace, and a
+   * parenthesis belonging to the statement around the escape is left alone.
+   */
+  @Test
+  void escapeFunctionFindsItsOwnArgumentList() throws SQLException {
+    assertEquals("select now()", Parser.replaceProcessing("select {fn now()}", true, true));
+    assertEquals("select now()", Parser.replaceProcessing("select {fn now ()}", true, true));
+    assertEquals("select abs(-1) from (t)",
+        Parser.replaceProcessing("select {fn abs(-1)} from (t)", true, true));
+  }
+
+  /**
+   * A quoted function name is one token even when it contains the characters that delimit the
+   * escape. PostgreSQL accepts both: {@code select 1 as "we}}ird"} and {@code select 1 as "we(ird"}
+   * are valid.
+   */
+  @Test
+  void escapeFunctionNameMayBeQuoted() throws SQLException {
+    assertEquals("\"we}ird\"()", Parser.replaceProcessing("{fn \"we}ird\"()}", true, true));
+    assertEquals("\"we(ird\"()", Parser.replaceProcessing("{fn \"we(ird\"()}", true, true));
+    assertEquals("\"we\"\"ird\"()", Parser.replaceProcessing("{fn \"we\"\"ird\"()}", true, true));
+    // Still rejected when the quoted name has no argument list at all
+    assertThrows(PSQLException.class,
+        () -> Parser.replaceProcessing("select {fn \"we}ird\"}", true, true));
+  }
+
+  /**
+   * A block comment between the name and the argument list is part of the escape, so neither the
+   * brace nor a parenthesis inside it belongs to the escape's own syntax. Only block comments are
+   * handled: a line comment would swallow the argument list along with the newline, which is a
+   * separate defect this change does not address.
+   */
+  @Test
+  void escapeFunctionMayHaveABlockCommentBeforeItsArgumentList() throws SQLException {
+    // The space before '(' is dropped the same way "{fn now ()}" loses it
+    assertEquals("select abs /* } */(-1)",
+        Parser.replaceProcessing("select {fn abs /* } */ (-1)}", true, true));
+    // A parenthesis inside the comment is not the argument list either
+    assertEquals("select abs /* ( */(-1)",
+        Parser.replaceProcessing("select {fn abs /* ( */ (-1)}", true, true));
+  }
+
+  /**
+   * An escape, an identifier or a comment that is never closed is reported as unterminated rather
+   * than as a missing argument list.
+   */
+  @Test
+  void unterminatedEscapeFunctionIsReportedAsSuch() {
+    for (String sql : new String[]{"select {fn now", "select {fn \"abc}", "select {fn a/* /* */(1)}"}) {
+      PSQLException e = assertThrows(PSQLException.class,
+          () -> Parser.replaceProcessing(sql, true, true), sql);
+      assertEquals(PSQLState.SYNTAX_ERROR.getState(), e.getSQLState(), sql);
+      assertTrue(e.getMessage().contains("Unterminated"), () -> sql + " -> " + e.getMessage());
+    }
+  }
+
   @Test
   void unterminatedEscape() throws Exception {
     assertEquals("{oj ", Parser.replaceProcessing("{oj ", true, false));
