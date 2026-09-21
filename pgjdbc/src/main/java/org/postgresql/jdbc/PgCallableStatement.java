@@ -779,7 +779,13 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
             PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == Integer.class) {
-      if (sqlType == Types.INTEGER || sqlType == Types.SMALLINT) {
+      if (sqlType == Types.SMALLINT) {
+        int intValue = getShort(parameterIndex);
+        if (wasNull()) {
+          return null;
+        }
+        return type.cast(intValue);
+      } else if (sqlType == Types.INTEGER) {
         int intValue = getInt(parameterIndex);
         if (wasNull()) {
           return null;

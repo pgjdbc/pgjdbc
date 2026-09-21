@@ -6,7 +6,7 @@
 package org.postgresql.test.jdbc4.jdbc41;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.core.ServerVersion;
@@ -187,6 +187,7 @@ public class Jdbc41CallableStatementTest extends BaseTest4 {
       call.registerOutParameter(1, Types.SMALLINT);
       call.execute();
       assertEquals(Short.valueOf((short) 42), call.getObject(1, Short.class));
+      assertEquals(Integer.valueOf(42), call.getObject(1, Integer.class));
     }
   }
 
@@ -200,20 +201,12 @@ public class Jdbc41CallableStatementTest extends BaseTest4 {
   }
 
   @Test
-  public void testGetBigintWithoutArgLong() throws SQLException {
-    try (CallableStatement call = con.prepareCall(func + pkgName + "getBigintWithoutArg () }")) {
-      call.registerOutParameter(1, Types.BIGINT);
-      call.execute();
-      assertEquals(Long.valueOf(42), call.getObject(1, Long.class));
-    }
-  }
-
-  @Test
-  public void testGetBigintWithoutArgBigInteger() throws SQLException {
+  public void testGetBigintWithoutArg() throws SQLException {
     try (CallableStatement call = con.prepareCall(func + pkgName + "getBigintWithoutArg () }")) {
       call.registerOutParameter(1, Types.BIGINT);
       call.execute();
       assertEquals(BigInteger.valueOf(42), call.getObject(1, BigInteger.class));
+      assertEquals(Long.valueOf(42), call.getObject(1, Long.class));
     }
   }
 
@@ -280,41 +273,15 @@ public class Jdbc41CallableStatementTest extends BaseTest4 {
     try (CallableStatement call = con.prepareCall(func + pkgName + "getTimestampWithoutTimeZoneWithoutArg () }")) {
       call.registerOutParameter(1, Types.TIMESTAMP);
       call.execute();
-      assertEquals(Timestamp.valueOf("2004-10-19 10:23:54.000123"), call.getObject(1, Timestamp.class));
-    }
-  }
 
-  @Test
-  public void testGetTimestampWithoutTimeZoneWithoutArgJavaUtilDate() throws SQLException {
-    try (CallableStatement call = con.prepareCall(func + pkgName + "getTimestampWithoutTimeZoneWithoutArg () }")) {
-      call.registerOutParameter(1, Types.TIMESTAMP);
-      call.execute();
-      java.util.Date date = call.getObject(1, java.util.Date.class);
-      Calendar calendar = Calendar.getInstance();
-      calendar.setTime(date);
-      assertEquals(2004, calendar.get(Calendar.YEAR));
-      assertEquals(Calendar.OCTOBER, calendar.get(Calendar.MONTH));
-      assertEquals(19, calendar.get(Calendar.DAY_OF_MONTH));
-      assertEquals(10, calendar.get(Calendar.HOUR_OF_DAY));
-      assertEquals(23, calendar.get(Calendar.MINUTE));
-      assertEquals(54, calendar.get(Calendar.SECOND));
-      assertEquals(0, calendar.get(Calendar.MILLISECOND));
-    }
-  }
+      Timestamp expectedTimestamp = Timestamp.valueOf("2004-10-19 10:23:54.000123");
+      assertEquals(expectedTimestamp, call.getObject(1, Timestamp.class));
 
-  @Test
-  public void testGetTimestampWithoutTimeZoneWithoutArgCalendar() throws SQLException {
-    try (CallableStatement call = con.prepareCall(func + pkgName + "getTimestampWithoutTimeZoneWithoutArg () }")) {
-      call.registerOutParameter(1, Types.TIMESTAMP);
-      call.execute();
-      Calendar calendar = call.getObject(1, Calendar.class);
-      assertEquals(2004, calendar.get(Calendar.YEAR));
-      assertEquals(Calendar.OCTOBER, calendar.get(Calendar.MONTH));
-      assertEquals(19, calendar.get(Calendar.DAY_OF_MONTH));
-      assertEquals(10, calendar.get(Calendar.HOUR_OF_DAY));
-      assertEquals(23, calendar.get(Calendar.MINUTE));
-      assertEquals(54, calendar.get(Calendar.SECOND));
-      assertEquals(0, calendar.get(Calendar.MILLISECOND));
+      assertEquals(new java.util.Date(expectedTimestamp.getTime()), call.getObject(1, java.util.Date.class));
+
+      Calendar expectedCalendar = Calendar.getInstance();
+      expectedCalendar.setTimeInMillis(expectedTimestamp.getTime());
+      assertEquals(expectedCalendar, call.getObject(1, Calendar.class));
     }
   }
 
@@ -357,12 +324,7 @@ public class Jdbc41CallableStatementTest extends BaseTest4 {
       expected.setValue("192.168.0.0/16");
       expected.setType("inet");
       assertEquals(expected, call.getObject(1));
-      try {
-        call.getObject(1, InetAddress.class);
-        fail("InetAddress should not be supported for type conversion");
-      } catch (PSQLException e) {
-        // should reach here
-      }
+      assertThrows(PSQLException.class, () -> call.getObject(1, InetAddress.class), "InetAddress should not be supported for type conversion");
     }
   }
 
