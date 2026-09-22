@@ -603,6 +603,16 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   void setFlushCacheOnDdl(boolean flushCacheOnDdl);
 
   /**
+   * Returns the current type cache epoch.
+   * A new epoch means the type cache should be invalidated.
+   * For instance, if user executes {@code DROP TYPE custom_type} SQL, then we should not reuse
+   * the type cache (for instance, oid) for the type. As of now, we can't have fine-grained
+   * notifications from the backend, so we invalidate the full cache.
+   * @return the current type cache epoch
+   */
+  int getTypeCacheEpoch();
+
+  /**
    * @return the ReplicationProtocol instance for this connection.
    */
   ReplicationProtocol getReplicationProtocol();
