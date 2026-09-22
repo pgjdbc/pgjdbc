@@ -536,6 +536,11 @@ value in the connection properties will be used.
 Comma-separated list of acceptable authentication methods. Use '!' prefix to reject methods (e.g., '!password' to reject cleartext). 
 Supported methods: `password`, `md5`, `gss`, `sspi`, `scram-sha-256`, `oauth`, `none`. Cannot mix positive and negative options.
 Examples: `requireAuth=md5,scram-sha-256` (allow only MD5 or SCRAM-SHA-256), `requireAuth=!password,!none` (reject cleartext and trust authentication).
+Whatever is allowed, the server has to authenticate the connection: one that is let through without the driver being
+asked for anything is refused unless `none` is allowed. `gss` is the exception, because establishing GSS encryption
+authenticates the client and leaves the server no reason to ask again, so `requireAuth=gss` is met by `gssEncMode=require`
+alone. GSS encryption is not required to be named for any other method: a connection encrypted by GSS and then
+authenticated with, say, OAUTHBEARER meets `requireAuth=oauth`.
 
 * **`scramMaxIterations (`*int*`)`** *Default `100000`*\
 Maximum PBKDF2 iteration count that pgjdbc will accept from the server during SCRAM authentication.

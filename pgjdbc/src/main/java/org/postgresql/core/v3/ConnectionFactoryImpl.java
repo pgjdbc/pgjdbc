@@ -789,7 +789,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
             return void.class;
           });
-          pgStream.setFinishedAuthenticationRequests();
           return pgStream;
         } catch (PSQLException ex) {
           // allow the connection to proceed
@@ -964,8 +963,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     ChannelBinding channelBinding = ChannelBinding.of(info);
 
     // Parse requireAuth property for authentication method validation
-    String requireAuth = PGProperty.REQUIRE_AUTH.getOrDefault(info);
-    @Nullable EnumSet<AuthMethod> authMethods = AuthMethod.parseRequireAuth(requireAuth);
+    @Nullable EnumSet<AuthMethod> authMethods =
+        AuthMethod.parseRequireAuth(PGProperty.REQUIRE_AUTH.getOrDefault(info));
 
     try {
       int messages = 0;
@@ -1184,6 +1183,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                         PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
                     return void.class;
                   });
+                  pgStream.setFinishedAuthenticationRequests();
                 }
                 break;
 
@@ -1296,15 +1296,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 if (oauthAuthenticator != null) {
                   oauthAuthenticator.handleAuthenticationOk();
                 }
-                if (requireAuth != null) {
-                  // this will happen if the authentication method is trust
-                  if (!pgStream.isFinishedAuthenticationRequests()) {
-                    AuthMethod.checkAuth(authMethods, AuthMethod.NONE);
-                  }
-                  if (pgStream.isGssEncrypted()) {
-                    AuthMethod.checkAuth(authMethods, AuthMethod.GSS);
-                  }
-                }
+                checkAuthenticationCompleted(authMethods,
+                    pgStream.isFinishedAuthenticationRequests(), pgStream.isGssEncrypted());
                 /* Cleanup after successful authentication */
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationOk");
                 break authloop; // We're done.
@@ -1334,6 +1327,31 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
       }
     }
+  }
+
+  /**
+   * Checks {@code requireAuth} on AuthenticationOk, where the handshake ends. Every request the
+   * server sent was checked by {@link AuthMethod#checkAuth} as it arrived, so all that is left
+   * here is the server that authenticates the connection without asking the client for anything.
+   */
+  static void checkAuthenticationCompleted(@Nullable EnumSet<AuthMethod> allowedMethods,
+      boolean finishedAuthenticationRequests, boolean gssEncrypted) throws PSQLException {
+    // Nothing to check: requireAuth is unset, or the client answered a request checkAuth allowed.
+    if (allowedMethods == null || finishedAuthenticationRequests) {
+      return;
+    }
+    // The server asked for nothing. Only none accepts that outright. gss accepts it when the
+    // connection is GSS-encrypted, because that handshake authenticated the client and leaves
+    // the server no reason to send an AuthenticationGSS request.
+    if (allowedMethods.contains(AuthMethod.NONE)
+        || (gssEncrypted && allowedMethods.contains(AuthMethod.GSS))) {
+      return;
+    }
+    throw new PSQLException(
+        GT.tr("The server accepted the connection without requesting authentication, which "
+            + "requireAuth does not allow. Check the pg_hba.conf entry the server matched, or "
+            + "add ''none'' to requireAuth to accept an unauthenticated connection."),
+        PSQLState.CONNECTION_REJECTED);
   }
 
   /*
