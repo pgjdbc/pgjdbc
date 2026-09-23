@@ -176,6 +176,22 @@ public class ByteStreamWriterTest extends BaseTest4 {
     validateContent(expectedData);
   }
 
+  /**
+   * The content is more than twice the 8192-byte send buffer, so the driver sends it to the socket
+   * without copying it into the buffer, and the buffer array still holds the bytes of the messages
+   * sent before the value when the padding starts. Those bytes used to be sent in place of the
+   * zeros, and the server stored them in the column.
+   */
+  @Test
+  public void contentOverTwiceTheSendBufferIsPaddedWithZeros() throws Exception {
+    ByteBuffer testData = testData(20 * 1024);
+    insertStream(testData, 30 * 1024);
+    byte[] expectedData = new byte[30 * 1024];
+    testData.rewind();
+    testData.get(expectedData, 0, 20 * 1024);
+    validateContent(expectedData);
+  }
+
   @Test
   public void testLengthLessThanContent() throws Exception {
     ByteBuffer testData = testData(8);
