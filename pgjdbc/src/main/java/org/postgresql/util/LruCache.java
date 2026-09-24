@@ -30,6 +30,9 @@ public class LruCache<Key extends Object, Value extends CanEstimateSize>
   /**
    * When the entry is not present in cache, this create action is used to create one.
    *
+   * <p>{@link LruCache#borrow} calls it without holding the cache lock, so it may run concurrently
+   * with other calls on the same cache, including another create for the same key.</p>
+   *
    * @param <Value> type of the cache entry
    */
   public interface CreateAction<Key, Value> {
@@ -123,15 +126,16 @@ public class LruCache<Key extends Object, Value extends CanEstimateSize>
     Map<Key, Value> cache = this.cache;
     synchronized (cache) {
       Value value = cache.remove(key);
-      if (value == null) {
-        if (createAction == null) {
-          throw new UnsupportedOperationException("createAction == null, so can't create object");
-        }
-        return createAction.create(key);
+      if (value != null) {
+        currentSize -= value.getSize();
+        return value;
       }
-      currentSize -= value.getSize();
-      return value;
     }
+    if (createAction == null) {
+      throw new UnsupportedOperationException("createAction == null, so can't create object");
+    }
+    // The lock guards only the map; the created value enters the map later, through put
+    return createAction.create(key);
   }
 
   /**
