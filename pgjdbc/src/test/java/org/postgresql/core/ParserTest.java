@@ -231,6 +231,18 @@ class ParserTest {
   }
 
   /**
+   * A leading {@code /*}{@code /} never closes, so the call escape behind it belongs to the comment
+   * and the statement is not JDBC call syntax.
+   */
+  @Test
+  void modifyJdbcCallBehindUnterminatedComment() throws SQLException {
+    JdbcCallParseInfo parseInfo = Parser.modifyJdbcCall("/*/ {call lower(?,?)}", true,
+        ServerVersion.v11.getVersionNum(), EscapeSyntaxCallMode.CALL);
+    assertEquals("/*/ {call lower(?,?)}", parseInfo.getSql());
+    assertFalse(parseInfo.isFunction());
+  }
+
+  /**
    * A {@code CALL} (or {@code { ? = call ... }} escape) preceded by a comment must still be
    * recognised as a function call, otherwise OUT parameter registration fails. See issue #2538.
    */
@@ -273,6 +285,64 @@ class ParserTest {
   @Test
   void unterminatedEscape() throws Exception {
     assertEquals("{oj ", Parser.replaceProcessing("{oj ", true, false));
+  }
+
+  /**
+   * The {@code *} that opens a block comment must not also close it. Expected values are the offset
+   * of the last {@code /} of the comment, or the input length when the comment never closes. Each
+   * case was checked against PostgreSQL 16: {@code /*}{@code /}, {@code /*}{@code /*}{@code /} and
+   * {@code /*}{@code /*}{@code /*}{@code /} are unterminated there, the rest are complete comments.
+   */
+  @Test
+  void blockCommentEnd() {
+    assertBlockCommentEnd("/**/", 3);
+    assertBlockCommentEnd("/*abc*/", 6);
+    assertBlockCommentEnd("/*/ x */", 7);
+    assertBlockCommentEnd("/* /* */ */", 10);
+    assertBlockCommentEnd("/*/**/*/", 7);
+    assertBlockCommentEnd("/**/*/", 3);
+    assertBlockCommentEnd("/*", 2);
+    assertBlockCommentEnd("/*/", 3);
+    assertBlockCommentEnd("/*/*/", 5);
+    assertBlockCommentEnd("/*/*/*/", 7);
+    // A nested /* in the last two characters: the scan steps past the end and has to be clamped
+    assertBlockCommentEnd("/* /*", 5);
+    assertBlockCommentEnd("/*a/*", 5);
+  }
+
+  private static void assertBlockCommentEnd(String sql, int expected) {
+    assertEquals(expected, Parser.parseBlockComment(sql.toCharArray(), 0), sql);
+  }
+
+  @Test
+  void unterminatedBlockCommentIsRejected() {
+    assertThrows(PSQLException.class, () -> Parser.replaceProcessing("SELECT 1 /*/", true, true));
+  }
+
+  /**
+   * {@code /*}{@code / ' *}{@code /} is a single comment for the backend, so the quote inside it
+   * does not open a string literal.
+   */
+  @Test
+  void quoteInsideBlockCommentIsNotAStringLiteral() throws SQLException {
+    assertEquals("SELECT /*/ ' */ 1",
+        Parser.replaceProcessing("SELECT /*/ ' */ 1", true, true));
+  }
+
+  @Test
+  void bindPlaceholderInsideBlockCommentIsNotAParameter() throws SQLException {
+    List<NativeQuery> qry =
+        Parser.parseJdbcSql("SELECT /*/ ? */ 1", true, true, true, true, true);
+    assertEquals(1, qry.size());
+    assertEquals("SELECT /*/ ? */ 1", qry.get(0).nativeSql);
+  }
+
+  @Test
+  void semicolonInsideBlockCommentDoesNotSplitStatements() throws SQLException {
+    List<NativeQuery> qry =
+        Parser.parseJdbcSql("SELECT /*/ ; */ 1", true, true, true, true, true);
+    assertEquals(1, qry.size());
+    assertEquals("SELECT /*/ ; */ 1", qry.get(0).nativeSql);
   }
 
   @Test

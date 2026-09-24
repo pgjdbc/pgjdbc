@@ -546,15 +546,22 @@ public class Parser {
    * Test if the {@code /} character at {@code offset} starts a block comment, and return the
    * position of the last {@code /} character.
    *
+   * <p>An unterminated comment consumes the rest of the input, so the return value is
+   * {@code query.length} in that case. The {@code *} that opens the comment never closes it:
+   * {@code /*}{@code /} is an unterminated comment, matching the backend scanner.</p>
+   *
    * @param query  query
    * @param offset start offset
-   * @return position of the last {@code /} character
+   * @return position of the last {@code /} character, or {@code query.length} if the comment is
+   *     never closed
    */
   public static int parseBlockComment(final char[] query, int offset) {
     if (offset + 1 < query.length && query[offset + 1] == '*') {
       // /* /* */ */ nest, according to SQL spec
       int level = 1;
-      for (offset += 2; offset < query.length; offset++) {
+      // Start one character past the opening /*, so its own '*' cannot pair with the next
+      // character to form a closing */. The backend rejects /*/ as unterminated.
+      for (offset += 3; offset < query.length; offset++) {
         switch (query[offset - 1]) {
           case '*':
             if (query[offset] == '/') {
@@ -577,6 +584,8 @@ public class Parser {
           break;
         }
       }
+      // The loop can step past the end when the comment is never closed
+      offset = Math.min(offset, query.length);
     }
     return offset;
   }
