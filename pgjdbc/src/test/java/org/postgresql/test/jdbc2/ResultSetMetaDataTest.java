@@ -256,6 +256,38 @@ public class ResultSetMetaDataTest extends BaseTest4 {
   }
 
   @Test
+  public void testColumnDisplaySizeCountsLeadingZeroWhenScaleEqualsPrecision() throws SQLException {
+    try (Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT (-0.99)::numeric(2,2)")) {
+      assertTrue(rs.next());
+      assertEquals(rs.getString(1).length(), rs.getMetaData().getColumnDisplaySize(1),
+          "display size of numeric(2,2), which holds -0.99");
+    }
+  }
+
+  @Test
+  public void testColumnDisplaySizeCountsZerosBeforeDigitsWhenScaleExceedsPrecision() throws SQLException {
+    assumeMinimumServerVersion("numeric with a scale above its precision requires v15", ServerVersion.v15);
+    try (Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT (-0.00099)::numeric(2,5)")) {
+      assertTrue(rs.next());
+      assertEquals(rs.getString(1).length(), rs.getMetaData().getColumnDisplaySize(1),
+          "display size of numeric(2,5), which holds -0.00099");
+    }
+  }
+
+  @Test
+  public void testColumnDisplaySizeCountsTrailingZerosOfNegativeScale() throws SQLException {
+    assumeMinimumServerVersion("numeric with a negative scale typmod requires v15", ServerVersion.v15);
+    try (Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT (-9900)::numeric(2,-2)")) {
+      assertTrue(rs.next());
+      assertEquals(rs.getString(1).length(), rs.getMetaData().getColumnDisplaySize(1),
+          "display size of numeric(2,-2), which holds -9900");
+    }
+  }
+
+  @Test
   public void testIsAutoIncrement() throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT c,b,a FROM serialtest");

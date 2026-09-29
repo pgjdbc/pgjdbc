@@ -809,10 +809,9 @@ public class TypeInfoCache implements TypeInfo {
         if (typmod == -1) {
           return -1;
         }
-        int precision = (typmod - 4 >> 16) & 0xffff;
         // The actual storage requirement is two bytes for each group of four decimal digits,
         // plus three to eight bytes overhead.
-        return 8 + precision / 2;
+        return 8 + numericPrecision(typmod) / 2;
       case Oid.BIT:
       case Oid.CHAR:
         return typmod;
@@ -848,7 +847,7 @@ public class TypeInfoCache implements TypeInfo {
         if (typmod == -1) {
           return 0;
         }
-        return ((typmod - 4) & 0xFFFF0000) >> 16;
+        return numericPrecision(typmod);
 
       case Oid.CHAR:
       case Oid.BOOL:
@@ -899,6 +898,46 @@ public class TypeInfoCache implements TypeInfo {
    */
   static int numericScale(int typmod) {
     return (((typmod - 4) & 0x7ff) ^ 0x400) - 0x400;
+  }
+
+  /**
+   * Returns the precision of a {@code numeric} type from its type modifier.
+   *
+   * @param typmod the type modifier, which must not be {@code -1}
+   * @return the precision, from 1 to 1000
+   */
+  static int numericPrecision(int typmod) {
+    return ((typmod - 4) >> 16) & 0xffff;
+  }
+
+  /**
+   * Returns the length of the longest text PostgreSQL prints for a {@code numeric} with this type
+   * modifier, including the sign.
+   *
+   * <ul>
+   *   <li>A scale of zero or less leaves out the decimal point, and a negative scale {@code s}
+   *   adds {@code -s} trailing zeros: {@code numeric(2,-2)} holds {@code -9900}.</li>
+   *   <li>A scale of at least the precision puts every digit after the decimal point, and
+   *   PostgreSQL prints a leading zero: {@code numeric(2,5)} holds {@code -0.00099}.</li>
+   *   <li>Any other scale gives {@code precision} digits and a decimal point:
+   *   {@code numeric(6,4)} holds {@code -99.9999}.</li>
+   * </ul>
+   *
+   * @param typmod the type modifier, which must not be {@code -1}
+   */
+  static int numericDisplaySize(int typmod) {
+    int precision = numericPrecision(typmod);
+    int scale = numericScale(typmod);
+    if (scale <= 0) {
+      // sign, digits, trailing zeros
+      return 1 + precision - scale;
+    }
+    if (scale >= precision) {
+      // sign, leading zero, decimal point, and scale digits after it
+      return 3 + scale;
+    }
+    // sign, digits, decimal point
+    return 2 + precision;
   }
 
   @Override
@@ -1051,10 +1090,7 @@ public class TypeInfoCache implements TypeInfo {
         if (typmod == -1) {
           return 131089; // SELECT LENGTH(pow(10::numeric,131071)); 131071 = 2^17-1
         }
-        int precision = (typmod - 4 >> 16) & 0xffff;
-        int scale = (typmod - 4) & 0xffff;
-        // sign + digits + decimal point (only if we have nonzero scale)
-        return 1 + precision + (scale != 0 ? 1 : 0);
+        return numericDisplaySize(typmod);
       case Oid.BIT:
         return typmod;
       case Oid.VARBIT:
