@@ -887,6 +887,20 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  /**
+   * Returns the scale of a {@code numeric} type from its type modifier. PostgreSQL stores the
+   * scale as a two's complement number in the low 11 bits of {@code typmod - VARHDRSZ}, where
+   * {@code VARHDRSZ} is 4, and since PostgreSQL 15 the scale can be negative, as in
+   * {@code numeric(10,-2)}. The value is therefore sign-extended rather than masked with
+   * {@code 0xffff}. See {@code numeric_typmod_scale()} in PostgreSQL's {@code numeric.c}.
+   *
+   * @param typmod the type modifier, which must not be {@code -1}
+   * @return the scale, from -1000 to 1000
+   */
+  static int numericScale(int typmod) {
+    return (((typmod - 4) & 0x7ff) ^ 0x400) - 0x400;
+  }
+
   @Override
   public int getScale(int oid, int typmod) {
     oid = convertArrayToBaseOid(oid);
@@ -899,7 +913,7 @@ public class TypeInfoCache implements TypeInfo {
         if (typmod == -1) {
           return 0;
         }
-        return (typmod - 4) & 0xFFFF;
+        return numericScale(typmod);
       case Oid.TIME:
       case Oid.TIMETZ:
       case Oid.TIMESTAMP:

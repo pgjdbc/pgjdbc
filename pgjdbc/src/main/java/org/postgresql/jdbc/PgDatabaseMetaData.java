@@ -2797,8 +2797,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       tuple[9] = connection.getTypeInfo().isSigned(typeOid) ? bf : bt;
       tuple[10] = bf; // false for now - must handle money
       tuple[11] = bf; // false - it isn't autoincrement
-      tuple[13] = bZero; // min scale is zero
-      // only numeric can supports a scale.
+      // numeric scales range from 0 to 1000, and since PostgreSQL 15 from -1000 to 1000
+      tuple[13] = typeOid == Oid.NUMERIC && connection.haveMinimumServerVersion(ServerVersion.v15)
+          ? connection.encodeString("-1000") : bZero;
       tuple[14] = typeOid == Oid.NUMERIC ? connection.encodeString("1000") : bZero;
 
       // 12 - LOCAL_TYPE_NAME is null

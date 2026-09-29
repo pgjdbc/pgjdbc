@@ -247,6 +247,15 @@ public class ResultSetMetaDataTest extends BaseTest4 {
   }
 
   @Test
+  public void testGetScaleReportsNegativeScale() throws SQLException {
+    assumeMinimumServerVersion("numeric with a negative scale typmod requires v15", ServerVersion.v15);
+    try (Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT (-9900)::numeric(2,-2)")) {
+      assertEquals(-2, rs.getMetaData().getScale(1), "getScale of numeric(2,-2)");
+    }
+  }
+
+  @Test
   public void testIsAutoIncrement() throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT c,b,a FROM serialtest");
