@@ -14,9 +14,20 @@
         <h2>
             Latest Releases
         </h2>
+        {{ $current := site.Data.homepagedata.current }}
+        {{ $v := $current.version }}
+        {{ $changelogs := (site.GetPage "/changelogs").RegularPages }}
+        {{ $changelog := false }}
+        {{ with where $changelogs "Params.version" $v }}
+            {{ $changelog = index . 0 }}
+        {{ else }}
+            {{ errorf "homepagedata.toml: no changelog sets version: %s" $v }}
+        {{ end }}
         <p>
-            Current release is 42.7.13. This is a maintenance release with numerous bug fixes and new connection properties (flushCacheOnDdl, connectExecutor, classLoaderStrategy). It follows the 42.7.12 security release, which fixed a silent channel-binding authentication downgrade (CVE-2026-54291).
-            See the <a href="https://jdbc.postgresql.org/changelogs/2026-07-06-42.7.13-release/">Changelog</a> for details
+            Current release is {{ $v }}.
+            {{ $current.blurb | default $changelog.Params.summary }}
+            See the <a href="{{ $changelog.Permalink }}">Changelog</a>
+            for details
         </p>
         <ul role="list">
             {{ range $.Site.Data.homepagedata.info }}
