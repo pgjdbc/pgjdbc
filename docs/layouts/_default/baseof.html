@@ -11,6 +11,13 @@
 
     <meta name="viewport" content="width=device-width,minimum-scale=1">
 
+    {{- /* The site is also reachable at pgjdbc.github.io, where
+         root-relative links break. The canonical link tells search
+         engines to index jdbc.postgresql.org. */}}
+    {{- if ne .Kind "404" }}
+    <link rel="canonical" href="{{ .Permalink }}">
+    {{- end }}
+
     {{ $sass := resources.Get "sass/main.scss" }}
     {{ $style := $sass | css.Sass | resources.Fingerprint }}
     <link rel="stylesheet" href="{{ $style.Permalink }}" integrity="{{ $style.Data.Integrity }}">
