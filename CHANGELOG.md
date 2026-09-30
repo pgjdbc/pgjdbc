@@ -24,6 +24,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * fix: the read buffer returns to its initial size once the message that grew it is drained, so a connection no longer retains 32 MiB after one large error [Issue #4015](https://github.com/pgjdbc/pgjdbc/issues/4015)
 * fix: exceeding `maxResultBuffer` closes the connection. The row is not read past the limit, so the connection cannot continue, and it is now dropped where the limit is exceeded rather than refused as a protocol violation at the next message. The error reported is the limit alone, with SQLState `08S01` as before [Issue #4015](https://github.com/pgjdbc/pgjdbc/issues/4015)
 
+### Security
+* fix: a `requireAuth` value that excludes every authentication method, such as `!password,!md5,!gss,!sspi,!scram-sha-256,!none`, now refuses every method. A connection with such a value now fails with SQLState `08004`. Before, the driver treated the value as if `requireAuth` were not set, and used any method the server asked for, even a cleartext password. This affects 42.7.11 through 42.7.13 [GHSA-rhp9-mr79-r74h](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-rhp9-mr79-r74h)
+* fix: a `requireAuth` value without a method in it, such as `,` or `,,`, now fails with SQLState `22023`. Before, the driver treated it as if `requireAuth` were not set. Commas at the very end of a value are still ignored, as in `password,`. This affects 42.7.11 through 42.7.13 [GHSA-rhp9-mr79-r74h](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-rhp9-mr79-r74h)
+
 ## [42.7.13] (2026-07-06)
 
 ### Added
