@@ -2,6 +2,12 @@
 Notable changes since version 42.0.0, read the complete [History of Changes](https://jdbc.postgresql.org/documentation/changelog.html).
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
+## [Unreleased]
+
+### Security
+* fix: a `requireAuth` value that excludes every authentication method, such as `!password,!md5,!gss,!sspi,!scram-sha-256,!none`, now refuses every method. A connection with such a value now fails with SQLState `08004`. Before, the driver treated the value as if `requireAuth` were not set, and used any method the server asked for, even a cleartext password. This affects 42.7.11 through 42.7.13 [GHSA-rhp9-mr79-r74h](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-rhp9-mr79-r74h)
+* fix: a `requireAuth` value without a method in it, such as `,` or `,,`, now fails with SQLState `22023`. Before, the driver treated it as if `requireAuth` were not set. Commas at the very end of a value are still ignored, as in `password,`. This affects 42.7.11 through 42.7.13 [GHSA-rhp9-mr79-r74h](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-rhp9-mr79-r74h)
+
 ## [42.7.13] (2026-07-06)
 
 ### Added

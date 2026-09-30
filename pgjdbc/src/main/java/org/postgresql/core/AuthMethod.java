@@ -31,17 +31,40 @@ public enum AuthMethod {
     }
   }
 
+  /**
+   * Parses a {@code requireAuth} value into the authentication methods the
+   * server may request.
+   *
+   * @param requireAuth comma-separated method names, either all plain or all
+   *     prefixed with {@code !}
+   * @return {@code null} when {@code requireAuth} is {@code null}, and
+   *     {@link #checkAuth} allows every method for {@code null}; otherwise the
+   *     allowed methods, empty when the value excludes every method
+   * @throws PSQLException with {@link PSQLState#INVALID_PARAMETER_VALUE} if
+   *     the value mixes the two forms, names a method twice, names an unknown
+   *     method, or is written without a method
+   */
   public static @Nullable EnumSet<AuthMethod> parseRequireAuth(@Nullable String requireAuth) throws PSQLException {
     if (requireAuth == null) {
       return null;
     }
 
-    EnumSet<AuthMethod> allowedMethods;
     EnumSet<AuthMethod> seenMethods = EnumSet.noneOf(AuthMethod.class);
     String[] methods = requireAuth.split(",");
-    boolean isDisallowMode = methods.length > 0 && methods[0].trim().startsWith("!");
+    // split drops empty strings at the end, so "," and ",," give an empty
+    // array. A value without a method in it names neither methods to allow
+    // nor methods to exclude. It is a mistake, not a request to refuse every
+    // method, so it fails as an invalid value.
+    if (methods.length == 0) {
+      throw new PSQLException(
+          GT.tr("Invalid authentication method: {0}", requireAuth),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+    boolean isDisallowMode = methods[0].trim().startsWith("!");
 
-    allowedMethods = isDisallowMode ? EnumSet.allOf(AuthMethod.class) : EnumSet.noneOf(AuthMethod.class);
+    EnumSet<AuthMethod> allowedMethods = isDisallowMode
+        ? EnumSet.allOf(AuthMethod.class)
+        : EnumSet.noneOf(AuthMethod.class);
 
     for (String method : methods) {
       method = method.trim();
@@ -62,9 +85,20 @@ public enum AuthMethod {
         allowedMethods.add(authMethod);
       }
     }
-    return allowedMethods.isEmpty() ? null : allowedMethods;
+    // Return an empty set, not null. checkAuth allows every method for null,
+    // so null here would let the server pick any method.
+    return allowedMethods;
   }
 
+  /**
+   * Refuses an authentication method that {@code requireAuth} does not allow.
+   *
+   * @param allowedMethods the methods to allow, or {@code null} to allow
+   *     every method; an empty set refuses every method
+   * @param authMethod the method the server asked for
+   * @throws PSQLException with {@link PSQLState#CONNECTION_REJECTED} if the
+   *     method is not allowed
+   */
   public static void checkAuth(@Nullable EnumSet<AuthMethod> allowedMethods, AuthMethod authMethod) throws PSQLException {
     if (allowedMethods == null) {
       return;
