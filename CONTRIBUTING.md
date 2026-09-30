@@ -165,7 +165,9 @@ Prerequisites:
 This project defines a [manual release workflow](.github/workflows/release.yml).
 
 The suggested flow is as follows:
-1. Prepare release notes, commit it to Git.
+1. Prepare release notes, commit it to Git. The notes go in `docs/content/changelogs/<yyyy-mm-dd>-<version>-release.md`, and the front matter must set `version` and `summary`. The home page shows the summary.
+   In the same commit, update the website data with `node docs/scripts/update-site.mjs <version> docs`.
+   The release deploys the website from the released commit as it is, so the data must list the release before the release starts.
 2. Open the "release" action at 👉 [Actions tab → release.yml](https://github.com/pgjdbc/pgjdbc/actions/workflows/release.yml).
 3. Click "run workflow".
 4. Set "Release version number" if you want to bump the version before the release. Note: if the current version already exists, then the release workflow would abort.
@@ -173,9 +175,11 @@ The suggested flow is as follows:
 
 The workflow performs the following steps:
 
-1. It updates the version in `gradle.properties` if the current version in Git differs from the one in the manual workflow call.
-2. It builds and pushes artifacts to Central Portal.
-3. It updates the version to the next patch version.
+1. It checks that the changelog exists, is not dated in the future, and that `docs/data` lists the release. If a check fails, the release stops before anything is published.
+2. It updates the version in `gradle.properties` if the current version in Git differs from the one in the manual workflow call.
+3. It builds and pushes artifacts to Central Portal.
+4. It publishes the GitHub release and starts the website deploy (`docs.yml`) on the release tag.
+5. It updates the version to the next patch version.
 
 ### Updating changelog
 
