@@ -766,6 +766,11 @@ public class TypeInfoCache implements TypeInfo {
         return result;
       }
 
+      // pgNameToJavaClass is keyed by unqualified names, so match hstore on oid instead
+      if (oid == getPGType("hstore")) {
+        return Map.class.getName();
+      }
+
       if (getSQLType(pgTypeName) == Types.ARRAY) {
         result = "java.sql.Array";
         pgNameToJavaClass.put(pgTypeName, result);
