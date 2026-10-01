@@ -962,6 +962,40 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @param spec per-type binary format for parameters sent to the server, as {@code oid:mode}
+   *     entries
+   * @see PGProperty#BINARY_SEND
+   */
+  public void setBinarySend(@Nullable String spec) {
+    PGProperty.BINARY_SEND.set(properties, spec);
+  }
+
+  /**
+   * @return per-type binary format for parameters sent to the server
+   * @see PGProperty#BINARY_SEND
+   */
+  public String getBinarySend() {
+    return castNonNull(PGProperty.BINARY_SEND.getOrDefault(properties));
+  }
+
+  /**
+   * @param spec per-type binary format for results received from the server, as {@code oid:mode}
+   *     entries
+   * @see PGProperty#BINARY_RECEIVE
+   */
+  public void setBinaryReceive(@Nullable String spec) {
+    PGProperty.BINARY_RECEIVE.set(properties, spec);
+  }
+
+  /**
+   * @return per-type binary format for results received from the server
+   * @see PGProperty#BINARY_RECEIVE
+   */
+  public String getBinaryReceive() {
+    return castNonNull(PGProperty.BINARY_RECEIVE.getOrDefault(properties));
+  }
+
+  /**
    * @return string type
    * @see PGProperty#STRING_TYPE
    */
