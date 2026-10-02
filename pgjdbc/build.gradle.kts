@@ -378,6 +378,12 @@ karaf {
 }
 
 // <editor-fold defaultstate="collapsed" desc="Source distribution for building pgjdbc with minimal features">
+// ArchUnit is not declared in reduced-pom.xml, so the rules and the tests that apply them cannot
+// compile in the minimal source-distribution build. Everything that
+// needs ArchUnit goes into org.postgresql.test.arch, in any module, and is dropped here. The Gradle
+// build still runs it.
+val archTestSources = "*/org/postgresql/test/arch/**"
+
 val sourceDistribution = tasks.register<Tar>("sourceDistribution") {
     dependsOn(tasks.removeTypeAnnotations)
     dependsOn(testKitSourcesWithoutAnnotationsResolved)
@@ -444,12 +450,15 @@ val sourceDistribution = tasks.register<Tar>("sourceDistribution") {
             exclude("*/org/postgresql/test/osgi/**")
             exclude("*/org/postgresql/test/sspi/*.java")
             exclude("*/org/postgresql/replication/**")
+            exclude(archTestSources)
         }
         from(testKitSourcesWithoutAnnotationsResolved.flatMap { it.elements }.map { set ->
             set.map {
                 fileTree("$it/src/main")
             }
-        })
+        }) {
+            exclude(archTestSources)
+        }
     }
     into("certdir") {
         from("$rootDir/certdir") {
