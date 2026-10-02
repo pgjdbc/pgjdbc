@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import java.io.ByteArrayInputStream;
+import java.io.EOFException;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -267,5 +268,19 @@ class VisibleBufferedInputStreamTest {
         () -> assertEquals(4, length, "length of \"abc\" and its terminator"),
         () -> assertEquals(0, in.getPosition(), "bytes consumed by the scan"),
         () -> assertEquals('a', in.getBuffer()[in.getIndex()], "byte at getIndex()"));
+  }
+
+  /**
+   * The EOFException used to carry no message, so a truncated backend message showed a bare stack
+   * trace.
+   */
+  @Test
+  void anUnterminatedStringAtTheEndOfStreamFailsWithAMessage() {
+    VisibleBufferedInputStream in = new VisibleBufferedInputStream(
+        new ByteArrayInputStream(new byte[]{'a', 'b', 'c'}), INITIAL_SIZE);
+
+    EOFException e = assertThrows(EOFException.class, in::scanCStringLength);
+
+    assertEquals("End of stream reached while looking for a string terminator.", e.getMessage());
   }
 }

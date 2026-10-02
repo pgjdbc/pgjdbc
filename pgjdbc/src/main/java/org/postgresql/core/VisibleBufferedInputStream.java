@@ -505,7 +505,8 @@ public class VisibleBufferedInputStream extends InputStream {
         }
       }
       if (!readMore(STRING_SCAN_SPAN, true)) {
-        throw new EOFException();
+        throw new EOFException(
+            GT.tr("End of stream reached while looking for a string terminator."));
       }
     }
   }
