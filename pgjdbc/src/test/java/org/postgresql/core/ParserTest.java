@@ -270,6 +270,149 @@ class ParserTest {
     assertFalse(parseInfo.isFunction(), () -> "isFunction() should be false for: " + sql);
   }
 
+  /**
+   * A call body that ends in a backslash inside a string constant used to step the scan past the
+   * end of the input, which skipped the "ran out of query" check and reached
+   * {@code jdbcSql.substring(startIndex, -1)}.
+   */
+  @Test
+  void trailingBackslashInCallBodyIsASyntaxError() {
+    for (String sql : new String[]{"{call f('a\\", "{?=call f('a\\", "{call f('\\"}) {
+      PSQLException e = assertThrows(PSQLException.class,
+          () -> Parser.modifyJdbcCall(sql, false, ServerVersion.v11.getVersionNum(),
+              EscapeSyntaxCallMode.CALL),
+          sql);
+      assertEquals(PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL.getState(), e.getSQLState(), sql);
+      // The same input with standard_conforming_strings on was already reported this way
+      PSQLException stdStrings = assertThrows(PSQLException.class,
+          () -> Parser.modifyJdbcCall(sql, true, ServerVersion.v11.getVersionNum(),
+              EscapeSyntaxCallMode.CALL),
+          sql);
+      assertEquals(PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL.getState(),
+          stdStrings.getSQLState(), sql);
+    }
+  }
+
+  /**
+   * Where the backslash does have something to escape, the escaped quote still does not end the
+   * string constant, and the body reaches the server unchanged. This one passes on the unfixed
+   * code as well: it is here to show the clamp did not disturb the escape path.
+   */
+  @Test
+  void backslashEscapeInCallBodyIsHonoured() throws SQLException {
+    assertEquals("call f('a\\'b')",
+        Parser.modifyJdbcCall("{call f('a\\'b')}", false, ServerVersion.v11.getVersionNum(),
+            EscapeSyntaxCallMode.CALL).getSql());
+    // With standard_conforming_strings on the backslash is an ordinary character, so the quote
+    // after it closes the constant and the driver never finds the closing brace. PostgreSQL
+    // rejects the same text too, though it tokenizes it differently: it reads b' as the start of
+    // a bit-string literal and reports that as unterminated.
+    assertThrows(PSQLException.class,
+        () -> Parser.modifyJdbcCall("{call f('a\\'b')}", true, ServerVersion.v11.getVersionNum(),
+            EscapeSyntaxCallMode.CALL));
+  }
+
+  /**
+   * The body of a call may hold further JDBC escapes. The scan used to flip a single flag on every
+   * brace, so the closing brace of an inner escape was read as the end of the call.
+   */
+  @Test
+  void nestedEscapesInCallBody() throws SQLException {
+    assertEquals("call f({d '2020-01-01'})",
+        modifyCall("{call f({d '2020-01-01'})}"));
+    assertEquals("call f({fn abs(?)})", modifyCall("{call f({fn abs(?)})}"));
+    assertEquals("call f({fn abs({fn abs(?)})})",
+        modifyCall("{call f({fn abs({fn abs(?)})})}"));
+    assertEquals("call f(?,{d '2020-01-01'})",
+        modifyCall("{? = call f({d '2020-01-01'})}"));
+  }
+
+  /**
+   * A comment is allowed before the call, the way it already was before the opening brace and
+   * after the closing one.
+   */
+  @Test
+  void commentsAroundTheCallKeyword() throws SQLException {
+    assertEquals("call f(?,?)", modifyCall("{/*c*/? = call f(?)}"));
+    assertEquals("call f(?,?)", modifyCall("{? /*c*/ = call f(?)}"));
+    assertEquals("call f(?,?)", modifyCall("{? = /*c*/ call f(?)}"));
+    assertEquals("call f(?,?)", modifyCall("{-- c\n? = call f(?)}"));
+  }
+
+  /**
+   * A brace inside a block comment, a delimited identifier, a dollar-quoted string or a string
+   * literal is not the brace that ends the call. PostgreSQL reads each of those as one token.
+   */
+  @Test
+  void braceInsideAQuotedOrCommentedBody() throws SQLException {
+    assertEquals("call foo() /*}*/ ", modifyCall("{call foo() /*}*/ }"));
+    assertEquals("call \"we}ird\"()", modifyCall("{call \"we}ird\"()}"));
+    assertEquals("call f($$a}b$$)", modifyCall("{call f($$a}b$$)}"));
+    // A string literal already worked, and has to keep working
+    assertEquals("call f('a}b')", modifyCall("{call f('a}b')}"));
+    // An apostrophe inside a block comment no longer opens a string constant
+    assertEquals("call f(?) /* don't */", modifyCall("{call f(?) /* don't */}"));
+  }
+
+  /**
+   * A line comment is text, not SQL: nothing inside it is a quote, a brace or a separator.
+   * PostgreSQL executes every statement below.
+   *
+   * <p>Only the two cases holding an apostrophe or a {@code ;} fail on the unfixed parser, which
+   * lexed the comment as SQL. The others are here because the round of this change that skipped
+   * the comment wholesale broke them.</p>
+   */
+  @Test
+  void lineCommentInCallBodyIsText() throws SQLException {
+    assertEquals("call f(?) -- x", modifyCall("{call f(?) -- x}"));
+    assertEquals("call f(?) --", modifyCall("{call f(?) --}"));
+    assertEquals("call p1() -- don\"t", modifyCall("{call p1() -- don\"t}"));
+    assertEquals("call p1() -- don't", modifyCall("{call p1() -- don't}"));
+    assertEquals("call p1() -- $a$ b", modifyCall("{call p1() -- $a$ b}"));
+    assertEquals("call p1() -- /* x", modifyCall("{call p1() -- /* x}"));
+    assertEquals("call p1() -- {{", modifyCall("{call p1() -- {{}"));
+    assertEquals("call p1() -- ;", modifyCall("{call p1() -- ;}"));
+  }
+
+  /**
+   * A brace inside a line comment is the one character the comment's text cannot settle on its
+   * own. What decides it is whether another brace follows the comment to close the escape
+   * instead: if one does, the brace in the comment is text; if none does, it is the terminator.
+   *
+   * <p>The first and last cases pass on the unfixed parser as well, which reaches the same
+   * answer through its string-constant lexing. The middle two do not.</p>
+   */
+  @Test
+  void braceInsideALineCommentIsDecidedByWhatFollows() throws SQLException {
+    assertEquals("call f(?) -- the '}' case\n", modifyCall("{call f(?) -- the '}' case\n}"));
+    assertEquals("call f(?) -- returns {} on empty\n",
+        modifyCall("{call f(?) -- returns {} on empty\n}"));
+    assertEquals("call f(?, -- }\n ?)", modifyCall("{call f(?, -- }\n ?)}"));
+    assertEquals("call f(?) -- x\n ", modifyCall("{call f(?) -- x\n }"));
+  }
+
+  /**
+   * The escape does not have to be the whole string. A brace inside a line comment stays the
+   * terminator when reading it as comment text leaves the escape unclosed, whatever trails the
+   * escape itself — which is what a text block or a {@code .sql} resource adds. A brace in that
+   * trailing text does not change the answer, since it could not have closed the escape either.
+   */
+  @Test
+  void lineCommentEndingTheCallWithTextAfterTheEscape() throws SQLException {
+    assertEquals("call f(?) -- x", modifyCall("{call f(?) -- x}\n"));
+    assertEquals("call f(?) -- x", modifyCall("{call f(?) -- x}\r\n"));
+    assertEquals("call f(?) -- x", modifyCall("{call f(?) -- x}\r"));
+    assertEquals("call f(?) -- x", modifyCall("{call f(?) -- x} \n"));
+    assertEquals("call f(?) -- a\n -- b", modifyCall("{call f(?) -- a\n -- b}\n"));
+    assertEquals("call f(?) -- x", modifyCall("{call f(?) -- x}\n /* } */"));
+    assertEquals("call f(?) -- x", modifyCall("{call f(?) -- x}\n -- }"));
+  }
+
+  private static String modifyCall(String sql) throws SQLException {
+    return Parser.modifyJdbcCall(sql, true, ServerVersion.v11.getVersionNum(),
+        EscapeSyntaxCallMode.CALL).getSql();
+  }
+
   @Test
   void unterminatedEscape() throws Exception {
     assertEquals("{oj ", Parser.replaceProcessing("{oj ", true, false));
