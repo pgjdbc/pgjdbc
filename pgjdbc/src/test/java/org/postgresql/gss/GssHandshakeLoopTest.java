@@ -7,7 +7,6 @@ package org.postgresql.gss;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.core.CannedSocketFactory;
@@ -149,10 +148,12 @@ class GssHandshakeLoopTest {
     GssEncAction action = new GssEncAction(stream, null, "localhost", "test", "postgres", false,
         false, false);
 
-    IOException e = assertThrows(IOException.class,
-        () -> action.negotiate(neverEstablishedContext()));
+    Exception e = action.negotiate(neverEstablishedContext());
 
+    assertNotNull(e, "negotiate must report the refused token length");
     assertTrue(e.getMessage().contains("GSS token"), e.getMessage());
+    // The same SQLState as the round limit below, which is the other way this handshake refuses.
+    assertEquals(PSQLState.PROTOCOL_VIOLATION.getState(), ((PSQLException) e).getSQLState());
     assertTrue(stream.isBroken());
   }
 }

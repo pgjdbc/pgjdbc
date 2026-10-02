@@ -141,10 +141,14 @@ public class GssEncAction implements PrivilegedAction<@Nullable Exception>, Call
    * stream to it. Separate from {@link #run()} so a test can drive the loop without a Kerberos
    * realm.
    *
+   * <p>A refused token length and a handshake that does not finish are both returned as a
+   * {@link PSQLException} carrying {@link PSQLState#PROTOCOL_VIOLATION}, with the stream marked
+   * broken. Only a failed read or write is thrown.</p>
+   *
    * @param secContext the context to establish
    * @return null once established, or the exception to report
    * @throws GSSException if the context rejects a token
-   * @throws IOException on an I/O error
+   * @throws IOException if a read or a write fails
    */
   @Nullable Exception negotiate(GSSContext secContext) throws GSSException, IOException {
     byte[] inToken = new byte[0];
@@ -170,9 +174,11 @@ public class GssEncAction implements PrivilegedAction<@Nullable Exception>, Call
       // The length is the raw token size and does not count itself.
       int len = pgStream.receiveInteger4();
       if (len < 0 || len > MAX_HANDSHAKE_TOKEN_SIZE) {
-        throw pgStream.protocolViolation(GT.tr(
+        pgStream.setBroken();
+        return new PSQLException(GT.tr(
             "Backend declared a GSS token of {0} bytes, the maximum is {1}.",
-            String.valueOf(len), String.valueOf(MAX_HANDSHAKE_TOKEN_SIZE)));
+            String.valueOf(len), String.valueOf(MAX_HANDSHAKE_TOKEN_SIZE)),
+            PSQLState.PROTOCOL_VIOLATION);
       }
       inToken = pgStream.receive(len);
     }
