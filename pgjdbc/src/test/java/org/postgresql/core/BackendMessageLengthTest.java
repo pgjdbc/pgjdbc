@@ -25,16 +25,27 @@ import java.sql.SQLException;
 import java.util.Locale;
 
 /**
- * Boundary tests for the message length check and for the column lengths inside a DataRow, driven
- * from a byte array rather than a server.
+ * The driver reads each backend message within the length that message declared. That length has
+ * to fall inside the range the message type allows, and each DataRow column length has to fit the
+ * bytes the message has left. A reader that stops short of the declared end, or runs past it, is
+ * caught at the next message type.
+ *
+ * <p>Each case sits on one side or the other of one of those limits. The bytes come from a
+ * {@link CannedSocketFactory} rather than from a server, so a test can give a length a value no
+ * server would send.</p>
  */
 @Isolated("Uses Locale.setDefault")
 class BackendMessageLengthTest {
 
-  // The assertions match on message text, which GT.tr translates once these strings are
-  // localized.
   private static Locale defaultLocale;
 
+  /**
+   * We force the root locale because the assertions below match the English text GT.tr returns,
+   * and a translated default locale would fail them. The guard is partial: GT resolves its bundle
+   * once, in a static initializer, so setting the locale here only reaches GT when this class is
+   * the first to load it. What saves the assertions today is that no catalog carries a translation
+   * of the messages they match.
+   */
   @BeforeAll
   static void useRootLocale() {
     defaultLocale = Locale.getDefault();
@@ -61,6 +72,11 @@ class BackendMessageLengthTest {
     return out.toByteArray();
   }
 
+  /**
+   * The limit under test is {@link PGStream#MAX_SMALL_MESSAGE_LENGTH}, so
+   * {@link PGStream#MAX_MESSAGE_LENGTH} belongs among the refused lengths here, even though a
+   * DataRow may declare it.
+   */
   @Test
   void rejectsLengthsOutsideTheRange() throws IOException {
     int max = PGStream.MAX_SMALL_MESSAGE_LENGTH;
@@ -91,7 +107,10 @@ class BackendMessageLengthTest {
     assertTrue(e.getMessage().contains("ErrorResponse"), e.getMessage());
   }
 
-  /** Subtracting the 4 length bytes from this value wraps to a positive two gigabyte size. */
+  /**
+   * A declared length of {@link Integer#MIN_VALUE} wraps round to a positive body size of two
+   * gigabytes once the 4 length bytes are subtracted, so the length itself has to be refused.
+   */
   @Test
   void rejectsTheWraparoundCopyDataLength() throws IOException {
     PGStream stream = streamOf(int4(Integer.MIN_VALUE));
@@ -99,7 +118,10 @@ class BackendMessageLengthTest {
         () -> stream.receiveMessageLength("CopyData", 4, PGStream.MAX_MESSAGE_LENGTH));
   }
 
-  /** libpq accepts a zero length CopyData body. */
+  /**
+   * The minimum for CopyData is 4, the length bytes alone, because libpq accepts a CopyData with
+   * an empty body.
+   */
   @Test
   void acceptsAZeroLengthCopyDataBody() throws IOException {
     assertEquals(4, streamOf(int4(4)).receiveMessageLength("CopyData", 4, PGStream.MAX_MESSAGE_LENGTH));
@@ -107,7 +129,8 @@ class BackendMessageLengthTest {
 
   @Test
   void readsAValidDataRow() throws IOException, SQLException {
-    // length, field count, then a 3 byte column, a null column and an empty column.
+    // One column of each kind the protocol allows: 3 bytes of data, a SQL NULL at -1, and an
+    // empty column at 0. The declared 21 bytes are 4 length + 2 count + (4 + 3) + 4 + 4.
     byte[] message = new byte[]{0, 0, 0, 21, 0, 3, 0, 0, 0, 3, 'a', 'b', 'c',
         (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, 0, 0, 0, 0};
 
@@ -119,6 +142,7 @@ class BackendMessageLengthTest {
     assertArrayEquals(new byte[0], tuple.get(2));
   }
 
+  /** Only -1 is a null column, so the -2 in the last 4 bytes has to be refused. */
   @Test
   void rejectsAColumnLengthBelowNull() throws IOException {
     byte[] message = new byte[]{0, 0, 0, 10, 0, 1, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFE};
@@ -129,22 +153,32 @@ class BackendMessageLengthTest {
 
   @Test
   void rejectsAColumnThatRunsPastTheMessage() throws IOException {
+    // Those four column length bytes are an int4, so the column claims 1048576 bytes and not the
+    // 16 they look like, and the declared 10 leave no room for column data at all.
     byte[] message = new byte[]{0, 0, 0, 10, 0, 1, 0, 16, 0, 0};
     PGStream stream = streamOf(message);
     IOException e = assertThrows(IOException.class, () -> stream.receiveTupleV3());
-    // It must be the length check, because reading on would hit the end of the stream anyway.
+    // We assert on the length check rather than on the failure alone, because a reader that ran
+    // on would hit the end of the stream and fail anyway, and then this test would pass for the
+    // wrong reason.
     assertTrue(e.getMessage().contains("does not fit"), e.getMessage());
   }
 
   @Test
   void rejectsADataRowWhoseColumnsUnderrunItsEnvelope() throws IOException {
-    // 4 length + 2 count + 4 column length leaves 11 of column data. The column accounts for 7.
+    // A column that stops short satisfies every per-column check, so the only thing that catches
+    // it is the unread-bytes check at the end. The declared 21 leave 11 for column data and the
+    // one column declares 7, so 4 go unread.
     byte[] message = new byte[]{0, 0, 0, 21, 0, 1, 0, 0, 0, 7, 'a', 'b', 'c', 'd', 'e', 'f', 'g'};
     PGStream stream = streamOf(message);
     IOException e = assertThrows(IOException.class, () -> stream.receiveTupleV3());
     assertTrue(e.getMessage().contains("unread"), e.getMessage());
   }
 
+  /**
+   * Sends a DataRow whose one column fills the message exactly, and expects it to be read. The
+   * declared 13 bytes leave 3 for column data, and the column declares 3.
+   */
   @Test
   void acceptsADataRowThatConsumesItsEnvelopeExactly() throws IOException, SQLException {
     byte[] message = new byte[]{0, 0, 0, 13, 0, 1, 0, 0, 0, 3, 'a', 'b', 'c'};
@@ -157,7 +191,8 @@ class BackendMessageLengthTest {
 
   @Test
   void rejectsADataRowTooShortForItsColumnCount() throws IOException {
-    // 100 columns in a message that cannot hold their lengths.
+    // Without the count check the driver would read 100 column lengths out of the messages behind
+    // this one. Those lengths need 400 bytes and the declared 10 leave 4.
     byte[] message = new byte[]{0, 0, 0, 10, 0, 100, 0, 0, 0, 0};
     PGStream stream = streamOf(message);
     IOException e = assertThrows(IOException.class, () -> stream.receiveTupleV3());
@@ -172,7 +207,8 @@ class BackendMessageLengthTest {
         () -> stream.receiveMessageLength("ErrorResponse", 5, PGStream.MAX_SMALL_MESSAGE_LENGTH));
 
     assertTrue(stream.isBroken(), "the refusal must mark the stream broken");
-    // A pool that tests connections on borrow checks this.
+    // PgConnection.isClosed() reaches PGStream.isClosed() through the executor's close action,
+    // so a pool that tests a connection before handing it out sees this one as closed.
     assertTrue(stream.isClosed(), "a broken stream must report itself closed");
   }
 
@@ -189,7 +225,8 @@ class BackendMessageLengthTest {
   /** A read after a refusal reports the refusal, not whatever fails next. */
   @Test
   void refusesToReadPastABrokenStream() throws IOException {
-    // A refused length, then a message type that would otherwise be readable.
+    // The declared length of 3 is below the 5 byte minimum, and the 'Z' behind it is a message
+    // type the driver would otherwise read.
     PGStream stream = streamOf(new byte[]{0, 0, 0, 3, 'Z'});
 
     assertThrows(IOException.class,
@@ -211,7 +248,9 @@ class BackendMessageLengthTest {
 
   @Test
   void rejectsAMessageWhoseReaderStoppedShort() throws IOException {
-    // A ten byte message, of which the reader consumes two, then the next message type.
+    // A short read leaves body bytes that the driver would read as the next message type and
+    // length, so the position check is the only thing that catches it. The declared 10 bytes leave
+    // 6 for the body, the reader consumes 2, and the 'Z' after them is the next message type.
     byte[] message = new byte[]{0, 0, 0, 10, 1, 2, 3, 4, 5, 6, 'Z'};
     PGStream stream = streamOf(message);
 
@@ -223,6 +262,10 @@ class BackendMessageLengthTest {
     assertTrue(stream.isBroken());
   }
 
+  /**
+   * Skips exactly the 6 body bytes the declared 10 leave, and expects the next message type to
+   * read normally.
+   */
   @Test
   void acceptsAMessageConsumedExactly() throws IOException {
     byte[] message = new byte[]{0, 0, 0, 10, 1, 2, 3, 4, 5, 6, 'Z'};
@@ -234,7 +277,10 @@ class BackendMessageLengthTest {
     assertEquals('Z', stream.receiveMessageType());
   }
 
-  /** Reading past the end of a message is as wrong as stopping short of it. */
+  /**
+   * Reading past the end of a message is refused the same way as stopping short of it. The
+   * declared 6 bytes leave 2 for the body, and the reader skips 4.
+   */
   @Test
   void rejectsAMessageWhoseReaderRanPast() throws IOException {
     byte[] message = new byte[]{0, 0, 0, 6, 1, 2, 3, 4, 'Z'};
@@ -254,7 +300,9 @@ class BackendMessageLengthTest {
 
   @Test
   void rejectsAStringThatRunsPastItsMessage() throws IOException {
-    // A nine byte message holding five bytes with no terminator among them.
+    // A scan that the message does not bound would take the terminator belonging to whatever
+    // follows and leave the stream out of sync. The declared 9 bytes leave 5 for the body with no
+    // terminator among them, and the terminator is the next byte.
     byte[] message = new byte[]{0, 0, 0, 9, 'a', 'b', 'c', 'd', 'e', 0};
     PGStream stream = streamOf(message);
 
@@ -279,7 +327,8 @@ class BackendMessageLengthTest {
   @Test
   void capsThePreAuthenticationMessageBelowTheBufferedOne() {
     assertTrue(PGStream.MAX_PRE_AUTH_MESSAGE_LENGTH < PGStream.MAX_BUFFERED_MESSAGE_LENGTH);
-    // libpq's limit is on the declared length, which counts itself.
+    // libpq's MAX_ERRLEN bounds the declared length, which counts its own 4 bytes, so the driver
+    // uses the same 30000 without adjusting it.
     assertEquals(30000, PGStream.MAX_PRE_AUTH_MESSAGE_LENGTH);
   }
 }

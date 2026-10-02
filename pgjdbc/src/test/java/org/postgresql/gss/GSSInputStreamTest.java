@@ -28,20 +28,32 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * The packet length check on the encrypted transport, which only runs once GSS encryption is on.
- * The context is a stub whose unwrap returns its input, so the length handling is exercised
- * without a Kerberos realm.
+ * A GSS packet is refused unless its declared length is between 1 and {@link #MAX_PAYLOAD_SIZE}
+ * bytes, and a refusal runs the protocol violation callback before it throws.
+ *
+ * <p>{@link GSSInputStream} is installed only on a GSS encrypted connection. The context here is a
+ * stub whose unwrap returns the bytes it is given, so the length handling is exercised without a
+ * Kerberos realm.</p>
  */
 @Isolated("Uses Locale.setDefault")
 class GSSInputStreamTest {
 
-  /** PQ_GSS_MAX_PACKET_SIZE less the length word. */
+  /**
+   * The largest declared length {@link GSSInputStream} accepts. PostgreSQL's
+   * PQ_GSS_MAX_PACKET_SIZE of 16 kB counts the 4 length bytes, so the payload maximum is four
+   * bytes smaller.
+   */
   private static final int MAX_PAYLOAD_SIZE = 16 * 1024 - 4;
 
-  // The assertions match on message text, which GT.tr translates once these strings are
-  // localized.
   private static Locale defaultLocale;
 
+  /**
+   * We force the root locale because the assertions below match the English text GT.tr returns,
+   * and a translated default locale would fail them. The guard is partial: GT resolves its bundle
+   * once, in a static initializer, so setting the locale here only reaches GT when this class is
+   * the first to load it. What saves the assertions today is that no catalog carries a translation
+   * of the messages they match.
+   */
   @BeforeAll
   static void useRootLocale() {
     defaultLocale = Locale.getDefault();
@@ -53,7 +65,10 @@ class GSSInputStreamTest {
     Locale.setDefault(defaultLocale);
   }
 
-  /** A context whose unwrap returns its input unchanged. */
+  /**
+   * Returns a context whose unwrap returns the range of bytes it is given. The length handling
+   * calls only unwrap, so every other method returns null.
+   */
   private static GSSContext echoContext() {
     InvocationHandler handler = new InvocationHandler() {
       @Override
@@ -71,6 +86,10 @@ class GSSInputStreamTest {
         new Class<?>[]{GSSContext.class}, handler);
   }
 
+  /**
+   * Returns a packet whose 4 byte header declares {@code declaredLength}, followed by
+   * {@code payloadBytes} bytes of payload. The two need not agree.
+   */
   private static byte[] frame(int declaredLength, int payloadBytes) {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     out.write(declaredLength >>> 24);
