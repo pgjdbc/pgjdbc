@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.v3.ConnectionFactoryImpl;
+import org.postgresql.jdbc.SslMode;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -385,10 +386,10 @@ class MaliciousBackendTest {
   /** doAuthentication is private. */
   private static void authenticate(PGStream stream, Properties info) throws Exception {
     Method method = ConnectionFactoryImpl.class.getDeclaredMethod("doAuthentication",
-        PGStream.class, String.class, String.class, Properties.class);
+        PGStream.class, String.class, String.class, SslMode.class, Properties.class);
     method.setAccessible(true);
     try {
-      method.invoke(null, stream, "localhost", "test", info);
+      method.invoke(null, stream, "localhost", "test", SslMode.DISABLE, info);
     } catch (InvocationTargetException e) {
       if (e.getCause() instanceof Exception) {
         throw (Exception) e.getCause();

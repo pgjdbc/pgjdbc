@@ -103,6 +103,7 @@ public abstract class BaseDataSourceTest extends BaseTest4 {
     bds.setPassword(TestUtil.getPassword());
     bds.setPrepareThreshold(TestUtil.getPrepareThreshold());
     bds.setProtocolVersion(TestUtil.getProtocolVersion());
+    TestUtil.configureOAuthIfNeeded(bds);
   }
 
   /**

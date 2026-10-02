@@ -21,6 +21,45 @@ public class PGPropertyUtil {
 
   private static final Logger LOGGER = Logger.getLogger(PGPropertyUtil.class.getName());
 
+  private static final String MASKED_VALUE = "***";
+
+  /**
+   * Masks the value of every {@link PGProperty#isSensitive() sensitive} parameter in a JDBC URL, so
+   * that the URL can be logged or put into an error message without disclosing credentials.
+   *
+   * @param url JDBC URL, possibly carrying credentials in its query string
+   * @return the URL with the value of every sensitive parameter masked
+   */
+  public static String maskSensitiveValues(String url) {
+    int qPos = url.indexOf('?');
+    if (qPos == -1) {
+      return url;
+    }
+    StringBuilder result = new StringBuilder(url.length());
+    result.append(url, 0, qPos + 1);
+    // Split the query string the same way Driver.parseURL does
+    String[] args = url.substring(qPos + 1).split("&", -1);
+    for (int i = 0; i < args.length; i++) {
+      if (i > 0) {
+        result.append('&');
+      }
+      String arg = args[i];
+      int eqPos = arg.indexOf('=');
+      if (eqPos == -1) {
+        result.append(arg);
+        continue;
+      }
+      String name = arg.substring(0, eqPos);
+      PGProperty property = PGProperty.forName(name);
+      if (property != null && property.isSensitive()) {
+        result.append(name).append('=').append(MASKED_VALUE);
+      } else {
+        result.append(arg);
+      }
+    }
+    return result.toString();
+  }
+
   /**
    * converts PGPORT String to Integer
    *

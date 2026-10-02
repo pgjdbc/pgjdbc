@@ -13,6 +13,7 @@ import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
+import org.postgresql.util.PGPropertyUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.URLCoder;
@@ -95,18 +96,46 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public Connection getConnection(@Nullable String user, @Nullable String password)
       throws SQLException {
+    // getUrl() carries no credentials, so it is also what gets logged below
+    String url = getUrl();
     try {
-      Connection con = DriverManager.getConnection(getUrl(), user, password);
+      Connection con = DriverManager.getConnection(url, getConnectionProperties(user, password));
       if (LOGGER.isLoggable(Level.FINE)) {
         LOGGER.log(Level.FINE, "Created a {0} for {1} at {2}",
-            new Object[]{getDescription(), user, getUrl()});
+            new Object[]{getDescription(), user, url});
       }
       return con;
     } catch (SQLException e) {
       LOGGER.log(Level.FINE, "Failed to create a {0} for {1} at {2}: {3}",
-          new Object[]{getDescription(), user, getUrl(), e});
+          new Object[]{getDescription(), user, url, e});
       throw e;
     }
+  }
+
+  /**
+   * Builds the connection properties.
+   *
+   * @param user     user name to connect with, or null to connect without one
+   * @param password password to connect with, or null to connect without one
+   * @return properties holding the user name and every credential configured on this DataSource
+   */
+  private Properties getConnectionProperties(@Nullable String user, @Nullable String password) {
+    Properties connectionProperties = new Properties();
+    for (PGProperty property : PGProperty.values()) {
+      if (property.isSensitive()) {
+        String value = property.getSetString(properties);
+        if (value != null) {
+          property.set(connectionProperties, value);
+        }
+      }
+    }
+    if (user != null) {
+      PGProperty.USER.set(connectionProperties, user);
+    }
+    if (password != null) {
+      PGProperty.PASSWORD.set(connectionProperties, password);
+    }
+    return connectionProperties;
   }
 
   /**
@@ -1455,6 +1484,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   /**
    * Generates a {@link DriverManager} URL from the other properties supplied.
+   * The URL carries no credentials, so it can be logged or shown in a message.
    *
    * @return {@link DriverManager} URL from the other properties supplied
    */
@@ -1485,7 +1515,8 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
     StringBuilder query = new StringBuilder(100);
     for (PGProperty property : PGProperty.values()) {
-      if (property.isPresent(properties)) {
+      // Credentials are skipped here and passed directly to the driver later.
+      if (!property.isSensitive() && property.isPresent(properties)) {
         if (query.length() != 0) {
           query.append("&");
         }
@@ -1505,9 +1536,11 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
-   * Generates a {@link DriverManager} URL from the other properties supplied.
+   * Generates a {@link DriverManager} URL from the other properties supplied. Same as
+   * {@link #getUrl()}, including the credentials it leaves out.
    *
    * @return {@link DriverManager} URL from the other properties supplied
+   * @see #getUrl()
    */
   public String getURL() {
     return getUrl();
@@ -1523,7 +1556,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     Properties p = Driver.parseURL(url, null);
 
     if (p == null) {
-      throw new IllegalArgumentException("URL invalid " + url);
+      throw new IllegalArgumentException("URL invalid " + PGPropertyUtil.maskSensitiveValues(url));
     }
     for (PGProperty property : PGProperty.values()) {
       if (!this.properties.containsKey(property.getName())) {
@@ -1560,6 +1593,121 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public void setAuthenticationPluginClassName(String className) {
     PGProperty.AUTHENTICATION_PLUGIN_CLASS_NAME.set(properties, className);
+  }
+
+  /**
+   * @return OAuth 2.0 bearer token, or null if unset
+   */
+  public @Nullable String getOAuthToken() {
+    return PGProperty.OAUTH_TOKEN.getOrDefault(properties);
+  }
+
+  /**
+   * @param token OAuth 2.0 bearer token for authentication
+   */
+  public void setOAuthToken(String token) {
+    PGProperty.OAUTH_TOKEN.set(properties, token);
+  }
+
+  /**
+   * @return the class name to use for token provider, can be null
+   */
+  public @Nullable String getOAuthTokenProviderClassName() {
+    return PGProperty.OAUTH_TOKEN_PROVIDER_CLASS_NAME.getOrDefault(properties);
+  }
+
+  /**
+   * @param className fully-qualified class implementing {@link org.postgresql.plugin.OAuthTokenProvider}
+   *                  This class will be used to obtain the OAuth 2.0 bearer token.
+   */
+  public void setOAuthTokenProviderClassName(@Nullable String className) {
+    PGProperty.OAUTH_TOKEN_PROVIDER_CLASS_NAME.set(properties, className);
+  }
+
+  /**
+   * @return OAuth issuer URL
+   */
+  public @Nullable String getOAuthIssuer() {
+    return PGProperty.OAUTH_ISSUER.getOrDefault(properties);
+  }
+
+  /**
+   * @param issuer OAuth issuer URL
+   */
+  public void setOAuthIssuer(String issuer) {
+    PGProperty.OAUTH_ISSUER.set(properties, issuer);
+  }
+
+  /**
+   * @return whether a non-HTTPS OAuth issuer URL is allowed
+   */
+  public boolean getOAuthAllowInsecureIssuer() {
+    return PGProperty.OAUTH_ALLOW_INSECURE_ISSUER.getBoolean(properties);
+  }
+
+  /**
+   * @param allowInsecure whether to allow a non-HTTPS OAuth issuer URL;
+   *     set to {@code true} only for development/testing
+   */
+  public void setOAuthAllowInsecureIssuer(boolean allowInsecure) {
+    PGProperty.OAUTH_ALLOW_INSECURE_ISSUER.set(properties, allowInsecure);
+  }
+
+  /**
+   * @return OAuth client ID
+   */
+  public @Nullable String getOAuthClientId() {
+    return PGProperty.OAUTH_CLIENT_ID.getOrDefault(properties);
+  }
+
+  /**
+   * @param clientId OAuth client ID
+   */
+  public void setOAuthClientId(String clientId) {
+    PGProperty.OAUTH_CLIENT_ID.set(properties, clientId);
+  }
+
+  /**
+   * @return OAuth client secret
+   */
+  public @Nullable String getOAuthClientSecret() {
+    return PGProperty.OAUTH_CLIENT_SECRET.getOrDefault(properties);
+  }
+
+  /**
+   * @param clientSecret OAuth client secret
+   */
+  public void setOAuthClientSecret(String clientSecret) {
+    PGProperty.OAUTH_CLIENT_SECRET.set(properties, clientSecret);
+  }
+
+  /**
+   * @return OAuth scope
+   */
+  public @Nullable String getOAuthScope() {
+    return PGProperty.OAUTH_SCOPE.getOrDefault(properties);
+  }
+
+  /**
+   * @param scope OAuth scope
+   */
+  public void setOAuthScope(String scope) {
+    PGProperty.OAUTH_SCOPE.set(properties, scope);
+  }
+
+  /**
+   * @return true if OAUTHBEARER is permitted over an insecure connection.
+   */
+  public boolean getOAuthAllowInsecureConnection() {
+    return PGProperty.OAUTH_ALLOW_INSECURE_CONNECTION.getBoolean(properties);
+  }
+
+  /**
+   * @param allow permits OAUTHBEARER authentication over an insecure connection or to
+   *     an unverified server. Intended for development only.
+   */
+  public void setOAuthAllowInsecureConnection(boolean allow) {
+    PGProperty.OAUTH_ALLOW_INSECURE_CONNECTION.set(properties, allow);
   }
 
   public @Nullable String getProperty(String name) throws SQLException {

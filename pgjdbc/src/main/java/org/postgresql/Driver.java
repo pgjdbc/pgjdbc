@@ -286,12 +286,14 @@ public class Driver implements java.sql.Driver {
     // parse URL and add more properties
     if ((props = parseURL(url, props)) == null) {
       throw new PSQLException(
-          GT.tr("Unable to parse URL {0}", url),
+          GT.tr("Unable to parse URL {0}", PGPropertyUtil.maskSensitiveValues(url)),
           PSQLState.UNEXPECTED_ERROR);
     }
     try {
 
-      LOGGER.log(Level.FINE, "Connecting with URL: {0}", url);
+      if (LOGGER.isLoggable(Level.FINE)) {
+        LOGGER.log(Level.FINE, "Connecting with URL: {0}", PGPropertyUtil.maskSensitiveValues(url));
+      }
 
       // Enforce login timeout, if specified, by handing the connection
       // attempt to an Executor, which must run it on a thread other than
@@ -543,7 +545,10 @@ public class Driver implements java.sql.Driver {
     }
 
     if (!urlServer.startsWith("jdbc:postgresql:")) {
-      LOGGER.log(Level.FINE, "JDBC URL must start with \"jdbc:postgresql:\" but was: {0}", url);
+      if (LOGGER.isLoggable(Level.FINE)) {
+        LOGGER.log(Level.FINE, "JDBC URL must start with \"jdbc:postgresql:\" but was: {0}",
+            PGPropertyUtil.maskSensitiveValues(url));
+      }
       return null;
     }
     urlServer = urlServer.substring("jdbc:postgresql:".length());
@@ -554,20 +559,25 @@ public class Driver implements java.sql.Driver {
       urlServer = urlServer.substring(2);
       long slashCount = urlServer.chars().filter(ch -> ch == '/').count();
       if (slashCount > 1) {
-        LOGGER.log(Level.WARNING, "JDBC URL contains too many / characters: {0}", url);
+        LOGGER.log(Level.WARNING, "JDBC URL contains too many / characters: {0}",
+            PGPropertyUtil.maskSensitiveValues(url));
         return null;
       }
       int slash = urlServer.indexOf('/');
       if (slash == -1) {
-        LOGGER.log(Level.WARNING, "JDBC URL must contain a / at the end of the host or port: {0}", url);
+        LOGGER.log(Level.WARNING, "JDBC URL must contain a / at the end of the host or port: {0}",
+            PGPropertyUtil.maskSensitiveValues(url));
         return null;
       }
       if (!urlServer.endsWith("/")) {
-        String value = urlDecode(urlServer.substring(slash + 1));
-        if (value == null) {
+        String dbName = urlServer.substring(slash + 1);
+        try {
+          PGProperty.PG_DBNAME.set(priority1Url, URLCoder.decode(dbName));
+        } catch (IllegalArgumentException e) {
+          LOGGER.log(Level.FINE, "JDBC URL database name [{0}] could not be decoded: {1}",
+              new Object[]{dbName, e.getMessage()});
           return null;
         }
-        PGProperty.PG_DBNAME.set(priority1Url, value);
       }
       urlServer = urlServer.substring(0, slash);
 
@@ -599,11 +609,13 @@ public class Driver implements java.sql.Driver {
     } else if (urlServer.startsWith("/")) {
       return null;
     } else {
-      String value = urlDecode(urlServer);
-      if (value == null) {
+      try {
+        priority1Url.setProperty(PGProperty.PG_DBNAME.getName(), URLCoder.decode(urlServer));
+      } catch (IllegalArgumentException e) {
+        LOGGER.log(Level.FINE, "JDBC URL database name [{0}] could not be decoded: {1}",
+            new Object[]{urlServer, e.getMessage()});
         return null;
       }
-      priority1Url.setProperty(PGProperty.PG_DBNAME.getName(), value);
     }
 
     // parse the args part of the url
@@ -618,8 +630,12 @@ public class Driver implements java.sql.Driver {
         priority1Url.setProperty(token, "");
       } else {
         String pName = PGPropertyUtil.translatePGServiceToPGProperty(token.substring(0, pos));
-        String pValue = urlDecode(token.substring(pos + 1));
-        if (pValue == null) {
+        String pValue;
+        try {
+          pValue = URLCoder.decode(token.substring(pos + 1));
+        } catch (IllegalArgumentException e) {
+          // The value may be a credential, so only the parameter name is logged
+          LOGGER.log(Level.FINE, "URL parameter [{0}] could not be decoded", pName);
           return null;
         }
         if (PGProperty.SERVICE.getName().equals(pName)) {
@@ -676,16 +692,6 @@ public class Driver implements java.sql.Driver {
     }
     //
     return result;
-  }
-
-  // decode url, on failure log and return null
-  private static @Nullable String urlDecode(String url) {
-    try {
-      return URLCoder.decode(url);
-    } catch (IllegalArgumentException e) {
-      LOGGER.log(Level.FINE, "Url [{0}] parsing failed with error [{1}]", new Object[]{url, e.getMessage()});
-    }
-    return null;
   }
 
   /**
