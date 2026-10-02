@@ -42,4 +42,7 @@ tasks.configureEach<Test> {
     // See https://github.com/junit-team/junit5/commit/347e3119d36a5c226cddd7981452f11335fad422
     passProperty("junit.jupiter.execution.parallel.config.strategy", "DYNAMIC")
     passProperty("junit.jupiter.execution.timeout.default", "5 m")
+    // A test blocked in a socket read ignores Thread.interrupt(), so a same-thread timeout cannot
+    // stop it and the build hangs instead of reporting the failure
+    passProperty("junit.jupiter.execution.timeout.thread.mode.default", "SEPARATE_THREAD")
 }
