@@ -133,35 +133,9 @@ The aggregate report is written to:
 
 ## 5 - Extending the test suite with new tests
 
-Most of the tests are written with JUnit4, however it is recommended to create new tests with JUnit5.
+Write new tests with JUnit 5 and put them under `pgjdbc/src/test/java/org/postgresql`, next to the tests for the same feature. Gradle discovers test classes on its own, so there is no suite class to register a new test in.
 
-If you're not familiar with JUnit, we recommend that you
-first read the introductory article [JUnit Test Infected:
-Programmers Love Writing Tests](http://junit.sourceforge.net/doc/testinfected/testing.htm).
-Before continuing, you should ensure you understand the
-following concepts: test suite, test case, test, fixture,
-assertion, failure.
-
-The test suite consists of test cases, which consist of tests.
-A test case is a collection of tests that test a particular
-feature. The test suite is a collection of test cases that
-together test the driver - and to an extent the PostgreSQL
-backend - as a whole.
-
-If you decide to add a test to an existing test case, all you
-need to do is add a method with a name that begins with "test"
-and which takes no arguments. JUnit will dynamically find this
-method using reflection and run it when it runs the test case.
-In your test method you can use the fixture that is setup for it
-by the test case.
-
-If you decide to add a new test case, you should do two things:
-
-1. Add a test class. It should
-   contain `setUp()` and `tearDown()` methods that create and destroy
-   the fixture respectively.
-2. Add your test class in `$JDBC_SRC/src/test/java/org/postgresql/test`. This will make the test case
-   part of the test suite.
+Two modules keep JUnit 4 tests that cannot run on JUnit 5: `pgjdbc-junit4-test` holds the class-unloading test, which needs the JUnit 4 runner of the classloader-leak-test library, and `pgjdbc-osgi-test` holds the OSGi tests, which run on Pax Exam. Add a test to one of them only when it needs that runner.
 
 ## 6 - Guidelines for developing new tests
 
@@ -173,16 +147,9 @@ by dropping the table before running the test (ignoring errors).
 The recommended pattern for creating and dropping tables can be
 found in the example in section 7 below.
 
-Please note that JUnit provides several convenience methods to
-check for conditions. See the `Assert` class in the Javadoc
-documentation of JUnit, which is installed on your system. For
-example, you can compare two integers using
-`Assert.assertEquals(int expected, int actual)`. This method
-will print both values in case of a failure.
-
-To simply report a failure use `Assert.fail()`.
-
-The JUnit FAQ explains how to test for a thrown exception.
+Use the assertion methods of JUnit 5 `Assertions`, such as
+`assertEquals(expected, actual)`, which prints both values on failure,
+and `assertThrows` to check for an exception.
 
 As a rule, the test suite should succeed. Any errors or failures
 - which may be caused by bugs in the JDBC driver, the backend or
