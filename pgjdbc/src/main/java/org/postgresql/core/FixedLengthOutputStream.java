@@ -31,8 +31,13 @@ public class FixedLengthOutputStream extends OutputStream {
 
   @Override
   public void write(byte[] buf, int offset, int len) throws IOException {
-    if ((offset < 0) || (len < 0) || ((offset + len) > buf.length)) {
-      throw new IndexOutOfBoundsException();
+    // Written as a subtraction so that neither a len nor an offset near Integer.MAX_VALUE can wrap
+    // the sum past the check. The target this forwards to does not necessarily bound its own copy,
+    // so a range that gets past here is not caught anywhere
+    if ((offset < 0) || (len < 0) || (len > buf.length - offset)) {
+      throw new IndexOutOfBoundsException(
+          "Range [" + offset + ", " + offset + " + " + len + ") out of bounds for length "
+              + buf.length);
     } else if (len == 0) {
       return;
     }
