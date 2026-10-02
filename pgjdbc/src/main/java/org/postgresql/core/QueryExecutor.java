@@ -13,7 +13,11 @@ import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.jdbc.PreferQueryMode;
+import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+import org.postgresql.util.internal.ArrayRanges;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -327,6 +331,77 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   @Deprecated
   byte @Nullable [] fastpathCall(int fnid, ParameterList params, boolean suppressBegin)
       throws SQLException;
+
+  /**
+   * Invoke a backend function via the fastpath interface, storing the binary result into a buffer
+   * the caller supplies.
+   *
+   * <p>The default implementation calls {@link #fastpathCall(int, ParameterList, boolean)} and
+   * copies the result, so an executor written before this overload keeps working. An
+   * implementation should override it and receive the response into {@code dst} directly, with no
+   * intermediate array.</p>
+   *
+   * <p>An implementation must reject a range outside {@code dst} before it sends the request.
+   * {@code VisibleBufferedInputStream.read} checks the range as well, but only once the reply is
+   * being read, and the {@code IndexOutOfBoundsException} it throws is not an {@code IOException},
+   * so the executor does not abort and the connection is left in the middle of a message.</p>
+   *
+   * @param fnid the OID of the backend function to invoke
+   * @param params a ParameterList returned from {@link #createFastpathParameters} containing the
+   *        parameters to pass to the backend function
+   * @param suppressBegin if begin should be suppressed
+   * @param dst the buffer to store the binary-format result into
+   * @param off the offset within {@code dst} to store the result at
+   * @param len the maximum number of bytes to store into {@code dst}
+   * @return the number of bytes stored into {@code dst}, or {@code -1} if a void result was
+   *         returned
+   * @throws FastpathResultTooLongException if the function returned more than {@code len} bytes.
+   *         The response is read from the connection before this is thrown, so the connection
+   *         stays usable
+   * @throws SQLException if an error occurs while executing the fastpath call
+   * @throws ArrayIndexOutOfBoundsException if {@code off} or {@code len} is negative, or if
+   *         {@code off + len} exceeds {@code dst.length}. No request is sent in that case
+   * @deprecated This API is somewhat obsolete, as one may achieve similar performance
+   *         and greater functionality by setting up a prepared statement to define
+   *         the function call. Then, executing the statement with binary transmission of parameters
+   *         and results substitutes for a fast-path function call.
+   */
+  @Deprecated
+  default int fastpathCall(int fnid, ParameterList params, boolean suppressBegin,
+      byte[] dst, int off, int len) throws SQLException {
+    ArrayRanges.checkFromIndexSize(dst, off, len);
+    byte[] result = fastpathCall(fnid, params, suppressBegin);
+    if (result == null) {
+      return -1;
+    }
+    if (result.length > len) {
+      throw new FastpathResultTooLongException(result.length, len);
+    }
+    System.arraycopy(result, 0, dst, off, result.length);
+    return result.length;
+  }
+
+  /**
+   * Reports a fastpath result larger than the buffer the caller supplied.
+   *
+   * <p>The destination array is left untouched. The SQLState is
+   * {@link PSQLState#INVALID_PARAMETER_VALUE} ({@code 22023}), which the server also uses for
+   * errors of its own in the large object functions, so catch this class rather than matching on
+   * the state.</p>
+   */
+  final class FastpathResultTooLongException extends PSQLException {
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * @param resultLength the number of bytes the function returned
+     * @param len the maximum number of bytes the caller can store
+     */
+    public FastpathResultTooLongException(int resultLength, int len) {
+      super(GT.tr("Fastpath call returned {0} bytes, but only {1} bytes fit in the destination "
+          + "buffer.", String.valueOf(resultLength), String.valueOf(len)),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+  }
 
   /**
    * Issues a COPY FROM STDIN / COPY TO STDOUT statement and returns handler for associated
