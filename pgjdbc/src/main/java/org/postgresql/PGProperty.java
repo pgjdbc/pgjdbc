@@ -573,15 +573,16 @@ public enum PGProperty {
       "Statement prepare threshold. A value of {@code -1} stands for forceBinary"),
 
   /**
-   * Force use of a particular protocol version when connecting, if set, disables protocol version
-   * fallback.
+   * Protocol version the driver requests when it connects: {@code 3} or {@code 3.0} for version
+   * 3.0, {@code 3.2} for version 3.2. A server that implements protocol negotiation but not 3.2
+   * continues the connection with 3.0.
    */
   PROTOCOL_VERSION(
       "protocolVersion",
       "3",
-      "Force use of a particular protocol version when connecting, currently only version 3 is supported.",
+      "Protocol version the driver requests when it connects: 3 or 3.0 for version 3.0, 3.2 for version 3.2. A server that implements protocol negotiation but not 3.2 continues with 3.0.",
       false,
-      new String[]{"3"}),
+      new String[]{"3", "3.0", "3.2"}),
 
   /**
    * Parameter for {@link java.sql.Statement#getQueryTimeout()}. A value of {@code 0} means no timeout.
