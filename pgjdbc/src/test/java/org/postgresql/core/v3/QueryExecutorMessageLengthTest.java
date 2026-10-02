@@ -48,7 +48,7 @@ import java.util.Properties;
  * off the wire can be given values a server would never send.
  */
 @Isolated("Uses Locale.setDefault")
-class BackendMessageEnvelopeTest {
+class QueryExecutorMessageLengthTest {
 
   // The assertions match on message text, which GT.tr translates once these strings are
   // localized.
@@ -264,7 +264,7 @@ class BackendMessageEnvelopeTest {
 
   /** One type OID more than the length can hold. */
   @Test
-  void rejectsAParameterDescriptionWhoseCountDoesNotFillIt() throws Exception {
+  void rejectsAParameterDescriptionThatCannotHoldItsParameterTypes() throws Exception {
     Script script = new Script().startup()
         .message('1', new byte[0])
         .messageOfDeclaredLength('t', 10, bytes(int2(2), int4(23)))

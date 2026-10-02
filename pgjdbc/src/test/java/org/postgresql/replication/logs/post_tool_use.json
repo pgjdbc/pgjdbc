@@ -1,0 +1,98 @@
+[
+  {
+    "session_id": "246e0b5e-f7fb-41b4-8fb4-fef7fad94343",
+    "transcript_path": "/Users/davecra/.claude/projects/-Users-davecra-projects-jdbc-pgjdbc-git/246e0b5e-f7fb-41b4-8fb4-fef7fad94343.jsonl",
+    "cwd": "/Users/davecra/projects/jdbc/pgjdbc.git/pgjdbc/src/test/java/org/postgresql/replication",
+    "permission_mode": "acceptEdits",
+    "effort": {
+      "level": "high"
+    },
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "cd pgjdbc/src/test/java/org/postgresql/replication\nfor f in *.java; do\n  echo \"=== $f ===\"\n  grep -oE \"assumeTrue\\([^;]*|@DisabledIf[A-Za-z]*|ReplicationConnection|REPLICATION_PHASE|pg_is_in_recovery|wal_level|slot\" \"$f\" | head -3\ndone",
+      "description": "Summarize what each replication test relies on"
+    },
+    "tool_response": {
+      "stdout": "=== CopyBothResponseTest.java ===\nReplicationConnection\nslot\n=== LogicalReplicationStatusTest.java ===\nslot\nReplicationConnection\nslot\n=== LogicalReplicationTest.java ===\nslot\nReplicationConnection\nslot\n=== LogSequenceNumberTest.java ===\n=== PhysicalReplicationTest.java ===\nslot\nReplicationConnection\nslot\n=== ReplicationConnectionTest.java ===\nReplicationConnection\nReplicationConnection\n=== ReplicationSlotTest.java ===\nslot\nReplicationConnection\nslot",
+      "stderr": "",
+      "interrupted": false,
+      "isImage": false,
+      "noOutputExpected": false
+    },
+    "tool_use_id": "toolu_bdrk_012DeCrgdGcQzTWHNoqaQax6",
+    "duration_ms": 153
+  },
+  {
+    "session_id": "246e0b5e-f7fb-41b4-8fb4-fef7fad94343",
+    "transcript_path": "/Users/davecra/.claude/projects/-Users-davecra-projects-jdbc-pgjdbc-git/246e0b5e-f7fb-41b4-8fb4-fef7fad94343.jsonl",
+    "cwd": "/Users/davecra/projects/jdbc/pgjdbc.git/pgjdbc/src/test/java/org/postgresql/replication",
+    "permission_mode": "acceptEdits",
+    "effort": {
+      "level": "high"
+    },
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "grep -rn \"@Tag\\|SlowTests\\|Replication.*Tag\\|@EnabledIf\\|@DisabledIf\\|replicationConnection\\|assumeTrue\" pgjdbc/src/test/java/org/postgresql/replication/ReplicationConnectionTest.java | head; echo \"=== how these connect ===\"; grep -n \"ReplicationProperty\\|REPLICATION\\|hostChooser\\|getPort\\|openReplicationConnection\\|TestUtil.openReplicationConnection\" pgjdbc/src/test/java/org/postgresql/replication/ReplicationConnectionTest.java | head",
+      "description": "Check how replication protocol tests connect"
+    },
+    "tool_response": {
+      "stdout": "ugrep: warning: pgjdbc/src/test/java/org/postgresql/replication/ReplicationConnectionTest.java: No such file or directory\n=== how these connect ===\nugrep: warning: pgjdbc/src/test/java/org/postgresql/replication/ReplicationConnectionTest.java: No such file or directory",
+      "stderr": "",
+      "interrupted": false,
+      "isImage": false,
+      "noOutputExpected": false
+    },
+    "tool_use_id": "toolu_bdrk_01QnDm2eyR5rXsbiszKh6LF8",
+    "duration_ms": 44
+  },
+  {
+    "session_id": "246e0b5e-f7fb-41b4-8fb4-fef7fad94343",
+    "transcript_path": "/Users/davecra/.claude/projects/-Users-davecra-projects-jdbc-pgjdbc-git/246e0b5e-f7fb-41b4-8fb4-fef7fad94343.jsonl",
+    "cwd": "/Users/davecra/projects/jdbc/pgjdbc.git/pgjdbc/src/test/java/org/postgresql/replication",
+    "permission_mode": "acceptEdits",
+    "effort": {
+      "level": "high"
+    },
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "find pgjdbc/src/test -name \"ReplicationConnectionTest.java\"; echo \"---\"; find pgjdbc/src/test -path \"*replication*\" -name \"*.java\" | sort",
+      "description": "Locate replication test files with full paths"
+    },
+    "tool_response": {
+      "stdout": "bfs: error: pgjdbc/src/test: No such file or directory.\n---\nbfs: error: pgjdbc/src/test: No such file or directory.",
+      "stderr": "",
+      "interrupted": false,
+      "isImage": false,
+      "noOutputExpected": false
+    },
+    "tool_use_id": "toolu_bdrk_01VxjCMVQhY5rR7nfwx63Gmn",
+    "duration_ms": 56
+  },
+  {
+    "session_id": "246e0b5e-f7fb-41b4-8fb4-fef7fad94343",
+    "transcript_path": "/Users/davecra/.claude/projects/-Users-davecra-projects-jdbc-pgjdbc-git/246e0b5e-f7fb-41b4-8fb4-fef7fad94343.jsonl",
+    "cwd": "/Users/davecra/projects/jdbc/pgjdbc.git/pgjdbc/src/test/java/org/postgresql/replication",
+    "permission_mode": "acceptEdits",
+    "effort": {
+      "level": "high"
+    },
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "git -C /Users/davecra/projects/jdbc/pgjdbc.git ls-files 'pgjdbc/src/test/java/org/postgresql/replication/*.java'",
+      "description": "List replication test files via git"
+    },
+    "tool_response": {
+      "stdout": "pgjdbc/src/test/java/org/postgresql/replication/CopyBothResponseTest.java\npgjdbc/src/test/java/org/postgresql/replication/LogSequenceNumberTest.java\npgjdbc/src/test/java/org/postgresql/replication/LogicalReplicationStatusTest.java\npgjdbc/src/test/java/org/postgresql/replication/LogicalReplicationTest.java\npgjdbc/src/test/java/org/postgresql/replication/PhysicalReplicationTest.java\npgjdbc/src/test/java/org/postgresql/replication/ReplicationConnectionTest.java\npgjdbc/src/test/java/org/postgresql/replication/ReplicationSlotTest.java",
+      "stderr": "",
+      "interrupted": false,
+      "isImage": false,
+      "noOutputExpected": false
+    },
+    "tool_use_id": "toolu_bdrk_01DXtaXUBLT7HShEPdLeYFh6",
+    "duration_ms": 58
+  }
+]
