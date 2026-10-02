@@ -2,7 +2,7 @@
 title: "Logging using java.util.logging"
 date: 2022-06-19T22:46:55+05:30
 draft: false
-weight: 11
+weight: 230
 toc: true
 aliases:
     - "/documentation/head/logging.html"

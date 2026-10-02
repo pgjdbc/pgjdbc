@@ -1,0 +1,82 @@
+{
+  "moves": {
+    "query": {
+      "example52setting-fetch-size-to-turn-cursors-on-and-off": "/documentation/large-results/#",
+      "example53writing-java-8-date-and-time-values-using-jdbc": "/documentation/date-time/#",
+      "getting-results-based-on-a-cursor": "/documentation/large-results/",
+      "table51-supportedjava-8-date-and-time-classes": "/documentation/date-time/#",
+      "using-java-8-date-and-time-classes": "/documentation/date-time/"
+    },
+    "server-prepare": {
+      "accessing-the-extensions": "/documentation/extensions/#",
+      "arrays": "/documentation/arrays/",
+      "configuration-for-examples": "/documentation/replication/#",
+      "configure-database": "/documentation/replication/#",
+      "copymanager": "/documentation/copy/",
+      "example": "/documentation/extensions/#",
+      "example-91-using-the-circle-datatype-jdbc": "/documentation/types/#",
+      "example-910-replication-stream-with-configured-feedback-interval-equal-to-20-sec": "/documentation/replication/#",
+      "example-911-example-send-message-from-output-plugin": "/documentation/replication/#",
+      "example-913-add-feedback-indicating-a-successfully-process-lsn": "/documentation/replication/#",
+      "example-914-full-example-of-logical-replication": "/documentation/replication/#",
+      "example-915-copying-data-in": "/documentation/copy/#",
+      "example-916-copying-data-out": "/documentation/copy/#",
+      "example-94create-replication-connection": "/documentation/replication/#",
+      "example-95-create-replication-slot-via-pgjdbc-api": "/documentation/replication/#",
+      "example-96-create-logical-replication-stream": "/documentation/replication/#",
+      "example-97-create-logical-replication-stream-from-particular-position": "/documentation/replication/#",
+      "example-98-example-output-with-include-xidstrue": "/documentation/replication/#",
+      "example-99-example-output-with-include-xidsfalse": "/documentation/replication/#",
+      "example92receiving-notifications": "/documentation/listen-notify/#",
+      "geometric-data-types": "/documentation/types/",
+      "large-objects": "/documentation/binary-data/#",
+      "listen--notify": "/documentation/listen-notify/",
+      "logical-replication": "/documentation/replication/#",
+      "methods": "/documentation/extensions/#",
+      "other-client-drivers": "/documentation/extensions/#",
+      "parameter-status-messages": "/documentation/extensions/#",
+      "pg_hbaconf": "/documentation/replication/#",
+      "physical-and-logical-replication-api": "/documentation/replication/",
+      "physical-replication": "/documentation/replication/#",
+      "postgresqlconf": "/documentation/replication/#",
+      "resultset-example": "/documentation/date-time/#",
+      "timestamp-infinity": "/documentation/date-time/#"
+    },
+    "setup": {
+      "creating-a-database": "/documentation/server-setup/#",
+      "preparing-the-database-server-for-jdbc": "/documentation/server-setup/"
+    },
+    "use": {
+      "connecting-to-the-database": "/documentation/connect/",
+      "connection-fail-over": "/documentation/multiple-hosts/",
+      "connection-parameters": "/documentation/connection-properties/",
+      "importing-jdbc": "/documentation/setup/#",
+      "loading-the-driver": "/documentation/setup/#",
+      "system-properties": "/documentation/system-properties/",
+      "unix-sockets": "/documentation/connect/#"
+    }
+  },
+  "pages": {
+    "arrays": "server-prepare",
+    "classpath": "setup",
+    "connect": "use",
+    "ddl": "query",
+    "ext": "server-prepare",
+    "geometric": "server-prepare",
+    "java8-date-time": "query",
+    "largeobjects": "server-prepare",
+    "listennotify": "server-prepare",
+    "load": "use",
+    "parameterstatus": "server-prepare",
+    "prepare": "setup",
+    "query": "query",
+    "replication": "server-prepare",
+    "resultset": "query",
+    "server-prepare": "server-prepare",
+    "setup": "setup",
+    "statement": "query",
+    "update": "query",
+    "use": "use",
+    "your-database": "setup"
+  }
+}
