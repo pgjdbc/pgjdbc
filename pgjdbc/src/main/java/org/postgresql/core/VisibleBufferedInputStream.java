@@ -410,6 +410,15 @@ public class VisibleBufferedInputStream extends InputStream {
 
   /**
    * {@inheritDoc}
+   *
+   * <p>While the buffer holds bytes, returns their count without calling the wrapped stream, so
+   * bytes waiting in the wrapped stream are left out. Once the buffer is empty, returns what the
+   * wrapped stream reports. The result is therefore zero exactly when the buffer is empty and the
+   * wrapped stream reports zero.</p>
+   *
+   * <p>The wrapped stream is not called while the buffer holds bytes because on a plain TCP socket
+   * each call is a {@code FIONREAD} system call, and once the socket is closed it throws even
+   * though bytes remain in the buffer.</p>
    */
   @Override
   public int available() throws IOException {
@@ -455,10 +464,11 @@ public class VisibleBufferedInputStream extends InputStream {
 
   /**
    * Scans the length of the next null terminated string (C-style string) from the stream.
+   * Equivalent to {@link #scanCStringLength(int) scanCStringLength(Integer.MAX_VALUE)}.
    *
-   * @return The length of the next null terminated string.
+   * @return The length of the next null terminated string, including its terminator.
    * @throws IOException If reading of stream fails.
-   * @throws EOFException If the stream did not contain any null terminators.
+   * @throws EOFException If the stream ends before a terminator.
    */
   public int scanCStringLength() throws IOException {
     return scanCStringLength(Integer.MAX_VALUE);
@@ -468,10 +478,14 @@ public class VisibleBufferedInputStream extends InputStream {
    * Scans the length of the next null terminated string (C-style string) from the stream, looking
    * no further than the given number of bytes.
    *
+   * <p>The string is left unread: it starts at {@link #getIndex()} in {@link #getBuffer()}, and
+   * the caller skips it. Like {@link #ensureBytes(int)}, the scan may compact or replace the
+   * buffer, so read both after this method returns.</p>
+   *
    * @param maxLength the most bytes the string may occupy, including its terminator.
-   * @return The length of the next null terminated string.
+   * @return The length of the next null terminated string, including its terminator.
    * @throws IOException If reading of stream fails, or no terminator is within maxLength.
-   * @throws EOFException If the stream did not contain any null terminators.
+   * @throws EOFException If the stream ends before a terminator.
    */
   public int scanCStringLength(int maxLength) throws IOException {
     int scanned = 0;
@@ -502,6 +516,12 @@ public class VisibleBufferedInputStream extends InputStream {
 
   /**
    * Returns the underlying stream.
+   *
+   * <p>This stream reads ahead into its buffer, so the underlying stream is positioned after every
+   * buffered byte. A byte read from the underlying stream comes after the bytes still buffered
+   * here, and this stream never returns it. Use the underlying stream to query or configure it,
+   * not to read from it.</p>
+   *
    * @return the underlying stream
    */
   public InputStream getWrapped() {
