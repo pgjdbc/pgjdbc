@@ -16,7 +16,10 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -24,7 +27,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.function.Supplier;
 
 /**
@@ -296,6 +301,115 @@ public class CursorFetchTest extends BaseTest4 {
     }
 
     assertEquals(100, count);
+  }
+
+  private static List<Integer> valuesOfRemainingRows(ResultSet rs) throws SQLException {
+    List<Integer> values = new ArrayList<>();
+    while (rs.next()) {
+      values.add(rs.getInt(1));
+    }
+    return values;
+  }
+
+  /**
+   * {@code isLast()} returns {@code true} on the last row the result set returns and
+   * {@code false} on the row before it, whether {@code maxRows} or the end of the query limits
+   * the rows. The query has 10 rows and each fetch reads one. With {@code maxRows} below the row
+   * count, {@code isLast()} used to return {@code false} on the row at {@code maxRows} and fetch
+   * the row after it.
+   */
+  @ParameterizedTest
+  @CsvSource({
+      "3, 3",
+      "10, 10",
+      "20, 10",
+  })
+  public void isLastIsTrueOnlyOnTheLastRowReturned(int maxRows, int rowsReturned) throws Exception {
+    // In simple query mode the driver opens no cursor and does not limit the rows to maxRows.
+    assumeNotSimpleQueryMode();
+    String limit = "setMaxRows(" + maxRows + ") over generate_series(0, 9) returns " + rowsReturned + " rows";
+    try (PreparedStatement stmt = con.prepareStatement("select g from generate_series(0, 9) g order by g")) {
+      stmt.setMaxRows(maxRows);
+      stmt.setFetchSize(1);
+      try (ResultSet rs = stmt.executeQuery()) {
+        for (int row = 1; row < rowsReturned; row++) {
+          assertTrue(rs.next(), "next() onto row " + row + ": " + limit);
+        }
+        assertFalse(rs.isLast(), "isLast() on row " + (rowsReturned - 1) + ": " + limit);
+        assertTrue(rs.next(), "next() onto row " + rowsReturned + ": " + limit);
+
+        assertTrue(rs.isLast(), "isLast() on row " + rowsReturned + ": " + limit);
+      }
+    }
+  }
+
+  /**
+   * The fetch inside {@code isLast()} keeps the current row and reads only the rows
+   * {@code maxRows} allows after it, whatever the fetch size. The fetch used to read one row more
+   * than {@code maxRows} allows, and {@code next()} returned it. With a fetch size of
+   * {@link Integer#MAX_VALUE}, the row offset plus the fetch size also overflowed to a negative
+   * int, and the fetch read every remaining row.
+   */
+  @ParameterizedTest
+  @ValueSource(ints = {0, 100, Integer.MAX_VALUE})
+  public void isLastFetchLeavesOnlyTheRowsMaxRowsAllows(int fetchSize) throws Exception {
+    // In simple query mode the driver opens no cursor and does not limit the rows to maxRows.
+    assumeNotSimpleQueryMode();
+    String limit = "setMaxRows(3) over generate_series(0, 9) returns the values 0, 1, 2";
+    try (PreparedStatement stmt = con.prepareStatement("select g from generate_series(0, 9) g order by g")) {
+      stmt.setMaxRows(3);
+      stmt.setFetchSize(1);
+      try (ResultSet rs = stmt.executeQuery()) {
+        assertTrue(rs.next(), "next() onto row 1: " + limit);
+        assertTrue(rs.next(), "next() onto row 2: " + limit);
+        rs.setFetchSize(fetchSize);
+        assertFalse(rs.isLast(), "isLast() on row 2: " + limit);
+
+        assertEquals(Arrays.asList(2), valuesOfRemainingRows(rs), "values after isLast() on row 2: " + limit);
+      }
+    }
+  }
+
+  /**
+   * The fetch inside {@code next()} reads only the rows {@code maxRows} still allows, whatever the
+   * fetch size set after the first fetch. With a fetch size of {@link Integer#MAX_VALUE}, the row
+   * offset plus the fetch size used to overflow to a negative int, and the fetch read every
+   * remaining row.
+   */
+  @ParameterizedTest
+  @ValueSource(ints = {0, 100, Integer.MAX_VALUE})
+  public void nextFetchLeavesOnlyTheRowsMaxRowsAllows(int fetchSize) throws Exception {
+    // In simple query mode the driver opens no cursor and does not limit the rows to maxRows.
+    assumeNotSimpleQueryMode();
+    String limit = "setMaxRows(3) over generate_series(0, 9) returns the values 0, 1, 2";
+    try (PreparedStatement stmt = con.prepareStatement("select g from generate_series(0, 9) g order by g")) {
+      stmt.setMaxRows(3);
+      stmt.setFetchSize(1);
+      try (ResultSet rs = stmt.executeQuery()) {
+        assertTrue(rs.next(), "next() onto row 1: " + limit);
+        rs.setFetchSize(fetchSize);
+
+        assertEquals(Arrays.asList(1, 2), valuesOfRemainingRows(rs), "values after row 1: " + limit);
+      }
+    }
+  }
+
+  /**
+   * A statement fetch size of {@link Integer#MAX_VALUE} returns the rows {@code maxRows} allows,
+   * because the first fetch is limited to {@code maxRows}.
+   */
+  @Test
+  public void statementFetchSizeOfIntegerMaxValueReturnsTheRowsMaxRowsAllows() throws Exception {
+    // In simple query mode the driver opens no cursor and does not limit the rows to maxRows.
+    assumeNotSimpleQueryMode();
+    try (PreparedStatement stmt = con.prepareStatement("select g from generate_series(0, 9) g order by g")) {
+      stmt.setMaxRows(3);
+      stmt.setFetchSize(Integer.MAX_VALUE);
+      try (ResultSet rs = stmt.executeQuery()) {
+        assertEquals(Arrays.asList(0, 1, 2), valuesOfRemainingRows(rs),
+            "values: setMaxRows(3) over generate_series(0, 9) returns the values 0, 1, 2");
+      }
+    }
   }
 
   @Test

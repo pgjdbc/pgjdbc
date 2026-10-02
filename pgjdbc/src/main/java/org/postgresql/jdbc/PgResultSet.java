@@ -953,7 +953,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return true;
     }
 
-    if (maxRows > 0 && rowOffset + currentRow == maxRows) {
+    if (maxRows > 0 && rowOffset + currentRow + 1 >= maxRows) {
       // We are implicitly limited by maxRows.
       return true;
     }
@@ -969,7 +969,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     rowOffset += rowsSize - 1; // Discarding all but one row.
 
-    // Work out how many rows maxRows will let us fetch.
+    // Work out how many rows maxRows will let us fetch after the saved row.
     int fetchRows = fetchSize;
     int adaptiveFetchRows = connection.getQueryExecutor()
         .getAdaptiveFetchSize(adaptiveFetch, cursor);
@@ -979,9 +979,9 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
 
     if (maxRows != 0) {
-      if (fetchRows == 0 || rowOffset + fetchRows > maxRows) {
+      if (fetchRows == 0 || fetchRows > maxRows - rowOffset - 1) {
         // Fetch would exceed maxRows, limit it.
-        fetchRows = maxRows - rowOffset;
+        fetchRows = maxRows - rowOffset - 1;
       }
     }
 
@@ -2320,7 +2320,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       }
 
       if (maxRows != 0) {
-        if (fetchRows == 0 || rowOffset + fetchRows > maxRows) {
+        if (fetchRows == 0 || fetchRows > maxRows - rowOffset) {
           // Fetch would exceed maxRows, limit it.
           fetchRows = maxRows - rowOffset;
         }
