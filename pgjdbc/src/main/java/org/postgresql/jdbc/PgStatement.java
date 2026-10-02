@@ -1174,7 +1174,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   @Override
-  public long executeLargeUpdate(String sql, int[] columnIndexes) throws SQLException {
+  public long executeLargeUpdate(String sql, int @Nullable [] columnIndexes) throws SQLException {
     if (columnIndexes == null || columnIndexes.length == 0) {
       return executeLargeUpdate(sql);
     }
@@ -1315,7 +1315,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   @Override
-  public int executeUpdate(String sql, int[] columnIndexes) throws SQLException {
+  public int executeUpdate(String sql, int @Nullable [] columnIndexes) throws SQLException {
     if (columnIndexes == null || columnIndexes.length == 0) {
       return executeUpdate(sql);
     }
@@ -1353,7 +1353,7 @@ public class PgStatement implements Statement, BaseStatement {
 
   @Override
   public boolean execute(String sql, int @Nullable [] columnIndexes) throws SQLException {
-    if (columnIndexes != null && columnIndexes.length == 0) {
+    if (columnIndexes == null || columnIndexes.length == 0) {
       return execute(sql);
     }
 
