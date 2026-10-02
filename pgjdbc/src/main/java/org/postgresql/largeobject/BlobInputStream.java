@@ -164,10 +164,28 @@ public class BlobInputStream extends InputStream {
 
   @Override
   public int read(byte[] dest, int off, int len) throws IOException {
-    if (len == 0) {
-      return 0;
-    }
     try (ResourceLock ignore = lock.obtain()) {
+      // checkClosed() stays first so a closed stream still reports itself as closed, with the
+      // checked IOException a caller of read() is written for, rather than an unchecked range
+      // failure. The range is then checked before the len == 0 shortcut, the way
+      // InputStream.read does it, so a range that does not fit the array is rejected even when it
+      // asks for no bytes. Without this a negative len reached the end of the method and came back
+      // as -1, which a caller reads as end of stream, and the other bad ranges failed inside
+      // System.arraycopy after the read buffer had already been filled from the server. The null
+      // array is rejected on its own because otherwise the NullPointerException would come out of
+      // the dest.length that builds the range message
+      checkClosed();
+      if (dest == null) {
+        throw new NullPointerException();
+      }
+      if (off < 0 || len < 0 || len > dest.length - off) {
+        throw new IndexOutOfBoundsException(
+            "Range [" + off + ", " + off + " + " + len + ") is out of bounds for byte["
+                + dest.length + "]");
+      }
+      if (len == 0) {
+        return 0;
+      }
       int bytesCopied = 0;
       LargeObject lo = getLo();
 
@@ -408,11 +426,23 @@ public class BlobInputStream extends InputStream {
     }
   }
 
-  private LargeObject getLo() throws IOException {
+  /**
+   * Reports the LargeObject this stream reads from, without the lazy position setup {@link #getLo}
+   * does, so a caller can establish that the stream is open before it validates anything else.
+   *
+   * @return the LargeObject this stream reads from
+   * @throws IOException if the stream is closed
+   */
+  private LargeObject checkClosed() throws IOException {
     LargeObject lo = this.lo;
     if (lo == null) {
       throw new IOException("BlobInputStream is closed");
     }
+    return lo;
+  }
+
+  private LargeObject getLo() throws IOException {
+    LargeObject lo = checkClosed();
     assert lock.isLocked();
 
     if (absolutePosition < 0) {
