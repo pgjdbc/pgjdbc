@@ -10,6 +10,7 @@ import static javax.transaction.xa.XAResource.XA_OK;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -24,6 +25,7 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.annotations.tags.Xa;
 import org.postgresql.test.jdbc2.optional.BaseDataSourceTest;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 import org.postgresql.xa.PGXADataSource;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -40,8 +42,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import javax.sql.XAConnection;
 import javax.sql.XADataSource;
@@ -51,6 +56,11 @@ import javax.transaction.xa.Xid;
 
 @Xa
 public class XADataSourceTest {
+  /*
+   * The following corresponds to SQLSTATE error code {@code ERRCODE_ADMIN_SHUTDOWN}
+   * which is caused by running {@code pg_terminate_backend()}.
+   */
+  private static final String ADMIN_SHUTDOWN = "57P01";
 
   private XADataSource xaDs;
 
@@ -73,12 +83,14 @@ public class XADataSourceTest {
       TestUtil.createTable(con, "testxa1", "foo int");
       TestUtil.createTable(con, "testxa2", "foo int primary key");
       TestUtil.createTable(con, "testxa3", "foo int references testxa2(foo) deferrable");
+      TestUtil.createTable(con, "testxa4", "foo int");
     }
   }
 
   @AfterAll
   static void afterClass() throws Exception {
     try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "testxa4");
       TestUtil.dropTable(con, "testxa3");
       TestUtil.dropTable(con, "testxa2");
       TestUtil.dropTable(con, "testxa1");
@@ -97,6 +109,7 @@ public class XADataSourceTest {
     connIsSuper = rs.getBoolean(1); // One col is guaranteed
     st.close();
 
+    TestUtil.execute(dbConn, "TRUNCATE testxa4 CASCADE");
     TestUtil.execute(dbConn, "TRUNCATE testxa3 CASCADE");
     TestUtil.execute(dbConn, "TRUNCATE testxa2 CASCADE");
     TestUtil.execute(dbConn, "TRUNCATE testxa1 CASCADE");
@@ -1280,6 +1293,195 @@ public class XADataSourceTest {
     } finally {
       xaRes.end(xid, XAResource.TMSUCCESS);
       xaRes.rollback(xid);
+    }
+  }
+
+  /**
+   * Return a list of global ids of prepared transactions
+    */
+  private static List<String> preparedGids(Connection c) throws SQLException {
+    List<String> gids = new ArrayList<>();
+    try (Statement stmt = c.createStatement();
+         ResultSet rs = stmt.executeQuery(
+             "SELECT gid FROM pg_prepared_xacts WHERE database = current_database()")) {
+      while (rs.next()) {
+        gids.add(rs.getString(1));
+      }
+    }
+    return gids;
+  }
+
+  /**
+   * Returns the pid of the server process attached to the current session
+   */
+  private int backendPid() throws SQLException {
+    try (Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT pg_backend_pid()")) {
+      rs.next();
+      return rs.getInt(1);
+    }
+  }
+
+  /**
+   * Prepares a branch that inserts {@code value}, and returns the pid of the backend that owns the
+   * XA connection.
+   */
+  private int prepareBranch(Xid xid, int value) throws Exception {
+    int pid = backendPid();
+    xaRes.start(xid, XAResource.TMNOFLAGS);
+    try (Statement stmt = conn.createStatement()) {
+      stmt.executeUpdate("INSERT INTO testxa4 VALUES (" + value + ")");
+    }
+    xaRes.end(xid, XAResource.TMSUCCESS);
+    assertEquals(XAResource.XA_OK, xaRes.prepare(xid));
+    assertEquals(1, preparedGids(dbConn).size(),
+        "branch should be prepared on the server");
+    return pid;
+  }
+
+  /**
+   * Terminates {@code pid} and blocks until the backend has really gone, so the {@code 57P01}
+   * error response has been written to the socket before the caller continues. This simulates
+   * a connection failure at the client.
+   */
+  private void terminateBackendAndWait(int pid) throws Exception {
+    try (Statement stmt = dbConn.createStatement()) {
+      stmt.execute("SELECT pg_terminate_backend(" + pid + ")");
+    }
+    for (int i = 0; i < 200; i++) {
+      try (Statement stmt = dbConn.createStatement();
+           ResultSet rs = stmt.executeQuery(
+               "SELECT count(*) FROM pg_stat_activity WHERE pid = " + pid)) {
+        rs.next();
+        if (rs.getInt(1) == 0) {
+          return;
+        }
+      }
+      TimeUnit.MILLISECONDS.sleep(25);
+    }
+    fail("backend " + pid + " did not terminate");
+  }
+
+  private static String describe(int errorCode) {
+    switch (errorCode) {
+      case XAException.XAER_RMERR: return "XAER_RMERR(-3)";
+      case XAException.XAER_RMFAIL: return "XAER_RMFAIL(-7)";
+      case XAException.XAER_NOTA: return "XAER_NOTA(-4)";
+      case XAException.XAER_INVAL: return "XAER_INVAL(-5)";
+      case XAException.XAER_PROTO: return "XAER_PROTO(-6)";
+      case XAException.XA_RBROLLBACK: return "XA_RBROLLBACK(100)";
+      case XAException.XA_RBINTEGRITY: return "XA_RBINTEGRITY(103)";
+      default: return "code " + errorCode;
+    }
+  }
+
+  /**
+   * Verify that {@code 57P01} error code is treated as a connection error.
+   */
+  @Test
+  void adminShutdownIsAConnectionError() {
+    assertTrue(PSQLState.isConnectionError(ADMIN_SHUTDOWN),
+        "SQLSTATE " + ADMIN_SHUTDOWN + " (admin_shutdown) is always FATAL and terminates the"
+            + " connection, so isConnectionError() must recognise it. If it doesn't then"
+            + " PGXAConnection.rollback()/commitPrepared() report XAER_RMERR instead of"
+            + " XAER_RMFAIL for a branch whose outcome is unknown.");
+  }
+
+  /**
+   * Kill the backend between {@code prepare()} and {@code rollback()}. The branch
+   * survives in {@code pg_prepared_xacts}, so its outcome is in doubt and the driver
+   * must answer {@code XAER_RMFAIL} so that the transaction manager can retry through recovery.
+   * If it were to answer with {@code XAER_RMERR} the TM would interpret it as
+   * "the branch is finished" which would result in the prepared transaction left as an orphan
+   * on the server, holding its locks and pinning the "xmin horizon" (the oldest transaction ID
+   * that a given backend is currently seeing).
+   */
+  @Test
+  void rollbackPreparedAfterBackendTerminationMustReportRmfail() throws Exception {
+    Xid xid = new CustomXid(3);
+    int pid = prepareBranch(xid, 3);
+
+    terminateBackendAndWait(pid);
+
+    try {
+      xaRes.rollback(xid);
+      fail("rollback should not have succeeded on a terminated backend");
+    } catch (XAException xae) {
+      assertInstanceOf(SQLException.class, xae.getCause(), "Expected an SQLException");
+
+      assertEquals(ADMIN_SHUTDOWN, ((SQLException) xae.getCause()).getSQLState(),
+          "the server should have reported the backend termination");
+      assertEquals(1, preparedGids(dbConn).size(),
+          "the branch should still be prepared on the server, so its outcome is in doubt");
+      assertEquals(XAException.XAER_RMFAIL, xae.errorCode,
+          "the branch is still in pg_prepared_xacts, so the driver must report XAER_RMFAIL"
+              + " and let recovery retry it, not " + describe(xae.errorCode)
+              + " which tells the transaction manager the branch is finished");
+    }
+  }
+
+  /**
+   * The same defect as {@link #rollbackPreparedAfterBackendTerminationMustReportRmfail} but on
+   * the commit path.
+   */
+  @Test
+  void commitPreparedAfterBackendTerminationMustReportRmfail() throws Exception {
+    Xid xid = new CustomXid(1);
+    int pid = prepareBranch(xid, 1);
+
+    terminateBackendAndWait(pid);
+
+    try {
+      xaRes.commit(xid, false);
+      fail("commit should not have succeeded on a terminated backend");
+    } catch (XAException xae) {
+      assertEquals(1, preparedGids(dbConn).size(),
+          "the branch should still be prepared on the server, so its outcome is in doubt");
+      assertEquals(XAException.XAER_RMFAIL, xae.errorCode,
+          "the branch is still in pg_prepared_xacts, so the outcome of COMMIT PREPARED is"
+              + " unknown and the driver must report XAER_RMFAIL so recovery retries it, not "
+              + describe(xae.errorCode));
+    }
+  }
+
+  /**
+   * The same problem may also impact data-integrity: the connection can drop after the server
+   * has received and committed COMMIT PREPARED, but before the driver reads the response. The
+   * client cannot distinguish this case from the previous case,
+   * {@link #commitPreparedAfterBackendTerminationMustReportRmfail}, where nothing was committed
+   * which is why it must not report a definitive XAER_RMERR error.
+   */
+  @Test
+  void committedBranchMustNotBeReportedAsRolledBack() throws Exception {
+    Xid xid = new CustomXid(2);
+    int pid = prepareBranch(xid, 2);
+
+    // The server commits the branch; the client never learns about it.
+    try (Statement stmt = conn.createStatement()) {
+      stmt.executeUpdate("COMMIT PREPARED '" + preparedGids(dbConn).get(0) + "'");
+    }
+    assertEquals(1, testxa4_rowCount(), "the branch wasn't committed");
+
+    terminateBackendAndWait(pid);
+
+    try {
+      xaRes.commit(xid, false);
+      fail("commit should not have succeeded on a terminated backend");
+    } catch (XAException xae) {
+      assertEquals(1, testxa4_rowCount(), "the rows should still be committed");
+      assertNotEquals(XAException.XAER_RMERR, xae.errorCode,
+          "the branch is committed in the database, so reporting " + describe(xae.errorCode)
+              + " makes the transaction manager run the rollback/failure path over committed"
+              + " data; the outcome is unknown to the driver, so it must report XAER_RMFAIL");
+    }
+  }
+
+  // count the rows in the table used by testxa4
+  private int testxa4_rowCount() throws SQLException {
+    try (Statement stmt = dbConn.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT count(*) FROM testxa4")) {
+      rs.next();
+      return rs.getInt(1);
     }
   }
 }

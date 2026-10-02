@@ -102,6 +102,9 @@ public enum PSQLState {
   OBJECT_IN_USE("55006"),
 
   QUERY_CANCELED("57014"),
+  ADMIN_SHUTDOWN("57P01"),
+  CRASH_SHUTDOWN("57P02"),
+  CANNOT_CONNECT_NOW("57P03"),
 
   SYSTEM_ERROR("60000"),
   IO_ERROR("58030"),
@@ -123,7 +126,10 @@ public enum PSQLState {
         || PSQLState.CONNECTION_DOES_NOT_EXIST.getState().equals(psqlState)
         || PSQLState.CONNECTION_REJECTED.getState().equals(psqlState)
         || PSQLState.CONNECTION_FAILURE.getState().equals(psqlState)
-        || PSQLState.CONNECTION_FAILURE_DURING_TRANSACTION.getState().equals(psqlState);
+        || PSQLState.CONNECTION_FAILURE_DURING_TRANSACTION.getState().equals(psqlState)
+        || PSQLState.ADMIN_SHUTDOWN.getState().equals(psqlState)
+        || PSQLState.CRASH_SHUTDOWN.getState().equals(psqlState)
+        || PSQLState.CANNOT_CONNECT_NOW.getState().equals(psqlState);
   }
 
 }
