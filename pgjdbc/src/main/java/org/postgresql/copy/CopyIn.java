@@ -21,6 +21,9 @@ public interface CopyIn extends CopyOperation {
    * @param off offset of first byte to write (normally zero)
    * @param siz number of bytes to write (normally buf.length)
    * @throws SQLException if the operation fails
+   * @throws NullPointerException if {@code buf} is {@code null}
+   * @throws IndexOutOfBoundsException if {@code off} or {@code siz} is negative, or if
+   *         {@code siz} is greater than {@code buf.length - off}
    */
   void writeToCopy(byte[] buf, int off, int siz) throws SQLException;
 
