@@ -758,10 +758,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     // BEGIN uses the query protocol of the query that follows it.
-    // In extended query mode this shares the query's Sync message and the server answers both in one response.
-    // In simple query mode it requires its own ReadyForQuery message and the server responds to the BEGIN and query in separate responses.
-    // If auto save is not disabled then we must also use simple query mode. 
-    // It will be sending its command in simple query mode which cannot be interleaved into us sending BEGIN in extended query mode.
+    // In extended query mode this shares the query's Sync message and the
+    // server answers both in one response.
+    // In simple query mode it requires its own ReadyForQuery message and the
+    // server responds to the BEGIN and query in separate responses.
+    // If auto save is not disabled then we must also use simple query mode.
+    // It will be sending its command in simple query mode which cannot be
+    // interleaved into us sending BEGIN in extended query mode.
     if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0
         || getAutoSave() != AutoSave.NEVER) {
       beginFlags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
