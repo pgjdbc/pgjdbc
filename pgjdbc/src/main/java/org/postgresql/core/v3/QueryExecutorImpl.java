@@ -757,7 +757,18 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       beginFlags |= QueryExecutor.QUERY_ONESHOT;
     }
 
-    beginFlags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
+    // BEGIN uses the protocol of the query that follows it. An extended
+    // BEGIN shares that query's Sync, so the server answers both in one
+    // response. A simple BEGIN gets its own ReadyForQuery, and the server
+    // then sends two small responses; where Nagle's algorithm meets a
+    // delayed ACK, the second waits up to 40 ms. BEGIN stays simple before
+    // a simple query, and when autosave may send a simple SAVEPOINT next,
+    // because a simple query must not follow an extended message that has
+    // not been synced.
+    if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0
+        || getAutoSave() != AutoSave.NEVER) {
+      beginFlags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
+    }
 
     beginFlags = updateQueryMode(beginFlags);
 
