@@ -145,8 +145,8 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
   @Nullable Exception negotiate(GSSContext secContext) throws GSSException, IOException {
     byte[] inToken = new byte[0];
 
-    // A zero length token is a valid continuation, so without the limit the loop runs for as
-    // long as the server answers every token with another.
+    // A zero length token is a valid continuation, so the round trip limit is the only thing
+    // that ends the loop: the server can answer every token with another one.
     for (int round = 0; round < PGStream.MAX_AUTH_ROUND_TRIPS; round++) {
       byte[] outToken = secContext.initSecContext(inToken, 0, inToken.length);
 
@@ -167,8 +167,6 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
       // Error
       switch (response) {
         case PgMessageType.ERROR_RESPONSE:
-          // Read before authentication, so this limit is what bounds a hostile server's
-          // allocation.
           int elen = pgStream.receiveMessageLength("ErrorResponse", 5,
               PGStream.MAX_PRE_AUTH_MESSAGE_LENGTH);
           ServerErrorMessage errorMsg
@@ -179,8 +177,8 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
           return new PSQLException(errorMsg, logServerErrorDetail);
         case PgMessageType.AUTHENTICATION_RESPONSE:
           LOGGER.log(Level.FINEST, " <=BE AuthenticationGSSContinue");
-          // The server's token is an AP-REP, not the client's PAC bearing ticket. libpq limits
-          // this message to 2000.
+          // The small limit is enough because the server's token here is an AP-REP, not the
+          // client's PAC bearing ticket.
           int len = pgStream.receiveMessageLength("AuthenticationGSSContinue", 8,
               PGStream.MAX_SMALL_MESSAGE_LENGTH);
           @SuppressWarnings("unused")
