@@ -3036,9 +3036,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     int elen = pgStream.receiveMessageLength("ErrorResponse", 5, PGStream.MAX_MESSAGE_LENGTH);
 
-    // A body past the buffer maximum is truncated there and the rest drained. The fields before
-    // the truncation point are kept, later ones such as the query text are lost.
-    int body = Math.min(elen, PGStream.MAX_BUFFERED_MESSAGE_LENGTH) - 4;
+    // A body past maxErrorResponseLength is truncated there and the rest drained. The fields
+    // before the truncation point are kept, later ones such as the query text are lost.
+    int body = Math.min(elen, pgStream.getMaxErrorResponseLength()) - 4;
     EncodingPredictor.DecodeResult totalMessage = pgStream.receiveErrorString(body);
     pgStream.skip(elen - 4 - body);
     ServerErrorMessage errorMsg = new ServerErrorMessage(totalMessage);
@@ -3059,9 +3059,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private SQLWarning receiveNoticeResponse() throws IOException {
     int nlen = pgStream.receiveMessageLength("NoticeResponse", 5, PGStream.MAX_MESSAGE_LENGTH);
 
-    // Truncated like ErrorResponse, with the same tolerant decoding so a multibyte character
-    // split by the truncation does not fail the read.
-    int body = Math.min(nlen, PGStream.MAX_BUFFERED_MESSAGE_LENGTH) - 4;
+    // Truncated at maxNoticeResponseLength like ErrorResponse, with the same tolerant decoding
+    // so a multibyte character split by the truncation does not fail the read.
+    int body = Math.min(nlen, pgStream.getMaxNoticeResponseLength()) - 4;
     ServerErrorMessage warnMsg = new ServerErrorMessage(pgStream.receiveErrorString(body));
     pgStream.skip(nlen - 4 - body);
 

@@ -228,6 +228,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
       String maxResultBuffer = PGProperty.MAX_RESULT_BUFFER.getOrDefault(info);
       newStream.setMaxResultBuffer(maxResultBuffer);
+      newStream.setMaxErrorResponseLength(PGProperty.MAX_ERROR_RESPONSE_LENGTH.getInt(info));
+      newStream.setMaxNoticeResponseLength(PGProperty.MAX_NOTICE_RESPONSE_LENGTH.getInt(info));
 
       // Enable TCP keep-alive probe if required.
       boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
@@ -609,10 +611,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
 
         // We have to reconnect to continue.
-        pgStream.close();
-        int maxSendBufferSize = PGProperty.MAX_SEND_BUFFER_SIZE.getInt(info);
-        return new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), connectTimeout,
-            maxSendBufferSize);
+        return new PGStream(pgStream, connectTimeout);
 
       case 'N':
         LOGGER.log(Level.FINEST, " <=BE GSSEncrypted Refused");
