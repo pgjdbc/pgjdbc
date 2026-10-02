@@ -1585,8 +1585,8 @@ public class Parser {
 
       // check for the beginning of the value
       char curr = sql[newPos];
-      // ignore any in-between whitespace
-      while (curr == ' ') {
+      // ignore any in-between whitespace, in the set the backend scanner treats as whitespace
+      while (isSpace(curr)) {
         newPos++;
         if (newPos >= sql.length) {
           return 0;
