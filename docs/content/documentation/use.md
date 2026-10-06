@@ -428,10 +428,36 @@ Setting this to `true` disables column name sanitiser. The sanitiser folds colum
 The default is to sanitise the columns (off).
 
 * **`assumeMinServerVersion (`*String*`)`** *Default `null`*\
-Assume that the server is at least the given version, thus enabling to some optimization at connection time instead of
-trying to be version blind. 
-  * This allows the application name to be sent on startup instead of as a separate post-connection query.  In addition 
-to optimizing the initial connection, this allows the application name to be logged on the server earlier in the connection process.
+The lowest server version the application connects to, such as `9.4` or `12`. The driver builds the startup packet before
+the server reports its version, and this value decides which session parameters the packet carries. Unset or empty, it
+assumes nothing, and the driver sets those parameters with `SET` after authentication instead.
+  * `9.0` or later puts `application_name` in the startup packet, so the server logs the connection under that name from
+    the start.
+  * `9.0` to `11.x` also puts `extra_float_digits=3` in the startup packet. The driver then runs no setup query, which
+    saves a round trip on every new connection and lets a session that permits only specific queries connect, such as
+    one opened with `options=-c gp_retrieve_conn=true`.
+  * `12` or later keeps `extra_float_digits` out of the packet, because PostgreSQL 12 prints floats exactly by default.
+    A server older than 12 still gets `SET extra_float_digits = 3`.
+  * `9.4` or later is required for `replication`.
+
+  The value is a lower bound: set it no higher than the oldest server the application reaches. A server older than 9.0
+  refuses a packet built for `9.0` or later.
+
+  Behind PgBouncer, a value from `9.0` to `11.x` makes PgBouncer refuse the connection with
+  `unsupported startup parameter: extra_float_digits`, because PgBouncer does not track `extra_float_digits` by
+  default. On PostgreSQL 12 or later, set `assumeMinServerVersion=12`. Before PostgreSQL 12, do one of these:
+  * leave `assumeMinServerVersion` unset, and the driver sets `extra_float_digits` after authentication, which holds
+    only in PgBouncer's session pooling mode;
+  * with PgBouncer 1.20.0 or later, add `extra_float_digits` to `track_extra_parameters`, and PgBouncer applies the
+    value to every server connection the client uses;
+  * set the value on the server with `ALTER ROLE ... SET extra_float_digits = 3` (or `ALTER DATABASE`, or
+    `postgresql.conf`), and add `extra_float_digits` to PgBouncer's `ignore_startup_parameters`.
+
+  Do not add `extra_float_digits` to `ignore_startup_parameters` alone for a server older than 12. PgBouncer then
+  drops the parameter, the driver sends no `SET` because the packet already carried the value, and the server keeps
+  `extra_float_digits` at 0, so floats returned as text lose precision without an error.
+
+  Since: 42.7.14, a value from `9.0` to `11.x` puts `extra_float_digits` in the startup packet.
 
 * **`currentSchema (`*String*`)`** *Default `null`*\
 Specify the schema (or several schema separated by commas) to be set in the search-path. 
@@ -485,6 +511,9 @@ Passing `true` tells the backend to go into walsender mode, wherein a small set 
 Only the simple query protocol can be used in walsender mode. Passing "database" as the value instructs walsender to connect to the database specified in the dbname parameter, 
 which will allow the connection to be used for logical replication from that database.
 Parameter should be use together with `assumeMinServerVersion` with parameter >= 9.4 (backend >= 9.4)
+A replication connection runs no `SET` after authentication, so with `assumeMinServerVersion` from 9.4 to 11.x the
+startup packet is what sets `extra_float_digits=3`, and logical decoding on a server older than 12 renders floats as
+text that reads back exactly.
 
 * **`escapeSyntaxCallMode (`*String*`)`** *Default `select`*\
 Specifies how the driver transforms JDBC escape call syntax into underlying SQL, for invoking procedures or functions.
