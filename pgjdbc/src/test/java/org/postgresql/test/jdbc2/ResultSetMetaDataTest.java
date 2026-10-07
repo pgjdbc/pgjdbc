@@ -85,7 +85,7 @@ public class ResultSetMetaDataTest extends BaseTest4 {
 
       TestUtil.createTable(con, "serialtest", "a serial, b bigserial, c int");
       TestUtil.createTable(con, "alltypes",
-          "bool boolean, i2 int2, i4 int4, i8 int8, num numeric(10,2), re real, fl float, ch char(3), vc varchar(3), tx text, d date, t time without time zone, tz time with time zone, ts timestamp without time zone, tsz timestamp with time zone, bt bytea");
+          "bool boolean, i2 int2, i4 int4, i8 int8, num numeric(10,2), re real, fl float, ch char(3), vc varchar(3), tx text, d date, t time without time zone, tz time with time zone, ts timestamp without time zone, tsz timestamp with time zone, bt bytea, pt point, bx box");
       TestUtil.createTable(con, "sizetest",
           "fixedchar char(5), fixedvarchar varchar(5), unfixedvarchar varchar, txt text, bytearr bytea, num64 numeric(6,4), num60 numeric(6,0), num numeric, ip inet");
       TestUtil.createTable(con, "compositetest", "col rsmd1");
@@ -266,12 +266,13 @@ public class ResultSetMetaDataTest extends BaseTest4 {
   public void testClassesMatch() throws SQLException {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate(
-        "INSERT INTO alltypes (bool, i2, i4, i8, num, re, fl, ch, vc, tx, d, t, tz, ts, tsz, bt) VALUES ('t', 2, 4, 8, 3.1, 3.14, 3.141, 'c', 'vc', 'tx', '2004-04-09', '09:01:00', '11:11:00-01','2004-04-09 09:01:00','1999-09-19 14:23:12-09', '\\\\123')");
+        "INSERT INTO alltypes (bool, i2, i4, i8, num, re, fl, ch, vc, tx, d, t, tz, ts, tsz, bt, pt, bx) VALUES ('t', 2, 4, 8, 3.1, 3.14, 3.141, 'c', 'vc', 'tx', '2004-04-09', '09:01:00', '11:11:00-01','2004-04-09 09:01:00','1999-09-19 14:23:12-09', '\\\\123', '(1,2)', '(1,2),(3,4)')");
     ResultSet rs = stmt.executeQuery("SELECT * FROM alltypes");
     ResultSetMetaData rsmd = rs.getMetaData();
     assertTrue(rs.next());
     for (int i = 0; i < rsmd.getColumnCount(); i++) {
-      assertEquals(rs.getObject(i + 1).getClass().getName(), rsmd.getColumnClassName(i + 1));
+      assertEquals(rs.getObject(i + 1).getClass().getName(), rsmd.getColumnClassName(i + 1),
+          "getColumnClassName for column " + rsmd.getColumnName(i + 1));
     }
   }
 
