@@ -539,6 +539,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return whether the catalog name is cached
+   * @see PGProperty#CACHE_CATALOG
+   */
+  public boolean getCacheCatalog() {
+    return PGProperty.CACHE_CATALOG.getBoolean(properties);
+  }
+
+  /**
+   * @param cacheCatalog whether to cache the catalog name
+   * @see PGProperty#CACHE_CATALOG
+   */
+  public void setCacheCatalog(boolean cacheCatalog) {
+    PGProperty.CACHE_CATALOG.set(properties, cacheCatalog);
+  }
+
+  /**
    * @return database metadata cache fields size (number of megabytes per connection)
    * @see PGProperty#DATABASE_METADATA_CACHE_FIELDS_MIB
    */

@@ -217,6 +217,7 @@ public class PgConnection implements BaseConnection {
   private final boolean bindStringAsVarchar;
   // Convert boolean values to numeric types?
   private final boolean convertBooleanToNumeric;
+  private final boolean cacheCatalog;
 
   // Current warnings; there might be more on queryExecutor too.
   private @Nullable SQLWarning firstWarning;
@@ -279,6 +280,7 @@ public class PgConnection implements BaseConnection {
     this.creatingURL = url;
 
     this.classLoaderStrategy = ClassLoaderStrategy.of(info);
+    this.cacheCatalog = PGProperty.CACHE_CATALOG.getBoolean(info);
 
     this.readOnlyBehavior = getReadOnlyBehavior(PGProperty.READ_ONLY_MODE.getOrDefault(info));
 
@@ -1154,11 +1156,14 @@ public class PgConnection implements BaseConnection {
   public String getCatalog() throws SQLException {
     checkClosed();
     String catalog = this.catalog;
-    if (catalog == null) {
+    if (catalog == null || !cacheCatalog) {
       try (Statement stmt = createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             ResultSet rs = stmt.executeQuery("select current_catalog")) {
         if (rs.next()) {
-          this.catalog = catalog = rs.getString(1);
+          catalog = rs.getString(1);
+          if (cacheCatalog) {
+            this.catalog = catalog;
+          }
         }
       }
     }
