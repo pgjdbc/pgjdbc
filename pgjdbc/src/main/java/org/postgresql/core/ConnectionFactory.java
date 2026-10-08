@@ -28,17 +28,16 @@ public abstract class ConnectionFactory {
   /**
    * Establishes and initializes a new connection.
    *
-   * <p>If the "protocolVersion" property is specified, only that protocol version is tried. Otherwise,
-   * all protocols are tried in order, falling back to older protocols as necessary.</p>
-   *
-   * <p>Currently, protocol versions 3 (7.4+) is supported.</p>
+   * <p>Accepts the {@link PGProperty#PROTOCOL_VERSION} values {@code 3}, {@code 3.0}, and
+   * {@code 3.2}; that property says which protocol version each one requests.</p>
    *
    * @param hostSpecs at least one host and port to connect to; multiple elements for round-robin
    *        failover
    * @param info extra properties controlling the connection; notably, "password" if present
    *        supplies the password to authenticate with.
    * @return the new, initialized, connection
-   * @throws SQLException if the connection could not be established.
+   * @throws SQLException if the connection could not be established, or if
+   *         {@link PGProperty#PROTOCOL_VERSION} holds any other value.
    */
   public static QueryExecutor openConnection(HostSpec[] hostSpecs,
       Properties info) throws SQLException {
@@ -62,17 +61,16 @@ public abstract class ConnectionFactory {
   }
 
   /**
-   * Implementation of {@link #openConnection} for a particular protocol version. Implemented by
-   * subclasses of {@link ConnectionFactory}.
+   * Implementation of {@link #openConnection}, called once its protocol version check passes.
+   * Implemented by subclasses of {@link ConnectionFactory}.
    *
    * @param hostSpecs at least one host and port to connect to; multiple elements for round-robin
    *        failover
    * @param info extra properties controlling the connection; notably, "password" if present
    *        supplies the password to authenticate with.
-   * @return the new, initialized, connection, or <code>null</code> if this protocol version is not
-   *         supported by the server.
-   * @throws SQLException if the connection could not be established for a reason other than
-   *         protocol version incompatibility.
+   * @return the new, initialized, connection, or <code>null</code>, which makes
+   *         {@link #openConnection} throw
+   * @throws SQLException if the connection could not be established
    */
   public abstract QueryExecutor openConnectionImpl(HostSpec[] hostSpecs, Properties info) throws SQLException;
 
