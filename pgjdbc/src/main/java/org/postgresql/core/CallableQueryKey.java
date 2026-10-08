@@ -5,6 +5,8 @@
 
 package org.postgresql.core;
 
+import org.postgresql.jdbc.EscapeSyntaxCallMode;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -13,9 +15,16 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * syntax, thus a special cache key class is used to trigger proper parsing for callable statements.
  */
 class CallableQueryKey extends BaseQueryKey {
+  /**
+   * Whether this key selects the SQL for a call that registers two or more OUT parameters.
+   *
+   * @see Parser#modifyJdbcCall(String, boolean, int, EscapeSyntaxCallMode, boolean)
+   */
+  final boolean multipleOutParameters;
 
-  CallableQueryKey(String sql) {
+  CallableQueryKey(String sql, boolean multipleOutParameters) {
     super(sql, true, true);
+    this.multipleOutParameters = multipleOutParameters;
   }
 
   @Override
@@ -24,17 +33,17 @@ class CallableQueryKey extends BaseQueryKey {
         + "sql='" + sql + '\''
         + ", isParameterized=" + isParameterized
         + ", escapeProcessing=" + escapeProcessing
+        + ", multipleOutParameters=" + multipleOutParameters
         + '}';
   }
 
   @Override
   public int hashCode() {
-    return super.hashCode() * 31;
+    return super.hashCode() * 31 + (multipleOutParameters ? 1 : 0);
   }
 
   @Override
   public boolean equals(@Nullable Object o) {
-    // Nothing interesting here, overriding equals to make hashCode and equals paired
-    return super.equals(o);
+    return super.equals(o) && multipleOutParameters == ((CallableQueryKey) o).multipleOutParameters;
   }
 }

@@ -259,6 +259,21 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
 
   CachedQuery borrowCallableQuery(String sql) throws SQLException;
 
+  /**
+   * Borrows the callable query in the form for a call that registers two or more OUT parameters,
+   * or in the form for fewer of them.
+   *
+   * @param sql the JDBC call, such as {@code { ? = call f(?, ?) }}
+   * @param multipleOutParameters {@code true} for the form for two or more OUT parameters
+   * @return the cached query
+   * @throws SQLException if the call is malformed
+   * @see Parser#modifyJdbcCall(String, boolean, int, EscapeSyntaxCallMode, boolean)
+   */
+  default CachedQuery borrowCallableQuery(String sql, boolean multipleOutParameters)
+      throws SQLException {
+    return borrowQueryByKey(new CallableQueryKey(sql, multipleOutParameters));
+  }
+
   CachedQuery borrowReturningQuery(String sql, String @Nullable [] columnNames) throws SQLException;
 
   void releaseQuery(CachedQuery cachedQuery);
