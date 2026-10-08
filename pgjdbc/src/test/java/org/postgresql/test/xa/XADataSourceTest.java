@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -40,9 +41,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
+import javax.sql.ConnectionEvent;
+import javax.sql.ConnectionEventListener;
 import javax.sql.XAConnection;
 import javax.sql.XADataSource;
 import javax.transaction.xa.XAException;
@@ -885,6 +890,80 @@ public class XADataSourceTest {
     } catch (XAException xae) {
       assertEquals(XAException.XAER_RMFAIL, xae.errorCode, "Rollback call on closed connection expects XAER_RMFAIL");
     }
+  }
+
+  @Test
+  void backendTerminationDuringPreparedCommitFiresConnectionError() throws Exception {
+    Xid xid = new CustomXid(1);
+    xaRes.start(xid, XAResource.TMNOFLAGS);
+    xaRes.end(xid, XAResource.TMSUCCESS);
+    xaRes.prepare(xid);
+
+    List<SQLException> errors = recordConnectionErrors();
+    assertTrue(TestUtil.terminateBackend(conn));
+
+    XAException failure = assertThrows(XAException.class, () -> xaRes.commit(xid, false));
+    assertConnectionErrorMatchesFailure(errors, failure);
+  }
+
+  @Test
+  void backendTerminationDuringPreparedRollbackFiresConnectionError() throws Exception {
+    Xid xid = new CustomXid(1);
+    xaRes.start(xid, XAResource.TMNOFLAGS);
+    xaRes.end(xid, XAResource.TMSUCCESS);
+    xaRes.prepare(xid);
+
+    List<SQLException> errors = recordConnectionErrors();
+    assertTrue(TestUtil.terminateBackend(conn));
+
+    XAException failure = assertThrows(XAException.class, () -> xaRes.rollback(xid));
+    assertConnectionErrorMatchesFailure(errors, failure);
+  }
+
+  @Test
+  void backendTerminationDuringRecoverFiresConnectionError() throws Exception {
+    List<SQLException> errors = recordConnectionErrors();
+    assertTrue(TestUtil.terminateBackend(conn));
+
+    XAException failure = assertThrows(XAException.class,
+        () -> xaRes.recover(XAResource.TMSTARTRSCAN));
+    assertConnectionErrorMatchesFailure(errors, failure);
+  }
+
+  @Test
+  void nonfatalRecoverFailureDoesNotFireConnectionError() throws Exception {
+    Xid xid = new CustomXid(1);
+    xaRes.start(xid, XAResource.TMNOFLAGS);
+    List<SQLException> errors = recordConnectionErrors();
+
+    assertThrows(SQLException.class, () -> TestUtil.execute(conn, "SELECT 1 / 0"));
+    XAException failure = assertThrows(XAException.class,
+        () -> xaRes.recover(XAResource.TMSTARTRSCAN));
+
+    assertEquals("25P02", ((SQLException) failure.getCause()).getSQLState());
+    assertTrue(errors.isEmpty());
+  }
+
+  private List<SQLException> recordConnectionErrors() {
+    List<SQLException> errors = new ArrayList<>();
+    xaconn.addConnectionEventListener(new ConnectionEventListener() {
+      @Override
+      public void connectionClosed(ConnectionEvent event) {
+      }
+
+      @Override
+      public void connectionErrorOccurred(ConnectionEvent event) {
+        errors.add(event.getSQLException());
+      }
+    });
+    return errors;
+  }
+
+  private static void assertConnectionErrorMatchesFailure(List<SQLException> errors,
+      XAException failure) {
+    assertEquals(1, errors.size());
+    assertEquals("57P01", errors.get(0).getSQLState());
+    assertEquals(((SQLException) failure.getCause()).getSQLState(), errors.get(0).getSQLState());
   }
 
   /**
