@@ -1,0 +1,7 @@
+{{- /*
+  Returns the link to the copy of the jar of .version under /download/. The
+  file name also carries .suffix, such as jre7, when .suffix is not empty.
+*/ -}}
+{{- $name := .version -}}
+{{- with .suffix }}{{ $name = printf "%s.%s" $name . }}{{ end -}}
+{{- return relURL (printf "download/postgresql-%s.jar" $name) -}}

@@ -14,16 +14,27 @@
         <h2>
             Latest Releases
         </h2>
+        {{- $homeReleaseCount := 5 }}
+        {{- $rel := partialCached "releases.html" site }}
+        {{- with $rel.current }}
         <p>
-            Current release is 42.7.14. This is a security release. It fixes requireAuth being silently not enforced when the value excludes every authentication method (CVE-2026-107314), and the driver storing bytes of earlier statements when it pads a value shorter than its declared length (CVE-2026-107315).
-            See the <a href="https://jdbc.postgresql.org/changelogs/2026-10-07-42.7.14-release/">Changelog</a> for details
+            Current release is {{ .version }}.
+            {{- with .page.Params.summary }} {{ . }}{{ end }}
+            See the <a href="{{ .page.Permalink }}">Changelog</a> for details
         </p>
         <ul role="list">
-            {{ range $.Site.Data.homepagedata.info }}
+            {{ range first $homeReleaseCount $rel.releases }}
             <li role="listitem">
-                <strong>{{ .version }}</strong> · {{ .date }} · <a href="{{ .url }}">Notes</a>
+                {{- $date := .page.Date.Format "2 January 2006" }}
+                <strong>{{ .version }}</strong> · {{ $date }} ·
+                {{- " " }}<a href="{{ .page.RelPermalink }}">Notes</a>
             </li>
             {{ end}}
         </ul>
+        <p>
+            {{- $changelogs := (site.GetPage "/changelogs").RelPermalink }}
+            <a href="{{ $changelogs }}">All changelogs</a>
+        </p>
+        {{- end }}
     </article>
 </section>
