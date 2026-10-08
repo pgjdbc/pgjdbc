@@ -220,22 +220,46 @@ public class BlobOutputStream extends OutputStream {
     }
   }
 
+  /**
+   * Flushes the buffered bytes to the large object and closes it. The large object is closed, and
+   * this stream with it, even when the flush fails: the bytes that could not be flushed are
+   * discarded, the transaction is not committed even if the large object was opened with
+   * {@code commitOnClose}, and a later call does nothing.
+   *
+   * @throws IOException if the buffered bytes cannot be flushed or the large object cannot be
+   *     closed. When both fail, the flush failure is thrown and the close failure is attached to it
+   *     as a suppressed exception.
+   */
   @Override
   public void close() throws IOException {
-    long loId = 0;
     try (ResourceLock ignore = lock.obtain()) {
       LargeObject lo = this.lo;
-      if (lo != null) {
-        loId = lo.getLongOID();
-        flush();
-        lo.close();
+      if (lo == null) {
+        return;
+      }
+      long loId = lo.getLongOID();
+      // The large object is a try-with-resources resource, so a failure to close it is suppressed
+      // onto the flush failure instead of replacing it: the flush failure carries the reason the
+      // bytes were lost.
+      try (LargeObject closing = lo) {
+        try {
+          flush();
+        } catch (Throwable t) {
+          // LargeObject.close() flushes the stream its getOutputStream() returned, which may be
+          // this one. Drop the bytes flush() failed to write, so that flush does not retry them.
+          bufferPosition = 0;
+          // The large object is closed even though the flush failed, and closing a large object
+          // opened with commitOnClose would commit the partly written object.
+          closing.skipCommitOnClose();
+          throw t;
+        }
+      } catch (SQLException e) {
+        throw new IOException(GT.tr("Can not close large object {0}", loId), e);
+      } finally {
+        // Clear lo only after the large object is closed: LargeObject.close() may flush this
+        // stream, and checkClosed() refuses that flush once lo is null.
         this.lo = null;
       }
-    } catch (SQLException e) {
-      throw new IOException(
-          GT.tr("Can not close large object {0}",
-              loId),
-          e);
     }
   }
 

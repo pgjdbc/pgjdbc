@@ -157,6 +157,15 @@ public class LargeObject
   }
 
   /**
+   * Keeps {@link #close()} from committing the transaction of an object opened with
+   * {@code commitOnClose}. Call it once bytes meant for this object have failed to reach it, so
+   * that closing the object does not commit a partly written one.
+   */
+  void skipCommitOnClose() {
+    conn = null;
+  }
+
+  /**
    * This method closes the object. You must not call methods in this object after this is called.
    *
    * @throws SQLException if a database-access error occurs.
