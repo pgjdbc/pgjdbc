@@ -543,18 +543,23 @@ public class Parser {
   }
 
   /**
-   * Test if the {@code /} character at {@code offset} starts a block comment, and return the
-   * position of the last {@code /} character.
+   * Returns the offset of the {@code /} that closes the block comment opening at {@code offset}.
+   * Block comments nest, and the {@code *} of the opening {@code /*} cannot also close the comment,
+   * so {@code /*}{@code /} opens a comment and does not close it, as the backend scanner reads it.
    *
    * @param query  query
-   * @param offset start offset
-   * @return position of the last {@code /} character
+   * @param offset offset of a {@code /} character
+   * @return offset of the closing {@code /}; {@code offset} itself when the next character is not
+   *     {@code *}; {@code query.length} when the comment is never closed
    */
   public static int parseBlockComment(final char[] query, int offset) {
     if (offset + 1 < query.length && query[offset + 1] == '*') {
       // /* /* */ */ nest, according to SQL spec
       int level = 1;
-      for (offset += 2; offset < query.length; offset++) {
+      // The loop examines query[offset - 1] and query[offset]. Starting at offset + 3 makes the
+      // first pair the two characters after the opening /*, so the '*' of the opening /* never
+      // pairs with a following '/'.
+      for (offset += 3; offset < query.length; offset++) {
         switch (query[offset - 1]) {
           case '*':
             if (query[offset] == '/') {
@@ -577,6 +582,10 @@ public class Parser {
           break;
         }
       }
+      // An unterminated comment can leave offset one past the end: the loop starts there when
+      // nothing follows the opening /*, and the ++offset after a nested /* or */ steps there when
+      // that pair ends the input.
+      offset = Math.min(offset, query.length);
     }
     return offset;
   }
