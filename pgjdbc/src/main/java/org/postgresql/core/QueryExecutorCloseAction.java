@@ -61,23 +61,31 @@ public class QueryExecutorCloseAction implements Closeable {
       // The connection has already been closed
       return;
     }
-    if (pgStream.isBroken()) {
-      // Nothing may be written to a broken stream, and the close in setBroken may have
-      // failed, so release the descriptor here.
-      pgStream.getSocket().close();
-      return;
-    }
-    sendCloseMessage(pgStream);
+    // A failure to send the Terminate message does not stop the close: on a dropped connection the
+    // write or the flush throws, and pgStream.close() still closes the input stream and the
+    // socket. It does so on a broken stream too, where the close in setBroken may have failed.
+    Throwable failure = null;
+    try {
+      sendCloseMessage(pgStream);
 
-    // Technically speaking, this check should not be needed,
-    // however org.postgresql.test.jdbc2.ConnectionTest.testPGStreamSettings
-    // closes pgStream reflectively, so here's an extra check to prevent failures
-    // when getNetworkTimeout is called on a closed stream
-    if (pgStream.isClosed()) {
-      return;
+      // Technically speaking, this check should not be needed,
+      // however org.postgresql.test.jdbc2.ConnectionTest.testPGStreamSettings
+      // closes pgStream reflectively, so here's an extra check to prevent failures
+      // when getNetworkTimeout is called on a closed stream
+      if (!pgStream.isClosed()) {
+        pgStream.flush();
+      }
+    } catch (Throwable t) {
+      failure = PGStream.alsoFailed(failure, t);
     }
-    pgStream.flush();
-    pgStream.close();
+    try {
+      pgStream.close();
+    } catch (Throwable t) {
+      failure = PGStream.alsoFailed(failure, t);
+    }
+    if (failure != null) {
+      PGStream.rethrow(failure);
+    }
   }
 
   public void sendCloseMessage(PGStream pgStream) throws IOException {
