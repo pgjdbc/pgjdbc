@@ -1649,12 +1649,28 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   /**
-   * Returns estimated number of bytes produced by a single query execution, or
-   * {@link #MAX_BUFFERED_RECV_BYTES} if no estimation can be made.
-   * @param query input query
-   * @param flags query execution flags
-   * @return estimated number of bytes produced by a single query execution or MAX_BUFFERED_RECV_BYTES
+   * Returns the estimated number of bytes the backend sends for one execution of {@code query},
+   * summed over every statement of a composite query. A sum that reaches
+   * {@link #MAX_BUFFERED_RECV_BYTES}, or a statement that cannot be estimated, returns
+   * {@link #MAX_BUFFERED_RECV_BYTES}.
    */
+  private static int estimateQueryResponseBytes(Query query, int flags) {
+    Query[] subqueries = query.getSubqueries();
+    if (subqueries == null) {
+      return estimateQueryResponseBytes((SimpleQuery) query, flags);
+    }
+    // Stop at the limit: callers only compare the result with MAX_BUFFERED_RECV_BYTES, and the
+    // sum over enough statements would overflow an int.
+    int total = 0;
+    for (Query subquery : subqueries) {
+      total += estimateQueryResponseBytes((SimpleQuery) subquery, flags);
+      if (total >= MAX_BUFFERED_RECV_BYTES) {
+        return MAX_BUFFERED_RECV_BYTES;
+      }
+    }
+    return total;
+  }
+
   private static int estimateQueryResponseBytes(SimpleQuery query, int flags) {
     // Assume all statements need at least this much reply buffer space,
     // plus params
@@ -1701,7 +1717,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    *
    * See the comments above MAX_BUFFERED_RECV_BYTES's declaration for details.
    */
-  private void flushIfDeadlockRisk(SimpleQuery query,
+  private void flushIfDeadlockRisk(Query query,
       ResultHandler resultHandler,
       @Nullable BatchResultHandler batchHandler,
       final int flags, boolean adaptiveFetch) throws IOException {
@@ -1738,22 +1754,33 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     Query[] subqueries = query.getSubqueries();
     SimpleParameterList[] subparams = parameters.getSubparams();
 
-    if (subqueries == null) {
-      SimpleQuery simpleQuery = (SimpleQuery) query;
-      flushIfDeadlockRisk(simpleQuery, resultHandler, batchHandler, flags, adaptiveFetch);
+    // The caller sees a composite query as one statement, so it is checked once, before any of it
+    // is sent. In the extended protocol a Sync between its statements commits the leading ones on
+    // their own under auto-commit, and secureProgress then records an entry that has not finished.
+    // A composite query whose own estimate reaches MAX_BUFFERED_RECV_BYTES cannot be sent without
+    // reading responses in between (issues #194 and #195), so it is checked per statement and a
+    // Sync may split it.
+    boolean checkPerSubStatement = subqueries != null
+        && estimateQueryResponseBytes(query, flags) >= MAX_BUFFERED_RECV_BYTES;
+    if (!checkPerSubStatement) {
+      flushIfDeadlockRisk(query, resultHandler, batchHandler, flags, adaptiveFetch);
+    }
 
+    if (subqueries == null) {
       // If we saw errors, don't send anything more.
       if (resultHandler.getException() == null) {
         if (fetchSize != 0) {
           adaptiveFetchCache.addNewQuery(adaptiveFetch, query);
         }
-        sendOneQuery(simpleQuery, (SimpleParameterList) parameters, maxRows, fetchSize,
+        sendOneQuery((SimpleQuery) query, (SimpleParameterList) parameters, maxRows, fetchSize,
             flags);
       }
     } else {
       for (int i = 0; i < subqueries.length; i++) {
         final SimpleQuery subquery = (SimpleQuery) subqueries[i];
-        flushIfDeadlockRisk(subquery, resultHandler, batchHandler, flags, adaptiveFetch);
+        if (checkPerSubStatement) {
+          flushIfDeadlockRisk(subquery, resultHandler, batchHandler, flags, adaptiveFetch);
+        }
 
         // If we saw errors, don't send anything more.
         if (resultHandler.getException() != null) {
