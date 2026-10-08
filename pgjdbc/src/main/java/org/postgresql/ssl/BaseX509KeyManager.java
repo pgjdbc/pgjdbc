@@ -68,14 +68,17 @@ public abstract class BaseX509KeyManager implements X509KeyManager {
       if (certchain == null) {
         return null;
       } else {
-        X509Certificate cert = certchain[certchain.length - 1];
-        X500Principal ourissuer = cert.getIssuerX500Principal();
-        String certKeyType = cert.getPublicKey().getAlgorithm();
+        // The server lists the CAs it accepts, so the issuer comes from the
+        // last certificate in the chain. The key type must come from the
+        // first certificate: it holds the public key for our private key.
+        X500Principal ourissuer = certchain[certchain.length - 1]
+            .getIssuerX500Principal();
+        String certKeyType = certchain[0].getPublicKey().getAlgorithm();
         boolean keyTypeFound = false;
         boolean found = false;
         if (keyType != null && keyType.length > 0) {
           for (String kt : keyType) {
-            if (kt.equalsIgnoreCase(certKeyType)) {
+            if (keyTypeMatches(kt, certKeyType)) {
               keyTypeFound = true;
             }
           }
@@ -94,6 +97,28 @@ public abstract class BaseX509KeyManager implements X509KeyManager {
         return found ? "user" : null;
       }
     }
+  }
+
+  /**
+   * Tells whether a key type that the TLS provider asks for names the
+   * algorithm of our certificate's public key.
+   *
+   * <p>A key type can carry a suffix after a slash. BouncyCastle's JSSE
+   * provider asks for TLS 1.3 EC keys as {@code EC/secp384r1}, while
+   * {@code getAlgorithm()} on the public key returns {@code EC}. Only the part
+   * before the slash is compared. The provider checks the curve itself when it
+   * validates the alias it gets back, and tries the next key type if the curve
+   * does not match.</p>
+   *
+   * @param requested the key type the TLS provider asks for
+   * @param certKeyType the algorithm of the certificate's public key
+   * @return true if the algorithm part of {@code requested} equals
+   *     {@code certKeyType}, ignoring case
+   */
+  static boolean keyTypeMatches(String requested, String certKeyType) {
+    int slash = requested.indexOf('/');
+    String algorithm = slash < 0 ? requested : requested.substring(0, slash);
+    return algorithm.equalsIgnoreCase(certKeyType);
   }
 
   @Override
