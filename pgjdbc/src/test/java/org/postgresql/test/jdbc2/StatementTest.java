@@ -10,13 +10,16 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgStatement;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.StrangeProxyServer;
 import org.postgresql.util.LazyCleaner;
@@ -29,6 +32,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -52,6 +58,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
 class StatementTest {
   private Connection con;
@@ -183,9 +190,6 @@ class StatementTest {
     count = stmt.executeUpdate("insert into escapetest (ts) values ({ts '1900-01-01 00:00:00'})");
     assertEquals(1, count);
 
-    count = stmt.executeUpdate("insert into escapetest (d) values ({d '1900-01-01'})");
-    assertEquals(1, count);
-
     count = stmt.executeUpdate("insert into escapetest (t) values ({t '00:00:00'})");
     assertEquals(1, count);
 
@@ -225,6 +229,85 @@ class StatementTest {
         .executeQuery("select str2 from comparisontest where str1 like '|%abcd' {escape '|'} ");
     assertTrue(rs.next());
     assertEquals("%found", rs.getString(1));
+  }
+
+  private interface StatementAction {
+    void run(Statement stmt) throws SQLException;
+  }
+
+  /**
+   * Each case carries the statement's escape-processing flag to the query parser along its own
+   * path: {@code addBatch} has its own call site in {@link PgStatement}, and generated keys use
+   * their own query key class.
+   */
+  static Stream<Arguments> escapedDateInserts() {
+    return Stream.of(
+        argumentSet("execute", (StatementAction) stmt ->
+            stmt.execute("insert into escapetest (d) values ({d '1900-01-01'})")),
+        argumentSet("executeUpdate with generated keys", (StatementAction) stmt ->
+            stmt.executeUpdate("insert into escapetest (d) values ({d '1900-01-01'})",
+                Statement.RETURN_GENERATED_KEYS)),
+        argumentSet("addBatch", (StatementAction) stmt -> {
+          stmt.addBatch("insert into escapetest (d) values ({d '1900-01-01'})");
+          stmt.executeBatch();
+        }));
+  }
+
+  @ParameterizedTest
+  @MethodSource("escapedDateInserts")
+  void escapeSyntaxIsTranslatedByDefault(StatementAction action) throws SQLException {
+    try (Statement stmt = con.createStatement()) {
+      action.run(stmt);
+      try (ResultSet rs = stmt.executeQuery("select d from escapetest")) {
+        assertTrue(rs.next(), "select d from escapetest returned no rows");
+        assertEquals("1900-01-01", rs.getString(1));
+      }
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("escapedDateInserts")
+  void escapeSyntaxReachesTheServerAsWrittenWhenEscapeProcessingIsOff(StatementAction action)
+      throws SQLException {
+    try (Statement stmt = con.createStatement()) {
+      stmt.setEscapeProcessing(false);
+      SQLException e = assertThrows(SQLException.class, () -> action.run(stmt));
+      assertEquals(PSQLState.SYNTAX_ERROR.getState(), e.getSQLState(), e::getMessage);
+    }
+  }
+
+  @Test
+  void escapeSyntaxIsTranslatedAgainWhenEscapeProcessingIsTurnedBackOn() throws SQLException {
+    try (Statement stmt = con.createStatement()) {
+      stmt.setEscapeProcessing(false);
+      stmt.setEscapeProcessing(true);
+      stmt.execute("insert into escapetest (d) values ({d '1900-01-01'})");
+      try (ResultSet rs = stmt.executeQuery("select d from escapetest")) {
+        assertTrue(rs.next(), "select d from escapetest returned no rows");
+        assertEquals("1900-01-01", rs.getString(1));
+      }
+    }
+  }
+
+  /**
+   * With {@code preferQueryMode=extendedCacheEverything} a plain {@link Statement} caches its
+   * query, so the translating statement leaves the translated query in the cache under the same
+   * SQL text the verbatim statement then executes.
+   */
+  @Test
+  void aCachedTranslatedQueryIsNotReusedWhenEscapeProcessingIsOff() throws SQLException {
+    Properties props = new Properties();
+    PGProperty.PREFER_QUERY_MODE.set(props, PreferQueryMode.EXTENDED_CACHE_EVERYTHING.value());
+    try (Connection cachingCon = TestUtil.openDB(props);
+         Statement translating = cachingCon.createStatement();
+         Statement verbatim = cachingCon.createStatement()) {
+      translating.executeQuery("select {fn version()}").close();
+
+      verbatim.setEscapeProcessing(false);
+      SQLException e = assertThrows(SQLException.class,
+          () -> verbatim.executeQuery("select {fn version()}"));
+      assertEquals(PSQLState.SYNTAX_ERROR.getState(), e.getSQLState(), e::getMessage);
+    }
   }
 
   @Test
