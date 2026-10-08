@@ -19,6 +19,8 @@ jobs:
       # write permission is required for autolabeler
       # otherwise, read permission is required at least
       pull-requests: read
+      # write permission is required to start the website deploy (docs.yml)
+      actions: write
     steps:
       - name: Validate input parameters
         env:
@@ -75,6 +77,17 @@ jobs:
              if (tags.length > 0) {
                  core.setFailed(`Tag ${tag} already exists. Bump version in gradle.properties and try releasing again.`);
              }
+
+      # The website is deployed from the released commit as it is. Check that
+      # the commit has the changelog and lists the release in docs/data before
+      # anything is published, so a missing update stops the release here and
+      # not after the jar is on Maven Central.
+      - name: Check the website data for the release
+        env:
+          VERSION: ${{ steps.release_version.outputs.version }}
+        # language=bash
+        run: |
+          node docs/scripts/update-site.mjs --check "$VERSION" docs
 
       - name: Prepare git name and email
         # language=bash
@@ -206,3 +219,15 @@ jobs:
         with:
           token: ${{ steps.app_token.outputs.token }}
           version: ${{ steps.next_version.outputs.version }}
+
+      # Deploys the website from the release tag, which points at the released
+      # commit. A release published with GITHUB_TOKEN does not start other
+      # workflows, so docs.yml would not run on its own. A workflow_dispatch
+      # event does start a run, even when GITHUB_TOKEN sends it.
+      - name: Deploy the website
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.publish_release.outputs.tag_name }}
+        # language=bash
+        run: |
+          gh workflow run docs.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG"
