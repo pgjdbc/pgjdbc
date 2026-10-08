@@ -1312,9 +1312,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       LOGGER.log(Level.FINEST, " FE=> CopyData({0})", siz);
 
       try {
-        pgStream.sendChar(PgMessageType.COPY_DATA);
-        pgStream.sendInteger4(siz + 4);
-        pgStream.send(data, off, siz);
+        new CopyDataOutputStream(pgStream, siz, CopyDataOutputStream.MAX_PAYLOAD_LENGTH)
+            .writeAndFinish(data, off);
       } catch (IOException ioe) {
         if (hasLock(op)) {
           unlock(op);
@@ -1345,9 +1344,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       LOGGER.log(Level.FINEST, " FE=> CopyData({0})", siz);
 
       try {
-        pgStream.sendChar(PgMessageType.COPY_DATA);
-        pgStream.sendInteger4(siz + 4);
-        pgStream.send(from);
+        new CopyDataOutputStream(pgStream, siz, CopyDataOutputStream.MAX_PAYLOAD_LENGTH)
+            .writeAndFinish(from);
       } catch (IOException ioe) {
         if (hasLock(op)) {
           unlock(op);
