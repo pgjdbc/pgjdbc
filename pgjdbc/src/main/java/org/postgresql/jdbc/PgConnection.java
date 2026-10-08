@@ -244,6 +244,11 @@ public class PgConnection implements BaseConnection {
     return queryExecutor.borrowCallableQuery(sql);
   }
 
+  final CachedQuery borrowCallableQuery(String sql, boolean multipleOutParameters)
+      throws SQLException {
+    return queryExecutor.borrowCallableQuery(sql, multipleOutParameters);
+  }
+
   private CachedQuery borrowReturningQuery(String sql, String @Nullable [] columnNames)
       throws SQLException {
     return queryExecutor.borrowReturningQuery(sql, columnNames);
