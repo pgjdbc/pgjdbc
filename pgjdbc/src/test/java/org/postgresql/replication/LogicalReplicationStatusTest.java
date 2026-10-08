@@ -18,6 +18,8 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.annotations.EnabledForServerVersionRange;
 import org.postgresql.test.annotations.tags.Replication;
+import org.postgresql.test.util.MessageStallProxyServer;
+import org.postgresql.test.util.TimeoutRecordingSocketFactory;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,12 +33,18 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 @Replication
 @EnabledForServerVersionRange(gte = "9.4")
 class LogicalReplicationStatusTest {
+  private static final int SOCKET_TIMEOUT_SECONDS = 60;
+  private static final int FACTORY_SO_TIMEOUT_MS = 30_000;
+  private static final int STATUS_INTERVAL_MS = 100;
   private static final String SLOT_NAME = "pgjdbc_logical_replication_slot";
 
   private Connection replicationConnection;
@@ -415,6 +423,283 @@ class LogicalReplicationStatusTest {
             + "and wait that set status on stream will be auto send to backend",
         flushLSN, equalTo(waitLSN)
     );
+  }
+
+  @Test
+  void startHandshakeUsesSocketTimeoutNotStatusInterval() throws Exception {
+    TimeoutRecordingSocketFactory.Recording recording = TimeoutRecordingSocketFactory.register();
+    try {
+      Connection conn = TestUtil.openReplicationConnection(props -> {
+        PGProperty.SOCKET_TIMEOUT.set(props, SOCKET_TIMEOUT_SECONDS);
+        PGProperty.SOCKET_FACTORY.set(props, TimeoutRecordingSocketFactory.class.getName());
+        PGProperty.SOCKET_FACTORY_ARG.set(props, recording.key());
+      });
+      try {
+        LogSequenceNumber startLSN = getCurrentLSN();
+        insertPreviousChanges(sqlConnection);
+
+        recording.reset();
+        PGReplicationStream stream =
+            ((PGConnection) conn)
+                .getReplicationAPI()
+                .replicationStream()
+                .logical()
+                .withSlotName(SLOT_NAME)
+                .withStartPosition(startLSN)
+                .withStatusInterval(1, TimeUnit.MILLISECONDS)
+                .start();
+        // The reads that follow run under the status interval, so take the reading before them
+        int handshakeTimeout = recording.minSoTimeoutOnRead();
+        stream.close();
+
+        assertThat("The status interval is the wake-up period of the streaming reads, and shortening "
+                + "the socket timeout to it before START_REPLICATION leaves the handshake with a "
+                + "millisecond to complete in. A server that answers any slower fails start() with "
+                + "\"Database connection failed when starting copy\".",
+            handshakeTimeout, equalTo(SOCKET_TIMEOUT_SECONDS * 1000)
+        );
+      } finally {
+        conn.close();
+      }
+    } finally {
+      TimeoutRecordingSocketFactory.unregister(recording);
+    }
+  }
+
+  @Test
+  void streamDoesNotChangeTheConnectionSocketTimeout() throws Exception {
+    Connection conn = TestUtil.openReplicationConnection(props -> {
+      PGProperty.SOCKET_TIMEOUT.set(props, SOCKET_TIMEOUT_SECONDS);
+    });
+    try {
+      LogSequenceNumber startLSN = getCurrentLSN();
+      insertPreviousChanges(sqlConnection);
+
+      PGReplicationStream stream = startStream(conn, startLSN);
+      assertThat("The stream waits for a message to start with a wake-up of its own, so the "
+              + "connection keeps the socket timeout it was opened with rather than the status "
+              + "interval",
+          conn.getNetworkTimeout(), equalTo(SOCKET_TIMEOUT_SECONDS * 1000)
+      );
+
+      stream.close();
+      assertThat("The connection still has its own socket timeout once the stream is over",
+          conn.getNetworkTimeout(), equalTo(SOCKET_TIMEOUT_SECONDS * 1000)
+      );
+    } finally {
+      conn.close();
+    }
+  }
+
+  @Test
+  void secondStreamHandshakeUsesSocketTimeout() throws Exception {
+    TimeoutRecordingSocketFactory.Recording recording = TimeoutRecordingSocketFactory.register();
+    try {
+      Connection conn = TestUtil.openReplicationConnection(props -> {
+        PGProperty.SOCKET_TIMEOUT.set(props, SOCKET_TIMEOUT_SECONDS);
+        PGProperty.SOCKET_FACTORY.set(props, TimeoutRecordingSocketFactory.class.getName());
+        PGProperty.SOCKET_FACTORY_ARG.set(props, recording.key());
+      });
+      try {
+        insertPreviousChanges(sqlConnection);
+        startStream(conn, getCurrentLSN()).close();
+
+        insertPreviousChanges(sqlConnection);
+        recording.reset();
+        PGReplicationStream second = startStream(conn, getCurrentLSN());
+        int handshakeTimeout = recording.minSoTimeoutOnRead();
+        second.close();
+
+        assertThat("A stream that ended leaves the connection on its own socketTimeout, so the "
+                + "next START_REPLICATION is not answered under one status interval",
+            handshakeTimeout, equalTo(SOCKET_TIMEOUT_SECONDS * 1000)
+        );
+      } finally {
+        conn.close();
+      }
+    } finally {
+      TimeoutRecordingSocketFactory.unregister(recording);
+    }
+  }
+
+  @Test
+  void blockingReadSendsStatusWithoutSocketTimeout() throws Exception {
+    Connection conn = TestUtil.openReplicationConnection(props -> {
+      PGProperty.SOCKET_TIMEOUT.set(props, 0);
+      // wal_sender_timeout=0 stops the server from asking for a status update on its own, so the
+      // only thing that can report the flushed LSN is the stream's own wake-up
+      PGProperty.OPTIONS.set(props, "-c synchronous_commit=on -c wal_sender_timeout=0");
+    });
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    try {
+      LogSequenceNumber startLSN = getCurrentLSN();
+      insertPreviousChanges(sqlConnection);
+      PGReplicationStream stream = startStream(conn, startLSN);
+      drainUntilQuiet(stream);
+      LogSequenceNumber waitLSN = stream.getLastReceiveLSN();
+      stream.setAppliedLSN(waitLSN);
+      stream.setFlushedLSN(waitLSN);
+
+      // Watch the server while the read below is blocked, then release the read with an insert
+      Future<LogSequenceNumber> flushed = executor.submit(() -> {
+        LogSequenceNumber seen = getLSNFromView(flushColumnName(), waitLSN);
+        insertPreviousChanges(sqlConnection);
+        return seen;
+      });
+      stream.read();
+      LogSequenceNumber flushLSN = flushed.get(10, TimeUnit.SECONDS);
+      stream.close();
+
+      assertThat("A blocking read wakes up once per status interval to report the flushed LSN, and "
+              + "the socket read timeout is what wakes it. A connection opened without "
+              + "socketTimeout does not ask the driver to report read timeouts, so the wake-up was "
+              + "swallowed and retried, and the server learned the flushed LSN only once it asked "
+              + "for a status update itself",
+          flushLSN, equalTo(waitLSN)
+      );
+    } finally {
+      executor.shutdownNow();
+      conn.close();
+    }
+  }
+
+  @Test
+  void aStalledMessageDoesNotCostTheStreamItsBoundary() throws Exception {
+    try (MessageStallProxyServer proxy =
+             new MessageStallProxyServer(TestUtil.getServer(), TestUtil.getPort())) {
+      ExecutorService executor = Executors.newSingleThreadExecutor();
+      Connection conn = TestUtil.openReplicationConnection(props -> {
+        TestUtil.setTestUrlProperty(props, PGProperty.PG_HOST, "localhost");
+        TestUtil.setTestUrlProperty(props, PGProperty.PG_PORT,
+            String.valueOf(proxy.getServerPort()));
+        // The proxy reads the v3 framing to find its way into a message, so it needs plain traffic
+        PGProperty.SSL_MODE.set(props, "disable");
+        PGProperty.GSS_ENC_MODE.set(props, "disable");
+        PGProperty.SOCKET_TIMEOUT.set(props, SOCKET_TIMEOUT_SECONDS);
+      });
+      try {
+        LogSequenceNumber startLSN = getCurrentLSN();
+        insertPreviousChanges(sqlConnection);
+        PGReplicationStream stream = startStream(conn, startLSN);
+        drainUntilQuiet(stream);
+
+        // Hold the next message open for several status intervals, so the stream's wake-up would
+        // run out while the driver sits between the type byte and the rest of that message
+        proxy.stallInsideNextMessage(STATUS_INTERVAL_MS * 5L);
+        // The insert waits for the read below to block: a message that arrives before the driver
+        // is in the read lands in the socket buffer, and the stall costs it nothing
+        Future<?> insert = executor.submit(() -> {
+          TimeUnit.MILLISECONDS.sleep(STATUS_INTERVAL_MS * 2L);
+          try (Statement st = sqlConnection.createStatement()) {
+            st.execute("insert into test_logic_table(name) values('after the stall')");
+          }
+          return null;
+        });
+
+        StringBuilder received = new StringBuilder();
+        for (int i = 0; i < 3; i++) {
+          ByteBuffer message = stream.read();
+          if (message == null) {
+            break;
+          }
+          received.append(toString(message));
+        }
+        insert.get(10, TimeUnit.SECONDS);
+        stream.close();
+
+        assertThat("The wake-up belongs between messages. Taken partway through one it drops the "
+                + "bytes already read, and the next read takes the middle of that message for the "
+                + "start of the next one",
+            received.toString(),
+            equalTo("BEGIN"
+                + "table public.test_logic_table: INSERT: pk[integer]:2 "
+                + "name[character varying]:'after the stall'"
+                + "COMMIT")
+        );
+      } finally {
+        executor.shutdownNow();
+        conn.close();
+      }
+    }
+  }
+
+  @Test
+  void theWakeUpLeavesATimeoutTheDriverWasNeverToldAbout() throws Exception {
+    TimeoutRecordingSocketFactory.Recording recording = TimeoutRecordingSocketFactory.register();
+    // A socket the driver did not time out itself: socketTimeout stays at its default, so
+    // ConnectionFactoryImpl never calls setNetworkTimeout and only the socket knows
+    recording.initialSoTimeout(FACTORY_SO_TIMEOUT_MS);
+    try {
+      Connection conn = TestUtil.openReplicationConnection(props -> {
+        PGProperty.SOCKET_TIMEOUT.set(props, 0);
+        PGProperty.SOCKET_FACTORY.set(props, TimeoutRecordingSocketFactory.class.getName());
+        PGProperty.SOCKET_FACTORY_ARG.set(props, recording.key());
+        // An SSL or GSS upgrade swaps the socket for one built from the properties, which would
+        // put the timeout back to what the driver knows and hide what this test is after
+        PGProperty.SSL_MODE.set(props, "disable");
+        PGProperty.GSS_ENC_MODE.set(props, "disable");
+      });
+      ExecutorService executor = Executors.newSingleThreadExecutor();
+      try {
+        LogSequenceNumber startLSN = getCurrentLSN();
+        insertPreviousChanges(sqlConnection);
+        PGReplicationStream stream = startStream(conn, startLSN);
+        drainUntilQuiet(stream);
+
+        // Block long enough for the wake-up to fire and put the timeout back
+        Future<?> insert = executor.submit(() -> {
+          TimeUnit.MILLISECONDS.sleep(STATUS_INTERVAL_MS * 3L);
+          try (Statement st = sqlConnection.createStatement()) {
+            st.execute("insert into test_logic_table(name) values('after the wake-up')");
+          }
+          return null;
+        });
+        stream.read();
+        insert.get(10, TimeUnit.SECONDS);
+        stream.close();
+
+        assertThat("The wake-up has to put back the timeout the socket had, not one it remembered "
+                + "from a setNetworkTimeout that never happened",
+            conn.getNetworkTimeout(), equalTo(FACTORY_SO_TIMEOUT_MS)
+        );
+      } finally {
+        executor.shutdownNow();
+        conn.close();
+      }
+    } finally {
+      TimeoutRecordingSocketFactory.unregister(recording);
+    }
+  }
+
+  /**
+   * Reads until nothing has arrived for a while, so that a blocking read has to wait for new data
+   * rather than return what the slot still held. A message count is not a usable stopping
+   * condition: an empty transaction decodes to a BEGIN and a COMMIT of its own.
+   */
+  private static void drainUntilQuiet(PGReplicationStream stream) throws Exception {
+    long quietFor = TimeUnit.MILLISECONDS.toNanos(300);
+    long deadline = System.nanoTime() + quietFor;
+    while (System.nanoTime() < deadline) {
+      if (stream.readPending() == null) {
+        TimeUnit.MILLISECONDS.sleep(5);
+      } else {
+        deadline = System.nanoTime() + quietFor;
+      }
+    }
+  }
+
+  private static PGReplicationStream startStream(Connection conn, LogSequenceNumber startLSN)
+      throws SQLException {
+    return ((PGConnection) conn)
+        .getReplicationAPI()
+        .replicationStream()
+        .logical()
+        .withSlotName(SLOT_NAME)
+        .withStartPosition(startLSN)
+        .withSlotOption("include-xids", false)
+        .withSlotOption("skip-empty-xacts", true)
+        .withStatusInterval(STATUS_INTERVAL_MS, TimeUnit.MILLISECONDS)
+        .start();
   }
 
   private static void insertPreviousChanges(Connection sqlConnection) throws SQLException {
