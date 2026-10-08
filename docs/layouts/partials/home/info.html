@@ -15,7 +15,7 @@
             Latest Releases
         </h2>
         <p>
-            Current release is 42.7.14. This is a security release. It fixes requireAuth not being enforced when the value excludes every authentication method (CVE-2026-107314), and stored values containing bytes of earlier statements when the driver pads a short value (CVE-2026-107315).
+            Current release is 42.7.14. This is a security release. It fixes requireAuth being silently not enforced when the value excludes every authentication method (CVE-2026-107314), and the driver storing bytes of earlier statements when it pads a value shorter than its declared length (CVE-2026-107315).
             See the <a href="https://jdbc.postgresql.org/changelogs/2026-10-07-42.7.14-release/">Changelog</a> for details
         </p>
         <ul role="list">

@@ -22,19 +22,21 @@ For security purposes, we sign our releases with these PGP keys:
 
 ## Security Advisories
 
-### requireAuth is not enforced when the value excludes every authentication method (CVE-2026-107314)
+### requireAuth is silently not enforced when the value excludes every authentication method (CVE-2026-107314)
 
 #### Impact
 
 When the `requireAuth` connection property excludes all six authentication methods the driver knows, for example `requireAuth=!password,!md5,!gss,!sspi,!scram-sha-256,!none`, releases 42.7.11 through 42.7.13 enforce no restriction. The driver accepts any method the server asks for, including cleartext `password`. An attacker between the application and its server can ask for cleartext password authentication and receive the database password.
 
-A value without a method in it, such as `requireAuth=,`, is affected the same way. Other values are enforced correctly: a positive list such as `requireAuth=scram-sha-256`, and a partial exclusion such as `requireAuth=!password,!md5`. `requireAuth` has no default value, so a deployment that does not set it is not affected.
+The six exclusions may appear in any order, with or without spaces around the commas. A value without a method in it, such as `requireAuth=,`, is affected the same way. Other values are enforced correctly: a positive list such as `requireAuth=scram-sha-256`, and a partial exclusion such as `requireAuth=!password,!md5`. `requireAuth` has no default value, so a deployment that does not set it is not affected.
 
 #### Patches
 
-Fixed in pgJDBC 42.7.14. A connection whose `requireAuth` value excludes every method now fails with SQLState `08004` and the message `Authentication method is not allowed by requireAuth`, or with the channel binding error when `channelBinding=require` is also set. A value without a method in it now fails as an invalid `requireAuth` value, with SQLState `22023`.
+Fixed in pgJDBC 42.7.14. A connection whose `requireAuth` value excludes every method now fails with SQLState `08004` and the message `Authentication method is not allowed by requireAuth`. When `channelBinding=require` is also set and the server asks for a method other than SCRAM, the connection fails with SQLState `08004` and the channel binding message instead: `Channel binding is required, but server requested '<method>' authentication.`, where `<method>` is the method the server asked for.
 
-After the upgrade, such a configuration cannot connect. Replace the value with a positive list of the methods your server uses.
+A value without a method in it now fails with SQLState `22023` and the message `Invalid authentication method: <value>`, where `<value>` is the `requireAuth` value, for example `Invalid authentication method: ,`.
+
+After the upgrade, a configuration with such a value can no longer connect. Replace the value with a positive list of the methods your server uses.
 
 #### Workarounds
 
@@ -48,17 +50,17 @@ Reported by [Daniel Coles](https://github.com/manus-pi)
 
 See the [Security Advisory](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-rhp9-mr79-r74h) for full detail.
 
-### Stored values can contain bytes of earlier statements when the driver pads a short value (CVE-2026-107315)
+### Driver stores bytes of earlier statements when it pads a value shorter than its declared length (CVE-2026-107315)
 
 #### Impact
 
-When an application declares a length larger than the data it sends, the driver pads the value to the declared length. Releases 42.7.4 through 42.7.13 pad with bytes of messages sent earlier on the same connection instead of zeros, and the server stores them. The padding can contain SQL text and parameter values of earlier statements, which on a pooled connection can come from other requests. Each padded value can carry up to 8192 bytes of earlier traffic, the default `maxSendBufferSize`, or up to 16320 bytes on a GSS-encrypted connection with MIT Kerberos.
+When an application sends a value shorter than its declared length, the driver pads the value to the declared length. Releases 42.7.4 through 42.7.13 pad with bytes of messages sent earlier on the same connection instead of zeros, and the server stores them. The padding can contain SQL text and parameter values of earlier statements, which on a pooled connection can come from other requests. When the data ends exactly at a send buffer boundary, the padding holds the bytes sent just before it, such as other parameters of the same statement and earlier rows of the same batch. Each padded value can carry up to `maxSendBufferSize` bytes of earlier traffic (8192 by default), or up to 16320 bytes on a GSS-encrypted connection with MIT Kerberos, repeated to fill the padding. An attacker who can make the application store such a value and read it back can repeat this to collect earlier traffic.
 
 The declared length reaches the driver through these calls:
 
 * `PreparedStatement.setObject(int, ByteStreamWriter)` and `CopyIn.writeToCopy(ByteStreamWriter)`, when `ByteStreamWriter.getLength()` is larger than what `writeTo()` writes
 * `CopyIn.writeToCopy(byte[], int, int)`, `LargeObject.write(byte[], int, int)`, and `Blob.setBytes(long, byte[], int, int)`, when the length runs past the end of the array
-* `PGCopyOutputStream.write(byte[], int, int)`, when the length runs past the end of the array and is over 64 KiB
+* `PGCopyOutputStream.write(byte[], int, int)`, when the length runs past the end of the array and is larger than the stream's buffer (64 KiB by default)
 
 An application whose declared lengths always match its data is not affected. Releases 42.7.3 and earlier pad with zeros. Values that an affected release stored through one of these calls can already contain this data.
 
@@ -74,11 +76,11 @@ Found by [Vladimir Sitnikov](https://github.com/vlsi)
 
 See the [Security Advisory](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-f64h-wr5q-3qf3) for full detail.
 
-### Stored values can contain bytes of earlier messages on GSS-encrypted connections (CVE-2026-107313)
+### Driver stores bytes of earlier messages in place of a large value on GSS-encrypted connections (CVE-2026-107313)
 
 #### Impact
 
-On a connection with GSS encryption (`gssEncMode=prefer` or `require`), releases 42.7.4 and 42.7.5 can send the previous contents of the GSS send buffer in place of the first 16320 bytes of a value, which is the buffer size with MIT Kerberos. The server stores the value without an error. The stored value then holds bytes the driver sent just before it on that connection, such as the statement's SQL text, its other parameters, and earlier rows of the same batch. Most affected writes fail instead with `An I/O error occurred while sending to the backend.`
+On a connection with GSS encryption (`gssEncMode=prefer` or `require`, to a server that accepts GSS encryption), releases 42.7.4 and 42.7.5 can send the previous contents of the GSS send buffer in place of the first 16320 bytes of a value, which is the buffer size with MIT Kerberos. The server stores the value without an error. The stored value then holds bytes the driver sent just before it on that connection, such as the statement's SQL text, its other parameters, and earlier rows of the same batch. Most affected writes fail instead with `An I/O error occurred while sending to the backend.`
 
 The values affected are at least 16320 bytes long and are written from a byte array: bind parameters set with `setString` or `setBytes`, `ByteStreamWriter` parameters, `CopyIn.writeToCopy`, and `LargeObject.write`. `InputStream` parameters such as `setBinaryStream` are not affected. Connections without GSS encryption are not affected, and the default, `gssEncMode=allow`, does not start GSS encryption. Releases 42.7.3 and earlier are not affected.
 
