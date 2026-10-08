@@ -485,6 +485,10 @@ public class LargeObject
    *
    * <p>This OutputStream can then be used in any method that requires an OutputStream.</p>
    *
+   * <p>The stream buffers what it is given. A caller that seeks, reads, or writes this object
+   * directly while the stream is open must call {@link OutputStream#flush()} on the stream first,
+   * or the buffered bytes are written at the new position.</p>
+   *
    * @return {@link OutputStream} from this object
    * @throws SQLException if a database-access error occurs.
    */
