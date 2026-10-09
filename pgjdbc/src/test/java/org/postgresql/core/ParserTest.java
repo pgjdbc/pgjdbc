@@ -270,6 +270,48 @@ class ParserTest {
     assertFalse(parseInfo.isFunction(), () -> "isFunction() should be false for: " + sql);
   }
 
+  /**
+   * A call body that ends in a backslash inside a string constant used to step the scan past the
+   * end of the input, which skipped the "ran out of query" check and reached
+   * {@code jdbcSql.substring(startIndex, -1)}.
+   */
+  @Test
+  void trailingBackslashInCallBodyIsASyntaxError() {
+    for (String sql : new String[]{"{call f('a\\", "{?=call f('a\\", "{call f('\\"}) {
+      PSQLException e = assertThrows(PSQLException.class,
+          () -> Parser.modifyJdbcCall(sql, false, ServerVersion.v11.getVersionNum(),
+              EscapeSyntaxCallMode.CALL),
+          sql);
+      assertEquals(PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL.getState(), e.getSQLState(), sql);
+      // The same input with standard_conforming_strings on was already reported this way
+      PSQLException stdStrings = assertThrows(PSQLException.class,
+          () -> Parser.modifyJdbcCall(sql, true, ServerVersion.v11.getVersionNum(),
+              EscapeSyntaxCallMode.CALL),
+          sql);
+      assertEquals(PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL.getState(),
+          stdStrings.getSQLState(), sql);
+    }
+  }
+
+  /**
+   * Where the backslash does have something to escape, the escaped quote still does not end the
+   * string constant, and the body reaches the server unchanged. This one passes on the unfixed
+   * code as well: it is here to show the clamp did not disturb the escape path.
+   */
+  @Test
+  void backslashEscapeInCallBodyIsHonoured() throws SQLException {
+    assertEquals("call f('a\\'b')",
+        Parser.modifyJdbcCall("{call f('a\\'b')}", false, ServerVersion.v11.getVersionNum(),
+            EscapeSyntaxCallMode.CALL).getSql());
+    // With standard_conforming_strings on the backslash is an ordinary character, so the quote
+    // after it closes the constant and the driver never finds the closing brace. PostgreSQL
+    // rejects the same text too, though it tokenizes it differently: it reads b' as the start of
+    // a bit-string literal and reports that as unterminated.
+    assertThrows(PSQLException.class,
+        () -> Parser.modifyJdbcCall("{call f('a\\'b')}", true, ServerVersion.v11.getVersionNum(),
+            EscapeSyntaxCallMode.CALL));
+  }
+
   @Test
   void unterminatedEscape() throws Exception {
     assertEquals("{oj ", Parser.replaceProcessing("{oj ", true, false));
