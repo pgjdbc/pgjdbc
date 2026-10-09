@@ -1317,6 +1317,58 @@ public class DatabaseMetaDataTest {
     rs.close();
   }
 
+  /**
+   * Creates a table with a {@code numeric(10,-2)} primary key and a column of a domain over
+   * {@code numeric(10,-2)}. PostgreSQL 15 is the first version that allows a negative scale.
+   */
+  private void createNegativeScaleTable() throws SQLException {
+    TestUtil.createDomain(con, "negscaledom", "numeric(10,-2)");
+    TestUtil.createTable(con, "negscale", "id numeric(10,-2) primary key, dom negscaledom");
+  }
+
+  private void dropNegativeScaleTable() throws SQLException {
+    TestUtil.dropTable(con, "negscale");
+    TestUtil.dropDomain(con, "negscaledom");
+  }
+
+  @Test
+  @EnabledForServerVersionRange(gte = "15")
+  void getColumnsReportsNegativeDecimalDigits() throws SQLException {
+    createNegativeScaleTable();
+    try (ResultSet rs = con.getMetaData().getColumns(null, null, "negscale", "id")) {
+      assertTrue(rs.next());
+      assertEquals(-2, rs.getInt("DECIMAL_DIGITS"), "DECIMAL_DIGITS of numeric(10,-2)");
+    } finally {
+      dropNegativeScaleTable();
+    }
+  }
+
+  @Test
+  @EnabledForServerVersionRange(gte = "15")
+  void getColumnsReportsNegativeDecimalDigitsForADomain() throws SQLException {
+    createNegativeScaleTable();
+    try (ResultSet rs = con.getMetaData().getColumns(null, null, "negscale", "dom")) {
+      assertTrue(rs.next());
+      assertEquals(-2, rs.getInt("DECIMAL_DIGITS"), "DECIMAL_DIGITS of a domain over numeric(10,-2)");
+    } finally {
+      dropNegativeScaleTable();
+    }
+  }
+
+  @Test
+  @EnabledForServerVersionRange(gte = "15")
+  void getBestRowIdentifierReportsNegativeDecimalDigits() throws SQLException {
+    createNegativeScaleTable();
+    try (ResultSet rs = con.getMetaData().getBestRowIdentifier(
+        null, null, "negscale", DatabaseMetaData.bestRowSession, false)) {
+      assertTrue(rs.next());
+      assertEquals("id", rs.getString("COLUMN_NAME"));
+      assertEquals(-2, rs.getInt("DECIMAL_DIGITS"), "DECIMAL_DIGITS of numeric(10,-2)");
+    } finally {
+      dropNegativeScaleTable();
+    }
+  }
+
   @Test
   void bestRowIdentifier() throws SQLException {
     // At the moment just test that no exceptions are thrown KJ
@@ -1694,6 +1746,51 @@ public class DatabaseMetaDataTest {
       } else if ("text".equals(rs.getString("TYPE_NAME"))) {
         assertTrue(rs.getBoolean("UNSIGNED_ATTRIBUTE"));
       }
+    }
+  }
+
+  @Test
+  @EnabledForServerVersionRange(gte = "15")
+  void typeInfoReportsMinimumScaleOfMinus1000ForNumeric() throws SQLException {
+    try (ResultSet rs = con.getMetaData().getTypeInfo()) {
+      boolean found = false;
+      while (rs.next()) {
+        if ("numeric".equals(rs.getString("TYPE_NAME"))) {
+          found = true;
+          assertEquals(-1000, rs.getInt("MINIMUM_SCALE"), "MINIMUM_SCALE of numeric");
+        }
+      }
+      assertTrue(found, "getTypeInfo() should return a row for numeric");
+    }
+  }
+
+  @Test
+  @EnabledForServerVersionRange(lt = "15")
+  void typeInfoReportsMinimumScaleOfZeroForNumericBefore15() throws SQLException {
+    try (ResultSet rs = con.getMetaData().getTypeInfo()) {
+      boolean found = false;
+      while (rs.next()) {
+        if ("numeric".equals(rs.getString("TYPE_NAME"))) {
+          found = true;
+          assertEquals(0, rs.getInt("MINIMUM_SCALE"), "MINIMUM_SCALE of numeric");
+        }
+      }
+      assertTrue(found, "getTypeInfo() should return a row for numeric");
+    }
+  }
+
+  @Test
+  void typeInfoReportsMinimumScaleOfZeroForTypesOtherThanNumeric() throws SQLException {
+    try (ResultSet rs = con.getMetaData().getTypeInfo()) {
+      int checked = 0;
+      while (rs.next()) {
+        String typeName = rs.getString("TYPE_NAME");
+        if (!"numeric".equals(typeName)) {
+          checked++;
+          assertEquals(0, rs.getInt("MINIMUM_SCALE"), () -> "MINIMUM_SCALE of " + typeName);
+        }
+      }
+      assertTrue(checked > 0, "getTypeInfo() should return rows for types other than numeric");
     }
   }
 
