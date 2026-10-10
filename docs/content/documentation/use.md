@@ -267,10 +267,6 @@ A value of `0` disables the cache.
 Specifies the maximum size (in megabytes) of fields to be cached per connection.
 A value of `0` disables the cache.
 
-* **`cacheCatalog (`*boolean*`)`** *Default `true`*\
-Whether to cache the catalog name returned by `Connection.getCatalog()`.
-Set this to `false` when a proxy can switch the database for a connection; the driver will query `current_catalog` on each `getCatalog()` call.
-
 * **`prepareThreshold (`*int*`)`** *Default `5`*\
 Determine the number of `PreparedStatement` executions required before switching over to use server side prepared statements. 
 The default is five, meaning start using server side prepared statements on the fifth execution of the same `PreparedStatement` object. 

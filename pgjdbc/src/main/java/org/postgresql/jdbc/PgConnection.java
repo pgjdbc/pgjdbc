@@ -217,7 +217,6 @@ public class PgConnection implements BaseConnection {
   private final boolean bindStringAsVarchar;
   // Convert boolean values to numeric types?
   private final boolean convertBooleanToNumeric;
-  private final boolean cacheCatalog;
 
   // Current warnings; there might be more on queryExecutor too.
   private @Nullable SQLWarning firstWarning;
@@ -280,7 +279,6 @@ public class PgConnection implements BaseConnection {
     this.creatingURL = url;
 
     this.classLoaderStrategy = ClassLoaderStrategy.of(info);
-    this.cacheCatalog = PGProperty.CACHE_CATALOG.getBoolean(info);
 
     this.readOnlyBehavior = getReadOnlyBehavior(PGProperty.READ_ONLY_MODE.getOrDefault(info));
 
@@ -1154,16 +1152,32 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public String getCatalog() throws SQLException {
+    return getCatalogForMetadata(null);
+  }
+
+  /**
+   * Get the catalog for a metadata lookup, refreshing a stale cache when the requested catalog
+   * differs from it.
+   *
+   * @param requestedCatalog catalog requested by the metadata call, or {@code null}
+   * @return the current catalog
+   * @throws SQLException if querying the current catalog fails
+   */
+  String getCatalogForMetadata(@Nullable String requestedCatalog) throws SQLException {
+    return getCatalogForMetadata(requestedCatalog, null);
+  }
+
+  String getCatalogForMetadata(@Nullable String requestedCatalog, @Nullable String otherRequestedCatalog)
+      throws SQLException {
     checkClosed();
     String catalog = this.catalog;
-    if (catalog == null || !cacheCatalog) {
+    if (catalog == null
+        || requestedCatalog != null && !requestedCatalog.equals(catalog)
+        || otherRequestedCatalog != null && !otherRequestedCatalog.equals(catalog)) {
       try (Statement stmt = createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             ResultSet rs = stmt.executeQuery("select current_catalog")) {
         if (rs.next()) {
-          catalog = rs.getString(1);
-          if (cacheCatalog) {
-            this.catalog = catalog;
-          }
+          this.catalog = catalog = rs.getString(1);
         }
       }
     }

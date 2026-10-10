@@ -137,14 +137,6 @@ public enum PGProperty {
       "Comma separated list of types to enable binary transfer. Either OID numbers or names."),
 
   /**
-   * Whether to cache the catalog name returned by {@link java.sql.Connection#getCatalog()}.
-   */
-  CACHE_CATALOG(
-      "cacheCatalog",
-      "true",
-      "Whether to cache the catalog name returned by Connection.getCatalog()."),
-
-  /**
    * Cancel command is sent out of band over its own connection, so cancel message can itself get
    * stuck.
    * This property controls "connect timeout" and "socket timeout" used for cancel commands.

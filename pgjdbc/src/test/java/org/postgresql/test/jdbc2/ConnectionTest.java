@@ -91,23 +91,6 @@ class ConnectionTest {
     stat.close();
   }
 
-  @Test
-  void getCatalogCacheOption() throws Exception {
-    Field catalogField = PgConnection.class.getDeclaredField("catalog");
-    catalogField.setAccessible(true);
-
-    String catalog = con.getCatalog();
-    assertEquals(catalog, catalogField.get(con));
-
-    Properties properties = new Properties();
-    PGProperty.CACHE_CATALOG.set(properties, false);
-    try (Connection uncachedConnection = TestUtil.openDB(properties)) {
-      assertEquals(catalog, uncachedConnection.getCatalog());
-      assertEquals(catalog, uncachedConnection.getCatalog());
-      assertNull(catalogField.get(uncachedConnection));
-    }
-  }
-
   /*
    * Tests the two forms of prepareStatement()
    */

@@ -1191,7 +1191,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       throws SQLException {
 
     // if the catalog is specified and does not equal the current catalog then return an empty resultset
-    if (catalog != null && !catalog.equals(connection.getCatalog())) {
+    if (catalog != null && !catalog.equals(connection.getCatalogForMetadata(catalog))) {
       int columns = 9;
       Field[] f = new Field[columns];
       List<Tuple> v = new ArrayList<>();
@@ -1245,7 +1245,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getProcedureColumns(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String procedureNamePattern, @Nullable String columnNamePattern)
       throws SQLException {
-    String currentCatalog = connection.getCatalog();
+    String currentCatalog = connection.getCatalogForMetadata(catalog);
     int columns = 20;
 
     Field[] f = new Field[columns];
@@ -1459,7 +1459,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     String orderby;
     String useSchemas = "SCHEMAS";
     int columns = 10;
-    if (catalog != null && !catalog.equals(connection.getCatalog())) {
+    if (catalog != null && !catalog.equals(connection.getCatalogForMetadata(catalog))) {
       Field[] f = new Field[columns];
       List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
       f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
@@ -1654,7 +1654,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getSchemas(@Nullable String catalog, @Nullable String schemaPattern)
       throws SQLException {
-    if (catalog != null && !catalog.equals(connection.getCatalog())) {
+    if (catalog != null && !catalog.equals(connection.getCatalogForMetadata(catalog))) {
       int columns = 2;
       Field[] f = new Field[columns];
       List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
@@ -1711,7 +1711,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String tableNamePattern,
       @Nullable String columnNamePattern) throws SQLException {
 
-    String currentCatalog = connection.getCatalog();
+    String currentCatalog = connection.getCatalogForMetadata(catalog);
     int numberOfFields = 24; // JDBC4
     List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
     Field[] f = new Field[numberOfFields]; // The field descriptors for the new ResultSet
@@ -1965,7 +1965,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getColumnPrivileges(@Nullable String catalog, @Nullable String schema,
       String table, @Nullable String columnNamePattern) throws SQLException {
-    String currentCatalog = connection.getCatalog();
+    String currentCatalog = connection.getCatalogForMetadata(catalog);
     Field[] f = new Field[8];
     List<Tuple> v = new ArrayList<>();
 
@@ -2060,7 +2060,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getTablePrivileges(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String tableNamePattern) throws SQLException {
-    String currentCatalog = connection.getCatalog();
+    String currentCatalog = connection.getCatalogForMetadata(catalog);
     Field[] f = new Field[7];
     List<Tuple> v = new ArrayList<>();
 
@@ -2303,7 +2303,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getBestRowIdentifier(
       @Nullable String catalog, @Nullable String schema, String table,
       int scope, boolean nullable) throws SQLException {
-    String currentCatalog = connection.getCatalog();
+    String currentCatalog = connection.getCatalogForMetadata(catalog);
     Field[] f = new Field[8];
     List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
 
@@ -2380,7 +2380,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getVersionColumns(
       @Nullable String catalog, @Nullable String schema, String table)
       throws SQLException {
-    String currentCatalog = connection.getCatalog();
+    String currentCatalog = connection.getCatalogForMetadata(catalog);
     Field[] f = new Field[8];
     List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
 
@@ -2428,7 +2428,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getPrimaryKeys(@Nullable String catalog, @Nullable String schema, String table)
       throws SQLException {
 
-    String currentCatalog = connection.getCatalog();
+    String currentCatalog = connection.getCatalogForMetadata(catalog);
     Field[] f = new Field[6];
     List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
 
@@ -2592,9 +2592,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[12] = new Field("PK_NAME", Oid.VARCHAR);
     f[13] = new Field("DEFERRABILITY", Oid.INT2);
 
-    if (primaryCatalog != null && !primaryCatalog.equals(connection.getCatalog())
-        || foreignCatalog != null && !foreignCatalog.equals(connection.getCatalog()))  {
-      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    if (primaryCatalog != null || foreignCatalog != null) {
+      String currentCatalog = connection.getCatalogForMetadata(primaryCatalog, foreignCatalog);
+      if (primaryCatalog != null && !primaryCatalog.equals(currentCatalog)
+          || foreignCatalog != null && !foreignCatalog.equals(currentCatalog)) {
+        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+      }
     }
     /*
      * The addition of the pg_constraint in 7.3 table should have really helped us out here, but it
@@ -2847,7 +2850,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String catalog, @Nullable String schema, String tableName,
       boolean unique, boolean approximate) throws SQLException {
 
-    String currentCatalog = connection.getCatalog();
+    String currentCatalog = connection.getCatalogForMetadata(catalog);
     Field[] f = new Field[14];
     List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
 
@@ -3078,7 +3081,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getUDTs(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String typeNamePattern, int @Nullable [] types) throws SQLException {
 
-    String currentCatalog = connection.getCatalog();
+    String currentCatalog = connection.getCatalogForMetadata(catalog);
     Field[] f = new Field[7];
     List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
 
@@ -3267,7 +3270,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String functionNamePattern)
       throws SQLException {
 
-    String currentCatalog = connection.getCatalog();
+    String currentCatalog = connection.getCatalogForMetadata(catalog);
     Field[] f = new Field[7];
     List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
 
@@ -3338,7 +3341,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String functionNamePattern, @Nullable String columnNamePattern)
       throws SQLException {
     int columns = 17;
-    String currentCatalog = connection.getCatalog();
+    String currentCatalog = connection.getCatalogForMetadata(catalog);
 
     Field[] f = new Field[columns];
     List<Tuple> v = new ArrayList<>();
