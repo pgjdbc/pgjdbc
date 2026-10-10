@@ -1,0 +1,55 @@
+{{- /*
+  The release lists on the home page and the download page come from the
+  changelog front matter, read here, so a release is added by adding one
+  changelog file. The CONTRIBUTING.md subsection "Updating the website" lists
+  the rules and the build errors.
+  "current" is missing when no changelog is a release.
+*/ -}}
+{{- $versionRE := `^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$` -}}
+{{- $list := slice -}}
+{{- range (site.GetPage "/changelogs").RegularPages -}}
+  {{- $path := .File.Path -}}
+  {{- $name := .File.ContentBaseName -}}
+  {{- $isReleaseName := hasSuffix $name "-release" -}}
+  {{- $version := "" -}}
+  {{- with .Params.version -}}
+    {{- $version = printf "%v" . -}}
+  {{- end -}}
+  {{- $match := findRESubmatch $versionRE $version 1 -}}
+  {{- if and (findRE `[0-9]+\.[0-9]+\.[0-9]+` $name 1) (not $isReleaseName) -}}
+    {{- errorf
+      "changelog %s: a file whose name contains a version must end in -release.md"
+      $path -}}
+  {{- else if $match -}}
+    {{- $m := index $match 0 -}}
+    {{- if .Date.IsZero -}}
+      {{- errorf "changelog %s: release %s has no date" $path $version -}}
+    {{- end -}}
+    {{- $key := printf "%05d%05d%05d"
+      (int (index $m 1)) (int (index $m 2)) (int (index $m 3)) -}}
+    {{- $line := printf "%s.%s" (index $m 1) (index $m 2) -}}
+    {{- $list = $list | append (dict
+      "key" $key "version" $version "line" $line "page" .) -}}
+  {{- else if $isReleaseName -}}
+    {{- errorf
+      "changelog %s: a file named *-release.md must set version to three numbers separated by dots, each without a leading zero, found %q"
+      $path $version -}}
+  {{- end -}}
+{{- end -}}
+{{- $sorted := sort $list "key" "desc" -}}
+{{- $prev := dict -}}
+{{- range $sorted -}}
+  {{- if eq .key ($prev.key | default "") -}}
+    {{- errorf "changelogs %s and %s both set version %s"
+      $prev.page.File.Path .page.File.Path .version -}}
+  {{- end -}}
+  {{- $prev = . -}}
+{{- end -}}
+{{- $result := dict "releases" $sorted -}}
+{{- with $sorted -}}
+  {{- $result = merge $result (dict "current" (index . 0)) -}}
+{{- else -}}
+  {{- errorf
+    "no changelog in content/changelogs sets version to three numbers separated by dots, each without a leading zero" -}}
+{{- end -}}
+{{- return $result -}}

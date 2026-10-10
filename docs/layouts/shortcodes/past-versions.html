@@ -1,5 +1,20 @@
+{{- $rel := partialCached "releases.html" site }}
+{{- with $rel.current }}
+{{- $current := . }}
+{{- /*
+  The releases arrive highest version first, so the first release seen in
+  each older minor line is the highest release of that line.
+*/}}
+{{- $prevLine := "" -}}
 <ul class="custom-marker">
-    {{ range $ind, $ver := $.Site.Data.versions.past }}
-    <li><a href="/download/postgresql-{{$ver.version}}{{if $ver.suffix}}.{{$ver.suffix}}{{end}}.jar">{{$ver.version}}{{if $ver.suffix}}.{{$ver.suffix}}{{end}}</a></li>
-    {{end}}
+    {{ range $rel.releases }}
+    {{- $show := ne .line $prevLine }}
+    {{- if eq .line $current.line }}{{ $show = ne .key $current.key }}{{ end }}
+    {{- if $show }}
+    {{- $url := partial "jar-url.html" (dict "version" .version "suffix" "") }}
+    <li><a href="{{ $url }}">{{ .version }}</a></li>
+    {{ end }}
+    {{- $prevLine = .line }}
+    {{- end }}
 </ul>
+{{- end }}
