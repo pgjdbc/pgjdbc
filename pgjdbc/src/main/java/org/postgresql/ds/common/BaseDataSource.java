@@ -1850,6 +1850,40 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.FLUSH_CACHE_ON_DDL.set(properties, flushCacheOnDdl);
   }
 
+  /**
+   * @return largest ErrorResponse message delivered whole, in bytes, or -1 for no limit
+   * @see PGProperty#MAX_ERROR_RESPONSE_LENGTH
+   */
+  public int getMaxErrorResponseLength() {
+    return PGProperty.MAX_ERROR_RESPONSE_LENGTH.getIntNoCheck(properties);
+  }
+
+  /**
+   * @param maxErrorResponseLength largest ErrorResponse message delivered whole, in bytes, or -1
+   *        for no limit
+   * @see PGProperty#MAX_ERROR_RESPONSE_LENGTH
+   */
+  public void setMaxErrorResponseLength(int maxErrorResponseLength) {
+    PGProperty.MAX_ERROR_RESPONSE_LENGTH.set(properties, maxErrorResponseLength);
+  }
+
+  /**
+   * @return largest NoticeResponse message delivered whole, in bytes, or -1 for no limit
+   * @see PGProperty#MAX_NOTICE_RESPONSE_LENGTH
+   */
+  public int getMaxNoticeResponseLength() {
+    return PGProperty.MAX_NOTICE_RESPONSE_LENGTH.getIntNoCheck(properties);
+  }
+
+  /**
+   * @param maxNoticeResponseLength largest NoticeResponse message delivered whole, in bytes, or
+   *        -1 for no limit
+   * @see PGProperty#MAX_NOTICE_RESPONSE_LENGTH
+   */
+  public void setMaxNoticeResponseLength(int maxNoticeResponseLength) {
+    PGProperty.MAX_NOTICE_RESPONSE_LENGTH.set(properties, maxNoticeResponseLength);
+  }
+
   public @Nullable String getMaxResultBuffer() {
     return PGProperty.MAX_RESULT_BUFFER.getOrDefault(properties);
   }
