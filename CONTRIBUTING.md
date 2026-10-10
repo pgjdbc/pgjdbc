@@ -215,6 +215,7 @@ The Java 7 and Java 6 cards on the download page name 42.2.29.jre7 and 42.2.27.j
 after 42.2.27 builds jre6 jars.
 
 Each jar link on the download page points at `/download/postgresql-<version>.jar`.
+[Deploying the website](#deploying-the-website) says where those files come from.
 
 Merging the changelog to `master` updates jdbc.postgresql.org.
 
@@ -229,6 +230,59 @@ The build fails when:
 
 A pull request that changes `docs/` runs this build. To see the pages before you open the pull request, run
 `hugo server` in `docs/`.
+
+### Deploying the website
+
+The deploy workflow, `.github/workflows/docs.yml`, builds the site and publishes it to GitHub Pages. It runs
+these steps:
+
+1. Hugo builds the pages from `docs/` into `docs/public/`.
+2. `docs/scripts/test-site-scripts.sh` tests `fetch-central.sh` against a copy of Maven Central in a temporary
+   directory, signed with a key that the test makes, and `check-site.sh` against fixture sites. It needs no
+   network.
+3. `docs/scripts/fetch-central.sh` reads the versions from Maven Central's `maven-metadata.xml` and downloads
+   the jar of every version from 42.0.0 on to `docs/public/download/postgresql-<version>.jar`. That includes the
+   jre6 and jre7 builds, and later major versions such as 43.0.0. It unpacks the Javadoc jar of the highest
+   version without a jre suffix into `docs/public/documentation/publicapi/`. It checks each file against the
+   SHA-1 that Maven Central publishes, and checks its `.asc` signature with `gpgv` against the release keys in
+   `docs/scripts/release-keys.asc`. It fails the run when a check fails. The jars of 42.2.14 to 42.2.16, with
+   their jre6 and jre7 builds, skip only the signature check. `fetch-central.sh` lists them and gives the reason.
+4. `docs/scripts/check-site.sh` fails the run when the site links no jar, when a linked jar is not in the site,
+   when the home page does not name exactly one current release, when the current release is not the version of
+   the Javadoc, or when the site holds a symbolic link. On a pull request, a jar or a Javadoc for a version that
+   Maven Central does not list yet is a warning instead, so that the pull request of a changelog can pass before
+   its release.
+5. On a pull request, actionlint checks `.github/workflows/docs.yml` and `.github/workflows/release.yml`.
+6. On every other run, the site is uploaded and deployed.
+
+A pull request that changes `docs/`, `.github/workflows/docs.yml`, `.github/workflows/release.yml` or
+`.github/actions/update_version/` runs steps 1 to 5 and does not deploy.
+
+`docs/scripts/release-keys.asc` holds the public keys whose fingerprints `docs/content/security/_index.md`
+lists, with their unexpired subkeys. When that page gets a new release key, add the key to the file, with
+`gpg --armor --export-options export-minimal --export <fingerprint>`, in the same pull request.
+
+To deploy the site, run the workflow on `master`:
+
+```sh
+gh workflow run docs.yml -R pgjdbc/pgjdbc --ref master
+```
+
+The `github-pages` environment refuses a deploy from a tag or a release branch. For a release that Maven
+Central may not list yet, add `-f version=<version>`: the run then adds that version to the list and retries its
+jar, and its Javadoc when it is the highest version, up to 30 times, 60 seconds apart.
+
+`hugo server` shows the pages without the jars and the Javadoc. To build the whole site locally, run from the
+repository root:
+
+```sh
+out=$(mktemp -d)/public
+hugo --minify -s docs -d "$out" && docs/scripts/fetch-central.sh "$out"
+```
+
+The fetch downloads about 133 MB (147 jars on 2026-10-10). It writes the version list to
+`$(dirname "$out")/central-versions.txt`, outside the site, and prints the Javadoc version. To check the site, run
+`docs/scripts/check-site.sh "$out" "$(dirname "$out")/central-versions.txt" <javadoc-version> deploy`.
 
 ## Dependencies
 
