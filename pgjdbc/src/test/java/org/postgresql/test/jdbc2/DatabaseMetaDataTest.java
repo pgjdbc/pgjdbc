@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.annotations.EnabledForServerVersionRange;
 import org.postgresql.test.jdbc2.BaseTest4.BinaryMode;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -322,6 +324,21 @@ public class DatabaseMetaDataTest {
     }
 
     rs.close();
+  }
+
+  @Test
+  void columns_whenCachedCatalogDiffersFromRequestedCatalog_refreshesCache() throws Exception {
+    String requestedCatalog = con.getCatalog();
+    Field catalogField = PgConnection.class.getDeclaredField("catalog");
+    catalogField.setAccessible(true);
+    catalogField.set(con.unwrap(PgConnection.class), "staleCatalog");
+
+    try (ResultSet rs = con.getMetaData().getColumns(requestedCatalog, null, "metadatatest", "id")) {
+      assertTrue(rs.next());
+      assertEquals("metadatatest", rs.getString("TABLE_NAME"));
+      assertEquals("id", rs.getString("COLUMN_NAME"));
+    }
+    assertEquals(requestedCatalog, con.getCatalog());
   }
 
   @Test
