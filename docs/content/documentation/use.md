@@ -517,10 +517,10 @@ By default, minimum of rows calculated by `adaptiveFetch` is 0.
 Specifies the highest number of rows which can be calculated by `adaptiveFetch`. Requires `adaptiveFetch` set to `true` to work.
 By default, maximum of rows calculated by `adaptiveFetch` is -1, which is understood as infinite.
 
-* **`logServerErrorDetail (`*boolean*`)`** *Default `true`*\
+* **`logServerErrorDetail (`*boolean*`)`** *Default `false`*\
 Whether to include server error details in exceptions and log messages (for example inlined query parameters).
-Setting to `false` will only include minimal, not sensitive messages.
-By default, this is set to `true`, server error details are propagated. This may include sensitive details such as query parameters.
+Setting to `true` will propagate full server error details, which may include sensitive information such as query parameters.
+By default, this is set to `false` to avoid leaking sensitive details.
 
 * **`quoteReturningIdentifiers (`*boolean*`)`** *Default `true`*\
 Quote returning columns. There are some ORM's that quote everything, including returning columns
