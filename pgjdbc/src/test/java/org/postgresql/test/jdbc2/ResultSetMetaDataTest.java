@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc2;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -263,7 +264,7 @@ public class ResultSetMetaDataTest extends BaseTest4 {
   }
 
   @Test
-  public void testClassesMatch() throws SQLException {
+  public void testClassesMatch() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate(
         "INSERT INTO alltypes (bool, i2, i4, i8, num, re, fl, ch, vc, tx, d, t, tz, ts, tsz, bt) VALUES ('t', 2, 4, 8, 3.1, 3.14, 3.141, 'c', 'vc', 'tx', '2004-04-09', '09:01:00', '11:11:00-01','2004-04-09 09:01:00','1999-09-19 14:23:12-09', '\\\\123')");
@@ -271,8 +272,28 @@ public class ResultSetMetaDataTest extends BaseTest4 {
     ResultSetMetaData rsmd = rs.getMetaData();
     assertTrue(rs.next());
     for (int i = 0; i < rsmd.getColumnCount(); i++) {
-      assertEquals(rs.getObject(i + 1).getClass().getName(), rsmd.getColumnClassName(i + 1));
+      // JDBC allows getObject to return a subclass of the class named by getColumnClassName
+      Class<?> declared = Class.forName(rsmd.getColumnClassName(i + 1));
+      assertInstanceOf(declared, rs.getObject(i + 1));
     }
+  }
+
+  /**
+   * NUMERIC can surface as Double for ±Infinity / NaN, so metadata must not claim only BigDecimal.
+   * See https://github.com/pgjdbc/pgjdbc/issues/3941
+   */
+  @Test
+  public void testNumericInfinityColumnClassName() throws Exception {
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT '+Infinity'::numeric AS a");
+    ResultSetMetaData rsmd = rs.getMetaData();
+    Class<?> declared = Class.forName(rsmd.getColumnClassName(1));
+    assertEquals(Number.class, declared);
+    assertTrue(rs.next());
+    assertInstanceOf(declared, rs.getObject(1));
+    assertEquals(Double.POSITIVE_INFINITY, ((Number) rs.getObject(1)).doubleValue());
+    rs.close();
+    stmt.close();
   }
 
   @Test
