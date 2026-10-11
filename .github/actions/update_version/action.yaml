@@ -1,4 +1,7 @@
 name: bump version in gradle.properties
+description: >-
+  Sets pgjdbc.version in gradle.properties, then commits and pushes the change
+  to the branch the workflow runs on.
 inputs:
   version:
     required: true
