@@ -22,6 +22,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.function.BiPredicate;
 
 /**
  * Test cases for the Parser.
@@ -268,6 +269,52 @@ class ParserTest {
     JdbcCallParseInfo parseInfo = Parser.modifyJdbcCall(sql, true, ServerVersion.v14.getVersionNum(),
         EscapeSyntaxCallMode.CALL);
     assertFalse(parseInfo.isFunction(), () -> "isFunction() should be false for: " + sql);
+  }
+
+  /**
+   * Every keyword matcher has to accept a keyword that ends exactly at the end of the input.
+   * parseInsertKeyword, parseBeginKeyword and parseAtomicKeyword demanded one character more than
+   * they read, so "insert" alone was not an INSERT while "insert;" was.
+   */
+  @Test
+  void keywordMatchersAcceptAKeywordAtTheEndOfTheInput() {
+    assertKeywordAtEnd("delete", Parser::parseDeleteKeyword);
+    assertKeywordAtEnd("insert", Parser::parseInsertKeyword);
+    assertKeywordAtEnd("begin", Parser::parseBeginKeyword);
+    assertKeywordAtEnd("atomic", Parser::parseAtomicKeyword);
+    assertKeywordAtEnd("move", Parser::parseMoveKeyword);
+    assertKeywordAtEnd("returning", Parser::parseReturningKeyword);
+    assertKeywordAtEnd("select", Parser::parseSelectKeyword);
+    assertKeywordAtEnd("alter", Parser::parseAlterKeyword);
+    assertKeywordAtEnd("create", Parser::parseCreateKeyword);
+    assertKeywordAtEnd("update", Parser::parseUpdateKeyword);
+    assertKeywordAtEnd("values", Parser::parseValuesKeyword);
+    assertKeywordAtEnd("with", Parser::parseWithKeyword);
+    assertKeywordAtEnd("as", Parser::parseAsKeyword);
+  }
+
+  private static void assertKeywordAtEnd(String keyword, BiPredicate<char[], Integer> matcher) {
+    assertTrue(matcher.test(keyword.toCharArray(), 0),
+        () -> keyword + " at the very end of the input");
+    assertTrue(matcher.test(("x " + keyword).toCharArray(), 2),
+        () -> keyword + " at the end, after other text");
+    assertTrue(matcher.test((keyword + " x").toCharArray(), 0),
+        () -> keyword + " followed by more text");
+    // One character short of the keyword is still not a match
+    assertFalse(matcher.test(keyword.substring(0, keyword.length() - 1).toCharArray(), 0),
+        () -> keyword + " truncated by one character");
+  }
+
+  /**
+   * A keyword that ends at the end of the input reaches the command-type detection now. SELECT
+   * already did, because its matcher asked for exactly the characters it reads.
+   */
+  @Test
+  void commandTypeOfAKeywordAtTheEndOfTheInput() throws SQLException {
+    assertEquals(SqlCommandType.INSERT,
+        Parser.parseJdbcSql("insert", true, true, true, true, true).get(0).command.getType());
+    assertEquals(SqlCommandType.SELECT,
+        Parser.parseJdbcSql("select", true, true, true, true, true).get(0).command.getType());
   }
 
   @Test
