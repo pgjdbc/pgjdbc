@@ -31,7 +31,9 @@ import java.util.List;
 public class Parser {
   /**
    * Parses JDBC query into PostgreSQL's native format. Several queries might be given if separated
-   * by semicolon.
+   * by semicolon. Without {@code splitStatements} they are concatenated into one native query,
+   * separators and all, and the returning columns are dropped: a query of several statements
+   * cannot report generated keys. A comment terminated by a semicolon counts as a statement.
    *
    * @param query                     jdbc query to parse
    * @param standardConformingStrings whether to allow backslashes to be used as escape characters
@@ -40,7 +42,9 @@ public class Parser {
    * @param splitStatements           whether to split statements by semicolon
    * @param isBatchedReWriteConfigured whether re-write optimization is enabled
    * @param quoteReturningIdentifiers whether to quote identifiers returned using returning clause
-   * @param returningColumnNames      for simple insert, update, delete add returning with given column names
+   * @param returningColumnNames      add returning with the given column names to every insert,
+   *                                  update, delete and with statement, unless the query holds
+   *                                  more than one statement
    * @return list of native queries
    * @throws SQLException if unable to add returning clause (invalid column names)
    */
@@ -152,13 +156,16 @@ public class Parser {
               nativeSql.append(aChars, fragmentStart, i - fragmentStart);
               whitespaceOnly = true;
             }
-            fragmentStart = i + 1;
+            // When the statements are not split, they are concatenated into a single native
+            // query, so the separator has to survive: the next fragment starts at the ';' rather
+            // than past it. A trailing ';' is left out, as the fragment after it is whitespace.
+            fragmentStart = splitStatements || nativeSql.length() == 0 ? i + 1 : i;
             if (nativeSql.length() > 0) {
-              if (addReturning(nativeSql, currentCommandType, returningColumnNames, isReturningPresent, quoteReturningIdentifiers)) {
-                isReturningPresent = true;
-              }
-
               if (splitStatements) {
+                if (addReturning(nativeSql, currentCommandType, returningColumnNames, isReturningPresent, quoteReturningIdentifiers)) {
+                  isReturningPresent = true;
+                }
+
                 if (nativeQueries == null) {
                   nativeQueries = new ArrayList<>();
                 }
@@ -296,6 +303,13 @@ public class Parser {
 
     if (fragmentStart < aChars.length && !whitespaceOnly) {
       nativeSql.append(aChars, fragmentStart, aChars.length - fragmentStart);
+      if (!splitStatements && numberOfStatements > 0) {
+        // Unsplit statements share one native query, so nativeSql already holds the earlier ones
+        // and the trailing statement is not the whole query. A RETURNING clause on it would make
+        // a multi-statement query return rows that no caller reads.
+        isReturningPresent = false;
+        currentCommandType = SqlCommandType.BLANK;
+      }
     } else {
       if (numberOfStatements > 1) {
         isReturningPresent = false;

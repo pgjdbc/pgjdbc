@@ -62,13 +62,28 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
       returningColumns = EMPTY_RETURNING;
     }
 
-    List<NativeQuery> queries = Parser.parseJdbcSql(parsedSql,
-        queryExecutor.getStandardConformingStrings(), isParameterized, splitStatements,
-        queryExecutor.isReWriteBatchedInsertsEnabled(), queryExecutor.getQuoteReturningIdentifiers(),
-        returningColumns
-        );
+    List<NativeQuery> queries = parse(parsedSql, isParameterized, splitStatements, returningColumns);
+
+    if (returningColumns.length > 0 && queries.size() > 1) {
+      // Multi-statement SQL is wrapped in a CompositeQuery, which carries no SqlCommand, so
+      // PgConnection and PgStatement ignore generated keys for it. The RETURNING clause added to
+      // each statement would then produce rows that nothing reads, and executeUpdate would
+      // fail with "A result was returned when none was expected". JDBC allows a driver to ignore
+      // the column names when the statement cannot return generated keys, so parse again without
+      // them. Modes that do not split statements are handled by the parser itself, which knows
+      // the statement count without a second pass.
+      queries = parse(parsedSql, isParameterized, splitStatements, EMPTY_RETURNING);
+    }
 
     Query query = queryExecutor.wrap(queries);
     return new CachedQuery(key, query, isFunction);
+  }
+
+  private List<NativeQuery> parse(String sql, boolean isParameterized, boolean splitStatements,
+      String[] returningColumns) throws SQLException {
+    return Parser.parseJdbcSql(sql,
+        queryExecutor.getStandardConformingStrings(), isParameterized, splitStatements,
+        queryExecutor.isReWriteBatchedInsertsEnabled(), queryExecutor.getQuoteReturningIdentifiers(),
+        returningColumns);
   }
 }
