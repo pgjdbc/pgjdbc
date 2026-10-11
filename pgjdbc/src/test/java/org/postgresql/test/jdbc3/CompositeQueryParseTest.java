@@ -16,6 +16,7 @@ import org.postgresql.core.SqlCommandType;
 import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 class CompositeQueryParseTest {
@@ -197,6 +198,22 @@ class CompositeQueryParseTest {
         reparse("select 1;/* noop */;select 2", true, false, true));
   }
 
+  @Test
+  void compositeSelectOriginalSql() {
+    List<String> originalQueries = getOriginalSql("select 1;select 2", true, false, true);
+    assertEquals(2, originalQueries.size());
+    assertEquals("select 1;", originalQueries.get(0));
+    assertEquals("select 2", originalQueries.get(1));
+  }
+
+  @Test
+  void compositeParametrizedSelectOriginalSql() {
+    List<String> originalQueries = getOriginalSql("select * from table where a = ?;select * from table where a = ?;", true, true, true);
+    assertEquals(2, originalQueries.size());
+    assertEquals("select * from table where a = ?;", originalQueries.get(0));
+    assertEquals("select * from table where a = ?;", originalQueries.get(1));
+  }
+
   private static String reparse(String query, boolean standardConformingStrings, boolean withParameters,
       boolean splitStatements) {
     try {
@@ -214,7 +231,22 @@ class CompositeQueryParseTest {
         sb.append(";/*cut*/\n");
       }
       sb.append(query.nativeSql);
+      System.out.println("TO STRING :" + query.nativeSql.toString());
     }
     return sb.toString();
+  }
+
+  private static List<String> getOriginalSql(String query, boolean standardConformingStrings, boolean withParameters,
+      boolean splitStatements) {
+    try {
+      List<NativeQuery> queries = Parser.parseJdbcSql(query, standardConformingStrings, withParameters, splitStatements, false, true);
+      List<String> originalQueries = new ArrayList<>(queries.size());
+      for (NativeQuery nativeQuery : queries) {
+        originalQueries.add(nativeQuery.originalSql);
+      }
+      return originalQueries;
+    } catch (SQLException e) {
+      throw new IllegalStateException("Parser.parseJdbcSql: " + e.getMessage(), e);
+    }
   }
 }
