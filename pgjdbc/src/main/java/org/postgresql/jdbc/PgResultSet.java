@@ -201,6 +201,14 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return getURL(findColumn(columnName));
   }
 
+  // Matched on oid, not name: getPGType(int) returns "public"."hstore" when the type is off the
+  // search_path. The lookup is cached, so this is not a catalog query per value.
+  @Pure
+  private boolean isHStore(Field field) throws SQLException {
+    int hstoreOid = connection.getTypeInfo().getPGType("hstore");
+    return hstoreOid != Oid.UNSPECIFIED && field.getOID() == hstoreOid;
+  }
+
   @RequiresNonNull({"thisRow"})
   protected @Nullable Object internalGetObject(@Positive int columnIndex, Field field) throws SQLException {
     castNonNull(thisRow, "thisRow");
@@ -305,7 +313,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
           ((PgResultSet) rs).closeRefCursor();
           return rs;
         }
-        if ("hstore".equals(type)) {
+        if (isHStore(field)) {
           if (isBinary(columnIndex)) {
             return HStoreConverter.fromBytes(castNonNull(thisRow.get(columnIndex - 1)),
                 connection.getEncoding());
@@ -2449,7 +2457,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         }
         return obj.toString();
       }
-      if ("hstore".equals(getPGType(columnIndex))) {
+      if (isHStore(field)) {
         return HStoreConverter.toString((Map<?, ?>) obj);
       }
       return trimString(columnIndex, obj.toString());
