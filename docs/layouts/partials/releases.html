@@ -45,6 +45,20 @@
   {{- end -}}
   {{- $prev = . -}}
 {{- end -}}
+{{- /*
+  The release workflow sets HUGO_PARAMS_RELEASEVERSION to the version it is
+  about to publish, and the deploy workflow to its version input, so a
+  version without a changelog fails the build. In the release workflow that
+  stops the release before Maven Central.
+*/ -}}
+{{- with site.Params.releaseversion -}}
+  {{- $want := printf "%v" . -}}
+  {{- if not (where $sorted "version" $want) -}}
+    {{- errorf
+      "no changelog in content/changelogs sets version %s, which HUGO_PARAMS_RELEASEVERSION names"
+      $want -}}
+  {{- end -}}
+{{- end -}}
 {{- $result := dict "releases" $sorted -}}
 {{- with $sorted -}}
   {{- $result = merge $result (dict "current" (index . 0)) -}}

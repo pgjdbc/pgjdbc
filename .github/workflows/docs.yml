@@ -51,8 +51,30 @@ jobs:
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
       - name: Build
+        env:
+          HUGO_PARAMS_RELEASEVERSION: ${{ inputs.version }}
         run: hugo --minify
         working-directory: ./docs
+
+      # Invariant I6 in docs/layouts/partials/releases.html is what stops a
+      # release without a changelog in release.yml, which cannot run on a
+      # pull request, so every run checks that I6 fails the build.
+      - name: Check that a missing changelog fails the build
+        # language=bash
+        run: |
+          log=$RUNNER_TEMP/i6.log
+          if HUGO_PARAMS_RELEASEVERSION=0.0.0 \
+            hugo -s docs -d "$RUNNER_TEMP/i6" > "$log" 2>&1; then
+            echo "::error::the build did not fail for a version that no" \
+              "changelog sets; check I6 in docs/layouts/partials/releases.html"
+            exit 1
+          fi
+          want='sets version 0.0.0, which HUGO_PARAMS_RELEASEVERSION names'
+          if ! grep -qF "$want" "$log"; then
+            cat "$log"
+            echo "::error::the build failed for another reason than I6"
+            exit 1
+          fi
 
       - name: Test the scripts
         run: docs/scripts/test-site-scripts.sh
