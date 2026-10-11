@@ -23,10 +23,13 @@ import java.math.BigDecimal;
 import java.sql.Array;
 import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
 
 /**
@@ -73,6 +76,26 @@ public class CallableStmtTest extends BaseTest4 {
             "CREATE OR REPLACE FUNCTION testspg__getarray() RETURNS int[] as "
                 + "'SELECT ''{1,2}''::int[];' LANGUAGE sql");
         stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getTimestampWithoutTimeZoneWithoutArg() "
+                + "RETURNS timestamp without time zone AS '  "
+                + "begin return TIMESTAMP WITHOUT TIME ZONE ''2004-10-19 10:23:54.000123''; end; ' LANGUAGE plpgsql;");
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getTimestampWithTimeZoneWithoutArg() "
+                + "RETURNS timestamp with time zone AS '  "
+                + "begin return TIMESTAMP WITH TIME ZONE ''2004-10-19 10:23:54.000123+02''; end; ' LANGUAGE plpgsql;");
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getDateWithoutArg() "
+                + "RETURNS date AS '  "
+                + "begin return DATE ''2004-10-19''; end; ' LANGUAGE plpgsql;");
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getTimeWithoutTimeZoneWithoutArg() "
+                + "RETURNS time without time zone AS '  "
+                + "begin return TIME WITHOUT TIME ZONE ''10:23:54''; end; ' LANGUAGE plpgsql;");
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getTimeWithTimeZoneWithoutArg() "
+                + "RETURNS time with time zone AS '  "
+                + "begin return TIME WITH TIME ZONE ''10:23:54+02''; end; ' LANGUAGE plpgsql;");
+        stmt.execute(
             "CREATE OR REPLACE FUNCTION testspg__raisenotice() RETURNS int as "
                 + "'BEGIN RAISE NOTICE ''hello'';  RAISE NOTICE ''goodbye''; RETURN 1; END;' LANGUAGE plpgsql");
         stmt.execute(
@@ -94,6 +117,11 @@ public class CallableStmtTest extends BaseTest4 {
       stmt.execute("drop FUNCTION IF EXISTS testspg__getNumeric (numeric);");
       stmt.execute("drop FUNCTION IF EXISTS testspg__getNumericWithoutArg ();");
       stmt.execute("DROP FUNCTION IF EXISTS testspg__getarray();");
+      stmt.execute("drop FUNCTION IF EXISTS testspg__getTimestampWithoutTimeZoneWithoutArg ();");
+      stmt.execute("drop FUNCTION IF EXISTS testspg__getTimestampWithTimeZoneWithoutArg ();");
+      stmt.execute("drop FUNCTION IF EXISTS testspg__getDateWithoutArg ();");
+      stmt.execute("drop FUNCTION IF EXISTS testspg__getTimeWithoutTimeZoneWithoutArg ();");
+      stmt.execute("drop FUNCTION IF EXISTS testspg__getTimeWithTimeZoneWithoutArg ();");
       stmt.execute("DROP FUNCTION IF EXISTS testspg__raisenotice();");
       stmt.execute("DROP FUNCTION IF EXISTS testspg__insertInt(int);");
       TestUtil.dropTable(con, "int_table");
@@ -188,6 +216,60 @@ public class CallableStmtTest extends BaseTest4 {
     call.registerOutParameter(1, Types.NUMERIC);
     call.execute();
     assertEquals(new BigDecimal(42), call.getBigDecimal(1));
+  }
+
+  @Test
+  public void testGetTimestampWithoutTimeZoneWithoutArg() throws SQLException {
+    try (CallableStatement call = con.prepareCall(func + pkgName + "getTimestampWithoutTimeZoneWithoutArg () }")) {
+      call.registerOutParameter(1, Types.TIMESTAMP);
+      call.execute();
+      assertEquals(Timestamp.valueOf("2004-10-19 10:23:54.000123"), call.getTimestamp(1));
+    }
+  }
+
+  @Test
+  public void testGetTimestampWithoutTimeZoneWithoutArgCalendar() throws SQLException {
+    try (CallableStatement call = con.prepareCall(func + pkgName + "getTimestampWithoutTimeZoneWithoutArg () }")) {
+      call.registerOutParameter(1, Types.TIMESTAMP);
+      call.execute();
+      assertEquals(Timestamp.valueOf("2004-10-19 10:23:54.000123"), call.getTimestamp(1, null));
+    }
+  }
+
+  @Test
+  public void testGetDateWithoutArgWithoutArg() throws SQLException {
+    try (CallableStatement call = con.prepareCall(func + pkgName + "getDateWithoutArg () }")) {
+      call.registerOutParameter(1, Types.DATE);
+      call.execute();
+      assertEquals(Date.valueOf("2004-10-19"), call.getDate(1));
+    }
+  }
+
+  @Test
+  public void testGetDateWithoutArgWithoutArgCalendar() throws SQLException {
+    try (CallableStatement call = con.prepareCall(func + pkgName + "getDateWithoutArg () }")) {
+      call.registerOutParameter(1, Types.DATE);
+      call.execute();
+      assertEquals(Date.valueOf("2004-10-19"), call.getDate(1, null));
+    }
+  }
+
+  @Test
+  public void testGetTimeWithoutTimeZoneWithoutArg() throws SQLException {
+    try (CallableStatement call = con.prepareCall(func + pkgName + "getTimeWithoutTimeZoneWithoutArg () }")) {
+      call.registerOutParameter(1, Types.TIME);
+      call.execute();
+      assertEquals(Time.valueOf("10:23:54"), call.getTime(1));
+    }
+  }
+
+  @Test
+  public void testGetTimeWithoutTimeZoneWithoutArgCalendar() throws SQLException {
+    try (CallableStatement call = con.prepareCall(func + pkgName + "getTimeWithoutTimeZoneWithoutArg () }")) {
+      call.registerOutParameter(1, Types.TIME);
+      call.execute();
+      assertEquals(Time.valueOf("10:23:54"), call.getTime(1, null));
+    }
   }
 
   @Test
