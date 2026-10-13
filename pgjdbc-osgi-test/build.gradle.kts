@@ -36,7 +36,7 @@ dependencies {
     testImplementation("ch.qos.logback:logback-core:1.6.3")
     testImplementation("ch.qos.logback:logback-classic:1.6.3")
     testRuntimeOnly(platform("org.ow2.asm:asm-bom:9.10.1"))
-    testRuntimeOnly("org.apache.aries.spifly:org.apache.aries.spifly.dynamic.bundle:1.3.7")
+    testRuntimeOnly("org.apache.aries.spifly:org.apache.aries.spifly.dynamic.bundle:1.3.8")
 }
 
 // <editor-fold defaultstate="collapsed" desc="Pass dependency versions to pax-exam container">
