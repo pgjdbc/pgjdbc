@@ -292,3 +292,114 @@ if check pr; then fail "17: a symbolic link in the site passes"; fi
 grep -q 'download/leak is a symbolic link' "$work/log" ||
   fail "17: the message does not name the symbolic link"
 echo "PASS 17: a symbolic link in the site fails"
+
+# row <path> <file>: prints the manifest row of <path> under the name
+# <file>.
+row() {
+  printf '%s\t%s\t%s\tlegacy\n' "$2" "$(wc -c < "$1" | tr -d ' ')" \
+    "$(sha256sum "$1" | cut -c1-64)"
+}
+
+# legacy [<file>]: writes a directory of two old jars that LEGACY_URL
+# points at, and a manifest of them in LEGACY_MANIFEST. With <file>, the
+# manifest names <file> in place of the second jar. The site already has
+# postgresql-42.0.0.jar, as fetch-central.sh writes it.
+legacy() {
+  rm -rf "$work/legacy" "$work/out"
+  mkdir -p "$work/legacy" "$work/out/site/download"
+  echo "old jar 1" > "$work/legacy/pg73jdbc1.jar"
+  echo "old jar 2" > "$work/legacy/postgresql-8.0-310.jdbc2.jar"
+  echo "jar 42.0.0" > "$work/out/site/download/postgresql-42.0.0.jar"
+  export LEGACY_URL=file://$work/legacy
+  export LEGACY_MANIFEST=$work/legacy.tsv
+  {
+    printf 'file\tbytes\tsha256\tsource\n'
+    row "$work/legacy/pg73jdbc1.jar" pg73jdbc1.jar
+    row "$work/legacy/postgresql-8.0-310.jdbc2.jar" \
+      "${1:-postgresql-8.0-310.jdbc2.jar}"
+  } > "$LEGACY_MANIFEST"
+}
+
+# fetch_legacy: runs fetch-legacy.sh on the site, with its output in
+# $work/log.
+fetch_legacy() {
+  "$scripts/fetch-legacy.sh" "$work/out/site" > "$work/log" 2>&1
+}
+
+legacy
+fetch_legacy || fail "18: fetch from a correct manifest"
+for jar in pg73jdbc1.jar postgresql-8.0-310.jdbc2.jar; do
+  cmp -s "$work/legacy/$jar" "$work/out/site/download/$jar" ||
+    fail "18: $jar is not in download/ with its bytes"
+done
+echo "PASS 18: a correct manifest puts the old jars into download/"
+
+legacy
+zeros=$(printf '%064d' 0)
+sed -i.bak "2s/[0-9a-f]\{64\}/$zeros/" "$LEGACY_MANIFEST"
+if fetch_legacy; then fail "19: a wrong sha256 is accepted"; fi
+grep -q "does not match the manifest's" "$work/log" ||
+  fail "19: the message does not name the SHA-256 mismatch"
+echo "PASS 19: a wrong sha256 fails the fetch"
+
+legacy
+sed -i.bak $'2s/\t[0-9]*\t/\t1\t/' "$LEGACY_MANIFEST"
+if fetch_legacy; then fail "20: a wrong bytes is accepted"; fi
+grep -q 'bytes, but the manifest pins' "$work/log" ||
+  fail "20: the message does not name the size mismatch"
+echo "PASS 20: a wrong bytes fails the fetch"
+
+legacy postgresql-8.0-311.jdbc2.jar
+if fetch_legacy; then fail "21: a file missing from the release passes"; fi
+grep -q 'is not in the release legacy-downloads' "$work/log" ||
+  fail "21: the message does not name the missing file"
+echo "PASS 21: a file missing from the release fails the fetch"
+
+for name in ../x.jar a/b.jar .x.jar x.txt x..y.jar; do
+  legacy "$name"
+  if fetch_legacy; then fail "22: the name $name is accepted"; fi
+  grep -q 'is not a file name this site serves' "$work/log" ||
+    fail "22: the message does not refuse the name $name"
+done
+echo "PASS 22: a name that is not a jar in download/ fails the fetch"
+
+legacy postgresql-42.0.0.jar
+if fetch_legacy; then fail "23: a manifest row replaces a Central jar"; fi
+grep -q 'already wrote it' "$work/log" ||
+  fail "23: the message does not name the Central jar"
+echo "PASS 23: a manifest row cannot replace a jar from Central"
+
+legacy
+sed -i.bak '1s/^file/name/' "$LEGACY_MANIFEST"
+if fetch_legacy; then fail "24: a manifest with another header passes"; fi
+grep -q 'the header is not file, bytes, sha256, source' "$work/log" ||
+  fail "24: the message does not name the header"
+echo "PASS 24: a manifest with another header fails the fetch"
+
+# Each bad row is line 3 of its manifest, after a correct line 2. The last
+# one quotes the name: csv's default quoting would read it as a correct
+# row, but with quoting turned off the quotes stay part of the name.
+legacy
+jar=postgresql-8.0-310.jdbc2.jar
+bytes=$(wc -c < "$work/legacy/$jar" | tr -d ' ')
+sha=$(sha256sum "$work/legacy/$jar" | cut -c1-64)
+upper=$(tr 'a-f' 'A-F' <<< "$sha")
+tab=$'\t'
+bad_rows=(
+  "pg73jdbc1.jar$tab$bytes$tab$sha${tab}legacy"
+  "$jar$tab$bytes${tab}legacy"
+  "$jar${tab}1x$tab$sha${tab}legacy"
+  "$jar$tab$bytes$tab$upper${tab}legacy"
+  "$jar$tab$bytes$tab$sha${tab}foo"
+  "\"$jar\"$tab$bytes$tab$sha${tab}legacy"
+)
+for bad in "${bad_rows[@]}"; do
+  legacy
+  { head -2 "$LEGACY_MANIFEST"; printf '%s\n' "$bad"; } > "$work/bad.tsv"
+  mv "$work/bad.tsv" "$LEGACY_MANIFEST"
+  if fetch_legacy; then fail "25: the bad row $bad is accepted"; fi
+  grep -q 'legacy.tsv line 3: ' "$work/log" ||
+    fail "25: the message for the bad row $bad does not name line 3"
+done
+echo "PASS 25: a repeated name, a wrong field count, bytes, sha256 or" \
+  "source, and a quoted field each fail the fetch"

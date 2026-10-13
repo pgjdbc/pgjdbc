@@ -270,8 +270,8 @@ these steps:
 2. A second Hugo build, with the version 0.0.0, must fail with the error for a version that no changelog sets.
    This shows that the version check, which also stops a release without a changelog, works.
 3. `docs/scripts/test-site-scripts.sh` tests `fetch-central.sh` against a copy of Maven Central in a temporary
-   directory, signed with a key that the test makes, and `check-site.sh` against fixture sites. It needs no
-   network.
+   directory, signed with a key that the test makes, `fetch-legacy.sh` against a local directory of jars, and
+   `check-site.sh` against fixture sites. It needs no network.
 4. `docs/scripts/fetch-central.sh` reads the versions from Maven Central's `maven-metadata.xml` and downloads
    the jar of every version from 42.0.0 on to `docs/public/download/postgresql-<version>.jar`. That includes the
    jre6 and jre7 builds, and later major versions such as 43.0.0. It unpacks the Javadoc jar of the highest
@@ -279,13 +279,15 @@ these steps:
    SHA-1 that Maven Central publishes, and checks its `.asc` signature with `gpgv` against the release keys in
    `docs/scripts/release-keys.asc`. It fails the run when a check fails. The jars of 42.2.14 to 42.2.16, with
    their jre6 and jre7 builds, skip only the signature check. `fetch-central.sh` lists them and gives the reason.
-5. `docs/scripts/check-site.sh` fails the run when the site links no jar, when a linked jar is not in the site,
+5. `docs/scripts/fetch-legacy.sh` copies the old jars listed in `docs/scripts/legacy-downloads.tsv` from the
+   GitHub release `legacy-downloads` into `/download/`, after checking each file's size and SHA-256.
+6. `docs/scripts/check-site.sh` fails the run when the site links no jar, when a linked jar is not in the site,
    when the home page does not name exactly one current release, when the current release is not the version of
    the Javadoc, or when the site holds a symbolic link. On a pull request, a jar or a Javadoc for a version that
    Maven Central does not list yet is a warning instead, so that the pull request of a changelog can pass before
    its release.
-6. On a pull request, actionlint checks `.github/workflows/docs.yml` and `.github/workflows/release.yml`.
-7. On every other run, the site is uploaded and deployed.
+7. On a pull request, actionlint checks `.github/workflows/docs.yml` and `.github/workflows/release.yml`.
+8. On every other run, the site is uploaded and deployed.
 
 A pull request that changes `docs/`, `.github/workflows/docs.yml`, `.github/workflows/release.yml` or
 `.github/actions/update_version/` runs every step except the upload and the deploy.
@@ -293,6 +295,9 @@ A pull request that changes `docs/`, `.github/workflows/docs.yml`, `.github/work
 `docs/scripts/release-keys.asc` holds the public keys whose fingerprints `docs/content/security/_index.md`
 lists, with their unexpired subkeys. When that page gets a new release key, add the key to the file, with
 `gpg --armor --export-options export-minimal --export <fingerprint>`, in the same pull request.
+
+A change to the set of old jars is a pull request that edits `docs/scripts/legacy-downloads.tsv`. Upload a new
+file to the release `legacy-downloads` before the pull request merges, and delete a removed one after.
 
 To deploy the site, run the workflow on `master`:
 
@@ -309,10 +314,13 @@ repository root:
 
 ```sh
 out=$(mktemp -d)/public
-hugo --minify -s docs -d "$out" && docs/scripts/fetch-central.sh "$out"
+hugo --minify -s docs -d "$out" && \
+  docs/scripts/fetch-central.sh "$out" && \
+  docs/scripts/fetch-legacy.sh "$out"
 ```
 
-The fetch downloads about 133 MB (147 jars on 2026-10-10). It writes the version list to
+The two fetches download about 133 MB from Maven Central (147 jars on 2026-10-10) and 139329491 bytes, about
+139 MB, from the release `legacy-downloads` (343 jars). `fetch-central.sh` writes the version list to
 `$(dirname "$out")/central-versions.txt`, outside the site, and prints the Javadoc version. To check the site, run
 `docs/scripts/check-site.sh "$out" "$(dirname "$out")/central-versions.txt" <javadoc-version> deploy`.
 

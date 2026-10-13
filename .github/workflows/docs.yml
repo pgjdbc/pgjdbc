@@ -85,6 +85,9 @@ jobs:
           RELEASE_VERSION: ${{ inputs.version }}
         run: docs/scripts/fetch-central.sh docs/public "$RELEASE_VERSION"
 
+      - name: Fetch the old jars
+        run: docs/scripts/fetch-legacy.sh docs/public
+
       - name: Check the site against Maven Central
         env:
           JAVADOC_VERSION: ${{ steps.fetch.outputs.javadoc-version }}
