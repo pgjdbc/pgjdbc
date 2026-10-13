@@ -1,4 +1,7 @@
 name: bump version in gradle.properties
+description: >-
+  Sets pgjdbc.version in gradle.properties, then commits and pushes the change
+  to the branch the workflow runs on.
 inputs:
   version:
     required: true
@@ -19,10 +22,20 @@ runs:
 
     - name: update version
       shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
       # language=bash
       run: |
+        # The version goes into a sed script, and GNU sed's e command runs
+        # shell, so the action accepts only three numbers separated by dots.
+        if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "::error::update_version got version '${VERSION}'," \
+            "which is not three numbers separated by dots"
+          exit 1
+        fi
+
         # Check if version needs to be updated to
-        VERSION_LINE="pgjdbc.version=${{ inputs.version }}"
+        VERSION_LINE="pgjdbc.version=${VERSION}"
         if grep -q "^${VERSION_LINE}$" gradle.properties; then
           echo "Version is already up to date"
           exit 0
@@ -33,8 +46,8 @@ runs:
 
         # Commit and push changes
         git add gradle.properties
-        git commit -m "chore: bump version to ${{ inputs.version }}" -m "[ci-skip]"
-        git push origin "${{ github.ref_name }}"
+        git commit -m "chore: bump version to ${VERSION}" -m "[ci-skip]"
+        git push origin "$GITHUB_REF_NAME"
 
     - name: Update the worktree, revert to the default token
       uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
