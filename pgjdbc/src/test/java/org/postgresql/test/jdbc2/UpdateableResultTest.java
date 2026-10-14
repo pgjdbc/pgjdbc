@@ -149,6 +149,96 @@ public class UpdateableResultTest extends BaseTest4 {
   }
 
   @Test
+  public void testUpdateWithScalarSubqueryInSelectList() throws Exception {
+    TestUtil.execute(con, "insert into updateable (id, name) values (1, 'original')");
+
+    Statement st =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery(
+        "select id, name, (select name1 from second where id1 = updateable.id) as other "
+            + "from updateable where id = 1");
+
+    assertTrue(rs.next());
+    rs.updateString("name", "updated");
+    rs.updateRow();
+    rs.close();
+    st.close();
+
+    ResultSet updated =
+        con.createStatement().executeQuery("select name from updateable where id = 1");
+    assertTrue(updated.next());
+    assertEquals("updated", updated.getString(1));
+    updated.close();
+
+    ResultSet untouched =
+        con.createStatement().executeQuery("select name1 from second where id1 = 1");
+    assertTrue(untouched.next());
+    assertEquals("anyvalue", untouched.getString(1));
+    untouched.close();
+  }
+
+  @Test
+  public void testUpdateWithParenthesisInStringLiteral() throws Exception {
+    TestUtil.execute(con, "insert into updateable (id, name) values (10, 'original')");
+
+    Statement st =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery("select id, '(' , name from updateable where id = 10");
+
+    assertTrue(rs.next());
+    rs.updateString("name", "updated");
+    rs.updateRow();
+    rs.close();
+    st.close();
+
+    assertUpdateableName(10, "updated");
+  }
+
+  @Test
+  public void testUpdateWithParenthesisInFunctionAndLiteral() throws Exception {
+    TestUtil.execute(con, "insert into updateable (id, name) values (11, 'original')");
+
+    Statement st =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery(
+        "select id, coalesce(name, '(') as c, name from updateable where id = 11");
+
+    assertTrue(rs.next());
+    rs.updateString("name", "updated");
+    rs.updateRow();
+    rs.close();
+    st.close();
+
+    assertUpdateableName(11, "updated");
+  }
+
+  @Test
+  public void testUpdateWithParenthesisInQuotedIdentifier() throws Exception {
+    TestUtil.execute(con, "insert into updateable (id, name) values (12, 'original')");
+
+    Statement st =
+        con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery(
+        "select id, name, name as \"weird(col\" from updateable where id = 12");
+
+    assertTrue(rs.next());
+    rs.updateString("name", "updated");
+    rs.updateRow();
+    rs.close();
+    st.close();
+
+    assertUpdateableName(12, "updated");
+  }
+
+  private void assertUpdateableName(int id, String expected) throws Exception {
+    ResultSet check =
+        con.createStatement().executeQuery("select name from updateable where id = " + id);
+    assertTrue(check.next());
+    assertEquals(expected, check.getString(1));
+    check.close();
+  }
+
+  @Test
   public void testCancelRowUpdates() throws Exception {
     Statement st =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
