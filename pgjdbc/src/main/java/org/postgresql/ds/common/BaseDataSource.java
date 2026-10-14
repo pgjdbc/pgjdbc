@@ -1851,7 +1851,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
-   * @return maximum length of a single driver log message in characters
+   * @return maximum length of FINEST Bind/Parse dump traces in characters
    * @see PGProperty#MAX_LOG_MESSAGE_LENGTH
    */
   public int getMaxLogMessageLength() {
@@ -1859,7 +1859,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
-   * @param maxLogMessageLength maximum length of a single driver log message in characters;
+   * @param maxLogMessageLength maximum length of FINEST Bind/Parse dump traces in characters;
    *     {@code 0} means unlimited
    * @see PGProperty#MAX_LOG_MESSAGE_LENGTH
    */

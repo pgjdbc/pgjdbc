@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.core.Oid;
-import org.postgresql.util.LogMessageUtils;
+import org.postgresql.util.internal.LogMessageUtils;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,7 +59,6 @@ class BindLogTest {
     SimpleParameterList params = new SimpleParameterList(count, transferModeRegistry);
     String filler = repeat('x', 80);
     for (int i = 1; i <= count; i++) {
-      // Long-ish values so the uncapped message would be well over the limit.
       params.setStringParameter(i, "value-" + i + "-" + filler, Oid.VARCHAR);
     }
 
@@ -68,21 +67,15 @@ class BindLogTest {
 
     assertTrue(log.length() <= maxLen, "capped log must not exceed max length: " + log.length());
     assertTrue(log.startsWith(" FE=> Bind(stmt=S_many"));
-    // Cap may stop cleanly between parameters (no suffix) or mid-value (truncation suffix /
-    // partial suffix). Either way late parameters must be omitted and the line stays bounded.
-    assertTrue(log.contains(LogMessageUtils.TRUNCATION_SUFFIX)
-            || log.contains("...")
-            || log.length() < maxLen,
-        "capped log should indicate truncation or stop before the cap; got: " + log);
-    // Must not have expanded every parameter into the log.
+    assertTrue(log.endsWith(LogMessageUtils.TRUNCATION_SUFFIX),
+        "capped log must end with truncation suffix; got: " + log);
     assertFalse(log.contains("$500="), "late parameters should be omitted when cap is reached");
   }
 
   @Test
-  void hugeSingleValueIsNotMaterializedPastBudget() throws SQLException {
+  void hugeSingleValueKeepsReadablePrefix() throws SQLException {
     SimpleParameterList params = new SimpleParameterList(1, transferModeRegistry);
-    // Large string; if fully rendered into the log without a size check this would be huge.
-    String huge = repeat('H', 200_000);
+    String huge = "PREFIX-" + repeat('H', 200_000);
     params.setStringParameter(1, huge, Oid.VARCHAR);
 
     final int maxLen = 256;
@@ -90,17 +83,28 @@ class BindLogTest {
 
     assertTrue(log.length() <= maxLen, "log length " + log.length() + " exceeds cap " + maxLen);
     assertFalse(log.contains(huge), "full parameter value must not appear in the capped log");
-    // Placeholder uses a character-count estimate (not raw bytes).
-    assertTrue(log.contains("chars"), "huge value should be replaced by a size placeholder: " + log);
-    assertTrue(log.contains("~200000"), "placeholder should report the estimated size: " + log);
+    assertTrue(log.contains("PREFIX-"), "truncated string should keep a readable prefix: " + log);
+    assertTrue(log.contains("..."), "truncated string should end with ellipsis: " + log);
+  }
+
+  @Test
+  void oversizedByteaUsesBytesPlaceholderAndKeepsLaterParam() throws SQLException {
+    SimpleParameterList params = new SimpleParameterList(2, transferModeRegistry);
+    params.setBytea(1, new byte[10_000], 0, 10_000);
+    params.setIntParameter(2, 42);
+
+    final int maxLen = 16_384;
+    String log = BindLog.format("S_bytea", null, params, true, maxLen);
+
+    assertTrue(log.contains("<10000 bytes>"), "oversized bytea should use bytes placeholder: " + log);
+    assertTrue(log.contains("$2=<"), "parameter after oversized bytea must still be logged: " + log);
+    assertTrue(log.contains("42") || log.contains("int4"), "second parameter value should appear: " + log);
+    assertFalse(log.contains("chars"), "bytea placeholder must not say chars: " + log);
   }
 
   @Test
   void unknownValueTypeIsNotFullyMaterialized() throws Exception {
     SimpleParameterList params = new SimpleParameterList(1, transferModeRegistry);
-    // Inject a value type estimateLogSize does not recognize. Production bind paths only store
-    // String/byte[]/StreamWrapper/ByteStreamWriter/null, but the formatter must still avoid
-    // calling toString on unbounded unknown objects when a length cap is set.
     final String huge = repeat('U', 500_000);
     Object unknown = new Object() {
       @Override
@@ -133,21 +137,35 @@ class BindLogTest {
 
   @Test
   void budgetExhaustionDoesNotLeaveDanglingParameterPrefix() throws SQLException {
-    // Fill most of the budget with one parameter, leave room only for a partial next prefix.
     SimpleParameterList params = new SimpleParameterList(3, transferModeRegistry);
     params.setStringParameter(1, repeat('a', 40), Oid.VARCHAR);
     params.setStringParameter(2, "bb", Oid.VARCHAR);
     params.setStringParameter(3, "cc", Oid.VARCHAR);
 
-    // Cap so that after $1 (and maybe part of the trailer) there is not enough room for ",$2=<".
     final int maxLen = 80;
     String log = BindLog.format("S_dangle", null, params, true, maxLen);
 
     assertTrue(log.length() <= maxLen, "log length " + log.length() + " exceeds " + maxLen);
-    // Must not leave a half-written parameter start such as ",$2=<" or ",$2=<...(truncated)".
     assertFalse(log.endsWith("=<")
             || log.endsWith("=<" + LogMessageUtils.TRUNCATION_SUFFIX),
         "truncated line must not leave a dangling ,$i=< prefix: " + log);
+    assertTrue(log.endsWith(LogMessageUtils.TRUNCATION_SUFFIX)
+            || log.contains(LogMessageUtils.TRUNCATION_SUFFIX),
+        "omitted parameters must be marked truncated: " + log);
+  }
+
+  @Test
+  void omittedParamsAlwaysMarkedTruncated() throws SQLException {
+    SimpleParameterList params = new SimpleParameterList(30, transferModeRegistry);
+    for (int i = 1; i <= 30; i++) {
+      params.setIntParameter(i, i);
+    }
+    final int maxLen = 59;
+    String log = BindLog.format(null, null, params, true, maxLen);
+    assertTrue(log.length() <= maxLen, "length " + log.length());
+    assertTrue(log.endsWith(LogMessageUtils.TRUNCATION_SUFFIX)
+            || log.contains(LogMessageUtils.TRUNCATION_SUFFIX),
+        "must mark truncation when params omitted: " + log);
   }
 
   private static String repeat(char c, int count) {

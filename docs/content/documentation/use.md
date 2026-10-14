@@ -523,10 +523,12 @@ Setting to `false` will only include minimal, not sensitive messages.
 By default, this is set to `true`, server error details are propagated. This may include sensitive details such as query parameters.
 
 * **`maxLogMessageLength (`*int*`)`** *Default `16384`*\
-Maximum length in characters of a single driver log message. Caps FINEST protocol dumps such as Bind
-parameter lists so that very large or numerous bind values cannot exhaust memory while logging.
-Set to `0` to disable the limit (legacy unbounded behaviour). Messages that exceed the limit are
-truncated and end with `...(truncated)`.
+Maximum length in characters of the FINEST `FE=> Bind(...)` and `FE=> Parse(...)` protocol dump
+traces (including the native SQL text logged with Parse). Other driver log lines, such as server
+`ErrorMessage` / `NoticeResponse` / `AsyncNotify` / `ParameterStatus` traces and the
+`Constructing object from type=...` trace in `PgConnection.getObject`, are not bounded by this
+property. Set to `0` to disable the limit (legacy unbounded behaviour). Bounded traces that exceed
+the limit are truncated and end with `...(truncated)`.
 
 * **`quoteReturningIdentifiers (`*boolean*`)`** *Default `true`*\
 Quote returning columns. There are some ORM's that quote everything, including returning columns

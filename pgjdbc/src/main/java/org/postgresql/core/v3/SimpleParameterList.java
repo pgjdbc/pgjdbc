@@ -518,10 +518,30 @@ class SimpleParameterList implements V3ParameterList {
       return 6;
     }
     if (value instanceof byte[]) {
-      return ((byte[]) value).length;
+      // Hex literal "'\\x' + 2*n digits + "'::bytea" => 2*n + 11 characters.
+      return 2 * ((byte[]) value).length + 11;
     }
     if (value instanceof String) {
       return ((String) value).length();
+    }
+    if (value instanceof StreamWrapper) {
+      return 2 * ((StreamWrapper) value).getLength() + 11;
+    }
+    if (value instanceof ByteStreamWriter) {
+      return 2 * ((ByteStreamWriter) value).getLength() + 11;
+    }
+    // Unrecognized type: callers must not assume the value is small enough to render.
+    return -1;
+  }
+
+  /**
+   * Raw byte count for a binary/bytea payload, or {@code -1} when the parameter is not a
+   * recognized binary value. Used for {@code <N bytes>} Bind log placeholders.
+   */
+  int byteaPayloadBytes(@Positive int index) {
+    Object value = paramValues[index - 1];
+    if (value instanceof byte[]) {
+      return ((byte[]) value).length;
     }
     if (value instanceof StreamWrapper) {
       return ((StreamWrapper) value).getLength();
@@ -529,8 +549,19 @@ class SimpleParameterList implements V3ParameterList {
     if (value instanceof ByteStreamWriter) {
       return ((ByteStreamWriter) value).getLength();
     }
-    // Unrecognized type: callers must not assume the value is small enough to render.
     return -1;
+  }
+
+  /**
+   * Raw {@link String} parameter value for capped Bind logging, or {@code null} when the stored
+   * value is not a String.
+   */
+  @Nullable String stringValueForLog(@Positive int index) {
+    Object value = paramValues[index - 1];
+    if (value instanceof String) {
+      return (String) value;
+    }
+    return null;
   }
 
   int getV3Length(@Positive int index) {

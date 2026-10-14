@@ -102,7 +102,7 @@ import org.postgresql.jdbc.ResourceLock;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
-import org.postgresql.util.LogMessageUtils;
+import org.postgresql.util.internal.LogMessageUtils;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;

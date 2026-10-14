@@ -465,15 +465,16 @@ public enum PGProperty {
       "When connections that are not explicitly closed are garbage collected, log the stacktrace from the opening of the connection to trace the leak source"),
 
   /**
-   * Maximum length of a single driver log message (characters). Used to cap FINEST protocol dumps
-   * such as Bind parameter lists so that very large or numerous bind values cannot trigger an
-   * {@link OutOfMemoryError} while logging. A value of {@code 0} disables the limit.
-   * Default is {@code 16384}.
+   * Maximum length of FINEST {@code FE=> Bind(...)} and {@code FE=> Parse(...)} protocol dump
+   * traces (characters). Does not bound other driver log lines such as server
+   * {@code ErrorMessage}/{@code NoticeResponse}/{@code AsyncNotify}/{@code ParameterStatus}
+   * traces or the {@code Constructing object from type=...} trace in {@code PgConnection.getObject}.
+   * A value of {@code 0} disables the limit. Default is {@code 16384}.
    */
   MAX_LOG_MESSAGE_LENGTH(
       "maxLogMessageLength",
       "16384",
-      "Maximum length of a single driver log message in characters. Caps FINEST Bind/Parse dumps. 0 means unlimited."),
+      "Max length of FINEST FE=> Bind(...) and FE=> Parse(...) dumps in characters. Does not bound server ErrorMessage/NoticeResponse/AsyncNotify/ParameterStatus or PgConnection.getObject traces. 0 means unlimited."),
 
   /**
    * Specifies size of buffer during fetching result set. Can be specified as specified size or

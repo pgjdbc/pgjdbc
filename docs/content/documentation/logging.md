@@ -26,9 +26,11 @@ to enable logging that it is replaced by the use of `java.util.logging` in curre
 
 > **NOTE**
 >
-> FINEST protocol dumps (especially `FE=> Bind(...)` with many or large parameters) are capped by the
-> `maxLogMessageLength` connection property (default `16384` characters). Set it to `0` for unlimited
-> messages. See the `maxLogMessageLength` property in the connection parameters documentation for details.
+> The FINEST `FE=> Bind(...)` and `FE=> Parse(...)` protocol dump traces are capped by the
+> `maxLogMessageLength` connection property (default `16384` characters). Other traces (server
+> `ErrorMessage` / `NoticeResponse` / `AsyncNotify` / `ParameterStatus`, and
+> `Constructing object from type=...` in `PgConnection.getObject`) are not. Set `maxLogMessageLength`
+> to `0` for unlimited Bind/Parse dumps. See the connection parameters documentation for details.
 
 
 ## Configuration
