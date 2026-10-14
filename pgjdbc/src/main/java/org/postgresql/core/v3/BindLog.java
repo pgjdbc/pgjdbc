@@ -11,8 +11,14 @@ import org.postgresql.util.internal.LogMessageUtils;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Formats FINEST {@code FE=> Bind(...)} log lines with a hard length cap so large or numerous
- * bind parameters cannot OOM the process while logging.
+ * Formats the FINEST {@code FE=> Bind(...)} trace within {@code maxLogMessageLength} characters.
+ *
+ * <p>Each parameter is either shown whole, shown in a shorter form that says it is shorter (a
+ * string prefix ending with {@code ...}, or {@code <N bytes>} for a {@code bytea}), or left out
+ * together with every parameter after it, in which case the trace ends with
+ * {@link LogMessageUtils#TRUNCATION_SUFFIX}. Room for {@code >,type=...} and for the closing
+ * {@code )} or the marker is reserved before a value is appended, so the trace is never cut in
+ * the middle of a parameter.</p>
  *
  * @see org.postgresql.PGProperty#MAX_LOG_MESSAGE_LENGTH
  */
@@ -22,131 +28,76 @@ final class BindLog {
   }
 
   /**
-   * Builds a Bind dump string.
+   * Builds a Bind trace.
    *
-   * @param statementName prepared statement name (may be {@code null} for unnamed)
-   * @param portal destination portal (may be {@code null})
+   * @param statementName prepared statement name, or {@code null} for the unnamed statement
+   * @param portal destination portal, or {@code null}
    * @param params bind parameters
-   * @param standardConformingStrings whether to use standard_conforming_strings when rendering
-   * @param maxLogMessageLength max characters; {@code <= 0} means unlimited (legacy behaviour)
-   * @return log line, never longer than {@code maxLogMessageLength} when that limit is positive
+   * @param standardConformingStrings whether standard_conforming_strings is on
+   * @param maxLogMessageLength maximum length in characters; {@code 0} means no limit
+   * @return the trace, never longer than {@code maxLogMessageLength} when that is positive
    */
   static String format(@Nullable String statementName, @Nullable Portal portal,
       SimpleParameterList params, boolean standardConformingStrings, int maxLogMessageLength) {
-    int initial = maxLogMessageLength > 0 ? Math.min(256, maxLogMessageLength) : 256;
-    StringBuilder sbuf = new StringBuilder(initial);
-    sbuf.append(" FE=> Bind(stmt=").append(statementName).append(",portal=").append(portal);
+    StringBuilder sb = new StringBuilder(256);
+    sb.append(" FE=> Bind(stmt=").append(statementName).append(",portal=").append(portal);
+    int count = params.getParameterCount();
 
-    final boolean unlimited = maxLogMessageLength <= 0;
+    if (maxLogMessageLength <= 0) {
+      for (int i = 1; i <= count; i++) {
+        sb.append(",$").append(i).append("=<")
+            .append(params.toString(i, standardConformingStrings))
+            .append(">,type=").append(Oid.toString(params.getTypeOID(i)));
+      }
+      return sb.append(')').toString();
+    }
+
+    final String marker = LogMessageUtils.TRUNCATION_SUFFIX;
     boolean omitted = false;
-    for (int i = 1; i <= params.getParameterCount(); i++) {
-      if (!unlimited && sbuf.length() >= maxLogMessageLength) {
+    for (int i = 1; i <= count; i++) {
+      String prefix = ",$" + i + "=<";
+      String suffix = ">,type=" + Oid.toString(params.getTypeOID(i));
+      // Keep room for ")" after the last parameter, or for the marker if a later one is left out.
+      int reserve = i == count ? 1 : marker.length();
+      int room = maxLogMessageLength - sb.length() - prefix.length() - suffix.length() - reserve;
+      if (room <= 0) {
         omitted = true;
         break;
       }
 
-      String prefix = ",$" + i + "=<";
-      if (!unlimited) {
-        int remainingForPrefix = maxLogMessageLength - sbuf.length();
-        if (remainingForPrefix <= prefix.length()) {
+      long length = params.logLiteralLength(i, standardConformingStrings, room);
+      if (length >= 0 && length <= room) {
+        sb.append(prefix).append(params.toString(i, standardConformingStrings)).append(suffix);
+        continue;
+      }
+
+      int byteaLength = params.byteaLengthForLog(i);
+      if (byteaLength >= 0) {
+        String placeholder = "<" + byteaLength + " bytes>";
+        if (placeholder.length() > room) {
           omitted = true;
           break;
         }
-      }
-      sbuf.append(prefix);
-
-      if (unlimited) {
-        sbuf.append(params.toString(i, standardConformingStrings));
-        sbuf.append(">,type=").append(Oid.toString(params.getTypeOID(i)));
+        sb.append(prefix).append(placeholder).append(suffix);
         continue;
       }
 
-      int remaining = maxLogMessageLength - sbuf.length();
-      int estimated = params.estimateLogSize(i);
-      int oid = params.getTypeOID(i);
-      int byteaBytes = (oid == Oid.BYTEA) ? params.byteaPayloadBytes(i) : -1;
-
-      if (estimated < 0) {
-        LogMessageUtils.appendBounded(sbuf, "...(unestimated)", maxLogMessageLength);
-        sbuf.append(">,type=").append(Oid.toString(oid));
-        continue;
-      }
-
-      if (byteaBytes >= 0) {
-        // Literal is "'\\x' + 2*n hex + "'::bytea" = 2*n+11 (see estimateLogSize).
-        if (estimated > remaining) {
-          LogMessageUtils.appendBounded(sbuf, "<" + byteaBytes + " bytes>", maxLogMessageLength);
-          sbuf.append(">,type=").append(Oid.toString(oid));
+      @Nullable String text = params.stringValueForLog(i);
+      if (text != null) {
+        int mark = sb.length();
+        sb.append(prefix);
+        if (LogMessageUtils.appendQuotedStringPrefix(sb, text, standardConformingStrings, room)) {
+          sb.append(suffix);
           continue;
         }
-        LogMessageUtils.appendBounded(sbuf, params.toString(i, standardConformingStrings),
-            maxLogMessageLength);
-        sbuf.append(">,type=").append(Oid.toString(oid));
-        continue;
+        sb.setLength(mark);
       }
-
-      @Nullable String stringValue = params.stringValueForLog(i);
-      if (stringValue != null) {
-        boolean usePrefix = estimated > remaining;
-        if (!usePrefix) {
-          // Quoting, escaping, and ::cast can make the literal longer than the raw length.
-          String typeName = Oid.toString(oid);
-          int castExtra = (typeName != null && !"?".equals(typeName)) ? typeName.length() + 2 : 0;
-          if (2L * estimated + 4 + castExtra > remaining) {
-            usePrefix = true;
-          }
-        }
-        if (usePrefix) {
-          LogMessageUtils.appendQuotedStringPrefix(sbuf, stringValue, typeNameForCast(oid),
-              standardConformingStrings, maxLogMessageLength);
-          sbuf.append(">,type=").append(Oid.toString(oid));
-          continue;
-        }
-      }
-
-      String value = params.toString(i, standardConformingStrings);
-      if (value.length() > remaining && stringValue != null) {
-        LogMessageUtils.appendQuotedStringPrefix(sbuf, stringValue, typeNameForCast(oid),
-            standardConformingStrings, maxLogMessageLength);
-      } else {
-        LogMessageUtils.appendBounded(sbuf, value, maxLogMessageLength);
-      }
-      sbuf.append(">,type=").append(Oid.toString(oid));
+      omitted = true;
+      break;
     }
 
-    if (unlimited) {
-      sbuf.append(')');
-      return sbuf.toString();
-    }
-
-    if (omitted) {
-      // Always mark when parameters were left out so the trace does not look complete.
-      sbuf.append(LogMessageUtils.TRUNCATION_SUFFIX);
-      return LogMessageUtils.truncate(sbuf, maxLogMessageLength);
-    }
-
-    if (sbuf.length() < maxLogMessageLength) {
-      sbuf.append(')');
-    }
-    return LogMessageUtils.truncate(sbuf, maxLogMessageLength);
-  }
-
-  private static @Nullable String typeNameForCast(int oid) {
-    switch (oid) {
-      case Oid.VARCHAR:
-        return "varchar";
-      case Oid.TEXT:
-        return "text";
-      case Oid.BPCHAR:
-        return "bpchar";
-      case Oid.JSON:
-        return "json";
-      case Oid.JSONB:
-        return "jsonb";
-      case Oid.XML:
-        return "xml";
-      default:
-        return null;
-    }
+    sb.append(omitted ? marker : ")");
+    // Only a limit shorter than the statement header itself is exceeded here.
+    return LogMessageUtils.truncate(sb, maxLogMessageLength);
   }
 }

@@ -8,9 +8,9 @@ package org.postgresql.util.internal;
 /**
  * Helpers for keeping driver log output bounded.
  *
- * <p>FINEST protocol dumps (especially Bind with many or large parameters, and Parse with a long
- * native SQL string) can allocate enormous strings and cause {@link OutOfMemoryError}. These
- * utilities cap message length while preserving a readable prefix of the original content.</p>
+ * <p>A FINEST protocol trace of a statement with many or large parameters can be as large as the
+ * statement itself. These helpers keep such a trace within a length limit and keep a readable
+ * prefix of the original content.</p>
  *
  * @see org.postgresql.PGProperty#MAX_LOG_MESSAGE_LENGTH
  */
@@ -26,12 +26,12 @@ public final class LogMessageUtils {
    * Truncates {@code message} so that its length is at most {@code maxLength} characters.
    *
    * <p>If {@code maxLength} is {@code 0} or negative, the message is returned unchanged
-   * (unlimited). When truncation is required, the result ends with
+   * (no limit). When truncation is required, the result ends with
    * {@link #TRUNCATION_SUFFIX} (or a prefix of it when {@code maxLength} is smaller than the
    * suffix).</p>
    *
    * @param message message to possibly truncate; must not be {@code null}
-   * @param maxLength maximum length in characters; {@code <= 0} means unlimited
+   * @param maxLength maximum length in characters; {@code <= 0} means no limit
    * @return the original message, or a truncated copy of length {@code maxLength}
    */
   public static String truncate(CharSequence message, int maxLength) {
@@ -55,11 +55,11 @@ public final class LogMessageUtils {
    * total length of {@code sb}. When the value does not fit fully, appends a truncated form ending
    * with {@link #TRUNCATION_SUFFIX} (budget permitting).
    *
-   * <p>If {@code maxLength} is {@code <= 0}, the full value is appended (unlimited).</p>
+   * <p>If {@code maxLength} is {@code <= 0}, the full value is appended (no limit).</p>
    *
    * @param sb destination buffer
    * @param value text to append
-   * @param maxLength overall cap for {@code sb}; {@code <= 0} means unlimited
+   * @param maxLength length limit for {@code sb}; {@code <= 0} means no limit
    * @return {@code true} if the full value was appended, {@code false} if truncated or skipped
    */
   public static boolean appendBounded(StringBuilder sb, CharSequence value, int maxLength) {
@@ -85,88 +85,58 @@ public final class LogMessageUtils {
   }
 
   /**
-   * Appends a prefix of a quoted SQL string literal into {@code sb} without exceeding
-   * {@code maxLength}. Escapes at most the first {@code remaining} source characters (escaping at
-   * most doubles length), then cuts the escaped text to the room left without ending inside a
-   * surrogate pair or a doubled quote, and ends with {@code ...}.
+   * Appends the start of a quoted SQL string literal, {@code ('} followed by the escaped prefix of
+   * {@code text} and {@code ...}, using at most {@code room} characters. Each escaped character
+   * (a doubled quote, a doubled backslash when standard_conforming_strings is off, or a surrogate
+   * pair) is appended whole or not at all. Only the prefix that fits is escaped.
    *
-   * @param sb destination (already contains {@code ,$i=<})
-   * @param text raw string parameter value
-   * @param type SQL type name for {@code ::cast}, or {@code null}
+   * @param sb destination buffer
+   * @param text raw string value
    * @param standardConformingStrings whether standard_conforming_strings is on
-   * @param maxLength overall cap for {@code sb}; must be positive
+   * @param room maximum number of characters to append
+   * @return {@code true} if at least one character of {@code text} was appended; {@code false} if
+   *     none fits, in which case {@code sb} is left unchanged
    */
-  public static void appendQuotedStringPrefix(StringBuilder sb, String text,
-      @org.checkerframework.checker.nullness.qual.Nullable String type,
-      boolean standardConformingStrings, int maxLength) {
-    int remaining = maxLength - sb.length();
-    if (remaining <= 0) {
-      return;
-    }
-
-    // Escape at most the first `remaining` source characters (review: never build the full literal).
-    int sourceLimit = Math.min(text.length(), Math.max(0, remaining));
-    StringBuilder escaped = new StringBuilder(sourceLimit + 8);
-    escaped.append("('");
-    for (int i = 0; i < sourceLimit; i++) {
-      char ch = text.charAt(i);
-      if (ch == '\0') {
-        escaped.append('\u0000');
-        continue;
-      }
-      if (standardConformingStrings) {
-        if (ch == '\'') {
-          escaped.append('\'');
-        }
-        escaped.append(ch);
-      } else {
-        if (ch == '\\' || ch == '\'') {
-          escaped.append(ch);
-        }
-        escaped.append(ch);
-      }
-    }
-
-    // Room for the value portion only; caller appends ">,type=...".
-    int room = maxLength - sb.length();
-    if (room <= 0) {
-      return;
-    }
-
-    // Always end a cut value with "..." so it does not look complete.
+  public static boolean appendQuotedStringPrefix(StringBuilder sb, String text,
+      boolean standardConformingStrings, int room) {
+    final String open = "('";
     final String ellipsis = "...";
-    if (escaped.length() + ellipsis.length() <= room
-        && sourceLimit == text.length()) {
-      // Entire source prefix was the whole string and fits with room to close? Still may need cast.
-      // If full string was taken and escaped form + closing fits, prefer full form — but this
-      // method is only used when the full literal does not fit, so always mark as cut.
+    int budget = room - open.length() - ellipsis.length();
+    int start = sb.length();
+    sb.append(open);
+    int used = 0;
+    int i = 0;
+    while (i < text.length()) {
+      char ch = text.charAt(i);
+      int width;
+      int consumed = 1;
+      if (ch == '\'' || (!standardConformingStrings && ch == '\\')) {
+        width = 2;
+      } else if (Character.isHighSurrogate(ch) && i + 1 < text.length()
+          && Character.isLowSurrogate(text.charAt(i + 1))) {
+        width = 2;
+        consumed = 2;
+      } else {
+        width = 1;
+      }
+      if (used + width > budget) {
+        break;
+      }
+      if (width == 2 && consumed == 1) {
+        sb.append(ch);
+      }
+      sb.append(text, i, i + consumed);
+      used += width;
+      i += consumed;
+      if (ch == '\0') {
+        break;
+      }
     }
-
-    int cutBudget = room - ellipsis.length();
-    if (cutBudget <= 0) {
-      // Not enough room for any content + ellipsis; fill with as much ellipsis as fits.
-      sb.append(ellipsis, 0, Math.min(ellipsis.length(), room));
-      return;
+    if (used == 0) {
+      sb.setLength(start);
+      return false;
     }
-
-    int cut = Math.min(escaped.length(), cutBudget);
-    // Do not end inside a surrogate pair.
-    if (cut >= 1 && Character.isHighSurrogate(escaped.charAt(cut - 1))) {
-      cut--;
-    }
-    // Do not end after the first char of a doubled quote ('').
-    if (cut >= 1 && cut < escaped.length()
-        && escaped.charAt(cut - 1) == '\''
-        && escaped.charAt(cut) == '\'') {
-      cut--;
-    }
-    // Also avoid ending on an odd-position quote that opened a doubling mid-pair:
-    // if we cut between '' , the previous char is ' and next is ' — handled above.
-    // If cut ends on ' that started a doubling and we already decremented, fine.
-    if (cut < 0) {
-      cut = 0;
-    }
-    sb.append(escaped, 0, cut);
     sb.append(ellipsis);
+    return true;
   }
 }

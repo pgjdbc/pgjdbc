@@ -1851,7 +1851,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
-   * @return maximum length of FINEST Bind/Parse dump traces in characters
+   * @return maximum length in characters of the FINEST Bind, Parse and SimpleQuery traces
    * @see PGProperty#MAX_LOG_MESSAGE_LENGTH
    */
   public int getMaxLogMessageLength() {
@@ -1859,8 +1859,8 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
-   * @param maxLogMessageLength maximum length of FINEST Bind/Parse dump traces in characters;
-   *     {@code 0} means unlimited
+   * @param maxLogMessageLength maximum length in characters of the FINEST Bind, Parse and
+   *     SimpleQuery traces; {@code 0} means no limit
    * @see PGProperty#MAX_LOG_MESSAGE_LENGTH
    */
   public void setMaxLogMessageLength(int maxLogMessageLength) {

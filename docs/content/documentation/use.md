@@ -523,12 +523,16 @@ Setting to `false` will only include minimal, not sensitive messages.
 By default, this is set to `true`, server error details are propagated. This may include sensitive details such as query parameters.
 
 * **`maxLogMessageLength (`*int*`)`** *Default `16384`*\
-Maximum length in characters of the FINEST `FE=> Bind(...)` and `FE=> Parse(...)` protocol dump
-traces (including the native SQL text logged with Parse). Other driver log lines, such as server
-`ErrorMessage` / `NoticeResponse` / `AsyncNotify` / `ParameterStatus` traces and the
-`Constructing object from type=...` trace in `PgConnection.getObject`, are not bounded by this
-property. Set to `0` to disable the limit (legacy unbounded behaviour). Bounded traces that exceed
-the limit are truncated and end with `...(truncated)`.
+Maximum length in characters of the FINEST `FE=> Bind(...)`, `FE=> Parse(...)` and
+`FE=> SimpleQuery(...)` traces. A trace that would be longer shows long values in a shorter form,
+leaves out the parameters that do not fit, and ends with `...(truncated)`. Other traces, such as
+the server `ErrorMessage`, `NoticeResponse`, `AsyncNotify` or `ParameterStatus` traces, or the
+`Constructing object from type=...` trace in `PgConnection.getObject`, are not limited. Set to `0`
+for no limit; a negative value is rejected when the connection opens. The value is read when the
+connection opens, so changing it on a `DataSource` affects only new connections. A Bind trace of
+an unnamed statement needs 73 characters to show one `int4` parameter, so values below 100 leave
+little of the trace. See [Logging](/documentation/logging/).
+  Since: 42.7.15
 
 * **`quoteReturningIdentifiers (`*boolean*`)`** *Default `true`*\
 Quote returning columns. There are some ORM's that quote everything, including returning columns
