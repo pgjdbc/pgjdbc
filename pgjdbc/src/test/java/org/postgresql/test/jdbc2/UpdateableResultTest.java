@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -1041,55 +1042,126 @@ public class UpdateableResultTest extends BaseTest4 {
     }
   }
 
+  /**
+   * Both tables have a primary key index named {@code same_name_pkey}, over {@code id} in
+   * {@code upd_schema_a} and over {@code (id, other)} in {@code upd_schema_b}. The driver used to
+   * merge the two into one key of three columns, and the result set was rejected as not updatable.
+   *
+   * <p>{@code upd_schema_empty} heads {@code search_path}, so {@code same_name} resolves through a
+   * later entry and {@code current_schema()} returns a schema with no such table. The test
+   * therefore also fails for a key lookup restricted to {@code current_schema()}, the approach of
+   * PR #3400.</p>
+   */
   @Test
-  public void testUpdateableWithSameTableNameInMultipleSchemas() throws SQLException {
-    // Two schemas hold a table with the same name and the same auto-generated primary key
-    // index name (same_name_pkey), but a different set of key columns. An unqualified query
-    // must be classified using only the table visible through search_path, not the union of
-    // both schemas' key columns. Before the fix the union made upd_schema_a's single-column
-    // key look incomplete, so the result set was wrongly rejected as not updatable.
-    //
-    // search_path puts an empty schema first, so the table resolves through a later entry
-    // (upd_schema_a). This also rules out the rejected #3400 approach of defaulting the
-    // schema to current_schema(): current_schema() is the empty schema, which holds no
-    // same_name table, so that approach would still reject the result set.
-    TestUtil.execute(con, "DROP SCHEMA IF EXISTS upd_schema_empty CASCADE");
-    TestUtil.execute(con, "DROP SCHEMA IF EXISTS upd_schema_a CASCADE");
-    TestUtil.execute(con, "DROP SCHEMA IF EXISTS upd_schema_b CASCADE");
-    TestUtil.execute(con, "CREATE SCHEMA upd_schema_empty");
-    TestUtil.execute(con, "CREATE SCHEMA upd_schema_a");
-    TestUtil.execute(con, "CREATE SCHEMA upd_schema_b");
-    String savedSearchPath;
-    try (Statement show = con.createStatement();
-         ResultSet rs = show.executeQuery("SHOW search_path")) {
-      assertTrue(rs.next());
-      String sp = rs.getString(1);
-      savedSearchPath = sp != null ? sp : "\"$user\", public";
-    }
+  public void testUpdateableWhenSameNamedTableInOtherSchemaSharesKeyName() throws SQLException {
+    recreateSchemas("upd_schema_empty", "upd_schema_a", "upd_schema_b");
     try {
       TestUtil.execute(con, "CREATE TABLE upd_schema_a.same_name (id int PRIMARY KEY, val text)");
       TestUtil.execute(con,
           "CREATE TABLE upd_schema_b.same_name (id int, other int, val text, PRIMARY KEY (id, other))");
       TestUtil.execute(con, "INSERT INTO upd_schema_a.same_name (id, val) VALUES (1, 'a')");
-
       TestUtil.execute(con, "SET search_path TO upd_schema_empty, upd_schema_a, upd_schema_b");
+
       try (Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
-          ResultSet.CONCUR_UPDATABLE)) {
-        try (ResultSet rs = st.executeQuery("SELECT id, val FROM same_name")) {
-          assertTrue(rs.next());
+          ResultSet.CONCUR_UPDATABLE);
+           ResultSet rs = st.executeQuery("SELECT id, val FROM same_name")) {
+        assertTrue(rs.next());
+        rs.updateString("val", "updated");
+        rs.updateRow();
+      }
+
+      assertEquals("updated",
+          TestUtil.queryForString(con, "SELECT val FROM upd_schema_a.same_name WHERE id = 1"),
+          "val of upd_schema_a.same_name after updateRow()");
+    } finally {
+      TestUtil.execute(con, "RESET search_path");
+      dropSchemas("upd_schema_empty", "upd_schema_a", "upd_schema_b");
+    }
+  }
+
+  /**
+   * The visible {@code same_name} has no key, and a table of the same name further down
+   * {@code search_path} has a primary key over {@code id}. The driver used to take that key for the
+   * visible table's, and {@code updateRow()} then updated both rows whose {@code id} is 1.
+   */
+  @Test
+  public void testNotUpdateableWhenOnlySameNamedTableInOtherSchemaHasKey() throws SQLException {
+    recreateSchemas("upd_schema_a", "upd_schema_b");
+    try {
+      TestUtil.execute(con, "CREATE TABLE upd_schema_a.same_name (id int, val text)");
+      TestUtil.execute(con, "CREATE TABLE upd_schema_b.same_name (id int PRIMARY KEY, val text)");
+      TestUtil.execute(con,
+          "INSERT INTO upd_schema_a.same_name (id, val) VALUES (1, 'first'), (1, 'second')");
+      TestUtil.execute(con, "SET search_path TO upd_schema_a, upd_schema_b");
+
+      try (Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_UPDATABLE);
+           ResultSet rs = st.executeQuery("SELECT id, val FROM same_name ORDER BY val")) {
+        assertTrue(rs.next());
+        SQLException ex = assertThrows(SQLException.class, () -> {
           rs.updateString("val", "updated");
           rs.updateRow();
-        }
-        try (ResultSet rs = st.executeQuery("SELECT val FROM same_name WHERE id = 1")) {
-          assertTrue(rs.next());
-          assertEquals("updated", rs.getString("val"));
-        }
+        });
+        assertEquals(
+            GT.tr("No eligible primary or unique key found for table {0}.", "same_name"),
+            ex.getMessage());
       }
+
+      assertEquals("first,second",
+          TestUtil.queryForString(con,
+              "SELECT string_agg(val, ',' ORDER BY val) FROM upd_schema_a.same_name"),
+          "vals of upd_schema_a.same_name after the rejected update");
     } finally {
-      TestUtil.execute(con, "SET search_path TO " + savedSearchPath);
-      TestUtil.execute(con, "DROP SCHEMA IF EXISTS upd_schema_empty CASCADE");
-      TestUtil.execute(con, "DROP SCHEMA IF EXISTS upd_schema_a CASCADE");
-      TestUtil.execute(con, "DROP SCHEMA IF EXISTS upd_schema_b CASCADE");
+      TestUtil.execute(con, "RESET search_path");
+      dropSchemas("upd_schema_a", "upd_schema_b");
+    }
+  }
+
+  /**
+   * A schema-qualified name selects its table by the schema, not by {@code search_path}, so a table
+   * that {@code search_path} does not make visible stays updatable through its own key.
+   *
+   * <p>The visible {@code same_name} has the wider key, over {@code (id, other)}, and the query
+   * does not select {@code other}. The test therefore fails both when the lookup also requires
+   * visibility and when it matches the table name in every schema.</p>
+   */
+  @Test
+  public void testUpdateableWhenQualifiedTableIsNotVisible() throws SQLException {
+    recreateSchemas("upd_schema_a", "upd_schema_b");
+    try {
+      TestUtil.execute(con,
+          "CREATE TABLE upd_schema_a.same_name (id int, other int, val text, PRIMARY KEY (id, other))");
+      TestUtil.execute(con, "CREATE TABLE upd_schema_b.same_name (id int PRIMARY KEY, val text)");
+      TestUtil.execute(con, "INSERT INTO upd_schema_b.same_name (id, val) VALUES (1, 'b')");
+      TestUtil.execute(con, "SET search_path TO upd_schema_a, upd_schema_b");
+
+      try (Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_UPDATABLE);
+           ResultSet rs = st.executeQuery("SELECT id, val FROM upd_schema_b.same_name")) {
+        assertTrue(rs.next());
+        rs.updateString("val", "updated");
+        rs.updateRow();
+      }
+
+      assertEquals("updated",
+          TestUtil.queryForString(con, "SELECT val FROM upd_schema_b.same_name WHERE id = 1"),
+          "val of upd_schema_b.same_name after updateRow()");
+    } finally {
+      TestUtil.execute(con, "RESET search_path");
+      dropSchemas("upd_schema_a", "upd_schema_b");
+    }
+  }
+
+  private void recreateSchemas(String... schemas) throws SQLException {
+    dropSchemas(schemas);
+    for (String schema : schemas) {
+      TestUtil.execute(con, "CREATE SCHEMA " + schema);
+    }
+  }
+
+  private void dropSchemas(String... schemas) throws SQLException {
+    for (String schema : schemas) {
+      TestUtil.execute(con, "DROP SCHEMA IF EXISTS " + schema + " CASCADE");
     }
   }
 }
