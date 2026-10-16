@@ -249,7 +249,26 @@ class SimpleParameterList implements V3ParameterList {
     if (paramValue == null) {
       return "?";
     } else if (paramValue == NULL_OBJECT) {
-      return "(NULL)";
+      switch (paramTypes[index]) {
+        case Oid.INT2:
+          return "(NULL::int2)";
+        case Oid.INT4:
+          return "(NULL::int4)";
+        case Oid.INT8:
+          return "(NULL::int8)";
+        case Oid.FLOAT4:
+          return "(NULL::real)";
+        case Oid.FLOAT8:
+          return "(NULL::double precision)";
+        case Oid.DATE:
+          return "(NULL::date)";
+        case Oid.NUMERIC:
+          return "(NULL::numeric)";
+        case Oid.BOOL:
+          return "(NULL::boolean)";
+        default:
+          return "(NULL)";
+      }
     }
     String textValue;
     String type;
