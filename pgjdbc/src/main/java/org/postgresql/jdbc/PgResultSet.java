@@ -4074,7 +4074,13 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == UUID.class) {
-      return type.cast(getObject(columnIndex));
+      int oid = fields[columnIndex - 1].getOID();
+      if (oid == Oid.UUID) {
+        return type.cast(getObject(columnIndex));
+      } else {
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
+            PSQLState.INVALID_PARAMETER_VALUE);
+      }
     } else if (type == InetAddress.class) {
       String inetText = getString(columnIndex);
       if (inetText == null) {
