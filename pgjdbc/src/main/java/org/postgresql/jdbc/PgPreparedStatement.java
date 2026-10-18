@@ -1541,36 +1541,30 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   private void setDate(@Positive int i, LocalDate localDate) throws SQLException {
-    bindString(i, textOf(localDate), Oid.DATE);
+    int oid = Oid.DATE;
+    bindString(i, getTimestampUtils().toString(localDate), oid);
   }
 
   private void setTime(@Positive int i, LocalTime localTime) throws SQLException {
-    bindString(i, textOf(localTime), Oid.TIME);
+    int oid = Oid.TIME;
+    bindString(i, getTimestampUtils().toString(localTime), oid);
   }
 
   private void setTime(@Positive int i, OffsetTime offsetTime) throws SQLException {
-    bindString(i, textOf(offsetTime), Oid.TIMETZ);
+    int oid = Oid.TIMETZ;
+    bindString(i, getTimestampUtils().toString(offsetTime), oid);
   }
 
   private void setTimestamp(@Positive int i, LocalDateTime localDateTime)
       throws SQLException {
-    bindString(i, textOf(localDateTime), Oid.TIMESTAMP);
+    int oid = Oid.TIMESTAMP;
+    bindString(i, getTimestampUtils().toString(localDateTime), oid);
   }
 
   private void setTimestamp(@Positive int i, OffsetDateTime offsetDateTime)
       throws SQLException {
-    bindString(i, textOf(offsetDateTime), Oid.TIMESTAMPTZ);
-  }
-
-  /**
-   * Returns the text of a {@code java.time} value from the one place that formats them, so an array
-   * element of that type is sent as the same text as the scalar parameter of that type.
-   *
-   * @param javaTimeValue a value of a type {@link TimestampUtils#toStringOrNull(Object)} formats
-   * @return the text of <i>javaTimeValue</i>
-   */
-  private String textOf(Object javaTimeValue) {
-    return castNonNull(getTimestampUtils().toStringOrNull(javaTimeValue));
+    int oid = Oid.TIMESTAMPTZ;
+    bindString(i, getTimestampUtils().toString(offsetDateTime), oid);
   }
 
   public ParameterMetaData createParameterMetaData(BaseConnection conn, int[] oids)

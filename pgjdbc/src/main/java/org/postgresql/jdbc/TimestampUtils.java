@@ -1103,8 +1103,7 @@ public class TimestampUtils {
     try (ResourceLock ignore = lock.obtain()) {
       sbuf.setLength(0);
 
-      final LocalTime localTime = offsetTime.toLocalTime();
-      if (localTime.isAfter(MAX_TIME)) {
+      if (offsetTime.toLocalTime().isAfter(MAX_TIME)) {
         sbuf.append("24:00:00");
         appendTimeZone(sbuf, offsetTime.getOffset());
         return sbuf.toString();
@@ -1116,7 +1115,7 @@ public class TimestampUtils {
         // it relies on the fact that appendTime just truncates 000..999 nanosecond part
         offsetTime = offsetTime.plus(ONE_MICROSECOND);
       }
-      appendTime(sbuf, localTime);
+      appendTime(sbuf, offsetTime.toLocalTime());
       appendTimeZone(sbuf, offsetTime.getOffset());
 
       return sbuf.toString();
@@ -1246,40 +1245,6 @@ public class TimestampUtils {
 
       return sbuf.toString();
     }
-  }
-
-  /**
-   * Formats a {@code java.time} value the way a scalar parameter of that type is formatted, so a
-   * value sent as an element of an array carries the same value as the scalar parameter of the
-   * same type.
-   *
-   * <p>This is the only place that decides which {@code java.time} classes this driver formats, so
-   * the scalar path and the array path cannot drift apart.
-   *
-   * @param value the value to format
-   * @return the text of <i>value</i>, or {@code null} for a value this method does not format, in
-   *         particular for {@link java.sql.Date}, {@link java.sql.Time},
-   *         {@link java.sql.Timestamp}, {@link org.postgresql.util.PGTime},
-   *         {@link org.postgresql.util.PGTimestamp}, {@code java.time.ZonedDateTime} and every
-   *         value that is not a date or a time
-   */
-  @Nullable String toStringOrNull(@Nullable Object value) {
-    if (value instanceof LocalDate) {
-      return toString((LocalDate) value);
-    }
-    if (value instanceof LocalTime) {
-      return toString((LocalTime) value);
-    }
-    if (value instanceof OffsetTime) {
-      return toString((OffsetTime) value);
-    }
-    if (value instanceof LocalDateTime) {
-      return toString((LocalDateTime) value);
-    }
-    if (value instanceof OffsetDateTime) {
-      return toString((OffsetDateTime) value);
-    }
-    return null;
   }
 
   private static void appendDate(StringBuilder sb, LocalDate localDate) {

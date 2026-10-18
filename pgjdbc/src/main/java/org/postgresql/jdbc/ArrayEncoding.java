@@ -22,6 +22,11 @@ import java.io.IOException;
 import java.lang.reflect.Array;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -1007,7 +1012,8 @@ final class ArrayEncoding {
       sb.append('}');
     }
 
-    // Temporal values use the scalar formatter; other values retain Object.toString().
+    // Elements of a type the connection formats as a scalar parameter use that formatter; every
+    // other element keeps Object.toString().
     private void appendElement(StringBuilder sb, BaseConnection connection,
         TimestampUtils timestampUtils, char delim, @Nullable Object value) {
       if (value == null) {
@@ -1023,8 +1029,21 @@ final class ArrayEncoding {
           throw new IllegalStateException(e);
         }
       } else {
-        @Nullable String text = timestampUtils.toStringOrNull(value);
-        PgArray.escapeArrayElement(sb, text != null ? text : value.toString());
+        String text;
+        if (value instanceof LocalDate) {
+          text = timestampUtils.toString((LocalDate) value);
+        } else if (value instanceof LocalTime) {
+          text = timestampUtils.toString((LocalTime) value);
+        } else if (value instanceof OffsetTime) {
+          text = timestampUtils.toString((OffsetTime) value);
+        } else if (value instanceof LocalDateTime) {
+          text = timestampUtils.toString((LocalDateTime) value);
+        } else if (value instanceof OffsetDateTime) {
+          text = timestampUtils.toString((OffsetDateTime) value);
+        } else {
+          text = value.toString();
+        }
+        PgArray.escapeArrayElement(sb, text);
       }
     }
   };

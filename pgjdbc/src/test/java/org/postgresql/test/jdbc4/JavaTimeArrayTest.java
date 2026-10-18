@@ -70,124 +70,130 @@ public class JavaTimeArrayTest extends BaseTest4 {
         {bc, year10000},
     };
     OffsetDateTime bcTimestamp = OffsetDateTime.of(-500, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+    ZoneOffset india = ZoneOffset.ofHoursMinutes(5, 30);
 
     return Stream.of(
         // date
-        Arguments.of("date, ordinary day", "date",
+        Arguments.argumentSet("date, ordinary day", "date",
             new LocalDate[]{ordinary}, "{2024-11-11}"),
-        Arguments.of("date, BC era", "date",
+        Arguments.argumentSet("date, BC era", "date",
             new LocalDate[]{bc}, "{\"0501-01-01 BC\"}"),
-        Arguments.of("date, five digit year", "date",
+        Arguments.argumentSet("date, five digit year", "date",
             new LocalDate[]{year10000}, "{10000-01-01}"),
-        Arguments.of("date, ends of the supported range", "date",
+        Arguments.argumentSet("date, ends of the supported range", "date",
             new LocalDate[]{LocalDate.MIN, LocalDate.MAX}, "{-infinity,infinity}"),
-        Arguments.of("date, nulls between elements", "date",
+        Arguments.argumentSet("date, nulls between elements", "date",
             new LocalDate[]{ordinary, null, bc}, "{2024-11-11,NULL,\"0501-01-01 BC\"}"),
 
         // time
-        Arguments.of("time, whole seconds", "time",
+        Arguments.argumentSet("time, whole seconds", "time",
             new LocalTime[]{LocalTime.of(10, 15, 30)}, "{10:15:30}"),
-        Arguments.of("time, microseconds", "time",
+        Arguments.argumentSet("time, microseconds", "time",
             new LocalTime[]{LocalTime.of(10, 15, 30, 123_456_000)}, "{10:15:30.123456}"),
-        Arguments.of("time, half a microsecond rounds up", "time",
+        Arguments.argumentSet("time, half a microsecond rounds up", "time",
             new LocalTime[]{LocalTime.of(1, 2, 3, 500)}, "{01:02:03.000001}"),
-        Arguments.of("time, rounds past the end of the day", "time",
+        Arguments.argumentSet("time, rounds past the end of the day", "time",
             new LocalTime[]{LocalTime.of(23, 59, 59, 999_999_600)}, "{24:00:00}"),
 
         // timetz
-        Arguments.of("timetz, offset travels with the element", "timetz",
-            new OffsetTime[]{OffsetTime.of(10, 15, 30, 0, ZoneOffset.ofHoursMinutes(5, 30))},
+        Arguments.argumentSet("timetz, offset travels with the element", "timetz",
+            new OffsetTime[]{OffsetTime.of(10, 15, 30, 0, india)},
             "{10:15:30+05:30}"),
-        Arguments.of("timetz, UTC offset prints as +00", "timetz",
+        Arguments.argumentSet("timetz, UTC offset prints as +00", "timetz",
             new OffsetTime[]{OffsetTime.of(10, 15, 30, 0, ZoneOffset.UTC)}, "{10:15:30+00}"),
-        Arguments.of("timetz, half a microsecond is dropped, not rounded", "timetz",
-            new OffsetTime[]{OffsetTime.of(1, 2, 3, 500, ZoneOffset.ofHoursMinutes(5, 30))},
-            "{01:02:03+05:30}"),
-        Arguments.of("timetz, sub-microsecond part is truncated", "timetz",
-            new OffsetTime[]{
-                OffsetTime.of(10, 15, 30, 123_456_700, ZoneOffset.ofHoursMinutes(5, 30))},
+        Arguments.argumentSet("timetz, half a microsecond rounds up", "timetz",
+            new OffsetTime[]{OffsetTime.of(1, 2, 3, 500, india)},
+            "{01:02:03.000001+05:30}"),
+        Arguments.argumentSet("timetz, sub-microsecond part rounds up", "timetz",
+            new OffsetTime[]{OffsetTime.of(10, 15, 30, 123_456_700, india)},
+            "{10:15:30.123457+05:30}"),
+        Arguments.argumentSet("timetz, below half a microsecond rounds down", "timetz",
+            new OffsetTime[]{OffsetTime.of(10, 15, 30, 123_456_499, india)},
             "{10:15:30.123456+05:30}"),
+        Arguments.argumentSet("timetz, an exact microsecond keeps every digit", "timetz",
+            new OffsetTime[]{OffsetTime.of(10, 15, 30, 123_456_000, india)},
+            "{10:15:30.123456+05:30}"),
+        Arguments.argumentSet("timetz, rounds past the end of the day", "timetz",
+            new OffsetTime[]{OffsetTime.of(23, 59, 59, 999_999_600, india)},
+            "{24:00:00+05:30}"),
 
         // timestamp
-        Arguments.of("timestamp, ordinary value", "timestamp",
+        Arguments.argumentSet("timestamp, ordinary value", "timestamp",
             new LocalDateTime[]{LocalDateTime.of(2024, 11, 11, 1, 2, 3, 4000)},
             "{\"2024-11-11 01:02:03.000004\"}"),
-        Arguments.of("timestamp, half a microsecond rounds up", "timestamp",
+        Arguments.argumentSet("timestamp, half a microsecond rounds up", "timestamp",
             new LocalDateTime[]{LocalDateTime.of(2024, 11, 11, 1, 2, 3, 500)},
             "{\"2024-11-11 01:02:03.000001\"}"),
-        Arguments.of("timestamp, BC era", "timestamp",
+        Arguments.argumentSet("timestamp, BC era", "timestamp",
             new LocalDateTime[]{LocalDateTime.of(-500, 1, 1, 0, 0)},
             "{\"0501-01-01 00:00:00 BC\"}"),
-        Arguments.of("timestamp, five digit year", "timestamp",
+        Arguments.argumentSet("timestamp, five digit year", "timestamp",
             new LocalDateTime[]{LocalDateTime.of(10000, 1, 1, 2, 3, 4)},
             "{\"10000-01-01 02:03:04\"}"),
-        Arguments.of("timestamp, rounds into the next day (control, unchanged)", "timestamp",
+        Arguments.argumentSet("timestamp, rounds into the next day (control, unchanged)",
+            "timestamp",
             new LocalDateTime[]{LocalDateTime.of(2024, 11, 11, 23, 59, 59, 999_999_500)},
             "{\"2024-11-12 00:00:00\"}"),
-        Arguments.of("timestamp, ends of the supported range", "timestamp",
+        Arguments.argumentSet("timestamp, ends of the supported range", "timestamp",
             new LocalDateTime[]{LocalDateTime.MIN, LocalDateTime.MAX}, "{-infinity,infinity}"),
 
         // timestamptz
-        Arguments.of("timestamptz, offset travels to the session zone", "timestamptz",
-            new OffsetDateTime[]{
-                OffsetDateTime.of(2024, 11, 11, 1, 2, 3, 4000, ZoneOffset.ofHoursMinutes(5, 30))},
+        Arguments.argumentSet("timestamptz, offset travels to the session zone", "timestamptz",
+            new OffsetDateTime[]{OffsetDateTime.of(2024, 11, 11, 1, 2, 3, 4000, india)},
             "{\"2024-11-10 19:32:03.000004+00\"}"),
-        Arguments.of("timestamptz, half a microsecond rounds up", "timestamptz",
+        Arguments.argumentSet("timestamptz, half a microsecond rounds up", "timestamptz",
             new OffsetDateTime[]{OffsetDateTime.of(2024, 11, 11, 1, 2, 3, 500, ZoneOffset.UTC)},
             "{\"2024-11-11 01:02:03.000001+00\"}"),
-        Arguments.of("timestamptz, BC era", "timestamptz",
+        Arguments.argumentSet("timestamptz, BC era", "timestamptz",
             new OffsetDateTime[]{bcTimestamp}, "{\"0501-01-01 00:00:00+00 BC\"}"),
-        Arguments.of("timestamptz, ends of the supported range", "timestamptz",
+        Arguments.argumentSet("timestamptz, ends of the supported range", "timestamptz",
             new OffsetDateTime[]{OffsetDateTime.MIN, OffsetDateTime.MAX}, "{-infinity,infinity}"),
-        Arguments.of("timestamptz, nulls between elements", "timestamptz",
+        Arguments.argumentSet("timestamptz, nulls between elements", "timestamptz",
             new OffsetDateTime[]{null, bcTimestamp, null},
             "{NULL,\"0501-01-01 00:00:00+00 BC\",NULL}"),
 
         // nested arrays
         // A null sits inside a sub-array: the server refuses a null next to a sub-array of a
         // different dimension.
-        Arguments.of("Object[] whose elements are arrays", "date",
+        Arguments.argumentSet("Object[] whose elements are arrays", "date",
             new Object[]{new LocalDate[]{bc, null}, new LocalDate[]{null, ordinary}},
             "{{\"0501-01-01 BC\",NULL},{NULL,2024-11-11}}"),
-        Arguments.of("Object[][] rows reach the element encoder", "date",
+        Arguments.argumentSet("Object[][] rows reach the element encoder", "date",
             new Object[][]{{new LocalDate[]{bc}}, {new LocalDate[]{ordinary}}},
             "{{{\"0501-01-01 BC\"}},{{2024-11-11}}}"),
-        Arguments.of("two dimensions", "date", twoDimensions,
+        Arguments.argumentSet("two dimensions", "date", twoDimensions,
             "{{2024-11-11,NULL},{\"0501-01-01 BC\",10000-01-01}}"),
-        Arguments.of("three dimensions", "date", new LocalDate[][][]{twoDimensions, twoDimensions},
+        Arguments.argumentSet("three dimensions", "date",
+            new LocalDate[][][]{twoDimensions, twoDimensions},
             "{{{2024-11-11,NULL},{\"0501-01-01 BC\",10000-01-01}},"
                 + "{{2024-11-11,NULL},{\"0501-01-01 BC\",10000-01-01}}}"),
 
         // controls: elements the java.time formatting must not touch
-        Arguments.of("control, text elements keep their escaping", "text",
+        Arguments.argumentSet("control, text elements keep their escaping", "text",
             new String[]{"a\"b", "c\\d", "{\"2024-11-11\"}", "0501-01-01 BC", null},
             "{\"a\\\"b\",\"c\\\\d\",\"{\\\"2024-11-11\\\"}\",\"0501-01-01 BC\",NULL}"),
-        Arguments.of("control, int elements", "int4", new int[]{1, 2, 3}, "{1,2,3}"),
-        Arguments.of("control, Long elements", "int8", new Long[]{1L, null, 3L}, "{1,NULL,3}"),
-        Arguments.of("control, java.sql.Date keeps the rendering it had before",
+        Arguments.argumentSet("control, int elements", "int4", new int[]{1, 2, 3}, "{1,2,3}"),
+        Arguments.argumentSet("control, Long elements", "int8", new Long[]{1L, null, 3L},
+            "{1,NULL,3}"),
+        Arguments.argumentSet("control, java.sql.Date keeps the rendering it had before",
             "date", new java.sql.Date[]{java.sql.Date.valueOf(bc)}, "{0501-01-01}"),
-        Arguments.of("control, java.sql.Timestamp keeps the rendering it had before",
+        Arguments.argumentSet("control, java.sql.Timestamp keeps the rendering it had before",
             "timestamp", new Timestamp[]{Timestamp.valueOf(LocalDateTime.of(-500, 1, 1, 0, 0))},
             "{\"0501-01-01 00:00:00\"}"));
   }
 
   /**
-   * Asserts that the server sees {@code expected} when the driver sends <i>elements</i> as
-   * <i>pgType</i>[].
-   *
-   * <p>The array is sent through {@code createArrayOf}, which is the path that encodes the
-   * elements as text; no binary element encoder exists for {@code java.time} values, so both
-   * binary and text mode use that path.
+   * Asserts that the server reads back {@code expected} when the driver sends <i>elements</i> as
+   * <i>pgType</i>[] through {@code createArrayOf}, the path that encodes the elements as text.
    */
-  @ParameterizedTest(name = "{0}")
+  @ParameterizedTest
   @MethodSource("elements")
-  void elementsCarryTheSameValueAsScalarParameters(String caseName, String pgType,
-      Object elements, String expected) throws SQLException {
+  void serverReadsTheArrayAs(String pgType, Object elements, String expected) throws SQLException {
     // PgConnection takes the elements as Object, so a primitive array such as int[] is allowed.
     Array array = ((PgConnection) con).createArrayOf(pgType, elements);
     try (PreparedStatement ps = con.prepareStatement("SELECT CAST(? AS " + pgType + "[])::text")) {
       ps.setArray(1, array);
-      assertEquals(expected, singleString(ps), caseName + " as " + pgType + "[]");
+      assertEquals(expected, singleString(ps), "createArrayOf(\"" + pgType + "\", ...)");
     } finally {
       array.free();
     }
