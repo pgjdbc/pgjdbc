@@ -22,9 +22,6 @@ import java.io.IOException;
 import java.lang.reflect.Array;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -67,33 +64,17 @@ final class ArrayEncoding {
     /**
      * Creates {@code String} representation of the <i>array</i>.
      *
+     * @param connection
+     *          The connection the array is sent on. Elements of a type the driver formats, such as
+     *          {@code java.time} values, are formatted the way the scalar parameter of that type
+     *          is formatted on that connection.
      * @param delim
      *          The character to use to delimit between elements.
      * @param array
      *          The array to represent as a {@code String}.
      * @return {@code String} representation of the <i>array</i>.
      */
-    String toArrayString(char delim, A array);
-
-    /**
-     * Creates {@code String} representation of the <i>array</i>, formatting {@code java.time}
-     * elements with the connection specific <i>timestampUtils</i>, so an element carries the same
-     * value as the scalar parameter of the same type.
-     *
-     * @param timestampUtils
-     *          The formatter of the connection the array is sent on, or {@code null} to keep the
-     *          {@link Object#toString()} rendering of every element.
-     * @param delim
-     *          The character to use to delimit between elements.
-     * @param array
-     *          The array to represent as a {@code String}.
-     * @return {@code String} representation of the <i>array</i>.
-     */
-    default String toArrayString(@Nullable TimestampUtils timestampUtils, char delim, A array) {
-      final StringBuilder sb = new StringBuilder(1024);
-      appendArray(sb, timestampUtils, delim, array);
-      return sb.toString();
-    }
+    String toArrayString(BaseConnection connection, char delim, A array);
 
     /**
      * Indicates if an array can be encoded in binary form to array <i>oid</i>.
@@ -133,33 +114,17 @@ final class ArrayEncoding {
      *
      * @param sb
      *          The {@link StringBuilder} to append to.
+     * @param connection
+     *          The connection the array is sent on. Elements of a type the driver formats, such as
+     *          {@code java.time} values, are formatted the way the scalar parameter of that type
+     *          is formatted on that connection.
      * @param delim
      *          The delimiter between elements.
      * @param array
      *          The array to represent. Will not be {@code null}, but may contain
      *          {@code null} elements.
      */
-    void appendArray(StringBuilder sb, char delim, A array);
-
-    /**
-     * Append {@code String} representation of <i>array</i> to <i>sb</i>, formatting
-     * {@code java.time} elements with the connection specific <i>timestampUtils</i>.
-     *
-     * @param sb
-     *          The {@link StringBuilder} to append to.
-     * @param timestampUtils
-     *          The formatter of the connection the array is sent on, or {@code null} to keep the
-     *          {@link Object#toString()} rendering of every element.
-     * @param delim
-     *          The delimiter between elements.
-     * @param array
-     *          The array to represent. Will not be {@code null}, but may contain
-     *          {@code null} elements.
-     */
-    default void appendArray(StringBuilder sb, @Nullable TimestampUtils timestampUtils, char delim,
-        A array) {
-      appendArray(sb, delim, array);
-    }
+    void appendArray(StringBuilder sb, BaseConnection connection, char delim, A array);
   }
 
   /**
@@ -246,9 +211,9 @@ final class ArrayEncoding {
      * {@inheritDoc}
      */
     @Override
-    public String toArrayString(char delim, A array) {
+    public String toArrayString(BaseConnection connection, char delim, A array) {
       final StringBuilder sb = new StringBuilder(1024);
-      appendArray(sb, delim, array);
+      appendArray(sb, connection, delim, array);
       return sb.toString();
     }
 
@@ -375,7 +340,8 @@ final class ArrayEncoding {
      * {@inheritDoc}
      */
     @Override
-    public final void appendArray(StringBuilder sb, char delim, N[] array) {
+    public final void appendArray(StringBuilder sb, BaseConnection connection, char delim,
+        N[] array) {
       sb.append('{');
       for (int i = 0; i < array.length; i++) {
         if (i != 0) {
@@ -481,7 +447,8 @@ final class ArrayEncoding {
       Oid.INT8_ARRAY) {
 
     @Override
-    public void appendArray(StringBuilder sb, char delim, long[] array) {
+    public void appendArray(StringBuilder sb, BaseConnection connection, char delim,
+        long[] array) {
       sb.append('{');
       for (int i = 0; i < array.length; i++) {
         if (i > 0) {
@@ -516,7 +483,8 @@ final class ArrayEncoding {
       Oid.INT4_ARRAY) {
 
     @Override
-    public void appendArray(StringBuilder sb, char delim, int[] array) {
+    public void appendArray(StringBuilder sb, BaseConnection connection, char delim,
+        int[] array) {
       sb.append('{');
       for (int i = 0; i < array.length; i++) {
         if (i > 0) {
@@ -551,7 +519,8 @@ final class ArrayEncoding {
       Oid.INT2, Oid.INT2_ARRAY) {
 
     @Override
-    public void appendArray(StringBuilder sb, char delim, short[] array) {
+    public void appendArray(StringBuilder sb, BaseConnection connection, char delim,
+        short[] array) {
       sb.append('{');
       for (int i = 0; i < array.length; i++) {
         if (i > 0) {
@@ -586,7 +555,8 @@ final class ArrayEncoding {
       Oid.FLOAT8, Oid.FLOAT8_ARRAY) {
 
     @Override
-    public void appendArray(StringBuilder sb, char delim, double[] array) {
+    public void appendArray(StringBuilder sb, BaseConnection connection, char delim,
+        double[] array) {
       sb.append('{');
       for (int i = 0; i < array.length; i++) {
         if (i > 0) {
@@ -624,7 +594,8 @@ final class ArrayEncoding {
       Oid.FLOAT4, Oid.FLOAT4_ARRAY) {
 
     @Override
-    public void appendArray(StringBuilder sb, char delim, float[] array) {
+    public void appendArray(StringBuilder sb, BaseConnection connection, char delim,
+        float[] array) {
       sb.append('{');
       for (int i = 0; i < array.length; i++) {
         if (i > 0) {
@@ -662,7 +633,8 @@ final class ArrayEncoding {
       Oid.BOOL, Oid.BOOL_ARRAY) {
 
     @Override
-    public void appendArray(StringBuilder sb, char delim, boolean[] array) {
+    public void appendArray(StringBuilder sb, BaseConnection connection, char delim,
+        boolean[] array) {
       sb.append('{');
       for (int i = 0; i < array.length; i++) {
         if (i > 0) {
@@ -742,7 +714,8 @@ final class ArrayEncoding {
     }
 
     @Override
-    public void appendArray(StringBuilder sb, char delim, Boolean[] array) {
+    public void appendArray(StringBuilder sb, BaseConnection connection, char delim,
+        Boolean[] array) {
       sb.append('{');
       for (int i = 0; i < array.length; i++) {
         if (i != 0) {
@@ -793,7 +766,8 @@ final class ArrayEncoding {
     }
 
     @Override
-    public void appendArray(StringBuilder sb, char delim, String[] array) {
+    public void appendArray(StringBuilder sb, BaseConnection connection, char delim,
+        String[] array) {
       sb.append('{');
       for (int i = 0; i < array.length; i++) {
         if (i > 0) {
@@ -974,7 +948,8 @@ final class ArrayEncoding {
     }
 
     @Override
-    public void appendArray(StringBuilder sb, char delim, byte[][] array) {
+    public void appendArray(StringBuilder sb, BaseConnection connection, char delim,
+        byte[][] array) {
       sb.append('{');
       for (int i = 0; i < array.length; i++) {
         if (i > 0) {
@@ -1018,30 +993,23 @@ final class ArrayEncoding {
     }
 
     @Override
-    public void appendArray(StringBuilder sb, char delim, Object[] array) {
-      appendArray(sb, null, delim, array);
-    }
-
-    @Override
-    public void appendArray(StringBuilder sb, @Nullable TimestampUtils timestampUtils, char delim,
+    @SuppressWarnings("deprecation")
+    public void appendArray(StringBuilder sb, BaseConnection connection, char delim,
         Object[] array) {
+      TimestampUtils timestampUtils = connection.getTimestampUtils();
       sb.append('{');
       for (int i = 0; i < array.length; i++) {
         if (i > 0) {
           sb.append(delim);
         }
-        appendElement(sb, timestampUtils, delim, array[i]);
+        appendElement(sb, connection, timestampUtils, delim, array[i]);
       }
       sb.append('}');
     }
 
-    /**
-     * Appends one element to <i>sb</i>. {@code java.time} values are formatted by
-     * <i>timestampUtils</i> when it is available, so an element carries the same value as the
-     * scalar parameter of the same type; every other value keeps {@link Object#toString()}.
-     */
-    private void appendElement(StringBuilder sb, @Nullable TimestampUtils timestampUtils,
-        char delim, @Nullable Object value) {
+    // Temporal values use the scalar formatter; other values retain Object.toString().
+    private void appendElement(StringBuilder sb, BaseConnection connection,
+        TimestampUtils timestampUtils, char delim, @Nullable Object value) {
       if (value == null) {
         sb.append('N').append('U').append('L').append('L');
       } else if (value.getClass().isArray()) {
@@ -1049,19 +1017,14 @@ final class ArrayEncoding {
           throw new UnsupportedOperationException("byte[] nested inside Object[]");
         }
         try {
-          getArrayEncoder(value).appendArray(sb, timestampUtils, delim, value);
+          getArrayEncoder(value).appendArray(sb, connection, delim, value);
         } catch (PSQLException e) {
           // this should never happen
           throw new IllegalStateException(e);
         }
-      } else if (value instanceof LocalDate && timestampUtils != null) {
-        PgArray.escapeArrayElement(sb, timestampUtils.toString((LocalDate) value));
-      } else if (value instanceof LocalDateTime && timestampUtils != null) {
-        PgArray.escapeArrayElement(sb, timestampUtils.toString((LocalDateTime) value));
-      } else if (value instanceof OffsetDateTime && timestampUtils != null) {
-        PgArray.escapeArrayElement(sb, timestampUtils.toString((OffsetDateTime) value));
       } else {
-        PgArray.escapeArrayElement(sb, value.toString());
+        @Nullable String text = timestampUtils.toStringOrNull(value);
+        PgArray.escapeArrayElement(sb, text != null ? text : value.toString());
       }
     }
   };
@@ -1172,9 +1135,9 @@ final class ArrayEncoding {
      * {@inheritDoc}
      */
     @Override
-    public String toArrayString(char delim, A[] array) {
+    public String toArrayString(BaseConnection connection, char delim, A[] array) {
       final StringBuilder sb = new StringBuilder(1024);
-      appendArray(sb, delim, array);
+      appendArray(sb, connection, delim, array);
       return sb.toString();
     }
 
@@ -1182,19 +1145,13 @@ final class ArrayEncoding {
      * {@inheritDoc}
      */
     @Override
-    public void appendArray(StringBuilder sb, char delim, A[] array) {
-      appendArray(sb, null, delim, array);
-    }
-
-    @Override
-    public void appendArray(StringBuilder sb, @Nullable TimestampUtils timestampUtils, char delim,
-        A[] array) {
+    public void appendArray(StringBuilder sb, BaseConnection connection, char delim, A[] array) {
       sb.append('{');
       for (int i = 0; i < array.length; i++) {
         if (i > 0) {
           sb.append(delim);
         }
-        support.appendArray(sb, timestampUtils, delim, array[i]);
+        support.appendArray(sb, connection, delim, array[i]);
       }
       sb.append('}');
     }
@@ -1295,9 +1252,9 @@ final class ArrayEncoding {
      * {@inheritDoc}
      */
     @Override
-    public String toArrayString(char delim, Object array) {
+    public String toArrayString(BaseConnection connection, char delim, Object array) {
       final StringBuilder sb = new StringBuilder(2048);
-      arrayString(sb, null, array, delim, dimensions);
+      arrayString(sb, connection, array, delim, dimensions);
       return sb.toString();
     }
 
@@ -1305,18 +1262,13 @@ final class ArrayEncoding {
      * {@inheritDoc}
      */
     @Override
-    public void appendArray(StringBuilder sb, char delim, Object array) {
-      arrayString(sb, null, array, delim, dimensions);
-    }
-
-    @Override
-    public void appendArray(StringBuilder sb, @Nullable TimestampUtils timestampUtils, char delim,
+    public void appendArray(StringBuilder sb, BaseConnection connection, char delim,
         Object array) {
-      arrayString(sb, timestampUtils, array, delim, dimensions);
+      arrayString(sb, connection, array, delim, dimensions);
     }
 
-    private void arrayString(StringBuilder sb, @Nullable TimestampUtils timestampUtils,
-        Object array, char delim, int depth) {
+    private void arrayString(StringBuilder sb, BaseConnection connection, Object array, char delim,
+        int depth) {
 
       if (depth > 1) {
         sb.append('{');
@@ -1324,11 +1276,11 @@ final class ArrayEncoding {
           if (i > 0) {
             sb.append(delim);
           }
-          arrayString(sb, timestampUtils, Array.get(array, i), delim, depth - 1);
+          arrayString(sb, connection, Array.get(array, i), delim, depth - 1);
         }
         sb.append('}');
       } else {
-        support.appendArray(sb, timestampUtils, delim, array);
+        support.appendArray(sb, connection, delim, array);
       }
     }
 
