@@ -15,12 +15,16 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.index.qual.Positive;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -72,6 +76,26 @@ final class ArrayEncoding {
     String toArrayString(char delim, A array);
 
     /**
+     * Creates {@code String} representation of the <i>array</i>, formatting {@code java.time}
+     * elements with the connection specific <i>timestampUtils</i>, so an element carries the same
+     * value as the scalar parameter of the same type.
+     *
+     * @param timestampUtils
+     *          The formatter of the connection the array is sent on, or {@code null} to keep the
+     *          {@link Object#toString()} rendering of every element.
+     * @param delim
+     *          The character to use to delimit between elements.
+     * @param array
+     *          The array to represent as a {@code String}.
+     * @return {@code String} representation of the <i>array</i>.
+     */
+    default String toArrayString(@Nullable TimestampUtils timestampUtils, char delim, A array) {
+      final StringBuilder sb = new StringBuilder(1024);
+      appendArray(sb, timestampUtils, delim, array);
+      return sb.toString();
+    }
+
+    /**
      * Indicates if an array can be encoded in binary form to array <i>oid</i>.
      *
      * @param oid
@@ -116,6 +140,26 @@ final class ArrayEncoding {
      *          {@code null} elements.
      */
     void appendArray(StringBuilder sb, char delim, A array);
+
+    /**
+     * Append {@code String} representation of <i>array</i> to <i>sb</i>, formatting
+     * {@code java.time} elements with the connection specific <i>timestampUtils</i>.
+     *
+     * @param sb
+     *          The {@link StringBuilder} to append to.
+     * @param timestampUtils
+     *          The formatter of the connection the array is sent on, or {@code null} to keep the
+     *          {@link Object#toString()} rendering of every element.
+     * @param delim
+     *          The delimiter between elements.
+     * @param array
+     *          The array to represent. Will not be {@code null}, but may contain
+     *          {@code null} elements.
+     */
+    default void appendArray(StringBuilder sb, @Nullable TimestampUtils timestampUtils, char delim,
+        A array) {
+      appendArray(sb, delim, array);
+    }
   }
 
   /**
@@ -975,28 +1019,50 @@ final class ArrayEncoding {
 
     @Override
     public void appendArray(StringBuilder sb, char delim, Object[] array) {
+      appendArray(sb, null, delim, array);
+    }
+
+    @Override
+    public void appendArray(StringBuilder sb, @Nullable TimestampUtils timestampUtils, char delim,
+        Object[] array) {
       sb.append('{');
       for (int i = 0; i < array.length; i++) {
         if (i > 0) {
           sb.append(delim);
         }
-        if (array[i] == null) {
-          sb.append('N').append('U').append('L').append('L');
-        } else if (array[i].getClass().isArray()) {
-          if (array[i] instanceof byte[]) {
-            throw new UnsupportedOperationException("byte[] nested inside Object[]");
-          }
-          try {
-            getArrayEncoder(array[i]).appendArray(sb, delim, array[i]);
-          } catch (PSQLException e) {
-            // this should never happen
-            throw new IllegalStateException(e);
-          }
-        } else {
-          PgArray.escapeArrayElement(sb, array[i].toString());
-        }
+        appendElement(sb, timestampUtils, delim, array[i]);
       }
       sb.append('}');
+    }
+
+    /**
+     * Appends one element to <i>sb</i>. {@code java.time} values are formatted by
+     * <i>timestampUtils</i> when it is available, so an element carries the same value as the
+     * scalar parameter of the same type; every other value keeps {@link Object#toString()}.
+     */
+    private void appendElement(StringBuilder sb, @Nullable TimestampUtils timestampUtils,
+        char delim, @Nullable Object value) {
+      if (value == null) {
+        sb.append('N').append('U').append('L').append('L');
+      } else if (value.getClass().isArray()) {
+        if (value instanceof byte[]) {
+          throw new UnsupportedOperationException("byte[] nested inside Object[]");
+        }
+        try {
+          getArrayEncoder(value).appendArray(sb, timestampUtils, delim, value);
+        } catch (PSQLException e) {
+          // this should never happen
+          throw new IllegalStateException(e);
+        }
+      } else if (value instanceof LocalDate && timestampUtils != null) {
+        PgArray.escapeArrayElement(sb, timestampUtils.toString((LocalDate) value));
+      } else if (value instanceof LocalDateTime && timestampUtils != null) {
+        PgArray.escapeArrayElement(sb, timestampUtils.toString((LocalDateTime) value));
+      } else if (value instanceof OffsetDateTime && timestampUtils != null) {
+        PgArray.escapeArrayElement(sb, timestampUtils.toString((OffsetDateTime) value));
+      } else {
+        PgArray.escapeArrayElement(sb, value.toString());
+      }
     }
   };
 
@@ -1117,12 +1183,18 @@ final class ArrayEncoding {
      */
     @Override
     public void appendArray(StringBuilder sb, char delim, A[] array) {
+      appendArray(sb, null, delim, array);
+    }
+
+    @Override
+    public void appendArray(StringBuilder sb, @Nullable TimestampUtils timestampUtils, char delim,
+        A[] array) {
       sb.append('{');
       for (int i = 0; i < array.length; i++) {
         if (i > 0) {
           sb.append(delim);
         }
-        support.appendArray(sb, delim, array[i]);
+        support.appendArray(sb, timestampUtils, delim, array[i]);
       }
       sb.append('}');
     }
@@ -1225,7 +1297,7 @@ final class ArrayEncoding {
     @Override
     public String toArrayString(char delim, Object array) {
       final StringBuilder sb = new StringBuilder(2048);
-      arrayString(sb, array, delim, dimensions);
+      arrayString(sb, null, array, delim, dimensions);
       return sb.toString();
     }
 
@@ -1234,10 +1306,17 @@ final class ArrayEncoding {
      */
     @Override
     public void appendArray(StringBuilder sb, char delim, Object array) {
-      arrayString(sb, array, delim, dimensions);
+      arrayString(sb, null, array, delim, dimensions);
     }
 
-    private void arrayString(StringBuilder sb, Object array, char delim, int depth) {
+    @Override
+    public void appendArray(StringBuilder sb, @Nullable TimestampUtils timestampUtils, char delim,
+        Object array) {
+      arrayString(sb, timestampUtils, array, delim, dimensions);
+    }
+
+    private void arrayString(StringBuilder sb, @Nullable TimestampUtils timestampUtils,
+        Object array, char delim, int depth) {
 
       if (depth > 1) {
         sb.append('{');
@@ -1245,11 +1324,11 @@ final class ArrayEncoding {
           if (i > 0) {
             sb.append(delim);
           }
-          arrayString(sb, Array.get(array, i), delim, depth - 1);
+          arrayString(sb, timestampUtils, Array.get(array, i), delim, depth - 1);
         }
         sb.append('}');
       } else {
-        support.appendArray(sb, delim, array);
+        support.appendArray(sb, timestampUtils, delim, array);
       }
     }
 

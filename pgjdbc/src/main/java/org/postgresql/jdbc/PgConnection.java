@@ -1565,7 +1565,7 @@ public class PgConnection implements BaseConnection {
       return new PgArray(this, oid, arraySupport.toBinaryRepresentation(this, elements, oid));
     }
 
-    final String arrayString = arraySupport.toArrayString(delim, elements);
+    final String arrayString = arraySupport.toArrayString(timestampUtils, delim, elements);
     return makeArray(oid, arrayString);
   }
 
