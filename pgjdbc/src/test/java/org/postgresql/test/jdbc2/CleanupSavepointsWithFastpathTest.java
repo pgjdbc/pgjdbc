@@ -23,7 +23,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.nio.charset.StandardCharsets;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,7 +43,7 @@ import java.util.Properties;
 @ParameterizedClass
 @MethodSource("data")
 class CleanupSavepointsWithFastpathTest extends BaseTest4 {
-  private CountingSocketFactory.Counters socketCounters = CountingSocketFactory.register();
+  private final CountingSocketFactory.Counters socketCounters = CountingSocketFactory.register();
 
   CleanupSavepointsWithFastpathTest(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
@@ -65,15 +64,6 @@ class CleanupSavepointsWithFastpathTest extends BaseTest4 {
     PGProperty.CLEANUP_SAVEPOINTS.set(props, true);
     PGProperty.SOCKET_FACTORY.set(props, CountingSocketFactory.class.getName());
     PGProperty.SOCKET_FACTORY_ARG.set(props, socketCounters.key());
-  }
-
-  @Override
-  protected void tearDown() throws SQLException {
-    try {
-      super.tearDown();
-    } finally {
-      CountingSocketFactory.unregister(socketCounters);
-    }
   }
 
   /**
