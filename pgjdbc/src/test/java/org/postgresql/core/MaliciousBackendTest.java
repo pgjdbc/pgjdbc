@@ -5,6 +5,7 @@
 
 package org.postgresql.core;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -12,15 +13,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.v3.ConnectionFactoryImpl;
+import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.parallel.Isolated;
 
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
@@ -35,40 +34,46 @@ import java.net.Socket;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Connects a real driver over loopback to a backend that declares a message length and then
- * sends nothing. These are the messages a hostile server can send before authentication, so no
- * PostgreSQL is involved.
+ * Connects a real driver to a hostile server. {@link Backend} binds a loopback port and sends one
+ * message of the kind a server can send before authentication, with a body that need not match its
+ * declared length; the round trip limit is driven through a {@link CannedSocketFactory} instead. No
+ * PostgreSQL server is involved.
+ *
+ * <p>The two limits under test are what an unauthenticated backend cannot exceed: the driver will
+ * not allocate more than a fixed number of bytes for one message, and will not answer more than a
+ * fixed number of authentication requests. A message past either limit fails the connection with a
+ * protocol violation.</p>
+ *
+ * <p>Each assertion builds its expected text with {@link GT#tr}, the call the driver used, so the
+ * tests hold in any locale.</p>
  */
-@Isolated("Uses Locale.setDefault")
 class MaliciousBackendTest {
 
-  // The assertions match on message text, which GT.tr translates once these strings are
-  // localized.
-  private static Locale defaultLocale;
-
-  @BeforeAll
-  static void useRootLocale() {
-    defaultLocale = Locale.getDefault();
-    Locale.setDefault(Locale.ROOT);
+  /** The refusal {@link PGStream#receiveMessageLength} builds for a length outside its range. */
+  private static String lengthRefusal(String messageName, int declared, int min, int max) {
+    return GT.tr("Backend declared a {0} message length of {1} bytes, expected {2} to {3} bytes.",
+        messageName, String.valueOf(declared), String.valueOf(min), String.valueOf(max));
   }
 
-  @AfterAll
-  static void restoreLocale() {
-    Locale.setDefault(defaultLocale);
+  /** The refusal for an ErrorResponse read during connection setup, where the limit is 30000. */
+  private static String preAuthErrorRefusal(int declared) {
+    return lengthRefusal("ErrorResponse", declared, 5, PGStream.MAX_PRE_AUTH_MESSAGE_LENGTH);
   }
 
+  /** The protocol version field of an SSLRequest packet. */
   private static final int SSL_REQUEST = 80877103;
+  /** The protocol version field of a GSSENCRequest packet. */
   private static final int GSS_ENC_REQUEST = 80877104;
 
   /**
-   * Refuses SSL and GSS encryption, consumes the startup packet, declares a message of the given
-   * type and length, then holds the socket open. If the driver waits for the body, which never
-   * comes, it hangs until its socket timeout. If it rejects the length, it fails at once.
+   * Refuses SSL and GSS encryption, consumes the startup packet, then sends one message with the
+   * given type, declared length and body, and holds the socket open. A driver that waits for the
+   * rest of the declared length blocks until its socket timeout, and one that refuses the length
+   * fails at once.
    */
   private static class Backend implements Closeable, Runnable {
     private final ServerSocket serverSocket;
@@ -77,6 +82,10 @@ class MaliciousBackendTest {
     private final byte[] body;
     private volatile boolean closed;
 
+    /**
+     * Binds an ephemeral port on 127.0.0.1 and serves it from a daemon thread, so the URL from
+     * {@link #getUrl()} accepts a connection as soon as the constructor returns.
+     */
     Backend(int messageType, int declaredLength, byte[] body) throws IOException {
       this.messageType = messageType;
       this.declaredLength = declaredLength;
@@ -88,6 +97,10 @@ class MaliciousBackendTest {
       thread.start();
     }
 
+    /**
+     * Returns a URL whose connect, socket and login timeouts are 10 seconds each, so a driver that
+     * waits for the rest of the declared length still fails inside the 30 second test timeout.
+     */
     String getUrl() {
       return "jdbc:postgresql://127.0.0.1:" + serverSocket.getLocalPort() + "/test"
           + "?user=test&password=test&connectTimeout=10&socketTimeout=10&loginTimeout=10";
@@ -114,7 +127,8 @@ class MaliciousBackendTest {
             // Wait for the driver to close from its end.
           }
         } catch (Exception e) {
-          // The driver hanging up mid-write is the expected outcome.
+          // A driver that refuses the length closes the connection, so a failed write here is
+          // expected.
         } finally {
           closeQuietly(socket);
         }
@@ -159,7 +173,7 @@ class MaliciousBackendTest {
         try {
           socket.close();
         } catch (IOException ignore) {
-          // nothing to do
+          // The socket is being discarded, so a failure to close it makes no difference.
         }
       }
     }
@@ -170,17 +184,26 @@ class MaliciousBackendTest {
       try {
         serverSocket.close();
       } catch (IOException ignore) {
-        // nothing to do
+        // The test is finished with the port either way.
       }
     }
   }
 
-  private static void assertConnectionRefused(int messageType, int declaredLength)
-      throws IOException {
-    assertConnectionRefused(messageType, declaredLength, new byte[0], "message length");
+  /**
+   * Asserts that a message of the given type and declared length, sent with no body, is refused
+   * with {@code expectedMessage} as the root cause's text.
+   */
+  private static void assertConnectionRefused(int messageType, int declaredLength,
+      String expectedMessage) throws IOException {
+    assertConnectionRefused(messageType, declaredLength, new byte[0], expectedMessage);
   }
 
-  /** For the cases that surface as PROTOCOL_VIOLATION rather than as an IOException. */
+  /**
+   * Asserts that the connection attempt fails within 5 seconds and that some exception in the cause
+   * chain carries {@link PSQLState#PROTOCOL_VIOLATION} and {@code expectedMessage} as its text.
+   * {@link #assertConnectionRefused(int, int, byte[], String)} covers the refusals that reach the
+   * caller as an {@link IOException} instead.
+   */
   private static void assertProtocolViolation(int messageType, int declaredLength, byte[] body,
       String expectedMessage) throws IOException {
     try (Backend backend = new Backend(messageType, declaredLength, body)) {
@@ -188,7 +211,7 @@ class MaliciousBackendTest {
       SQLException e = assertThrows(SQLException.class,
           () -> DriverManager.getConnection(backend.getUrl()).close());
       long elapsedMs = (System.nanoTime() - start) / 1000000;
-      assertTrue(elapsedMs < 5000, "took " + elapsedMs + "ms, so it waited for the body");
+      assertTrue(elapsedMs < 5000, "took " + elapsedMs + "ms, so the driver waited for the body");
       PSQLException violation = null;
       for (Throwable c = e; c != null && c != c.getCause(); c = c.getCause()) {
         if (c instanceof PSQLException
@@ -197,12 +220,15 @@ class MaliciousBackendTest {
           break;
         }
       }
-      assertNotNull(violation, "expected a PROTOCOL_VIOLATION in the chain, got: " + e);
-      assertTrue(violation.getMessage().contains(expectedMessage),
-          "unexpected failure: " + violation);
+      assertNotNull(violation, "expected a PROTOCOL_VIOLATION in the cause chain, got: " + e);
+      assertEquals(expectedMessage, violation.getMessage());
     }
   }
 
+  /**
+   * Asserts that the connection attempt fails within 5 seconds with an {@link IOException} at the
+   * root of the cause chain, carrying {@code expectedMessage} in its text.
+   */
   private static void assertConnectionRefused(int messageType, int declaredLength, byte[] body,
       String expectedMessage) throws IOException {
     try (Backend backend = new Backend(messageType, declaredLength, body)) {
@@ -211,17 +237,19 @@ class MaliciousBackendTest {
           () -> DriverManager.getConnection(backend.getUrl()).close());
       long elapsedMs = (System.nanoTime() - start) / 1000000;
 
-      // The socket timeout is ten seconds, so failing well inside it means the length was
-      // rejected rather than the body awaited.
-      assertTrue(elapsedMs < 5000, "took " + elapsedMs + "ms, so it waited for the body");
-      // Timing alone would pass for a prompt timeout, so check the cause too.
+      // Failing well inside the 10 second socket timeout means the driver refused the length
+      // rather than waiting for the body.
+      assertTrue(elapsedMs < 5000, "took " + elapsedMs + "ms, so the driver waited for the body");
+      // A quick failure of any other kind would pass the timing check too, so check the cause.
       Throwable cause = rootCause(e);
-      assertTrue(cause instanceof IOException, "expected an IOException, got: " + cause);
-      assertTrue(cause.getMessage().contains(expectedMessage), "unexpected failure: " + cause);
+      assertTrue(cause instanceof IOException, "expected an IOException, got: " + describe(e));
+      assertEquals(expectedMessage, cause.getMessage());
     }
   }
 
-  /** Every exception in the chain with its SQLSTATE. */
+  /**
+   * Returns every exception in the chain, each SQLException followed by its SQLState in brackets.
+   */
   private static String describe(Throwable t) {
     StringBuilder sb = new StringBuilder();
     for (Throwable c = t; c != null && c != c.getCause(); c = c.getCause()) {
@@ -244,69 +272,105 @@ class MaliciousBackendTest {
     return cause;
   }
 
-  /** An ErrorResponse declares a huge length before authentication and no body follows. */
+  /**
+   * {@link Integer#MAX_VALUE} is the largest length the 4 length bytes can declare, and no body
+   * follows it.
+   */
   @Test
   @Timeout(value = 30, unit = TimeUnit.SECONDS)
   void rejectsAHugePreAuthenticationErrorResponse() throws IOException {
-    assertConnectionRefused(PgMessageType.ERROR_RESPONSE, Integer.MAX_VALUE);
+    assertConnectionRefused(PgMessageType.ERROR_RESPONSE, Integer.MAX_VALUE,
+        preAuthErrorRefusal(Integer.MAX_VALUE));
   }
 
+  /**
+   * The body size is the declared {@link Integer#MIN_VALUE} less its own 4 bytes, which wraps round
+   * to a positive two gigabytes.
+   */
   @Test
   @Timeout(value = 30, unit = TimeUnit.SECONDS)
   void rejectsANegativeErrorResponseLength() throws IOException {
-    assertConnectionRefused(PgMessageType.ERROR_RESPONSE, Integer.MIN_VALUE);
+    assertConnectionRefused(PgMessageType.ERROR_RESPONSE, Integer.MIN_VALUE,
+        preAuthErrorRefusal(Integer.MIN_VALUE));
   }
 
-  /** An option count driving a loop with a string concatenation per iteration. */
+  /**
+   * The option count is 0x7FFFFFFF. Without the check, that count drives a loop which reads an
+   * option name and concatenates it on every one of those iterations.
+   */
   @Test
   @Timeout(value = 30, unit = TimeUnit.SECONDS)
   void rejectsAnUnrecognizedOptionCountTooLargeForTheMessage() throws IOException {
-    // Protocol version, then a count of options that a twelve byte message cannot hold.
+    // Protocol version 3.0, then a count of 0x7FFFFFFF options, which the declared 12 bytes
+    // cannot hold.
     byte[] body = {0, 3, 0, 0, 0x7F, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
     assertProtocolViolation(PgMessageType.NEGOTIATE_PROTOCOL_RESPONSE, 12, body,
-        "unrecognized options");
+        GT.tr("Backend reported {0} unrecognized options in a message of {1} bytes.",
+            String.valueOf(Integer.MAX_VALUE), "12"));
   }
 
-  /** A negative count skips the loop and leaves the declared body unread. */
+  /**
+   * A count of -1 is refused by the same check as a count too large for the message, because a
+   * negative count cannot describe any options.
+   */
   @Test
   @Timeout(value = 30, unit = TimeUnit.SECONDS)
   void rejectsANegativeUnrecognizedOptionCount() throws IOException {
     byte[] body = {0, 3, 0, 0, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF};
     assertProtocolViolation(PgMessageType.NEGOTIATE_PROTOCOL_RESPONSE, 12, body,
-        "unrecognized options");
+        GT.tr("Backend reported {0} unrecognized options in a message of {1} bytes.", "-1", "12"));
   }
 
-  /** With no unrecognized options the message is exactly its twelve byte fixed part. */
+  /**
+   * With no unrecognized options the message is exactly its 12 byte fixed part, 4 length + 4
+   * protocol version + 4 count, so the declared 40 is refused.
+   */
   @Test
   @Timeout(value = 30, unit = TimeUnit.SECONDS)
   void rejectsAnOversizedNegotiateProtocolVersionWithNoOptions() throws IOException {
     byte[] body = {0, 3, 0, 0, 0, 0, 0, 0};
     assertProtocolViolation(PgMessageType.NEGOTIATE_PROTOCOL_RESPONSE, 40, body,
-        "NegotiateProtocolVersion");
+        GT.tr("Backend sent a {0} byte NegotiateProtocolVersion with no unrecognized options.",
+            "40"));
   }
 
-  /** The length that would otherwise reach the SASL and SSPI handlers as a payload size. */
+  /**
+   * The declared {@link PGStream#MAX_MESSAGE_LENGTH} is a length the driver accepts for a DataRow.
+   * An AuthenticationRequest is held to {@link PGStream#MAX_SMALL_MESSAGE_LENGTH} instead, because
+   * its declared length sizes the SASL and SSPI reads.
+   */
   @Test
   @Timeout(value = 30, unit = TimeUnit.SECONDS)
   void rejectsAHugeAuthenticationMessage() throws IOException {
-    assertConnectionRefused(PgMessageType.AUTHENTICATION_RESPONSE, PGStream.MAX_MESSAGE_LENGTH);
+    assertConnectionRefused(PgMessageType.AUTHENTICATION_RESPONSE, PGStream.MAX_MESSAGE_LENGTH,
+        lengthRefusal("AuthenticationRequest", PGStream.MAX_MESSAGE_LENGTH, 8,
+            PGStream.MAX_SMALL_MESSAGE_LENGTH));
   }
 
-  /** One byte above the pre-authentication limit, which is well below the buffered one. */
+  /**
+   * One byte above {@link PGStream#MAX_PRE_AUTH_MESSAGE_LENGTH} is refused even though it is well
+   * below {@link PGStream#MAX_BUFFERED_MESSAGE_LENGTH}, the limit that applies once the connection
+   * is authenticated.
+   */
   @Test
   @Timeout(value = 30, unit = TimeUnit.SECONDS)
   void rejectsAnErrorResponseAboveThePreAuthenticationCap() throws IOException {
     assertConnectionRefused(PgMessageType.ERROR_RESPONSE,
-        PGStream.MAX_PRE_AUTH_MESSAGE_LENGTH + 1);
+        PGStream.MAX_PRE_AUTH_MESSAGE_LENGTH + 1,
+        preAuthErrorRefusal(PGStream.MAX_PRE_AUTH_MESSAGE_LENGTH + 1));
   }
 
-  /** An ErrorResponse at the limit exactly is sent in full and must reach the caller. */
+  /**
+   * An ErrorResponse of exactly {@link PGStream#MAX_PRE_AUTH_MESSAGE_LENGTH} bytes is sent in full,
+   * and its text has to reach the caller.
+   */
   @Test
   @Timeout(value = 30, unit = TimeUnit.SECONDS)
   void acceptsAnErrorResponseAtThePreAuthenticationCap() throws IOException {
     int bodyLength = PGStream.MAX_PRE_AUTH_MESSAGE_LENGTH - 4;
-    // The body is one 'M' field made of its tag, the text, the string terminator and the
-    // field list terminator.
+    // We fill the body with one 'M' field, the primary error message, because that is the field
+    // the caller sees: the 'x' bytes below are what the assertion looks for. The layout is the
+    // tag, the text, the string terminator, then the zero byte that ends the field list.
     byte[] body = new byte[bodyLength];
     body[0] = 'M';
     Arrays.fill(body, 1, bodyLength - 2, (byte) 'x');
@@ -322,7 +386,7 @@ class MaliciousBackendTest {
     }
   }
 
-  /** Every refused length reaches the caller as a protocol violation, not as a transport error. */
+  /** A refused length reaches the caller as a protocol violation, not as a transport error. */
   @Test
   @Timeout(value = 30, unit = TimeUnit.SECONDS)
   void reportsARefusedLengthAsAProtocolViolation() throws IOException {
@@ -330,14 +394,17 @@ class MaliciousBackendTest {
         new byte[0])) {
       SQLException e = assertThrows(SQLException.class,
           () -> DriverManager.getConnection(backend.getUrl()).close());
-      assertEquals(PSQLState.PROTOCOL_VIOLATION.getState(), e.getSQLState(), e.toString());
+      assertEquals(PSQLState.PROTOCOL_VIOLATION.getState(), e.getSQLState(), describe(e));
     }
   }
 
   /**
-   * Counts the passwords the driver wrote to a canned socket. A peer cannot count them reliably,
-   * because the driver resets the connection when it gives up and Windows drops unread data on a
-   * reset.
+   * Answers ten more password requests than the limit allows and expects the driver to stop at
+   * {@link PGStream#MAX_AUTH_ROUND_TRIPS} with a protocol violation, having sent one
+   * PasswordMessage per request.
+   *
+   * <p>The messages are counted from a canned socket, because a peer cannot count them reliably:
+   * the driver resets the connection when it gives up and Windows drops unread data on a reset.</p>
    */
   @Test
   @Timeout(value = 30, unit = TimeUnit.SECONDS)
@@ -350,14 +417,20 @@ class MaliciousBackendTest {
 
     PSQLException e = assertThrows(PSQLException.class, () -> authenticate(stream, info));
 
-    assertEquals(PSQLState.PROTOCOL_VIOLATION.getState(), e.getSQLState(), e.toString());
-    assertTrue(e.getMessage().contains("messages"), e.getMessage());
-    assertTrue(stream.isBroken(), "the stream must not look reusable");
-    assertEquals(PGStream.MAX_AUTH_ROUND_TRIPS, countPasswordMessages(factory.getWritten()),
-        "the driver must answer exactly the capped number of requests");
+    assertAll(
+        () -> assertEquals(GT.tr("Backend sent more than {0} messages without finishing"
+            + " authentication.", PGStream.MAX_AUTH_ROUND_TRIPS), e.getMessage()),
+        () -> assertEquals(PSQLState.PROTOCOL_VIOLATION.getState(), e.getSQLState(), describe(e)),
+        () -> assertTrue(stream.isBroken(), "the stream must be marked broken"),
+        () -> assertEquals(PGStream.MAX_AUTH_ROUND_TRIPS,
+            countPasswordMessages(factory.getWritten()),
+            "the driver must send one PasswordMessage per request and stop at the limit"));
   }
 
-  /** AuthenticationCleartextPassword, repeated. */
+  /**
+   * Returns {@code count} AuthenticationCleartextPassword messages, each carrying a declared
+   * length of 8 and the authentication code 3.
+   */
   private static byte[] passwordRequests(int count) {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     for (int i = 0; i < count; i++) {
@@ -367,7 +440,10 @@ class MaliciousBackendTest {
     return out.toByteArray();
   }
 
-  /** Walks the PasswordMessages the driver wrote. */
+  /**
+   * Counts the PasswordMessages in the driver's output, and fails unless that output is whole
+   * PasswordMessages and only those.
+   */
   private static int countPasswordMessages(byte[] written) {
     int count = 0;
     int pos = 0;
@@ -382,7 +458,12 @@ class MaliciousBackendTest {
     return count;
   }
 
-  /** doAuthentication is private. */
+  /**
+   * Runs the authentication exchange over the given stream as user {@code test} on host
+   * {@code localhost}.
+   * ConnectionFactoryImpl.doAuthentication is private, so this calls it by reflection and throws
+   * what it threw rather than the {@link InvocationTargetException} around it.
+   */
   private static void authenticate(PGStream stream, Properties info) throws Exception {
     Method method = ConnectionFactoryImpl.class.getDeclaredMethod("doAuthentication",
         PGStream.class, String.class, String.class, Properties.class);
