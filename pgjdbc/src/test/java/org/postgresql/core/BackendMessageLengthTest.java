@@ -137,7 +137,7 @@ class BackendMessageLengthTest {
   }
 
   @Test
-  void rejectsADataRowWhoseColumnsUnderrunItsEnvelope() throws IOException {
+  void rejectsADataRowWhoseColumnsUnderrunItsMessage() throws IOException {
     // 4 length + 2 count + 4 column length leaves 11 of column data. The column accounts for 7.
     byte[] message = new byte[]{0, 0, 0, 21, 0, 1, 0, 0, 0, 7, 'a', 'b', 'c', 'd', 'e', 'f', 'g'};
     PGStream stream = streamOf(message);
@@ -146,7 +146,7 @@ class BackendMessageLengthTest {
   }
 
   @Test
-  void acceptsADataRowThatConsumesItsEnvelopeExactly() throws IOException, SQLException {
+  void acceptsADataRowThatConsumesItsMessageExactly() throws IOException, SQLException {
     byte[] message = new byte[]{0, 0, 0, 13, 0, 1, 0, 0, 0, 3, 'a', 'b', 'c'};
 
     Tuple tuple = streamOf(message).receiveTupleV3();
@@ -277,7 +277,7 @@ class BackendMessageLengthTest {
   }
 
   @Test
-  void capsThePreAuthenticationMessageBelowTheBufferedOne() {
+  void limitsThePreAuthenticationMessageBelowTheBufferedOne() {
     assertTrue(PGStream.MAX_PRE_AUTH_MESSAGE_LENGTH < PGStream.MAX_BUFFERED_MESSAGE_LENGTH);
     // libpq's limit is on the declared length, which counts itself.
     assertEquals(30000, PGStream.MAX_PRE_AUTH_MESSAGE_LENGTH);

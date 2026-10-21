@@ -48,7 +48,7 @@ import java.util.Properties;
  * off the wire can be given values a server would never send.
  */
 @Isolated("Uses Locale.setDefault")
-class BackendMessageEnvelopeTest {
+class BackendMessageBoundaryTest {
 
   // The assertions match on message text, which GT.tr translates once these strings are
   // localized.

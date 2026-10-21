@@ -295,7 +295,7 @@ class MaliciousBackendTest {
   /** One byte above the pre-authentication limit, which is well below the buffered one. */
   @Test
   @Timeout(value = 30, unit = TimeUnit.SECONDS)
-  void rejectsAnErrorResponseAboveThePreAuthenticationCap() throws IOException {
+  void rejectsAnErrorResponseAboveThePreAuthenticationLimit() throws IOException {
     assertConnectionRefused(PgMessageType.ERROR_RESPONSE,
         PGStream.MAX_PRE_AUTH_MESSAGE_LENGTH + 1);
   }
@@ -303,7 +303,7 @@ class MaliciousBackendTest {
   /** An ErrorResponse at the limit exactly is sent in full and must reach the caller. */
   @Test
   @Timeout(value = 30, unit = TimeUnit.SECONDS)
-  void acceptsAnErrorResponseAtThePreAuthenticationCap() throws IOException {
+  void acceptsAnErrorResponseAtThePreAuthenticationLimit() throws IOException {
     int bodyLength = PGStream.MAX_PRE_AUTH_MESSAGE_LENGTH - 4;
     // The body is one 'M' field made of its tag, the text, the string terminator and the
     // field list terminator.
@@ -341,7 +341,7 @@ class MaliciousBackendTest {
    */
   @Test
   @Timeout(value = 30, unit = TimeUnit.SECONDS)
-  void stopsAnsweringAfterTheAuthenticationMessageCap() throws Exception {
+  void stopsTheAuthenticationLoopAtTheMessageLimit() throws Exception {
     CannedSocketFactory factory =
         new CannedSocketFactory(passwordRequests(PGStream.MAX_AUTH_ROUND_TRIPS + 10));
     PGStream stream = new PGStream(factory, new HostSpec("localhost", 5432), 0, 8192);
@@ -354,7 +354,7 @@ class MaliciousBackendTest {
     assertTrue(e.getMessage().contains("messages"), e.getMessage());
     assertTrue(stream.isBroken(), "the stream must not look reusable");
     assertEquals(PGStream.MAX_AUTH_ROUND_TRIPS, countPasswordMessages(factory.getWritten()),
-        "the driver must answer exactly the capped number of requests");
+        "the driver must send exactly the number of password messages the limit allows");
   }
 
   /** AuthenticationCleartextPassword, repeated. */
