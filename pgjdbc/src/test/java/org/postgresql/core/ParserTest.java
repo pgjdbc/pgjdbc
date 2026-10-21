@@ -142,6 +142,41 @@ class ParserTest {
     assertEquals("{obj : 1}", Parser.replaceProcessing("{obj : 1}", true, false));
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {"0", "1", "9", "2147483648", "?", "10 OFFSET 2", "? OFFSET ?"})
+  void limitEscape(String clause) throws SQLException {
+    assertEquals("SELECT 1 LIMIT " + clause,
+        Parser.replaceProcessing("SELECT 1 {limit " + clause + "}", true, true));
+  }
+
+  @Test
+  void limitEscapeCaseAndNesting() throws SQLException {
+    assertEquals("SELECT 1 LIMIT 2 offset 1",
+        Parser.replaceProcessing("SELECT 1 {LiMiT 2 offset 1}", true, true));
+    assertEquals("SELECT * FROM (SELECT 1 LIMIT 1) q LIMIT 2",
+        Parser.replaceProcessing("SELECT * FROM (SELECT 1 {limit 1}) q {limit 2}", true, true));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "SELECT '{limit 1}'",
+      "SELECT \"{limit 1}\"",
+      "SELECT $tag${limit 1}$tag$",
+      "SELECT 1 /* {limit 1} */",
+      "SELECT 1 -- {limit 1}",
+      "SELECT 1 {limitation 1}",
+      "SELECT 1 {limit -1}"
+  })
+  void limitEscapeDoesNotChangeOtherSql(String sql) throws SQLException {
+    assertEquals(sql, Parser.replaceProcessing(sql, true, true));
+  }
+
+  @Test
+  void disabledLimitEscapeProcessing() throws SQLException {
+    String sql = "SELECT 1 {limit 1}";
+    assertEquals(sql, Parser.replaceProcessing(sql, false, true));
+  }
+
   @Test
   void timestampAddDiffFracSecondIsRejected() throws Exception {
     // SQL_TSI_FRAC_SECOND has no portable size across databases (nanoseconds in ODBC/SQL Server,

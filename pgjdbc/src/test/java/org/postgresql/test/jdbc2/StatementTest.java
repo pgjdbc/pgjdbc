@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -225,6 +226,55 @@ class StatementTest {
         .executeQuery("select str2 from comparisontest where str1 like '|%abcd' {escape '|'} ");
     assertTrue(rs.next());
     assertEquals("%found", rs.getString(1));
+  }
+
+  @Test
+  void limitEscapeStatement() throws SQLException {
+    try (Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT 1 ORDER BY 1 {limit 1}")) {
+      assertTrue(rs.next());
+      assertEquals(1, rs.getInt(1));
+      assertFalse(rs.next());
+    }
+    String sql = "SELECT n FROM generate_series(1, 5) n ORDER BY n {limit 2 offset 1}";
+    assertEquals("SELECT n FROM generate_series(1, 5) n ORDER BY n LIMIT 2 offset 1",
+        con.nativeSQL(sql));
+    try (Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery(sql)) {
+      assertTrue(rs.next());
+      assertEquals(2, rs.getInt(1));
+      assertTrue(rs.next());
+      assertEquals(3, rs.getInt(1));
+      assertFalse(rs.next());
+    }
+  }
+
+  @Test
+  void limitEscapePreparedStatement() throws SQLException {
+    try (PreparedStatement stmt = con.prepareStatement(
+        "SELECT n FROM generate_series(1, 5) n ORDER BY n {limit ? offset ?}")) {
+      for (int[] bounds : new int[][]{{2, 1}, {0, 0}, {5, 10}, {5, 0}}) {
+        stmt.setInt(1, bounds[0]);
+        stmt.setInt(2, bounds[1]);
+        try (ResultSet rs = stmt.executeQuery()) {
+          int count = 0;
+          while (rs.next()) {
+            assertEquals(bounds[1] + ++count, rs.getInt(1));
+          }
+          assertEquals(Math.min(bounds[0], Math.max(0, 5 - bounds[1])), count);
+        }
+      }
+    }
+  }
+
+  @Test
+  void disabledLimitEscapeStatement() throws SQLException {
+    try (Statement stmt = con.createStatement()) {
+      stmt.setEscapeProcessing(false);
+      SQLException failure = assertThrows(SQLException.class,
+          () -> stmt.executeQuery("SELECT 1 {limit 1}"));
+      assertEquals(PSQLState.SYNTAX_ERROR.getState(), failure.getSQLState());
+    }
   }
 
   @Test
