@@ -2321,34 +2321,55 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
 
     /*
-     * At the moment this simply returns a table's primary key, if there is one. I believe other
-     * unique indexes, ctid, and oid should also be considered. -KJ
+     * This returns a table's primary key, or a unique index when there is no primary key. Exactly
+     * one index is reported: an invalid, partial or expression index cannot identify every row and
+     * is skipped, and of the remaining candidates the primary key wins, then an index whose columns
+     * are all NOT NULL, then the narrowest, and finally the oldest, so that the answer does not
+     * depend on the order the catalogs happen to be scanned in. I believe ctid and oid should also
+     * be considered. -KJ
      */
+    // INCLUDE columns are not part of the key; indnkeyatts tells key from payload since 11
+    String keyColumns =
+        connection.haveMinimumServerVersion(ServerVersion.v11) ? "indnkeyatts" : "indnatts";
     StringBuilder sql = new StringBuilder(
         // language=sql
-        "SELECT a.attname, a.atttypid, atttypmod "
-          + "FROM pg_catalog.pg_class ct "
-          + "  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) "
-          + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
-          + "  JOIN (SELECT i.indexrelid, i.indrelid, i.indisprimary, "
+        "SELECT a.attname, a.atttypid, a.atttypmod, a.attnotnull "
+          + "FROM (SELECT i.indrelid, i." + keyColumns + " AS nkeys, "
           + "             information_schema._pg_expandarray(i.indkey) AS keys "
-          + "        FROM pg_catalog.pg_index i) i "
-          + "    ON (a.attnum = (i.keys).x AND a.attrelid = i.indrelid) "
-          + "WHERE true ");
+          + "      FROM pg_catalog.pg_index i "
+          + "      WHERE i.indexrelid = (SELECT ci.indexrelid "
+          + "        FROM pg_catalog.pg_class ct "
+          + "          JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
+          + "          JOIN pg_catalog.pg_index ci ON (ci.indrelid = ct.oid) "
+          + "        WHERE ci.indisunique AND ci.indisvalid "
+          + "          AND ci.indpred IS NULL AND ci.indexprs IS NULL "
+          + "          AND ct.relname = ?");
     List<String> args = new ArrayList<>(2);
+    args.add(table);
     if (schema != null) {
       sql.append(" AND n.nspname = ?");
       args.add(schema);
     }
 
-    sql.append(" AND ct.relname = ?"
-        + " AND i.indisprimary "
-        + " ORDER BY a.attnum ");
-    args.add(table);
+    sql.append("        ORDER BY ci.indisprimary DESC, "
+          + "                 (SELECT bool_and(na.attnotnull) "
+          + "                  FROM pg_catalog.pg_attribute na "
+          + "                  WHERE na.attrelid = ci.indrelid "
+          + "                    AND na.attnum = ANY (ci.indkey)) DESC, "
+          + "                 ci." + keyColumns + ", ci.indexrelid "
+          + "        LIMIT 1)) i "
+          + "  JOIN pg_catalog.pg_attribute a "
+          + "    ON (a.attrelid = i.indrelid AND a.attnum = (i.keys).x) "
+          + "WHERE (i.keys).n <= i.nkeys "
+          + "ORDER BY a.attnum ");
 
-    PreparedStatement stmt = prepareMetaDataStatement(sql.toString(), args);
-    ResultSet rs = stmt.executeQuery();
+    ResultSet rs = prepareMetaDataStatement(sql.toString(), args).executeQuery();
     while (rs.next()) {
+      if (!nullable && !rs.getBoolean("attnotnull")) {
+        // a key column that may be null identifies a row only if the caller accepts null values
+        v.clear();
+        break;
+      }
       byte[] @Nullable [] tuple = new byte[8][];
       int typeOid = (int) rs.getLong("atttypid");
       int sqlType = connection.getTypeInfo().getSQLType(typeOid);
@@ -2371,7 +2392,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       v.add(new Tuple(tuple));
     }
     rs.close();
-    stmt.close();
 
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
   }

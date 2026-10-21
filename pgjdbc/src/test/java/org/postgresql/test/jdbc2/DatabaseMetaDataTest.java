@@ -73,6 +73,13 @@ public class DatabaseMetaDataTest {
   static void createTables() throws Exception {
     try (Connection con = TestUtil.openDB()) {
       TestUtil.createTable(con, "bestrowid", "id int4 primary key");
+      TestUtil.createTable(con, "uniquerowid", "id int4 not null unique");
+      TestUtil.createTable(con, "pkanduniquerowid",
+          "id int4 primary key, u int4 not null unique");
+      TestUtil.createTable(con, "twouniquerowid",
+          "a int4 not null unique, b int4 not null unique");
+      TestUtil.createTable(con, "nullableuniquerowid", "id int4 unique");
+      TestUtil.createTable(con, "nokeyrowid", "id int4");
       TestUtil.createTable(con, "precision_test", "implicit_precision numeric");
       TestUtil.dropSequence(con, "sercoltest_b_seq");
       TestUtil.dropSequence(con, "sercoltest_c_seq");
@@ -155,6 +162,11 @@ public class DatabaseMetaDataTest {
       TestUtil.execute(con, "drop function bar()");
       TestUtil.dropTable(con, "duplicate");
       TestUtil.dropTable(con, "bestrowid");
+      TestUtil.dropTable(con, "uniquerowid");
+      TestUtil.dropTable(con, "pkanduniquerowid");
+      TestUtil.dropTable(con, "twouniquerowid");
+      TestUtil.dropTable(con, "nullableuniquerowid");
+      TestUtil.dropTable(con, "nokeyrowid");
       TestUtil.dropTable(con, "sercoltest");
       TestUtil.dropSequence(con, "sercoltest_b_seq");
       TestUtil.dropSequence(con, "sercoltest_c_seq");
@@ -1319,17 +1331,39 @@ public class DatabaseMetaDataTest {
 
   @Test
   void bestRowIdentifier() throws SQLException {
-    // At the moment just test that no exceptions are thrown KJ
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
-    try (ResultSet rs =
-             dbmd.getBestRowIdentifier(null, null, "bestrowid", DatabaseMetaData.bestRowSession, false)) {
-      assertTrue(rs.next());
-    }
+    assertEquals(Collections.singletonList("id"), bestRowIds(dbmd, "bestrowid", false),
+        "the primary key");
+    assertEquals(Collections.singletonList("id"), bestRowIds(dbmd, "uniquerowid", false),
+        "a unique constraint, when there is no primary key");
+    assertEquals(Collections.singletonList("id"), bestRowIds(dbmd, "pkanduniquerowid", false),
+        "the primary key rather than the unique constraint");
+    assertEquals(Collections.singletonList("a"), bestRowIds(dbmd, "twouniquerowid", false),
+        "one unique constraint rather than the columns of both");
+    assertEquals(Collections.emptyList(), bestRowIds(dbmd, "nullableuniquerowid", false),
+        "nothing, since the only key column may be null and nullable is false");
+    assertEquals(Collections.singletonList("id"), bestRowIds(dbmd, "nullableuniquerowid", true),
+        "the nullable unique constraint, since nullable is true");
+    assertEquals(Collections.emptyList(), bestRowIds(dbmd, "nokeyrowid", true),
+        "nothing for a table with no key at all");
+
     try (ResultSet rs =
              dbmd.getBestRowIdentifier("nonsensecatalog", null, "bestrowid", DatabaseMetaData.bestRowSession, false)) {
       assertFalse(rs.next());
     }
+  }
+
+  private static List<String> bestRowIds(DatabaseMetaData dbmd, String table,
+      boolean nullable) throws SQLException {
+    List<String> columns = new ArrayList<>();
+    try (ResultSet rs = dbmd.getBestRowIdentifier(null, null, table,
+        DatabaseMetaData.bestRowSession, nullable)) {
+      while (rs.next()) {
+        columns.add(rs.getString("COLUMN_NAME"));
+      }
+    }
+    return columns;
   }
 
   @Test
