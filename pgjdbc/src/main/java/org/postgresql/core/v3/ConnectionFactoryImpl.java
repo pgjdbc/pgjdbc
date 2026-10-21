@@ -645,8 +645,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // we have to reconnect to continue
             return new PGStream(pgStream, connectTimeout);
           }
+          // Carry the reason the handshake failed, which is otherwise lost here.
+          throw new PSQLException(
+              GT.tr("An error occurred while setting up the GSS Encoded connection."),
+              PSQLState.PROTOCOL_VIOLATION, ex);
         }
-        // fallthrough
 
       default:
         throw new PSQLException(GT.tr("An error occurred while setting up the GSS Encoded connection."),
