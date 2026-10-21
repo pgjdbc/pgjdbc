@@ -20,6 +20,7 @@ import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -58,19 +59,26 @@ public class GetObject310InfinityTest extends BaseTest4 {
       for (String expression : Arrays.asList("-infinity", "infinity")) {
         for (String pgType : Arrays.asList("date", "timestamp",
             "timestamp with time zone")) {
-          for (Class<?> klass : Arrays.asList(LocalDate.class, LocalDateTime.class,
-              OffsetDateTime.class)) {
+          for (Class<?> klass : Arrays.asList(
+              LocalDate.class, LocalDateTime.class,
+              OffsetDateTime.class, Instant.class)) {
             if (klass.equals(LocalDate.class) && !"date".equals(pgType)) {
               continue;
             }
             if (klass.equals(LocalDateTime.class) && !pgType.startsWith("timestamp")) {
               continue;
             }
+            if (klass.equals(LocalDateTime.class) && "timestamp with time zone".equals(pgType)) {
+              // org.postgresql.util.PSQLException: Cannot convert the column of type TIMESTAMPTZ to requested type timestamp.
+              continue;
+            }
             if (klass.equals(OffsetDateTime.class) && !pgType.startsWith("timestamp")) {
               continue;
             }
-            if (klass.equals(LocalDateTime.class) && "timestamp with time zone".equals(pgType)) {
-              // org.postgresql.util.PSQLException: Cannot convert the column of type TIMESTAMPTZ to requested type timestamp.
+            if (klass.equals(Instant.class) && !pgType.equals("timestamp with time zone")) {
+              continue;
+            }
+            if (!klass.equals(Instant.class) || binaryMode != BinaryMode.REGULAR) {
               continue;
             }
             Field field = null;
