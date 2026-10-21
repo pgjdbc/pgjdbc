@@ -1208,8 +1208,19 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         flags |= QueryExecutor.QUERY_ONESHOT;
       }
       StatementResultHandler handler = new StatementResultHandler();
-      connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
-          flags);
+      try {
+        connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
+            flags);
+      } catch (SQLException e) {
+        if (preparedQuery.query.getSubqueries() != null
+            || !connection.getQueryExecutor().willHealOnRetry(e)) {
+          throw e;
+        }
+        preparedQuery.query.close();
+        handler = new StatementResultHandler();
+        connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
+            flags);
+      }
       ResultWrapper wrapper = handler.getResults();
       if (wrapper != null) {
         rs = wrapper.getResultSet();
