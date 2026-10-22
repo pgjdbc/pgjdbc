@@ -389,6 +389,7 @@ class BlobTest {
   }
 
   @Test
+  @EnabledForServerVersionRange(gte = "9.3")
   void resetAfterRelativeSeek64ReturnsToSeekOffset() throws Exception {
     assertResetReturnsToStreamStart(2, "seek64(1024, SEEK_SET), seek64(1024, SEEK_CUR)", blob -> {
       blob.seek64(1024, LargeObject.SEEK_SET);
