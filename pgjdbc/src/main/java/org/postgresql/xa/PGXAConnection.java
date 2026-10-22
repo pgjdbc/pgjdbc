@@ -71,6 +71,12 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   private State state;
   private @Nullable Xid preparedXid;
   private boolean committedOrRolledBack;
+  /**
+   * Set by {@code end(xid, TMFAIL)} for the branch in {@link #currentXid}; prepare() and one-phase
+   * commit() of that branch roll it back. Kept across {@code start(xid, TMJOIN)}, cleared by
+   * {@code start(xid, TMNOFLAGS)}.
+   */
+  private boolean rollbackOnly;
 
   private void debug(String s) {
     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -253,6 +259,9 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     currentXid = xid;
     preparedXid = null;
     committedOrRolledBack = false;
+    if (flags == TMNOFLAGS) {
+      rollbackOnly = false;
+    }
   }
 
   /**
@@ -271,6 +280,9 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
    * <p>Postconditions:</p>
    * <ol>
    *     <li>Connection is disassociated from the transaction.</li>
+   *     <li>With TMFAIL, the branch is rollback-only: {@link #prepare(Xid)} and a one-phase
+   *     {@link #commit(Xid, boolean)} roll it back and throw {@code XA_RBROLLBACK}, and
+   *     {@link #rollback(Xid)} rolls it back as usual.</li>
    * </ol>
    */
   @Override
@@ -301,10 +313,9 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       throw new PGXAException(GT.tr("Suspend/resume not implemented"), XAException.XAER_RMERR);
     }
 
-    // We ignore TMFAIL. It's just a hint to the RM. We could roll back immediately
-    // if TMFAIL was given.
-
-    // All clear. We don't have any real work to do.
+    if (flags == XAResource.TMFAIL) {
+      rollbackOnly = true;
+    }
     state = State.ENDED;
   }
 
@@ -360,6 +371,10 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     if (conn.getTransactionState() == TransactionState.FAILED) {
       throw rollbackAbortedBranch(xid,
           GT.tr("Transaction was rolled back because a statement in it failed. prepare xid={0}", xid));
+    }
+    if (rollbackOnly) {
+      throw rollbackAbortedBranch(xid,
+          GT.tr("Transaction was rolled back because end() marked it rollback-only with TMFAIL. prepare xid={0}", xid));
     }
 
     try {
@@ -579,6 +594,10 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       throw rollbackAbortedBranch(xid,
           GT.tr("Transaction was rolled back because a statement in it failed. commit xid={0}", xid));
     }
+    if (rollbackOnly) {
+      throw rollbackAbortedBranch(xid,
+          GT.tr("Transaction was rolled back because end() marked it rollback-only with TMFAIL. commit xid={0}", xid));
+    }
 
     // Send COMMIT through QUERY_SUPPRESS_BEGIN so it works regardless of the caller's autoCommit.
     // Cannot use conn.commit() because PgConnection.commit() throws when autoCommit=true, and the
@@ -598,16 +617,17 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
   /**
    * Rolls back the server transaction of the ended branch {@code xid}, which a failed statement has
-   * aborted, and returns the exception that reports the rollback with {@code XA_RBROLLBACK}. After
-   * the rollback the branch is forgotten: this resource returns to the IDLE state, and a later
-   * {@code rollback(xid)} or {@code commit(xid, ...)} reports {@code XAER_NOTA}. If ROLLBACK
-   * itself fails, the branch stays ENDED so that {@code rollback(xid)} can retry it.
+   * aborted or {@code end(xid, TMFAIL)} marked rollback-only, and returns the exception that
+   * reports the rollback with {@code XA_RBROLLBACK}. After the rollback the branch is forgotten:
+   * this resource returns to the IDLE state, and a later {@code rollback(xid)} or
+   * {@code commit(xid, ...)} reports {@code XAER_NOTA}. If ROLLBACK itself fails, the branch stays
+   * ENDED so that {@code rollback(xid)} can retry it.
    *
-   * <p>PostgreSQL answers both PREPARE TRANSACTION and COMMIT in an aborted transaction with the
-   * command tag ROLLBACK and no error, so the transaction state has to be checked before sending
-   * either of them.</p>
+   * <p>A failed statement has to be detected before PREPARE TRANSACTION or COMMIT is sent:
+   * PostgreSQL answers both in an aborted transaction with the command tag ROLLBACK and no
+   * error.</p>
    *
-   * @param xid the branch whose transaction is aborted
+   * @param xid the branch to roll back
    * @param message the message of the returned exception
    * @return the exception for the caller to throw
    */
@@ -616,7 +636,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       conn.execSQLUpdate("ROLLBACK");
     } catch (SQLException ex) {
       return new PGXAException(
-          GT.tr("Error rolling back a transaction that a failed statement aborted. xid={0}", xid),
+          GT.tr("Error rolling back a transaction that cannot be committed. xid={0}", xid),
           ex, mapSQLStateToXAErrorCode(ex));
     }
     state = State.IDLE;
