@@ -107,6 +107,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.ServerErrorMessage;
 import org.postgresql.util.internal.IntSet;
+import org.postgresql.util.internal.LogMessageUtils;
 import org.postgresql.util.internal.SourceStreamIOException;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -266,6 +267,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
     this.cleanupSavePoints = PGProperty.CLEANUP_SAVEPOINTS.getBoolean(info);
+    int maxLogMessageLength = PGProperty.MAX_LOG_MESSAGE_LENGTH.getInt(info);
+    if (maxLogMessageLength < 0) {
+      throw new PSQLException(
+          GT.tr("{0} must be 0 or greater, but was {1}.",
+              PGProperty.MAX_LOG_MESSAGE_LENGTH.getName(), maxLogMessageLength),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+    this.maxLogMessageLength = maxLogMessageLength;
     // assignment, argument
     this.replicationProtocol = new V3ReplicationProtocol(this, pgStream);
     readStartupMessages();
@@ -1826,16 +1835,23 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       StringBuilder sbuf = new StringBuilder(" FE=> Parse(stmt=" + statementName + ",query=\"");
-      sbuf.append(nativeSql);
-      sbuf.append("\",oids={");
-      for (int i = 1; i <= params.getParameterCount(); i++) {
-        if (i != 1) {
-          sbuf.append(",");
+      if (!LogMessageUtils.appendBounded(sbuf, nativeSql, maxLogMessageLength)) {
+        // The query text alone reaches the limit and already ends with the marker.
+        LOGGER.log(Level.FINEST, LogMessageUtils.truncate(sbuf, maxLogMessageLength));
+      } else {
+        sbuf.append("\",oids={");
+        for (int i = 1; i <= params.getParameterCount(); i++) {
+          if (maxLogMessageLength > 0 && sbuf.length() >= maxLogMessageLength) {
+            break;
+          }
+          if (i != 1) {
+            sbuf.append(",");
+          }
+          sbuf.append(params.getTypeOID(i));
         }
-        sbuf.append(params.getTypeOID(i));
+        sbuf.append("})");
+        LOGGER.log(Level.FINEST, LogMessageUtils.truncate(sbuf, maxLogMessageLength));
       }
-      sbuf.append("})");
-      LOGGER.log(Level.FINEST, sbuf.toString());
     }
 
     //
@@ -1879,14 +1895,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     byte[] encodedPortalName = portal == null ? null : portal.getEncodedPortalName();
 
     if (LOGGER.isLoggable(Level.FINEST)) {
-      StringBuilder sbuf = new StringBuilder(" FE=> Bind(stmt=" + statementName + ",portal=" + portal);
-      for (int i = 1; i <= params.getParameterCount(); i++) {
-        sbuf.append(",$").append(i).append("=<")
-            .append(params.toString(i, getStandardConformingStrings()))
-            .append(">,type=").append(Oid.toString(params.getTypeOID(i)));
-      }
-      sbuf.append(")");
-      LOGGER.log(Level.FINEST, sbuf.toString());
+      LOGGER.log(Level.FINEST, BindLog.format(statementName, portal, params,
+          getStandardConformingStrings(), maxLogMessageLength));
     }
 
     // Total size = 4 (size field) + N + 1 (destination portal)
@@ -2298,7 +2308,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         params,
         SqlSerializationContext.of(getStandardConformingStrings(), false));
 
-    LOGGER.log(Level.FINEST, " FE=> SimpleQuery(query=\"{0}\")", nativeSql);
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      StringBuilder sbuf = new StringBuilder(" FE=> SimpleQuery(query=\"");
+      if (LogMessageUtils.appendBounded(sbuf, nativeSql, maxLogMessageLength)) {
+        sbuf.append("\")");
+      }
+      LOGGER.log(Level.FINEST, LogMessageUtils.truncate(sbuf, maxLogMessageLength));
+    }
     Encoding encoding = pgStream.getEncoding();
 
     byte[] encoded = encoding.encode(nativeSql);
@@ -3415,6 +3431,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private long nextUniqueID = 1;
   private final boolean allowEncodingChanges;
   private final boolean cleanupSavePoints;
+  /** Length limit for the FINEST Bind, Parse and SimpleQuery traces; {@code 0} means no limit. */
+  private final int maxLogMessageLength;
 
   /**
    * The estimated server response size since we last consumed the input stream from the server, in
