@@ -115,7 +115,8 @@ public enum PGProperty {
       "binaryReceive",
       "",
       "Per-type binary format for results received from the server. "
-          + "Comma separated list of `oid:mode` entries, where `oid` is a type name or OID number "
+          + "Comma separated list of `oid:mode` entries, where `oid` is an OID number "
+          + "or a type name as in `binaryTransferEnable` "
           + "and `mode` is `auto` or `disable`. "
           + "Every mode overrides `binaryTransfer`, `binaryTransferEnable`, and "
           + "`binaryTransferDisable` for that type when receiving. `auto` resets the type to the "
@@ -129,7 +130,8 @@ public enum PGProperty {
       "binarySend",
       "",
       "Per-type binary format for parameters sent to the server. "
-          + "Comma separated list of `oid:mode` entries, where `oid` is a type name or OID number "
+          + "Comma separated list of `oid:mode` entries, where `oid` is an OID number "
+          + "or a type name as in `binaryTransferEnable` "
           + "and `mode` is `auto`, `force`, or `disable`. "
           + "Every mode overrides `binaryTransfer`, `binaryTransferEnable`, and "
           + "`binaryTransferDisable` for that type when sending. `auto` resets the type to the "
@@ -158,6 +160,9 @@ public enum PGProperty {
       "binaryTransferDisable",
       "",
       "Comma separated list of types to disable binary transfer. Either OID numbers or names. "
+          + "Names are those of the constants in `org.postgresql.core.Oid`, matched "
+          + "case-insensitively, such as `text`, `int4`, or `int4_array`; give any other type, "
+          + "such as an extension type, by its OID number. "
           + "Overrides values in the driver default set and values set with binaryTransferEnable."),
 
   /**
@@ -166,7 +171,10 @@ public enum PGProperty {
   BINARY_TRANSFER_ENABLE(
       "binaryTransferEnable",
       "",
-      "Comma separated list of types to enable binary transfer. Either OID numbers or names."),
+      "Comma separated list of types to enable binary transfer. Either OID numbers or names. "
+          + "Names are those of the constants in `org.postgresql.core.Oid`, matched "
+          + "case-insensitively, such as `text`, `int4`, or `int4_array`; give any other type, "
+          + "such as an extension type, by its OID number."),
 
   /**
    * Cancel command is sent out of band over its own connection, so cancel message can itself get

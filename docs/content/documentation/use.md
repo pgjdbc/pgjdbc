@@ -254,14 +254,16 @@ Whether it is possible to use binary transfer at all depends on server side prep
 
 * **`binaryTransferEnable (`*String*`)`** *Default `empty string`*\
 Comma separated list of types to enable binary transfer. Either OID numbers or names.
+Names are those of the constants in `org.postgresql.core.Oid`, matched case-insensitively, such as `text`, `int4`, or `int4_array`; give any other type, such as an extension type, by its OID number.
 
 * **`binaryTransferDisable (`*String*`)`** *Default `empty string`*\
 Comma separated list of types to disable binary transfer. Either OID numbers or names.
+Names are those of the constants in `org.postgresql.core.Oid`, matched case-insensitively, such as `text`, `int4`, or `int4_array`; give any other type, such as an extension type, by its OID number.
 Overrides values in the driver default set and values set with binaryTransferEnable.
 
 * **`binarySend (`*String*`)`** *Default `empty string`*\
 Per-type binary format for parameters sent to the server.
-Comma separated list of `oid:mode` entries, where `oid` is a type name or OID number and `mode` is `auto`, `force`, or `disable`.
+Comma separated list of `oid:mode` entries, where `oid` is an OID number or a type name as in `binaryTransferEnable` and `mode` is `auto`, `force`, or `disable`.
 Every mode overrides `binaryTransfer`, `binaryTransferEnable`, and `binaryTransferDisable` for that type when sending.
 `auto` resets the type to the driver's built-in default, which may change between driver versions.
 `disable` keeps the type in text.
@@ -270,7 +272,7 @@ In this version, modes apply to top-level types only; recursion into composite a
 
 * **`binaryReceive (`*String*`)`** *Default `empty string`*\
 Per-type binary format for results received from the server.
-Comma separated list of `oid:mode` entries, where `oid` is a type name or OID number and `mode` is `auto` or `disable`.
+Comma separated list of `oid:mode` entries, where `oid` is an OID number or a type name as in `binaryTransferEnable` and `mode` is `auto` or `disable`.
 Every mode overrides `binaryTransfer`, `binaryTransferEnable`, and `binaryTransferDisable` for that type when receiving.
 `auto` resets the type to the driver's built-in default, which may change between driver versions.
 `disable` keeps the type in text.
