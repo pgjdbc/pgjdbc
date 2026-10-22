@@ -94,4 +94,21 @@ public interface PGStatement {
    * @return state of adaptive fetch (turned on or off)
    */
   boolean getAdaptiveFetch();
+
+  /**
+   * The queryTimeout limit is the number of milliseconds the driver will wait for a Statement to
+   * execute. If the limit is exceeded, a SQLException is thrown.
+   *
+   * @return the current query timeout limit in milliseconds; 0 = unlimited
+   * @throws SQLException if a database access error occurs
+   */
+  long getQueryTimeoutMs() throws SQLException;
+
+  /**
+   * Sets the queryTimeout limit.
+   *
+   * @param millis - the new query timeout limit in milliseconds
+   * @throws SQLException if a database access error occurs
+   */
+  void setQueryTimeoutMs(long millis) throws SQLException;
 }
