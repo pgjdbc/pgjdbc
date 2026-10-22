@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -529,6 +530,35 @@ class BlobTest {
         assertEquals('<', data[0]);
         assertEquals('?', data[1]);
         is.close();
+      }
+    }
+  }
+
+  @Test
+  void streamStartsAtZeroAfterGetBytes() throws Exception {
+    try (Statement stmt = con.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob WHERE id = 'l1'")) {
+      assertTrue(rs.next());
+      Blob blob = rs.getBlob(1);
+      try {
+        assertArrayEquals(new byte[]{2}, blob.getBytes(3, 1));
+
+        byte[] expected = new byte[1024];
+        for (int i = 0; i < expected.length; i++) {
+          expected[i] = (byte) i;
+        }
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (InputStream stream = blob.getBinaryStream()) {
+          byte[] buffer = new byte[8192];
+          int read;
+          while ((read = stream.read(buffer)) != -1) {
+            out.write(buffer, 0, read);
+          }
+        }
+        assertArrayEquals(expected, out.toByteArray());
+      } finally {
+        blob.free();
       }
     }
   }
