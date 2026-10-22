@@ -419,12 +419,16 @@ public class BlobInputStream extends InputStream {
       // Initialise the position lazily, here rather than in the constructor, so the failure can be
       // reported as a checked IOException. The LargeObject may already be positioned past the
       // start, so mark/reset must be relative to its current position, not to 0 (issue #3149).
-      try {
-        // lo_tell64 requires PostgreSQL 9.3+, so fall back to lo_tell on older servers
-        this.absolutePosition = lo.supports64BitOffsets() ? lo.tell64() : lo.tell();
-      } catch (SQLException e) {
-        throw new IOException("Failed to initialize BlobInputStream position", e);
+      long position = lo.knownPosition();
+      if (position < 0) {
+        try {
+          // lo_tell64 requires PostgreSQL 9.3+, so fall back to lo_tell on older servers
+          position = lo.supports64BitOffsets() ? lo.tell64() : lo.tell();
+        } catch (SQLException e) {
+          throw new IOException("Failed to initialize BlobInputStream position", e);
+        }
       }
+      this.absolutePosition = position;
 
       // The constructor limit is relative to the initial position; -1 means no limit
       limit = limit == -1 ? Long.MAX_VALUE : limit + absolutePosition;
