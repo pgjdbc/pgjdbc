@@ -18,6 +18,7 @@ import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.SetupQueryRunner;
 import org.postgresql.core.SocketFactoryFactory;
+import org.postgresql.core.TcpKeepSettings;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
@@ -139,12 +140,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
    * so an SSL failure (e.g. timeout during SSL negotiation) should fall back to plaintext.
    */
   private PGStream tryConnectWithoutSsl(Properties info, SocketFactory socketFactory,
-      HostSpec hostSpec, GSSEncMode gssEncMode, int connectTimeoutMs, long startNanos,
-      Exception originalException)
+      HostSpec hostSpec, GSSEncMode gssEncMode, TcpKeepSettings tcpKeepSettings,
+      int connectTimeoutMs, long startNanos, Exception originalException)
       throws SQLException, IOException {
     try {
       PGStream stream =
-          tryConnect(info, socketFactory, hostSpec, SslMode.DISABLE, gssEncMode, connectTimeoutMs, startNanos);
+          tryConnect(info, socketFactory, hostSpec, SslMode.DISABLE, gssEncMode, tcpKeepSettings,
+              connectTimeoutMs, startNanos);
       LOGGER.log(Level.FINE, "Downgraded to non-encrypted connection for host {0}",
           hostSpec);
       return stream;
@@ -164,12 +166,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
    * (e.g. the database requires SSL), the driver upgrades to SSL.
    */
   private PGStream tryConnectWithSsl(Properties info, SocketFactory socketFactory,
-      HostSpec hostSpec, GSSEncMode gssEncMode, int connectTimeoutMs, long startNanos,
-      Exception originalException)
+      HostSpec hostSpec, GSSEncMode gssEncMode, TcpKeepSettings tcpKeepSettings,
+      int connectTimeoutMs, long startNanos, Exception originalException)
       throws SQLException, IOException {
     try {
       PGStream stream =
-          tryConnect(info, socketFactory, hostSpec, SslMode.REQUIRE, gssEncMode, connectTimeoutMs, startNanos);
+          tryConnect(info, socketFactory, hostSpec, SslMode.REQUIRE, gssEncMode, tcpKeepSettings,
+              connectTimeoutMs, startNanos);
       LOGGER.log(Level.FINE, "Upgraded to encrypted connection for host {0}",
           hostSpec);
       return stream;
@@ -203,7 +206,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   }
 
   private PGStream tryConnect(Properties info, SocketFactory socketFactory, HostSpec hostSpec,
-      SslMode sslMode, GSSEncMode gssEncMode, int connectTimeoutMs, long startNanos)
+      SslMode sslMode, GSSEncMode gssEncMode, TcpKeepSettings tcpKeepSettings,
+      int connectTimeoutMs, long startNanos)
       throws SQLException, IOException {
     int connectTimeout = remainingConnectTimeout(connectTimeoutMs, startNanos);
     String user = PGProperty.USER.getOrDefault(info);
@@ -218,7 +222,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
 
     int maxSendBufferSize = PGProperty.MAX_SEND_BUFFER_SIZE.getInt(info);
-    PGStream newStream = new PGStream(socketFactory, hostSpec, connectTimeout, maxSendBufferSize);
+    PGStream newStream = new PGStream(socketFactory, hostSpec, connectTimeout, maxSendBufferSize,
+        tcpKeepSettings);
     try {
       // Set the socket timeout if the "socketTimeout" property has been set.
       int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info);
@@ -228,10 +233,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
       String maxResultBuffer = PGProperty.MAX_RESULT_BUFFER.getOrDefault(info);
       newStream.setMaxResultBuffer(maxResultBuffer);
-
-      // Enable TCP keep-alive probe if required.
-      boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
-      newStream.getSocket().setKeepAlive(requireTCPKeepAlive);
 
       // Enable TCP no delay if required
       boolean requireTCPNoDelay = PGProperty.TCP_NO_DELAY.getBoolean(info);
@@ -273,7 +274,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
       if (sslNegotiation != SslNegotiation.DIRECT) {
         newStream =
-            enableGSSEncrypted(newStream, gssEncMode, hostSpec.getHost(), info, connectTimeout);
+            enableGSSEncrypted(newStream, gssEncMode, tcpKeepSettings, hostSpec.getHost(), info,
+                connectTimeout);
       }
       // if we have a security context then gss negotiation succeeded. Do not attempt SSL
       // negotiation
@@ -330,6 +332,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   public QueryExecutor openConnectionImpl(HostSpec[] hostSpecs, Properties info) throws SQLException {
     SslMode sslMode = SslMode.of(info);
     GSSEncMode gssEncMode = GSSEncMode.of(info);
+    TcpKeepSettings tcpKeepSettings = TcpKeepSettings.read(info);
 
     int connectTimeoutMs = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
     long startNanos = System.nanoTime();
@@ -375,14 +378,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       PGStream newStream = null;
       try {
         try {
-          newStream = tryConnect(info, socketFactory, hostSpec, sslMode, gssEncMode, connectTimeoutMs, startNanos);
+          newStream = tryConnect(info, socketFactory, hostSpec, sslMode, gssEncMode, tcpKeepSettings,
+              connectTimeoutMs, startNanos);
         } catch (SQLException e) {
           if (sslMode == SslMode.PREFER
               && PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState().equals(e.getSQLState())) {
-            newStream = tryConnectWithoutSsl(info, socketFactory, hostSpec, gssEncMode, connectTimeoutMs, startNanos, e);
+            newStream = tryConnectWithoutSsl(info, socketFactory, hostSpec, gssEncMode, tcpKeepSettings,
+                connectTimeoutMs, startNanos, e);
           } else if (sslMode == SslMode.ALLOW
               && PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState().equals(e.getSQLState())) {
-            newStream = tryConnectWithSsl(info, socketFactory, hostSpec, gssEncMode, connectTimeoutMs, startNanos, e);
+            newStream = tryConnectWithSsl(info, socketFactory, hostSpec, gssEncMode, tcpKeepSettings,
+                connectTimeoutMs, startNanos, e);
           } else {
             throw e;
           }
@@ -390,12 +396,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           if (sslMode == SslMode.PREFER && e instanceof SocketTimeoutException) {
             // SSL negotiation timed out (server didn't respond to SSLRequest).
             // Since sslMode is PREFER, fall back to a non-encrypted connection.
-            newStream = tryConnectWithoutSsl(info, socketFactory, hostSpec, gssEncMode, connectTimeoutMs, startNanos, e);
+            newStream = tryConnectWithoutSsl(info, socketFactory, hostSpec, gssEncMode, tcpKeepSettings,
+                connectTimeoutMs, startNanos, e);
           } else if (sslMode == SslMode.ALLOW) {
             // Plaintext connection failed (e.g. server reset the connection
             // instead of sending a FATAL auth error). Since sslMode is ALLOW,
             // try upgrading to SSL.
-            newStream = tryConnectWithSsl(info, socketFactory, hostSpec, gssEncMode, connectTimeoutMs, startNanos, e);
+            newStream = tryConnectWithSsl(info, socketFactory, hostSpec, gssEncMode, tcpKeepSettings,
+                connectTimeoutMs, startNanos, e);
           } else {
             throw e;
           }
@@ -424,6 +432,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         // And we're done.
         return queryExecutor;
+      } catch (TcpKeepSettings.ValueRejectedException e) {
+        throw new PSQLException(castNonNull(e.getMessage()), PSQLState.INVALID_PARAMETER_VALUE,
+            e.getCause());
       } catch (ConnectException cex) {
         // Added by Peter Mount <peter@retep.org.uk>
         // ConnectException is thrown when the connection cannot be made.
@@ -547,8 +558,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     return start + tz.substring(4);
   }
 
-  private static PGStream enableGSSEncrypted(PGStream pgStream, GSSEncMode gssEncMode, String host, Properties info,
-      int connectTimeout)
+  private static PGStream enableGSSEncrypted(PGStream pgStream, GSSEncMode gssEncMode,
+      TcpKeepSettings tcpKeepSettings, String host, Properties info, int connectTimeout)
       throws IOException, PSQLException {
 
     if ( gssEncMode == GSSEncMode.DISABLE ) {
@@ -612,7 +623,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         pgStream.close();
         int maxSendBufferSize = PGProperty.MAX_SEND_BUFFER_SIZE.getInt(info);
         return new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), connectTimeout,
-            maxSendBufferSize);
+            maxSendBufferSize, tcpKeepSettings);
 
       case 'N':
         LOGGER.log(Level.FINEST, " <=BE GSSEncrypted Refused");

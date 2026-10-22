@@ -94,6 +94,7 @@ public class PGStream implements Closeable, Flushable {
   private final SocketFactory socketFactory;
   private final HostSpec hostSpec;
   private final int maxSendBufferSize;
+  private final TcpKeepSettings tcpKeepSettings;
   private Socket connection;
   private VisibleBufferedInputStream pgInput;
   private PgBufferedOutputStream pgOutput;
@@ -193,9 +194,27 @@ public class PGStream implements Closeable, Flushable {
   @SuppressWarnings({"method.invocation", "initialization.fields.uninitialized"})
   public PGStream(SocketFactory socketFactory, HostSpec hostSpec, int timeout,
       int maxSendBufferSize) throws IOException {
+    this(socketFactory, hostSpec, timeout, maxSendBufferSize, TcpKeepSettings.NONE);
+  }
+
+  /**
+   * Constructor: Connect to the PostgreSQL back end and return a stream connection.
+   *
+   * @param socketFactory socket factory to use when creating sockets
+   * @param hostSpec the host and port to connect to
+   * @param timeout timeout in milliseconds, or 0 if no timeout set
+   * @param maxSendBufferSize maximum amount of bytes buffered before sending to the backend
+   * @param tcpKeepSettings TCP keep-alive options to apply to the socket, kept for the
+   *     streams that replace this one
+   * @throws IOException if an IOException occurs below it.
+   */
+  @SuppressWarnings({"method.invocation", "initialization.fields.uninitialized"})
+  public PGStream(SocketFactory socketFactory, HostSpec hostSpec, int timeout,
+      int maxSendBufferSize, TcpKeepSettings tcpKeepSettings) throws IOException {
     this.socketFactory = socketFactory;
     this.hostSpec = hostSpec;
     this.maxSendBufferSize = maxSendBufferSize;
+    this.tcpKeepSettings = tcpKeepSettings;
 
     Socket socket = createSocket(timeout);
     changeSocket(socket);
@@ -233,6 +252,7 @@ public class PGStream implements Closeable, Flushable {
     this.socketFactory = pgStream.socketFactory;
     this.hostSpec = pgStream.hostSpec;
     this.maxSendBufferSize = pgStream.maxSendBufferSize;
+    this.tcpKeepSettings = pgStream.tcpKeepSettings;
 
     Socket socket = createSocket(timeout);
     changeSocket(socket);
@@ -329,6 +349,7 @@ public class PGStream implements Closeable, Flushable {
       if (localSocketAddress != null) {
         socket.bind(new InetSocketAddress(InetAddress.getByName(localSocketAddress), 0));
       }
+      tcpKeepSettings.applyTo(socket);
       if (!socket.isConnected()) {
         // When using a SOCKS proxy, the host might not be resolvable locally,
         // thus we defer resolution until the traffic reaches the proxy. If there

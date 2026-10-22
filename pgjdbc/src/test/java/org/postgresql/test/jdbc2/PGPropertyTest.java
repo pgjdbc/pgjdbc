@@ -8,7 +8,9 @@ package org.postgresql.test.jdbc2;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.Driver;
@@ -138,18 +140,32 @@ class PGPropertyTest {
     // test for the existence of all read methods (getXXX/isXXX) and write methods (setXXX) for all
     // known properties
     for (PGProperty property : PGProperty.values()) {
-      if (!property.getName().startsWith("PG") && property != PGProperty.SERVICE) {
-        assertTrue(propertyDescriptors.containsKey(property.getName()), "Missing getter/setter for property [" + property.getName() + "] in ["
-            + BaseDataSource.class + "]");
-
-        assertNotNull(propertyDescriptors.get(property.getName()).getReadMethod(),
-            "No getter for property [" + property.getName() + "] in ["
-            + BaseDataSource.class + "]");
-
-        assertNotNull(propertyDescriptors.get(property.getName()).getWriteMethod(),
-            "No setter for property [" + property.getName() + "] in ["
-            + BaseDataSource.class + "]");
+      if (property.getName().startsWith("PG") || property == PGProperty.SERVICE) {
+        continue;
       }
+      assertTrue(propertyDescriptors.containsKey(property.getName()), "Missing getter/setter for property [" + property.getName() + "] in ["
+          + BaseDataSource.class + "]");
+
+      assertNotNull(propertyDescriptors.get(property.getName()).getReadMethod(),
+          "No getter for property [" + property.getName() + "] in ["
+          + BaseDataSource.class + "]");
+
+      assertNotNull(propertyDescriptors.get(property.getName()).getWriteMethod(),
+          "No setter for property [" + property.getName() + "] in ["
+          + BaseDataSource.class + "]");
+
+      // Their setters take enums and are published API
+      if (property == PGProperty.AUTOSAVE || property == PGProperty.PREFER_QUERY_MODE) {
+        continue;
+      }
+      // Connection pools such as HikariCP set data source properties from strings and only
+      // convert to these types
+      Class<?> setterParameterType =
+          propertyDescriptors.get(property.getName()).getWriteMethod().getParameterTypes()[0];
+      assertTrue(setterParameterType == String.class || setterParameterType == int.class
+              || setterParameterType == boolean.class,
+          "Setter for property [" + property.getName() + "] in [" + BaseDataSource.class
+              + "] takes [" + setterParameterType + "], not String, int or boolean");
     }
 
     // test readability/writability of default value
@@ -173,6 +189,53 @@ class PGPropertyTest {
     dataSource.setAutosave(AutoSave.CONSERVATIVE);
     dataSource.setURL("jdbc:postgresql://localhost:5432/postgres");
     assertSame(AutoSave.CONSERVATIVE, dataSource.getAutosave());
+  }
+
+  @Test
+  void dataSourceKeepAliveSettersWriteTheValueAsAString() {
+    PGSimpleDataSource dataSource = new PGSimpleDataSource();
+    dataSource.setTcpKeepAliveCount(80);
+    dataSource.setTcpKeepAliveIdle(900);
+    dataSource.setTcpKeepAliveInterval(1000);
+    assertEquals("80", dataSource.getProperty(PGProperty.TCP_KEEP_ALIVE_COUNT));
+    assertEquals("900", dataSource.getProperty(PGProperty.TCP_KEEP_ALIVE_IDLE));
+    assertEquals("1000", dataSource.getProperty(PGProperty.TCP_KEEP_ALIVE_INTERVAL));
+  }
+
+  @Test
+  void dataSourceKeepAliveSettersWithMinusOneRemoveTheParameter() {
+    PGSimpleDataSource dataSource = new PGSimpleDataSource();
+    dataSource.setProperty(PGProperty.TCP_KEEP_ALIVE_COUNT, "80");
+    dataSource.setProperty(PGProperty.TCP_KEEP_ALIVE_IDLE, "900");
+    dataSource.setProperty(PGProperty.TCP_KEEP_ALIVE_INTERVAL, "1000");
+    dataSource.setTcpKeepAliveCount(-1);
+    dataSource.setTcpKeepAliveIdle(-1);
+    dataSource.setTcpKeepAliveInterval(-1);
+    assertNull(dataSource.getProperty(PGProperty.TCP_KEEP_ALIVE_COUNT));
+    assertNull(dataSource.getProperty(PGProperty.TCP_KEEP_ALIVE_IDLE));
+    assertNull(dataSource.getProperty(PGProperty.TCP_KEEP_ALIVE_INTERVAL));
+  }
+
+  @Test
+  void dataSourceKeepAliveGettersReturnMinusOneWhenUnset() {
+    PGSimpleDataSource dataSource = new PGSimpleDataSource();
+    assertEquals(-1, dataSource.getTcpKeepAliveCount());
+    assertEquals(-1, dataSource.getTcpKeepAliveIdle());
+    assertEquals(-1, dataSource.getTcpKeepAliveInterval());
+  }
+
+  @Test
+  void dataSourceKeepAliveGettersRejectAValueThatIsNotANumber() {
+    PGSimpleDataSource dataSource = new PGSimpleDataSource();
+    dataSource.setProperty(PGProperty.TCP_KEEP_ALIVE_COUNT, "eighty");
+    dataSource.setProperty(PGProperty.TCP_KEEP_ALIVE_IDLE, "nine hundred");
+    dataSource.setProperty(PGProperty.TCP_KEEP_ALIVE_INTERVAL, "one thousand");
+    assertEquals("For input string: \"eighty\"",
+        assertThrows(NumberFormatException.class, dataSource::getTcpKeepAliveCount).getMessage());
+    assertEquals("For input string: \"nine hundred\"",
+        assertThrows(NumberFormatException.class, dataSource::getTcpKeepAliveIdle).getMessage());
+    assertEquals("For input string: \"one thousand\"",
+        assertThrows(NumberFormatException.class, dataSource::getTcpKeepAliveInterval).getMessage());
   }
 
   /**

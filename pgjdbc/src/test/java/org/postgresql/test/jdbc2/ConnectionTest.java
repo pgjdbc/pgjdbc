@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
@@ -18,6 +19,7 @@ import org.postgresql.core.PGStream;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.util.TcpKeepProbeOptionOracle;
 import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.AfterAll;
@@ -25,8 +27,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.lang.reflect.Field;
+import java.net.Socket;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -551,6 +556,27 @@ class ConnectionTest {
     assertTrue(newStream.getSocket().getKeepAlive());
 
     TestUtil.closeDB(con);
+  }
+
+  @ParameterizedTest
+  @EnumSource(TcpKeepProbeOptionOracle.class)
+  void aConnectionAppliesTheKeepAliveProbeSettingToTheSocket(TcpKeepProbeOptionOracle optionOracle)
+      throws Exception {
+    Properties properties = new Properties();
+    PGProperty.TCP_KEEP_ALIVE.set(properties, true);
+    optionOracle.getProperty().set(properties, 80);
+    con = TestUtil.openDB(properties);
+    QueryExecutor queryExecutor = ((PgConnection) con).getQueryExecutor();
+
+    Field f = queryExecutor.getClass().getSuperclass().getDeclaredField("pgStream");
+    f.setAccessible(true);
+    PGStream pgStream = (PGStream) f.get(queryExecutor);
+
+    Socket socket = pgStream.getSocket();
+    assertTrue(socket.getKeepAlive());
+    assumeTrue(optionOracle.isSupportedBy(socket),
+        "the JDK or the operating system does not support " + optionOracle);
+    assertEquals(80, optionOracle.getValue(socket));
   }
 
   private static void assertStringContains(String orig, String toContain) {
