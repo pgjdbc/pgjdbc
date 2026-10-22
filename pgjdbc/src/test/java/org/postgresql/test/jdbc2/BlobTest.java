@@ -371,6 +371,60 @@ class BlobTest {
   }
 
   @Test
+  void resetAfterReadReturnsToReadOffset() throws Exception {
+    assertResetReturnsToStreamStart(1, "read(1024)", blob -> blob.read(1024));
+  }
+
+  @Test
+  void resetAfterWriteReturnsToWriteOffset() throws Exception {
+    assertResetReturnsToStreamStart(1, "write(new byte[1024])", blob -> blob.write(new byte[1024]));
+  }
+
+  @Test
+  void resetAfterRelativeSeekReturnsToSeekOffset() throws Exception {
+    assertResetReturnsToStreamStart(2, "seek(1024), seek(1024, SEEK_CUR)", blob -> {
+      blob.seek(1024);
+      blob.seek(1024, LargeObject.SEEK_CUR);
+    });
+  }
+
+  @Test
+  void resetAfterRelativeSeek64ReturnsToSeekOffset() throws Exception {
+    assertResetReturnsToStreamStart(2, "seek64(1024, SEEK_SET), seek64(1024, SEEK_CUR)", blob -> {
+      blob.seek64(1024, LargeObject.SEEK_SET);
+      blob.seek64(1024, LargeObject.SEEK_CUR);
+    });
+  }
+
+  @Test
+  void resetAfterSeekToEndStaysAtEnd() throws Exception {
+    assertResetReturnsToStreamStart(-1, "seek(0, SEEK_END)",
+        blob -> blob.seek(0, LargeObject.SEEK_END));
+  }
+
+  private interface Positioning {
+    void apply(LargeObject blob) throws SQLException;
+  }
+
+  /**
+   * Positions a large object from {@link #createMediumLargeObject()}, opens a stream on it, and
+   * checks that {@code reset()} returns to the offset the stream started at (issue #3149).
+   */
+  private void assertResetReturnsToStreamStart(int expectedByte, String positioningCalls,
+      Positioning positioning) throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READWRITE)) {
+      positioning.apply(blob);
+      InputStream bis = blob.getInputStream();
+      assertEquals(expectedByte, bis.read(), "read() after " + positioningCalls);
+      bis.reset();
+      assertEquals(expectedByte, bis.read(), "read() after " + positioningCalls + ", then reset()");
+    }
+  }
+
+  @Test
   void skip() throws Exception {
     LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
     long loid = createMediumLargeObject();
