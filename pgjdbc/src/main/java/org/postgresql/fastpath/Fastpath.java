@@ -70,8 +70,8 @@ public class Fastpath {
    * @param fnId Function id
    * @param resultType True if the result is a numeric (Integer or Long)
    * @param args FastpathArguments to pass to fastpath
-   * @return null if no data, Integer if an integer result, Long if a long result, or byte[]
-   *         otherwise
+   * @return null if the function returned NULL, Integer if an integer result, Long if a long
+   *         result, or byte[] otherwise
    * @throws SQLException if a database-access error occurs.
    * @deprecated please use {@link #fastpath(int, FastpathArg[])}
    */
@@ -102,16 +102,11 @@ public class Fastpath {
    *
    * @param fnId Function id
    * @param args FastpathArguments to pass to fastpath
-   * @return null if no data, byte[] otherwise
+   * @return null if the function returned NULL, byte[] otherwise
    * @throws SQLException if a database-access error occurs.
    */
   public byte @Nullable [] fastpath(int fnId, FastpathArg[] args) throws SQLException {
-    // Turn fastpath array into a parameter list.
-    @SuppressWarnings("deprecation")
-    ParameterList params = executor.createFastpathParameters(args.length);
-    for (int i = 0; i < args.length; i++) {
-      args[i].populateParameter(params, i + 1);
-    }
+    ParameterList params = createParameters(args);
 
     // Run it.
     @SuppressWarnings("deprecation")
@@ -119,12 +114,48 @@ public class Fastpath {
     return result;
   }
 
+  private ParameterList createParameters(FastpathArg[] args) throws SQLException {
+    @SuppressWarnings("deprecation")
+    ParameterList params = executor.createFastpathParameters(args.length);
+    for (int i = 0; i < args.length; i++) {
+      args[i].populateParameter(params, i + 1);
+    }
+    return params;
+  }
+
+  /**
+   * Send a function call to the PostgreSQL backend, storing the binary result into a buffer the
+   * caller supplies, with no intermediate array.
+   *
+   * @param fnId Function id
+   * @param args FastpathArguments to pass to fastpath
+   * @param dst the buffer to store the result into
+   * @param off the offset within {@code dst} to store the result at
+   * @param len the maximum number of bytes to store into {@code dst}
+   * @return the number of bytes stored into {@code dst}, or {@code -1} if the function returned
+   *         NULL
+   * @throws QueryExecutor.FastpathResultTooLongException if the function returned more than
+   *         {@code len} bytes. The response is read from the connection first, so the connection
+   *         stays usable
+   * @throws SQLException if a database-access error occurs
+   * @throws IndexOutOfBoundsException if {@code off} or {@code len} is negative, or if
+   *         {@code off + len} exceeds {@code dst.length}. No request is sent in that case
+   */
+  public int fastpath(int fnId, FastpathArg[] args, byte[] dst, int off, int len)
+      throws SQLException {
+    ParameterList params = createParameters(args);
+
+    @SuppressWarnings("deprecation")
+    int result = executor.fastpathCall(fnId, params, connection.getAutoCommit(), dst, off, len);
+    return result;
+  }
+
   /**
    * @param name Function name
    * @param resulttype True if the result is a numeric (Integer or Long)
    * @param args FastpathArguments to pass to fastpath
-   * @return null if no data, Integer if an integer result, Long if a long result, or byte[]
-   *         otherwise
+   * @return null if the function returned NULL, Integer if an integer result, Long if a long
+   *         result, or byte[] otherwise
    * @throws SQLException if something goes wrong
    * @see #fastpath(int, FastpathArg[])
    * @see #fastpath(String, FastpathArg[])
@@ -152,13 +183,38 @@ public class Fastpath {
    *
    * @param name Function name
    * @param args FastpathArguments to pass to fastpath
-   * @return null if no data, byte[] otherwise
+   * @return null if the function returned NULL, byte[] otherwise
    * @throws SQLException if name is unknown or if a database-access error occurs.
    * @see org.postgresql.largeobject.LargeObject
    */
   public byte @Nullable [] fastpath(String name, FastpathArg[] args) throws SQLException {
     connection.getLogger().log(Level.FINEST, "Fastpath: calling {0}", name);
     return fastpath(getID(name), args);
+  }
+
+  /**
+   * Send a function call to the PostgreSQL backend by name, storing the binary result into a
+   * buffer the caller supplies, with no intermediate array.
+   *
+   * @param name Function name
+   * @param args FastpathArguments to pass to fastpath
+   * @param dst the buffer to store the result into
+   * @param off the offset within {@code dst} to store the result at
+   * @param len the maximum number of bytes to store into {@code dst}
+   * @return the number of bytes stored into {@code dst}, or {@code -1} if the function returned
+   *         NULL
+   * @throws QueryExecutor.FastpathResultTooLongException if the function returned more than
+   *         {@code len} bytes. The response is read from the connection first, so the connection
+   *         stays usable
+   * @throws SQLException if name is unknown or if a database-access error occurs
+   * @throws IndexOutOfBoundsException if {@code off} or {@code len} is negative, or if
+   *         {@code off + len} exceeds {@code dst.length}. No request is sent in that case
+   * @see #fastpath(String, FastpathArg[])
+   */
+  public int fastpath(String name, FastpathArg[] args, byte[] dst, int off, int len)
+      throws SQLException {
+    connection.getLogger().log(Level.FINEST, "Fastpath: calling {0}", name);
+    return fastpath(getID(name), args, dst, off, len);
   }
 
   /**
