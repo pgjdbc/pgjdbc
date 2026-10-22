@@ -1850,6 +1850,23 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.FLUSH_CACHE_ON_DDL.set(properties, flushCacheOnDdl);
   }
 
+  /**
+   * @return true if commit() throws when the server rolls back a failed transaction
+   * @see PGProperty#RAISE_EXCEPTION_ON_SILENT_ROLLBACK
+   */
+  public boolean getRaiseExceptionOnSilentRollback() {
+    return PGProperty.RAISE_EXCEPTION_ON_SILENT_ROLLBACK.getBoolean(properties);
+  }
+
+  /**
+   * @param raiseExceptionOnSilentRollback true to make commit() throw when the server rolls back a
+   *     failed transaction
+   * @see PGProperty#RAISE_EXCEPTION_ON_SILENT_ROLLBACK
+   */
+  public void setRaiseExceptionOnSilentRollback(boolean raiseExceptionOnSilentRollback) {
+    PGProperty.RAISE_EXCEPTION_ON_SILENT_ROLLBACK.set(properties, raiseExceptionOnSilentRollback);
+  }
+
   public @Nullable String getMaxResultBuffer() {
     return PGProperty.MAX_RESULT_BUFFER.getOrDefault(properties);
   }
