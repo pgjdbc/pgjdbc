@@ -45,6 +45,7 @@ import java.sql.Statement;
 import java.sql.Struct;
 import java.util.Map;
 import java.util.Properties;
+import java.util.TimeZone;
 import java.util.TimerTask;
 import java.util.concurrent.Executor;
 import java.util.logging.Logger;
@@ -52,7 +53,8 @@ import java.util.logging.Logger;
 @Arrays
 public abstract class AbstractArraysTest<A> {
 
-  private static final BaseConnection ENCODING_CONNECTION = new EncodingConnection(Encoding.getJVMEncoding("utf-8"));
+  static final BaseConnection ENCODING_CONNECTION =
+      new EncodingConnection(Encoding.getJVMEncoding("utf-8"));
 
   private final A[][] testData;
 
@@ -111,7 +113,7 @@ public abstract class AbstractArraysTest<A> {
 
     ArrayEncoding.ArrayEncoder<A> support = ArrayEncoding.getArrayEncoder(data);
 
-    final String arrayString = support.toArrayString(',', data);
+    final String arrayString = support.toArrayString(ENCODING_CONNECTION, ',', data);
 
     final PgArray pgArray = new PgArray(ENCODING_CONNECTION, arrayTypeOid, arrayString);
 
@@ -153,7 +155,7 @@ public abstract class AbstractArraysTest<A> {
 
     final ArrayEncoding.ArrayEncoder<A[]> support = ArrayEncoding.getArrayEncoder(data);
 
-    final String arrayString = support.toArrayString(',', data);
+    final String arrayString = support.toArrayString(ENCODING_CONNECTION, ',', data);
 
     final PgArray pgArray = new PgArray(ENCODING_CONNECTION, arrayTypeOid, arrayString);
 
@@ -198,7 +200,7 @@ public abstract class AbstractArraysTest<A> {
 
     final ArrayEncoding.ArrayEncoder<A[][]> support = ArrayEncoding.getArrayEncoder(testData);
 
-    final String arrayString = support.toArrayString(',', testData);
+    final String arrayString = support.toArrayString(ENCODING_CONNECTION, ',', testData);
 
     final PgArray pgArray = new PgArray(ENCODING_CONNECTION, arrayTypeOid, arrayString);
 
@@ -222,10 +224,10 @@ public abstract class AbstractArraysTest<A> {
     }
 
     final ArrayEncoding.ArrayEncoder<A[][]> support = ArrayEncoding.getArrayEncoder(testData);
-    final String arrayString = support.toArrayString(',', testData);
+    final String arrayString = support.toArrayString(ENCODING_CONNECTION, ',', testData);
 
     final ArrayEncoding.ArrayEncoder<Object[]> copySupport = ArrayEncoding.getArrayEncoder(copy);
-    final String actual = copySupport.toArrayString(',', copy);
+    final String actual = copySupport.toArrayString(ENCODING_CONNECTION, ',', copy);
 
     assertEquals(arrayString, actual);
   }
@@ -238,10 +240,10 @@ public abstract class AbstractArraysTest<A> {
     }
 
     final ArrayEncoding.ArrayEncoder<A[][]> support = ArrayEncoding.getArrayEncoder(testData);
-    final String arrayString = support.toArrayString(',', testData);
+    final String arrayString = support.toArrayString(ENCODING_CONNECTION, ',', testData);
 
     final ArrayEncoding.ArrayEncoder<Object[]> copySupport = ArrayEncoding.getArrayEncoder(copy);
-    final String actual = copySupport.toArrayString(',', copy);
+    final String actual = copySupport.toArrayString(ENCODING_CONNECTION, ',', copy);
 
     assertEquals(arrayString, actual);
   }
@@ -254,10 +256,10 @@ public abstract class AbstractArraysTest<A> {
     final Object[][][] copy = new Object[][][]{testData, testData};
 
     final ArrayEncoding.ArrayEncoder<A[][][]> support = ArrayEncoding.getArrayEncoder(source);
-    final String arrayString = support.toArrayString(',', source);
+    final String arrayString = support.toArrayString(ENCODING_CONNECTION, ',', source);
 
     final ArrayEncoding.ArrayEncoder<Object[]> copySupport = ArrayEncoding.getArrayEncoder(copy);
-    final String actual = copySupport.toArrayString(',', copy);
+    final String actual = copySupport.toArrayString(ENCODING_CONNECTION, ',', copy);
 
     assertEquals(arrayString, actual);
   }
@@ -265,6 +267,10 @@ public abstract class AbstractArraysTest<A> {
   private static final class EncodingConnection implements BaseConnection {
     private final Encoding encoding;
     private final TypeInfo typeInfo = new TypeInfoCache(this, -1);
+    // A real formatter, because the text encoders format java.time elements through it, as the
+    // connection they are given would.
+    private final TimestampUtils timestampUtils =
+        new TimestampUtils(true, () -> TimeZone.getTimeZone("UTC"));
 
     EncodingConnection(Encoding encoding) {
       this.encoding = encoding;
@@ -388,7 +394,7 @@ public abstract class AbstractArraysTest<A> {
     @Override
     @SuppressWarnings("deprecation")
     public TimestampUtils getTimestampUtils() {
-      throw new UnsupportedOperationException();
+      return timestampUtils;
     }
 
     /**
