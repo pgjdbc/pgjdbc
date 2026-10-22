@@ -9,6 +9,7 @@ import static javax.transaction.xa.XAException.XAER_NOTA;
 import static javax.transaction.xa.XAException.XA_RBROLLBACK;
 import static javax.transaction.xa.XAException.XA_RDONLY;
 import static javax.transaction.xa.XAResource.XA_OK;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -1345,6 +1346,121 @@ public class XADataSourceTest {
       rs.next();
       assertEquals(1, rs.getInt(1), "rows committed by the branch that followed the rolled-back one");
     }
+  }
+
+  /**
+   * Starts a branch, inserts {@code row} into {@code testxa1}, and ends the branch with
+   * {@code endFlags}.
+   */
+  private void insertRowAndEndBranch(Xid xid, int row, int endFlags) throws Exception {
+    xaRes.start(xid, XAResource.TMNOFLAGS);
+    try (Statement st = conn.createStatement()) {
+      st.executeUpdate("INSERT INTO testxa1 VALUES (" + row + ")");
+    }
+    xaRes.end(xid, endFlags);
+  }
+
+  private int committedRows(int row) throws SQLException {
+    try (Statement st = dbConn.createStatement();
+         ResultSet rs = st.executeQuery("SELECT count(*) FROM testxa1 WHERE foo = " + row)) {
+      rs.next();
+      return rs.getInt(1);
+    }
+  }
+
+  /**
+   * {@code end(xid, TMFAIL)} marks the branch rollback-only, so prepare() rolls it back and reports
+   * {@code XA_RBROLLBACK}. end() used to ignore TMFAIL, and prepare() returned {@code XA_OK}.
+   */
+  @Test
+  void prepareAfterEndWithTmfailReportsRollback() throws Exception {
+    Xid xid = new CustomXid(0xa1000060);
+    insertRowAndEndBranch(xid, 60, XAResource.TMFAIL);
+
+    XAException e = assertThrows(XAException.class, () -> xaRes.prepare(xid));
+    assertAll(
+        () -> assertEquals(XA_RBROLLBACK, e.errorCode, "prepare(xid).errorCode"),
+        () -> assertFalse(Arrays.asList(xaRes.recover(XAResource.TMSTARTRSCAN)).contains(xid),
+            "recover() lists the branch ended with TMFAIL as prepared")
+    );
+  }
+
+  /**
+   * A one-phase commit() of a branch ended with TMFAIL rolls it back and reports
+   * {@code XA_RBROLLBACK}. It used to commit the work of the branch.
+   */
+  @Test
+  void onePhaseCommitAfterEndWithTmfailRollsBack() throws Exception {
+    Xid xid = new CustomXid(0xa1000061);
+    insertRowAndEndBranch(xid, 61, XAResource.TMFAIL);
+
+    XAException e = assertThrows(XAException.class, () -> xaRes.commit(xid, true));
+    assertAll(
+        () -> assertEquals(XA_RBROLLBACK, e.errorCode, "commit(xid, true).errorCode"),
+        () -> assertEquals(0, committedRows(61), "rows committed by the branch ended with TMFAIL")
+    );
+  }
+
+  /**
+   * A transaction manager usually follows end(xid, TMFAIL) with rollback(xid), which rolls the
+   * branch back as it does for any ended branch.
+   */
+  @Test
+  void rollbackAfterEndWithTmfailRollsBack() throws Exception {
+    Xid xid = new CustomXid(0xa1000062);
+    insertRowAndEndBranch(xid, 62, XAResource.TMFAIL);
+
+    xaRes.rollback(xid);
+
+    assertEquals(0, committedRows(62), "rows committed by the branch ended with TMFAIL");
+  }
+
+  /**
+   * The branch ended with TMSUCCESS, unlike the TMFAIL cases, prepares and commits its work.
+   */
+  @Test
+  void branchEndedWithTmsuccessPreparesAndCommits() throws Exception {
+    Xid xid = new CustomXid(0xa1000063);
+    insertRowAndEndBranch(xid, 63, XAResource.TMSUCCESS);
+
+    assertEquals(XA_OK, xaRes.prepare(xid), "prepare(xid)");
+    xaRes.commit(xid, false);
+
+    assertEquals(1, committedRows(63), "rows committed by the branch ended with TMSUCCESS");
+  }
+
+  /**
+   * Joining a branch that end(xid, TMFAIL) marked rollback-only keeps the mark, so a later
+   * end(xid, TMSUCCESS) does not make the branch committable.
+   */
+  @Test
+  void branchJoinedAfterEndWithTmfailStaysRollbackOnly() throws Exception {
+    Xid xid = new CustomXid(0xa1000064);
+    insertRowAndEndBranch(xid, 64, XAResource.TMFAIL);
+    xaRes.start(xid, XAResource.TMJOIN);
+    xaRes.end(xid, XAResource.TMSUCCESS);
+
+    XAException e = assertThrows(XAException.class, () -> xaRes.commit(xid, true));
+    assertAll(
+        () -> assertEquals(XA_RBROLLBACK, e.errorCode, "commit(xid, true).errorCode"),
+        () -> assertEquals(0, committedRows(64), "rows committed by the joined branch")
+    );
+  }
+
+  /**
+   * The rollback-only mark belongs to one branch: the next branch on the same connection commits.
+   */
+  @Test
+  void nextBranchCommitsAfterEndWithTmfail() throws Exception {
+    Xid failed = new CustomXid(0xa1000065);
+    insertRowAndEndBranch(failed, 65, XAResource.TMFAIL);
+    xaRes.rollback(failed);
+
+    Xid next = new CustomXid(0xa1000066);
+    insertRowAndEndBranch(next, 66, XAResource.TMSUCCESS);
+    xaRes.commit(next, true);
+
+    assertEquals(1, committedRows(66), "rows committed by the branch that followed the failed one");
   }
 
   /**
