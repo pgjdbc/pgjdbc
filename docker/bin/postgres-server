@@ -48,7 +48,7 @@ log () {
 main () {
     local publish_port="${PG_PUBLISH_PORT:-5432}"
     local replica_one_port="${PG_REPLICA_ONE_PUBLISH_PORT:-5433}"
-    local replica_two_port="${PG_REPLICA_ONE_PUBLISH_PORT:-5434}"
+    local replica_two_port="${PG_REPLICA_TWO_PUBLISH_PORT:-5434}"
 
     # Determine our current directory and change to be in the same directory as the compose file
     local script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
