@@ -175,8 +175,10 @@ public class JavaTimeArrayTest extends BaseTest4 {
         Arguments.argumentSet("control, int elements", "int4", new int[]{1, 2, 3}, "{1,2,3}"),
         Arguments.argumentSet("control, Long elements", "int8", new Long[]{1L, null, 3L},
             "{1,NULL,3}"),
+        // Known defect: this expectation loses the BC era; see #4493.
         Arguments.argumentSet("control, java.sql.Date keeps the rendering it had before",
             "date", new java.sql.Date[]{java.sql.Date.valueOf(bc)}, "{0501-01-01}"),
+        // Known defect: this expectation loses the BC era; see #4493.
         Arguments.argumentSet("control, java.sql.Timestamp keeps the rendering it had before",
             "timestamp", new Timestamp[]{Timestamp.valueOf(LocalDateTime.of(-500, 1, 1, 0, 0))},
             "{\"0501-01-01 00:00:00\"}"));
