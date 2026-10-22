@@ -5,12 +5,15 @@
 
 package org.postgresql.test.xa;
 
+import static javax.transaction.xa.XAException.XAER_NOTA;
+import static javax.transaction.xa.XAException.XA_RBROLLBACK;
 import static javax.transaction.xa.XAException.XA_RDONLY;
 import static javax.transaction.xa.XAResource.XA_OK;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -1223,6 +1226,124 @@ public class XADataSourceTest {
     try (ResultSet rs = dbConn.createStatement().executeQuery("SELECT count(*) FROM testxa3 WHERE foo = 777")) {
       rs.next();
       assertEquals(0, rs.getInt(1), "rollback() after a failed prepare() must roll back the active branch");
+    }
+  }
+
+  /**
+   * Starts a branch, fails a statement in it, and ends it with {@code TMSUCCESS}, so the server
+   * transaction behind the branch is aborted while the XA state is ENDED.
+   */
+  private void startAndAbortBranch(Xid xid) throws Exception {
+    xaRes.start(xid, XAResource.TMNOFLAGS);
+    try (Statement st = conn.createStatement()) {
+      assertThrows(SQLException.class, () -> st.execute("SELECT 1/0"));
+    }
+    xaRes.end(xid, XAResource.TMSUCCESS);
+  }
+
+  /**
+   * PostgreSQL answers PREPARE TRANSACTION in an aborted transaction with the command tag ROLLBACK
+   * and no error. prepare() used to return {@code XA_OK} for that branch, so the transaction
+   * manager went on to commit a branch the server had already rolled back.
+   */
+  @Test
+  void prepareOfAnAbortedBranchReportsRollback() throws Exception {
+    Xid xid = new CustomXid(0xa1000050);
+    startAndAbortBranch(xid);
+
+    XAException e = assertThrows(XAException.class, () -> xaRes.prepare(xid));
+    assertEquals(XA_RBROLLBACK, e.errorCode, "prepare(xid).errorCode");
+  }
+
+  /**
+   * PostgreSQL answers COMMIT in an aborted transaction with the command tag ROLLBACK and no error.
+   * A one-phase commit() used to return normally, so the transaction manager reported a commit for
+   * a branch the server had rolled back.
+   */
+  @Test
+  void onePhaseCommitOfAnAbortedBranchReportsRollback() throws Exception {
+    Xid xid = new CustomXid(0xa1000051);
+    startAndAbortBranch(xid);
+
+    XAException e = assertThrows(XAException.class, () -> xaRes.commit(xid, true));
+    assertEquals(XA_RBROLLBACK, e.errorCode, "commit(xid, true).errorCode");
+  }
+
+  /**
+   * After prepare() reports a rollback, the branch no longer exists, so rollback(xid) reports it as
+   * unknown.
+   */
+  @Test
+  void rollbackAfterPrepareReportedRollbackReportsUnknownXid() throws Exception {
+    Xid xid = new CustomXid(0xa1000052);
+    startAndAbortBranch(xid);
+    assertThrows(XAException.class, () -> xaRes.prepare(xid));
+
+    XAException e = assertThrows(XAException.class, () -> xaRes.rollback(xid));
+    assertEquals(XAER_NOTA, e.errorCode, "rollback(xid).errorCode");
+  }
+
+  /**
+   * After a one-phase commit() reports a rollback, the branch no longer exists, so rollback(xid)
+   * reports it as unknown.
+   */
+  @Test
+  void rollbackAfterOnePhaseCommitReportedRollbackReportsUnknownXid() throws Exception {
+    Xid xid = new CustomXid(0xa1000055);
+    startAndAbortBranch(xid);
+    assertThrows(XAException.class, () -> xaRes.commit(xid, true));
+
+    XAException e = assertThrows(XAException.class, () -> xaRes.rollback(xid));
+    assertEquals(XAER_NOTA, e.errorCode, "rollback(xid).errorCode");
+  }
+
+  /**
+   * A failed statement undone with ROLLBACK TO SAVEPOINT leaves the transaction usable, so the
+   * branch prepares and commits.
+   */
+  @Test
+  void branchRecoveredBySavepointPrepares() throws Exception {
+    Xid xid = new CustomXid(0xa1000056);
+    xaRes.start(xid, XAResource.TMNOFLAGS);
+    try (Statement st = conn.createStatement()) {
+      st.execute("SAVEPOINT before_failure");
+      assertThrows(SQLException.class, () -> st.execute("SELECT 1/0"));
+      st.execute("ROLLBACK TO SAVEPOINT before_failure");
+      st.executeUpdate("INSERT INTO testxa1 VALUES (56)");
+    }
+    xaRes.end(xid, XAResource.TMSUCCESS);
+
+    assertEquals(XA_OK, xaRes.prepare(xid), "prepare(xid)");
+    xaRes.commit(xid, false);
+
+    try (Statement st = dbConn.createStatement();
+         ResultSet rs = st.executeQuery("SELECT count(*) FROM testxa1 WHERE foo = 56")) {
+      rs.next();
+      assertEquals(1, rs.getInt(1), "rows committed by the branch recovered by a savepoint");
+    }
+  }
+
+  /**
+   * After prepare() reports a rollback, the connection is free for the next branch.
+   */
+  @Test
+  void nextBranchCommitsAfterPrepareReportedRollback() throws Exception {
+    Xid aborted = new CustomXid(0xa1000053);
+    startAndAbortBranch(aborted);
+    assertThrows(XAException.class, () -> xaRes.prepare(aborted));
+
+    Xid next = new CustomXid(0xa1000054);
+    xaRes.start(next, XAResource.TMNOFLAGS);
+    try (Statement st = conn.createStatement()) {
+      st.executeUpdate("INSERT INTO testxa1 VALUES (54)");
+    }
+    xaRes.end(next, XAResource.TMSUCCESS);
+    xaRes.commit(next, true);
+
+    try (Statement st = dbConn.createStatement();
+         ResultSet rs = st.executeQuery("SELECT count(*) FROM testxa1 WHERE foo = 54")) {
+      rs.next();
+      assertEquals(1, rs.getInt(1), "rows committed by the branch that followed the rolled-back one");
     }
   }
 
