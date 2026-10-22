@@ -59,6 +59,8 @@ If you have Docker, you can use `docker compose` to launch test database (see [d
     SCRAM = "yes" | "no"                   - Whether to enable SCRAM authentication
     TZ    = "Etc/UTC" | ...                - Override server timezone (default Etc/UTC)
     CREATE_REPLICAS = "yes" | "no"         - Whether to create two streaming replicas (defaults to off)
+    GSS   = "yes" | "no"                   - Whether to enable GSSAPI authentication, which needs 12 or later
+                                             (defaults to off); also starts a Kerberos KDC on local port 88
 
     The container is started in the foreground. It will remain running until it
     is killed via Ctrl-C.
@@ -86,6 +88,10 @@ If you have Docker, you can use `docker compose` to launch test database (see [d
     To start the default (latest) version with read only replicas:
 
     CREATE_REPLICAS=on docker/bin/postgres-server
+
+    To start the default (latest) version for pgjdbc-gss-test:
+
+    GSS=yes docker/bin/postgres-server
 
 An alternative way is to use a Vagrant script: [jackdb/pgjdbc-test-vm](https://github.com/jackdb/pgjdbc-test-vm).
 Follow the instructions on that project's [README](https://github.com/jackdb/pgjdbc-test-vm) page.
@@ -273,7 +279,47 @@ host    test    all    all    md5
 
 The test user must also have a password set so the server can verify it (`ALTER USER test WITH PASSWORD 'test';`).
 
-## 11 - Credits and Feedback
+## 11 - GSSAPI tests
+
+The `pgjdbc-gss-test` module connects over GSSAPI, with and without GSS encryption, and checks how `pg_ident.conf`
+maps a Kerberos principal to a database user. Gradle skips the module unless `-PgssTests` is passed:
+
+```sh
+./gradlew :pgjdbc-gss-test:test -PgssTests
+```
+
+### Requirements
+
+- PostgreSQL 12 or later; on an older server the tests are skipped
+- A Kerberos KDC for the realm `EXAMPLE.COM` at `127.0.0.1:88`, with the principals `gss_test1` (password `secret1`)
+  and `postgres/localhost`. The client side is configured by
+  `pgjdbc-gss-test/src/test/resources/org/postgresql/test/gss/krb5.conf`
+- A server keytab with `postgres/localhost`, since the tests connect to `localhost`
+- The roles `gss_test1` and `gss_test2`, the databases `gss_enc`, `gss_auth`, `gss_mapped`, and `gss_unmapped`, and
+  the `pg_hba.conf` and `pg_ident.conf` entries for them
+
+### Using Docker
+
+`GSS=yes` configures the server and starts the KDC on port 88:
+
+```sh
+GSS=yes docker/bin/postgres-server
+```
+
+With `docker compose` in `docker/postgres-server`, enable the `gss` profile. The roles and databases are created only
+with a new data directory, so remove a container started without `GSS` first:
+
+```sh
+docker compose down && GSS=yes docker compose --profile gss up -d --wait
+```
+
+### Manual setup
+
+Take the `pg_hba.conf` and `pg_ident.conf` entries from the `GSS` block of `docker/postgres-server/scripts/entrypoint.sh`,
+the roles and databases from `docker/postgres-server/scripts/post-startup.sh`, and the realm and principals from
+`docker/kdc/Dockerfile`. Point `krb_server_keyfile` at a keytab that holds `postgres/localhost`.
+
+## 12 - Credits and Feedback
 
 The parts of this document describing the PostgreSQL test suite
 were originally written by Rene Pijlman. Liam Stewart contributed
