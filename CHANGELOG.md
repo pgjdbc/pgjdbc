@@ -4,6 +4,9 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
+### Added
+* feat: add the `raiseExceptionOnSilentRollback` connection property, default `false`. With `true`, `Connection.commit()` throws `PSQLException` with SQLState `25P02` and the message `The server rolled back the transaction instead of committing it, because an earlier statement in the transaction failed.` when the transaction had failed and the server rolled it back. The first error of the transaction is the cause. With the default, `commit()` of a failed transaction returns normally and none of its changes are saved, as before. `setAutoCommit(true)` throws the same exception and leaves auto-commit off, as it does when `COMMIT` fails. A `COMMIT` executed as a SQL statement is not checked [Issue #4494](https://github.com/pgjdbc/pgjdbc/issues/4494)
+
 ### Fixed
 * fix: `PGStream.skip` no longer loops forever when the connection ends while the driver is discarding bytes, and no longer mistakes a stream that skips nothing for one that has ended. `InputStream.skip` may return zero with more data still coming, which a stream supplied through the `socketFactory` property is free to do; the driver now reads a byte in that case and treats only `-1` as the end [PR #4358](https://github.com/pgjdbc/pgjdbc/pull/4358)
 * fix: `LargeObjectManager` operations now work inside an active XA transaction. Since 42.7.13 an XA branch keeps the caller's `autoCommit=true`, and the guard rejected large objects as if the connection were idle. It now checks the server transaction state (`getTransactionState()`) instead of `autoCommit`, so a genuine auto-commit connection with no open transaction is still refused [Issue #4309](https://github.com/pgjdbc/pgjdbc/issues/4309) [PR #4310](https://github.com/pgjdbc/pgjdbc/pull/4310)
