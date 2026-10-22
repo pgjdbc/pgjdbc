@@ -17,6 +17,7 @@ services:
     volumes:
       - ./scripts/:/custom/scripts:ro
       - ../../certdir/server:/custom/certdir:ro
+      - gss-keytab:/custom/gss:ro
     entrypoint:
       - bash
       - /custom/scripts/entrypoint.sh
@@ -32,6 +33,7 @@ services:
       - TRACK_COUNTS=${TRACK_COUNTS:-no}
       - CREATE_REPLICAS=${CREATE_REPLICAS:-no}
       - STANDARD_CONFORMING_STRINGS=${STANDARD_CONFORMING_STRINGS:-yes}
+      - GSS=${GSS:-no}
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=
       - POSTGRES_DB=postgres
@@ -50,3 +52,21 @@ services:
       timeout: 5s
       retries: 30
       start_period: 30s
+
+  # Kerberos KDC for the GSSAPI tests: GSS=yes docker compose --profile gss up
+  kdc:
+    profiles: [gss]
+    build:
+      context: ../kdc
+    ports:
+      - 88:88
+    volumes:
+      - gss-keytab:/keytab
+    healthcheck:
+      test: ["CMD-SHELL", "test -s /keytab/postgres.keytab"]
+      interval: 1s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  gss-keytab:
