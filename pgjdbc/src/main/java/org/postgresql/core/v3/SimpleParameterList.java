@@ -539,7 +539,7 @@ class SimpleParameterList implements V3ParameterList {
   private static long quotedLiteralLength(String text, @Nullable String type,
       boolean standardConformingStrings, long limit) {
     // "('" + escaped + "'" + ["::" + type] + ")"
-    long length = 4 + (type == null ? 0 : 2 + type.length());
+    long length = 4L + (type == null ? 0 : 2 + type.length());
     for (int i = 0; i < text.length() && length <= limit; i++) {
       char ch = text.charAt(i);
       if (ch == '\0') {
