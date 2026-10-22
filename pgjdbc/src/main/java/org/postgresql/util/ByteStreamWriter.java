@@ -39,7 +39,12 @@ public interface ByteStreamWriter {
   /**
    * Returns the length of the stream.
    *
-   * <p>This must be known ahead of calling {@link #writeTo(ByteStreamTarget)}. </p>
+   * <p>This must be known ahead of calling {@link #writeTo(ByteStreamTarget)}, because the driver
+   * commits to it first: it goes out as the parameter's declared length, as the size of the
+   * literal built for a simple query, or as the length of a {@code COPY} message. Either way it
+   * fixes how many bytes the driver sends, whatever
+   * {@link #writeTo(ByteStreamTarget)} goes on to produce: writing fewer than this does not send
+   * fewer, it leaves the rest as zero bytes.</p>
    *
    * @return the number of bytes in the stream.
    */
@@ -48,8 +53,9 @@ public interface ByteStreamWriter {
   /**
    * Write the data to the provided {@link OutputStream}.
    *
-   * <p>Should not write more than {@link #getLength()} bytes. If attempted, the provided stream
-   * will throw an {@link java.io.IOException}. </p>
+   * <p>Writing more than {@link #getLength()} bytes makes the provided stream throw an
+   * {@link java.io.IOException}. Writing fewer is not reported: the driver has already committed
+   * to the declared length, so it pads the rest out with zero bytes.</p>
    *
    * @param target the stream to write the data to
    * @throws IOException if the underlying stream throws or there is some other error.
