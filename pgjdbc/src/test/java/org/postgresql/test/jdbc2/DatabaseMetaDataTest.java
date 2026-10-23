@@ -9,15 +9,20 @@ import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.core.TransactionState;
+import org.postgresql.jdbc.PgConnection;
+import org.postgresql.jdbc.PgDatabaseMetaData;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.annotations.EnabledForServerVersionRange;
 import org.postgresql.test.jdbc2.BaseTest4.BinaryMode;
@@ -30,6 +35,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -325,6 +332,108 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
+  void columns_whenCachedCatalogIsStale_expectRefreshedCatalog() throws Exception {
+    String expectedCatalog = TestUtil.getDatabase();
+    setCachedCatalog("staleCatalog");
+
+    try (ResultSet rs = con.getMetaData().getColumns(expectedCatalog, null, "metadatatest", "id")) {
+      assertTrue(rs.next(), "getColumns returned no rows for the current catalog");
+      assertAll(
+          () -> assertEquals(expectedCatalog, rs.getString("TABLE_CAT")),
+          () -> assertEquals("metadatatest", rs.getString("TABLE_NAME")),
+          () -> assertEquals("id", rs.getString("COLUMN_NAME")));
+    }
+    assertEquals(expectedCatalog, con.unwrap(PgConnection.class).getCatalog());
+  }
+
+  @Test
+  void columns_whenCachedCatalogIsStaleAndRequestedCatalogDiffers_expectEmptyResult() throws Exception {
+    String expectedCatalog = TestUtil.getDatabase();
+    setCachedCatalog("staleCatalog");
+
+    try (ResultSet rs = con.getMetaData().getColumns("FakeCatalog", null, "metadatatest", "id")) {
+      assertFalse(rs.next());
+    }
+    assertEquals(expectedCatalog, con.unwrap(PgConnection.class).getCatalog());
+  }
+
+  private void setCachedCatalog(String catalog) throws Exception {
+    // A proxy route change can leave the driver's catalog cache stale.
+    Field catalogField = PgConnection.class.getDeclaredField("catalog");
+    catalogField.setAccessible(true);
+    catalogField.set(con.unwrap(PgConnection.class), catalog);
+  }
+
+  private boolean isCurrentCatalog(String... catalogs) throws Exception {
+    Method method = PgDatabaseMetaData.class.getDeclaredMethod("isCurrentCatalog", String[].class);
+    method.setAccessible(true);
+    return (boolean) method.invoke(con.getMetaData(), (Object) catalogs);
+  }
+
+  @FunctionalInterface
+  private interface MetadataCall {
+    ResultSet call(DatabaseMetaData metadata, String catalog) throws SQLException;
+  }
+
+  @Test
+  void catalogMetadataMethods_whenCachedCatalogIsStale_expectRefresh() throws Exception {
+    String catalog = TestUtil.getDatabase();
+    DatabaseMetaData metadata = con.getMetaData();
+    List<MetadataCall> calls = Arrays.asList(
+        (dbmd, requestedCatalog) -> dbmd.getProcedures(requestedCatalog, null, null),
+        (dbmd, requestedCatalog) -> dbmd.getProcedureColumns(requestedCatalog, null, null, null),
+        (dbmd, requestedCatalog) -> dbmd.getTables(requestedCatalog, null, "metadatatest", null),
+        (dbmd, requestedCatalog) -> dbmd.getSchemas(requestedCatalog, null),
+        (dbmd, requestedCatalog) -> dbmd.getColumns(requestedCatalog, null, "metadatatest", "id"),
+        (dbmd, requestedCatalog) -> dbmd.getColumnPrivileges(requestedCatalog, null, "metadatatest", null),
+        (dbmd, requestedCatalog) -> dbmd.getTablePrivileges(requestedCatalog, null, "metadatatest"),
+        (dbmd, requestedCatalog) -> dbmd.getBestRowIdentifier(requestedCatalog, null, "metadatatest",
+            DatabaseMetaData.bestRowSession, false),
+        (dbmd, requestedCatalog) -> dbmd.getVersionColumns(requestedCatalog, null, "metadatatest"),
+        (dbmd, requestedCatalog) -> dbmd.getPrimaryKeys(requestedCatalog, null, "metadatatest"),
+        (dbmd, requestedCatalog) -> dbmd.getImportedKeys(requestedCatalog, null, "metadatatest"),
+        (dbmd, requestedCatalog) -> dbmd.getExportedKeys(requestedCatalog, null, "metadatatest"),
+        (dbmd, requestedCatalog) -> dbmd.getIndexInfo(requestedCatalog, null, "metadatatest", false, false),
+        (dbmd, requestedCatalog) -> dbmd.getUDTs(requestedCatalog, null, null, null),
+        (dbmd, requestedCatalog) -> dbmd.getFunctions(requestedCatalog, null, null),
+        (dbmd, requestedCatalog) -> dbmd.getFunctionColumns(requestedCatalog, null, null, null));
+
+    PgConnection pgConnection = con.unwrap(PgConnection.class);
+    for (MetadataCall call : calls) {
+      setCachedCatalog("staleCatalog");
+      try (ResultSet rs = call.call(metadata, catalog)) {
+        assertNotNull(rs);
+      }
+      assertEquals(catalog, pgConnection.getCatalog());
+    }
+  }
+
+  @Test
+  void isCurrentCatalog_whenCatalogMatchesCache_doesNotQuery() throws Exception {
+    PgConnection pgConnection = con.unwrap(PgConnection.class);
+    String catalog = TestUtil.getDatabase();
+    con.setAutoCommit(false);
+    try {
+      try (Statement stmt = con.createStatement()) {
+        assertThrows(SQLException.class, () -> stmt.execute("select 1 / 0"));
+      }
+      assertEquals(TransactionState.FAILED, pgConnection.getTransactionState());
+
+      setCachedCatalog(catalog);
+      assertTrue(isCurrentCatalog(catalog));
+
+      setCachedCatalog("staleCatalog");
+      try (ResultSet rs = con.getMetaData().getColumns(catalog, null, "metadatatest", "id")) {
+        assertFalse(rs.next());
+      }
+      assertEquals("staleCatalog", pgConnection.getCatalog());
+    } finally {
+      con.rollback();
+      con.setAutoCommit(true);
+    }
+  }
+
+  @Test
   void tables() throws Exception {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -424,6 +533,20 @@ public class DatabaseMetaDataTest {
         numRows += 1;
       }
       assertEquals(2, numRows);
+
+      String catalog = TestUtil.getDatabase();
+      setCachedCatalog("staleCatalog");
+      try (ResultSet currentForeignRs = dbmd.getCrossReference(null, null, "vv", catalog, null, "ww")) {
+        assertTrue(currentForeignRs.next(), "A current foreign catalog should return the cross-reference rows");
+        assertTrue(currentForeignRs.next());
+      }
+      assertEquals(catalog, con.unwrap(PgConnection.class).getCatalog());
+
+      setCachedCatalog("staleCatalog");
+      try (ResultSet wrongForeignRs = dbmd.getCrossReference(catalog, null, "vv", "FakeCatalog", null, "ww")) {
+        assertFalse(wrongForeignRs.next());
+      }
+      assertEquals(catalog, con.unwrap(PgConnection.class).getCatalog());
 
       TestUtil.dropTable(con1, "vv");
       TestUtil.dropTable(con1, "ww");
