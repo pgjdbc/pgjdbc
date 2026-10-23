@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLState;
 import org.postgresql.util.TestLogHandler;
 
 import org.junit.jupiter.api.Test;
@@ -188,6 +189,36 @@ class ForcedSyncTest extends BaseTest4 {
     }
 
     assertEquals("count=0, max=null", contents(con, "forced_sync_a"), "forced_sync_a");
+  }
+
+  /**
+   * A described statement whose result has a column of unbounded width, such as {@code text}, is
+   * estimated at the whole 64000 bytes, so an entry that holds one fills the buffer alone and keeps
+   * the per-statement checks. The forced Sync then falls between the entry's two statements, and
+   * under auto-commit the first one commits although the second fails, as in 42.7.12.
+   */
+  @Test
+  void describedEntryWithAnUnboundedResultColumnIsSplitByAForcedSync() throws SQLException {
+    TestUtil.createTable(con, "forced_sync_a", "id int PRIMARY KEY");
+    TestUtil.createTable(con, "forced_sync_b", "id int PRIMARY KEY, data text DEFAULT 'x'");
+    TestUtil.execute(con, "INSERT INTO forced_sync_b VALUES (1)");
+    try (PreparedStatement ps = con.prepareStatement(
+        "INSERT INTO forced_sync_a VALUES (?); INSERT INTO forced_sync_b VALUES (?) RETURNING data")) {
+      // Describes both statements, so the driver knows the result column is text
+      ps.getMetaData();
+      ps.setInt(1, 1);
+      ps.setInt(2, 1);
+      ps.addBatch();
+      logHandler.records.clear();
+      BatchUpdateException e = assertThrows(BatchUpdateException.class, ps::executeBatch);
+      assertEquals(PSQLState.UNIQUE_VIOLATION.getState(), e.getSQLState(), "SQLState");
+    }
+    List<Integer> executeCountsAtEachSync = executeCountsAtEachSync();
+
+    assertAll(
+        () -> assertEquals(Arrays.asList(1, 2), executeCountsAtEachSync,
+            "Execute counts at each Sync for one entry of two statements"),
+        () -> assertEquals("count=1, max=1", contents(con, "forced_sync_a"), "forced_sync_a"));
   }
 
   /**
