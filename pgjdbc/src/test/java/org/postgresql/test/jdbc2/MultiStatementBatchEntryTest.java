@@ -33,7 +33,8 @@ import java.sql.Statement;
  *
  * <p>Simple and extendedForPrepared send the SQL of {@code Statement.addBatch(String)} to the
  * server unsplit, and the extended modes split it, so each mode is a case of its own. Each test
- * starts from the single row {@code (pk 1, col1 0)} with auto-commit off.</p>
+ * starts from the single row {@code (pk 1, col1 0)} with auto-commit off, unless it turns
+ * auto-commit on itself.</p>
  */
 @ParameterizedClass
 @EnumSource(PreferQueryMode.class)
@@ -141,6 +142,37 @@ class MultiStatementBatchEntryTest extends BaseTest4 {
       assertAll(
           () -> assertArrayEquals(new int[]{1}, updateCounts, "executeBatch()"),
           () -> assertEquals(12, col1(), "col1 after the batch"));
+    }
+  }
+
+  /**
+   * A batch whose first entry returns more results than the batch has entries reports a failure of
+   * a later entry as {@code BatchUpdateException} and reads every response of the batch, so the
+   * next query on the connection gets its own result. Results are counted per statement, not per
+   * entry, so no count past the first entry identifies an entry, and every entry is reported as
+   * {@code EXECUTE_FAILED}, including the ones that ran. Under auto-commit the batch used to throw
+   * {@code IllegalArgumentException} from {@code Arrays.fill} instead, leaving the responses of the
+   * entries after the failing one for the next query.
+   */
+  @Test
+  void batchFailingAfterAnEntryOfSeveralSelectsLeavesTheConnectionUsable() throws SQLException {
+    con.setAutoCommit(true);
+    try (Statement stmt = con.createStatement()) {
+      stmt.addBatch("SELECT 1; SELECT 2; SELECT 3; SELECT 4");
+      stmt.addBatch("SELECT 1/0");
+      stmt.addBatch(INCREMENT);
+      BatchUpdateException e = assertThrows(BatchUpdateException.class, stmt::executeBatch);
+      assertAll(
+          () -> assertEquals(PSQLState.DIVISION_BY_ZERO.getState(), e.getSQLState(), "SQLState"),
+          () -> assertArrayEquals(
+              new int[]{Statement.EXECUTE_FAILED, Statement.EXECUTE_FAILED,
+                  Statement.EXECUTE_FAILED},
+              e.getUpdateCounts(), "getUpdateCounts()"));
+    }
+    try (Statement stmt = con.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT 42")) {
+      assertTrue(rs.next(), "SELECT 42 returns a row");
+      assertEquals(42, rs.getInt(1), "SELECT 42 after the failed batch");
     }
   }
 }

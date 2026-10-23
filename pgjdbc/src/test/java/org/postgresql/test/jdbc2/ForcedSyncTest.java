@@ -153,10 +153,8 @@ class ForcedSyncTest extends BaseTest4 {
    */
   @Test
   void entryThatFailsAfterAForcedSyncCommitsNoneOfItsStatements() throws SQLException {
-    // BatchResultHandler counts results per batch rather than per entry, so this batch fails with
-    // IllegalArgumentException rather than BatchUpdateException, and leaves con out of sync (see
-    // PR #4352). The tables are read through another connection, which sees what was committed.
-    assertThrows(Exception.class,
+    // The tables are read through another connection, which sees what was committed.
+    assertThrows(BatchUpdateException.class,
         () -> executeTwoTableBatch(entry -> entry, entry -> entry == 128 ? 1 : entry));
 
     try (Connection reader = TestUtil.openDB()) {
