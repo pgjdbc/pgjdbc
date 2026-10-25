@@ -165,7 +165,7 @@ Prerequisites:
 This project defines a [manual release workflow](.github/workflows/release.yml).
 
 The suggested flow is as follows:
-1. Prepare release notes, commit it to Git.
+1. Prepare release notes, commit it to Git. See [Updating the website](#updating-the-website).
 2. Open the "release" action at 👉 [Actions tab → release.yml](https://github.com/pgjdbc/pgjdbc/actions/workflows/release.yml).
 3. Click "run workflow".
 4. Set "Release version number" if you want to bump the version before the release. Note: if the current version already exists, then the release workflow would abort.
@@ -180,6 +180,53 @@ The workflow performs the following steps:
 ### Updating changelog
 
 - run `./release_notes.sh`, edit as desired. This has been deprecated. Currently release notes are created manually
+
+### Updating the website
+
+Hugo reads the release data for the website from the front matter of the changelog files in
+`docs/content/changelogs/`.
+To add a release to the website, add one file named `<yyyy-mm-dd>-<version>-release.md`:
+
+```yaml
+---
+title: "PostgreSQL JDBC Driver 42.7.15 Released"
+date: 2026-11-04 10:00:00 -0400
+categories:
+    - new release
+version: 42.7.15
+summary: "One or two sentences for the home page."
+---
+```
+
+The current release is the release with the highest `version`. From the changelog files, Hugo builds:
+
+- The "Current release" paragraph on the home page names the current release, adds its `summary` if the file
+  sets one, and links to its changelog.
+- The "Latest Releases" list on the home page shows the five releases with the highest `version`, highest first,
+  each with its `date`.
+- The Java 8 card on the download page names the current release.
+- The "Older Versions" list on the download page shows the other releases in the minor line of the current
+  release, then the release with the highest `version` in each older minor line.
+
+The pages show the `date` from the front matter. The date in the file name sets only the URL. Hugo builds a
+changelog even when its `date` is later than the time of the build.
+
+The Java 7 and Java 6 cards on the download page name 42.2.29.jre7 and 42.2.27.jre6, which
+`docs/layouts/shortcodes/recent-versions.html` sets. No release after 42.2.29 builds jre7 jars, and no release
+after 42.2.27 builds jre6 jars.
+
+Each jar link on the download page points at `/download/postgresql-<version>.jar`.
+
+The build fails when:
+
+- A file whose name ends in `-release.md` has no `version`, or a `version` that is not three numbers separated
+  by dots, each without a leading zero.
+- A file whose name contains a version, such as `2026-11-04-42.7.15.md`, does not end in `-release.md`.
+- Two changelog files set the same `version`.
+- A release changelog has no `date`.
+- No changelog file sets a release `version`.
+
+To see the pages, run `hugo server` in `docs/`.
 
 ## Dependencies
 
