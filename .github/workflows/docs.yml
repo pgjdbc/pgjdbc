@@ -52,7 +52,9 @@ jobs:
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
       - name: Build
-        run: hugo --minify
+        env:
+          BASE_URL: ${{ vars.SITE_BASE_URL || 'https://jdbc.postgresql.org/' }}
+        run: hugo --minify --baseURL "${BASE_URL}"
         working-directory: ./docs
 
       - name: Upload artifact
