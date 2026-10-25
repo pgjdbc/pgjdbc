@@ -231,6 +231,34 @@ The links in it are relative to the site root, so serve the unzipped directory w
 rather than opening the files directly. To see the pages before you open the pull request, run `hugo server` in
 `docs/`.
 
+### Deploying the website
+
+`.github/workflows/docs.yml` builds the site with the Hugo version that it pins and uploads it as the `site`
+artifact of the run. `.github/workflows/docs-deploy.yml` calls it and then deploys the site. The deploy runs only
+from the `www-release` branch. After a release, once the jar is on Maven Central, update `www-release` to the
+commit to deploy and start the deploy on it:
+
+```sh
+gh workflow run docs-deploy.yml -R pgjdbc/pgjdbc --ref www-release
+```
+
+The deploy uploads the site to the root of the S3 bucket, then deletes the files in the bucket that are no longer in
+the site, and then invalidates the CloudFront cache. Each deploy replaces the previous one and no earlier version is
+kept. To roll back, set `www-release` back to an earlier commit and start the deploy again. A run on any other
+branch fails with an error before it builds the site.
+
+The workflows read these repository variables:
+
+- `SITE_BASE_URL`, the URL the site is published at. Unset means `https://jdbc.postgresql.org/`. A fork sets it to
+  publish a test copy of the site to another domain.
+- `SITE_AWS_ROLE_ARN`, the IAM role that the workflow assumes through GitHub OIDC.
+- `SITE_AWS_REGION`, the AWS region of that role.
+- `SITE_S3_BUCKET`, the bucket that holds the site. The deploy deletes anything in it that is not part of the site.
+- `SITE_CLOUDFRONT_DISTRIBUTION_ID`, the CloudFront distribution that serves the bucket.
+
+CloudFront serves `/download/` and the Javadoc under `/documentation/publicapi/` from another origin, so they are not
+in the bucket.
+
 ## Dependencies
 
 PgJDBC has optional dependencies on other libraries for some features. These
