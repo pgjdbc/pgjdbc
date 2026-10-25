@@ -1,7 +1,8 @@
 {{- /*
-  The release lists on the home page and the download page come from the
-  changelog front matter, read here, so a release is added by adding one
-  changelog file.
+  The release lists on the home page and the download page are built here
+  from the changelog front matter, so adding a release means adding one
+  changelog file. The CONTRIBUTING.md subsection "Updating the website" lists
+  the rules and the build errors.
 */ -}}
 {{- $versionRE := `^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$` -}}
 {{- $list := slice -}}
