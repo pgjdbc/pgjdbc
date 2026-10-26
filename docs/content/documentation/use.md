@@ -522,6 +522,18 @@ Whether to include server error details in exceptions and log messages (for exam
 Setting to `false` will only include minimal, not sensitive messages.
 By default, this is set to `true`, server error details are propagated. This may include sensitive details such as query parameters.
 
+* **`maxLogMessageLength (`*int*`)`** *Default `16384`*\
+Maximum length in characters of the FINEST `FE=> Bind(...)`, `FE=> Parse(...)` and
+`FE=> SimpleQuery(...)` traces. A trace that would be longer shows long values in a shorter form,
+leaves out the parameters that do not fit, and ends with `...(truncated)`. Other traces, such as
+the server `ErrorMessage`, `NoticeResponse`, `AsyncNotify` or `ParameterStatus` traces, or the
+`Constructing object from type=...` trace in `PgConnection.getObject`, are not limited. Set to `0`
+for no limit; a negative value is rejected when the connection opens. The value is read when the
+connection opens, so changing it on a `DataSource` affects only new connections. A Bind trace of
+an unnamed statement needs 73 characters to show one `int4` parameter, so values below 100 leave
+little of the trace. See [Logging](/documentation/logging/).
+  Since: 42.7.15
+
 * **`quoteReturningIdentifiers (`*boolean*`)`** *Default `true`*\
 Quote returning columns. There are some ORM's that quote everything, including returning columns
 If we quote them, then we end up sending ""colname"" to the backend instead of "colname" which will not be found.
