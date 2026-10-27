@@ -8,6 +8,7 @@ package org.postgresql.largeobject;
 import org.postgresql.jdbc.ResourceLock;
 import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
+import org.postgresql.util.internal.ArrayRanges;
 
 import org.checkerframework.checker.index.qual.Positive;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -113,6 +114,10 @@ public class BlobOutputStream extends OutputStream {
     long loId = 0;
     try (ResourceLock ignore = lock.obtain()) {
       LargeObject lo = checkClosed();
+      // PGStream.send pads a range past the end of the array with zeros instead of failing, so
+      // the range has to be rejected here rather than on the way to the server. checkClosed()
+      // stays first so a closed stream still reports itself as closed
+      ArrayRanges.checkFromIndexSize(b, off, len);
       loId = lo.getLongOID();
       byte[] buf = this.buf;
       int totalData = bufferPosition + len;
