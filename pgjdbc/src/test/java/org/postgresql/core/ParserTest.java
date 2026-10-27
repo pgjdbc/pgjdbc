@@ -5,11 +5,13 @@
 
 package org.postgresql.core;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.util.PSQLException;
@@ -18,10 +20,14 @@ import org.postgresql.util.PSQLState;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Test cases for the Parser.
@@ -268,6 +274,189 @@ class ParserTest {
     JdbcCallParseInfo parseInfo = Parser.modifyJdbcCall(sql, true, ServerVersion.v14.getVersionNum(),
         EscapeSyntaxCallMode.CALL);
     assertFalse(parseInfo.isFunction(), () -> "isFunction() should be false for: " + sql);
+  }
+
+  /**
+   * The keyword in front of a {@code ;} classifies the statement it ends, not the one after it.
+   * RETURNING is reserved but a column label may still spell it, and DELETE ends a CREATE POLICY,
+   * so either can be the last word of a valid statement. The flags such a keyword set used to be
+   * applied to the next statement, and the UPDATE after it got no RETURNING clause or was
+   * reported as a DELETE. The ordinary label is the control and passes on that parser too.
+   */
+  @ParameterizedTest
+  @MethodSource
+  void theKeywordBeforeASemicolonDoesNotClassifyTheNextStatement(String sql) throws SQLException {
+    NativeQuery update = parse(sql, "id").get(1);
+    assertAll(sql,
+        () -> assertEquals(SqlCommandType.UPDATE, update.command.getType()),
+        () -> assertEquals(" update t set a=1\nRETURNING \"id\"", update.nativeSql));
+  }
+
+  static Stream<Arguments> theKeywordBeforeASemicolonDoesNotClassifyTheNextStatement() {
+    return Stream.of(
+        argumentSet("a column label spelled RETURNING", "select 1 as returning; update t set a=1"),
+        argumentSet("CREATE POLICY ending in DELETE", "create policy p on t for delete; update t set a=1"),
+        argumentSet("control: an ordinary column label", "select 1 as x; update t set a=1"));
+  }
+
+  /**
+   * An INSERT is classified as an INSERT, and gets the RETURNING clause that generated keys ask
+   * for, wherever it stands in the string. Only an INSERT that started the string used to be
+   * recognized; one after any other statement was reported as BLANK and got no RETURNING.
+   */
+  @ParameterizedTest
+  @MethodSource
+  void anInsertAfterAnotherStatementGetsReturning(String sql) throws SQLException {
+    NativeQuery insert = parse(sql, "id").get(1);
+    assertAll(sql,
+        () -> assertEquals(SqlCommandType.INSERT, insert.command.getType()),
+        () -> assertEquals(" insert into t(a) values($1)\nRETURNING \"id\"", insert.nativeSql),
+        () -> assertTrue(insert.command.isReturningKeywordPresent(), "isReturningKeywordPresent"),
+        () -> assertFalse(insert.command.isBatchedReWriteCompatible(), "isBatchedReWriteCompatible"));
+  }
+
+  static Stream<Arguments> anInsertAfterAnotherStatementGetsReturning() {
+    return Stream.of(
+        argumentSet("after a SELECT", "select 1; insert into t(a) values(?)"),
+        argumentSet("after an INSERT", "insert into t(a) values(1); insert into t(a) values(?)"),
+        argumentSet("after an INSERT ending in the keyword VALUES",
+            "insert into dv default values; insert into t(a) values(?)"));
+  }
+
+  /**
+   * An INSERT that starts the string gets RETURNING as well. Passes on the parser before the fix
+   * too; it guards the position the old INSERT detection did handle.
+   */
+  @Test
+  void anInsertThatStartsTheStringGetsReturning() throws SQLException {
+    NativeQuery insert = parse("insert into t(a) values(?); select 1", "id").get(0);
+    assertAll(
+        () -> assertEquals(SqlCommandType.INSERT, insert.command.getType()),
+        () -> assertEquals("insert into t(a) values($1)\nRETURNING \"id\"", insert.nativeSql));
+  }
+
+  /**
+   * Batch rewrite applies to the first INSERT of the string only, although every INSERT is
+   * classified as an INSERT. Passes on the parser before the fix as well.
+   */
+  @Test
+  void onlyTheFirstInsertOfTheStringIsBatchRewriteCompatible() throws SQLException {
+    List<NativeQuery> queries = parse("insert into t(a) values(?); insert into t(a) values(?)");
+    assertAll(
+        () -> assertTrue(queries.get(0).command.isBatchedReWriteCompatible(), "first INSERT"),
+        () -> assertFalse(queries.get(1).command.isBatchedReWriteCompatible(), "second INSERT"));
+  }
+
+  /**
+   * The last statement keeps its own command type when its last character is a {@code ?}. The
+   * placeholder leaves no text after it, and that empty remainder used to be taken for an empty
+   * statement. The last statement then took the command type and RETURNING flag of a single
+   * statement before it, or no command type after two or more, and got no RETURNING. The two
+   * controls, a space after the {@code ?} and a single statement, pass on that parser too.
+   */
+  @ParameterizedTest
+  @MethodSource
+  void theLastStatementEndingInAPlaceholderKeepsItsType(String sql, SqlCommandType expectedType,
+      String expectedNativeSql) throws SQLException {
+    List<NativeQuery> queries = parse(sql, "id");
+    NativeQuery last = queries.get(queries.size() - 1);
+    assertAll(sql,
+        () -> assertEquals(expectedType, last.command.getType()),
+        () -> assertEquals(expectedNativeSql, last.nativeSql));
+  }
+
+  static Stream<Arguments> theLastStatementEndingInAPlaceholderKeepsItsType() {
+    return Stream.of(
+        argumentSet("a DELETE after a SELECT", "select 1; delete from t where a=?",
+            SqlCommandType.DELETE, " delete from t where a=$1\nRETURNING \"id\""),
+        argumentSet("an UPDATE after an UPDATE", "update t set a=1; update t set a=?",
+            SqlCommandType.UPDATE, " update t set a=$1\nRETURNING \"id\""),
+        argumentSet("a DELETE after two statements", "select 1; select 2; delete from t where a=?",
+            SqlCommandType.DELETE, " delete from t where a=$1\nRETURNING \"id\""),
+        argumentSet("control: a space after the placeholder", "select 1; delete from t where a=? ",
+            SqlCommandType.DELETE, " delete from t where a=$1 \nRETURNING \"id\""),
+        argumentSet("control: a single statement", "delete from t where a=?",
+            SqlCommandType.DELETE, "delete from t where a=$1\nRETURNING \"id\""));
+  }
+
+  /**
+   * A {@code ;} ends a statement unless it is inside a BEGIN ATOMIC body. Such a body opens only
+   * where CREATE FUNCTION or CREATE PROCEDURE (with or without OR REPLACE) has BEGIN and ATOMIC as
+   * adjacent keywords outside parentheses; a comment between the two keeps them adjacent. BEGIN,
+   * ATOMIC, FUNCTION, and PROCEDURE are unreserved in PostgreSQL, so elsewhere they name tables,
+   * columns, and aliases, and a body detected there used to keep every later statement in one.
+   *
+   * <p>Every statement is valid PostgreSQL except the two with a token between BEGIN and ATOMIC,
+   * which the parser still has to split. On the parser before the fix, the body cases pass,
+   * and so do the sequence named BEGIN, the column label BEGIN, and the ORDER BY, each for a
+   * reason unrelated to this rule; they guard the checks the fix added.
+   */
+  @ParameterizedTest
+  @MethodSource
+  void aSemicolonEndsAStatementUnlessInsideABeginAtomicBody(String sql, int expectedStatements)
+      throws SQLException {
+    List<NativeQuery> queries = parse(sql);
+    assertEquals(expectedStatements, queries.size(),
+        () -> "statements of " + sql + ": "
+            + queries.stream().map(q -> q.nativeSql).collect(Collectors.toList()));
+  }
+
+  static Stream<Arguments> aSemicolonEndsAStatementUnlessInsideABeginAtomicBody() {
+    return Stream.of(
+        argumentSet("body: function",
+            "create function f() returns int language sql begin atomic select 1; end", 1),
+        argumentSet("body: or replace function",
+            "create or replace function f() returns int language sql begin atomic select 1; end", 1),
+        argumentSet("body: procedure",
+            "create procedure p() language sql begin atomic select 1; end", 1),
+        argumentSet("body: upper case or replace procedure",
+            "CREATE OR REPLACE PROCEDURE p() LANGUAGE SQL BEGIN ATOMIC select 1; END", 1),
+        argumentSet("body: a comment between BEGIN and ATOMIC",
+            "create function f() returns int language sql begin /* c */ atomic select 1; end", 1),
+        argumentSet("body: a line comment between BEGIN and ATOMIC",
+            "create function f() returns int language sql begin -- c\n atomic select 1; end", 1),
+        argumentSet("invalid SQL: a quoted identifier between BEGIN and ATOMIC",
+            "create function f() returns int language sql begin \"x\" atomic select 1; end; select 2",
+            3),
+        argumentSet("invalid SQL: a dollar-quoted string between BEGIN and ATOMIC",
+            "create function f() returns int language sql begin $$q$$ atomic select 1; end; select 2",
+            3),
+        argumentSet("BEGIN and ATOMIC inside a parenthesized RETURN expression",
+            "create function g() returns int language sql"
+                + " return (select begin atomic from t limit 1); select 2; select 3", 3),
+        argumentSet("a sequence named BEGIN, then a function named ATOMIC",
+            "create sequence begin;"
+                + " create function atomic() returns int language sql as 'select 1'; select 3", 3),
+        argumentSet("a column label BEGIN, then a procedure named ATOMIC",
+            "create view v as select 1 as begin;"
+                + " create procedure atomic() language sql as 'select 1'; select 3", 3),
+        argumentSet("a view selecting columns BEGIN and ATOMIC",
+            "create view v as select begin, atomic from t; insert into t(a) values(?)", 2),
+        argumentSet("a view selecting columns BEGIN and ATOMIC, space before the semicolon",
+            "create view v as select begin, atomic from t ; insert into t(a) values(?)", 2),
+        argumentSet("CREATE TABLE AS ordered by BEGIN and ATOMIC",
+            "create table t2 as select * from t order by begin, atomic; insert into t(a) values(?)",
+            2),
+        argumentSet("a view aliasing column BEGIN as ATOMIC",
+            "create view v as select begin atomic from t; insert into t(a) values(?)", 2),
+        argumentSet("CREATE TABLE AS aliasing column BEGIN as ATOMIC",
+            "create table t2 as select begin atomic from t; insert into t(a) values(?)", 2),
+        argumentSet("a table named BEGIN with a column named ATOMIC",
+            "create table begin(atomic int); select 1; select 2", 3),
+        argumentSet("a view after a function definition",
+            "create function f() returns int language sql as 'select 1';"
+                + " create view v as select begin atomic from t; select 2", 3),
+        argumentSet("a view with a column alias FUNCTION",
+            "create view v as select a function, begin atomic from t; select 1", 2),
+        argumentSet("a materialized view named FUNCTION",
+            "create materialized view function as select begin atomic from t; select 1", 2),
+        argumentSet("a table named PROCEDURE selecting BEGIN as ATOMIC",
+            "create table procedure as select begin atomic from t; select 1", 2));
+  }
+
+  private static List<NativeQuery> parse(String sql, String... returningColumns)
+      throws SQLException {
+    return Parser.parseJdbcSql(sql, true, true, true, true, true, returningColumns);
   }
 
   @Test
