@@ -226,7 +226,8 @@ The build fails when:
 - A release changelog has no `date`.
 - No changelog file sets a release `version`.
 
-To see the pages, run `hugo server` in `docs/`.
+A pull request that changes `docs/` runs this build. To see the pages before you open the pull request, run
+`hugo server` in `docs/`.
 
 ## Dependencies
 
