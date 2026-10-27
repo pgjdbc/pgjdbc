@@ -247,7 +247,7 @@ public class PGPooledConnection implements PooledConnection {
    *
    * @param e the SQLException to consider
    */
-  private void fireConnectionError(SQLException e) {
+  protected void fireConnectionError(SQLException e) {
     if (!isFatalState(e.getSQLState())) {
       return;
     }
