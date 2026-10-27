@@ -341,9 +341,10 @@ If `stringtype` is set to `unspecified` , parameters will be sent to the server 
 This is useful if you have an existing application that uses `setString()` to set parameters that are actually some other type, such as integers, 
 and you are unable to change the application to use an appropriate method such as `setInt()` .
 
-* **`ApplicationName (`*String*`)`** *Default `PostgreSQL JDBC Driver`*\
+* **`ApplicationName (`*String*`)`** *Default `PostgreSQL JDBC Driver X.Y.Z`*\
 Specifies the name of the application that is using the connection. 
 This allows a database administrator to see what applications are connected to the server and what resources they are using through views like pg_stat_activity.
+The default value is `PostgreSQL JDBC Driver` suffixed with the version of this driver.
 
 * **`kerberosServerName (`*String*`)`** *Default `postgres`*\
 The Kerberos service name to use when authenticating with GSSAPI. This is equivalent to libpq's PGKRBSRVNAME environment variable and defaults to "postgres".
