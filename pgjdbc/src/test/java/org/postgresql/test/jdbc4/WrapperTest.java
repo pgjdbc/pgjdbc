@@ -93,7 +93,10 @@ class WrapperTest {
     dataSource.setDatabaseName(TestUtil.getDatabase());
     dataSource.setServerName(TestUtil.getServer());
     dataSource.setPortNumber(TestUtil.getPort());
-    Connection connection = dataSource.getConnection(TestUtil.getUser(), TestUtil.getPassword());
+    dataSource.setUser(TestUtil.getUser());
+    dataSource.setPassword(TestUtil.getPassword());
+    TestUtil.configureOAuthIfNeeded(dataSource);
+    Connection connection = dataSource.getConnection();
     assertNotNull(connection, "Unable to obtain a connection from PGSimpleDataSource");
     Object v = connection.unwrap(PGConnection.class);
     assertTrue(v instanceof PGConnection,

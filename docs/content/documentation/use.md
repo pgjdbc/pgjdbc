@@ -247,6 +247,8 @@ This option controls the client's use of channel binding. A setting of `require`
 
 Channel binding is a method for the server to authenticate itself to the client. It is only supported over SSL connections with PostgreSQL 11 or later servers using the SCRAM authentication method.
 
+`require` rules out OAUTHBEARER, since the driver has no channel binding to offer for that mechanism. When the server offers OAUTHBEARER alongside SCRAM, the driver answers with SCRAM so the channel binding still happens; when OAUTHBEARER is all the server offers, the connection is rejected rather than proceeding without a channel binding.
+
 * **`binaryTransfer (`*boolean*`)`** *Default `true`*\
 Enable binary transfer for supported built-in types if possible.
 Setting this to false disables any binary transfer unless it's individually activated for each type with `binaryTransferEnable`.
@@ -532,14 +534,71 @@ value in the connection properties will be used.
 
 * **`requireAuth (`*String*`)`** *Default `null`*\
 Comma-separated list of acceptable authentication methods. Use '!' prefix to reject methods (e.g., '!password' to reject cleartext). 
-Supported methods: `password`, `md5`, `gss`, `sspi`, `scram-sha-256`, `none`. Cannot mix positive and negative options.
+Supported methods: `password`, `md5`, `gss`, `sspi`, `scram-sha-256`, `oauth`, `none`. Cannot mix positive and negative options.
 Examples: `requireAuth=md5,scram-sha-256` (allow only MD5 or SCRAM-SHA-256), `requireAuth=!password,!none` (reject cleartext and trust authentication).
+Whatever is allowed, the server has to authenticate the connection: one that is let through without the driver being
+asked for anything is refused unless `none` is allowed. `gss` is the exception, because establishing GSS encryption
+authenticates the client and leaves the server no reason to ask again, so `requireAuth=gss` is met by `gssEncMode=require`
+alone. GSS encryption is not required to be named for any other method: a connection encrypted by GSS and then
+authenticated with, say, OAUTHBEARER meets `requireAuth=oauth`.
 
 * **`scramMaxIterations (`*int*`)`** *Default `100000`*\
 Maximum PBKDF2 iteration count that pgjdbc will accept from the server during SCRAM authentication.
 During SCRAM-SHA-256 authentication, the server sends the iteration count used to derive the salted password. If the server advertises a value higher than `scramMaxIterations`, the driver rejects authentication before starting the PBKDF2 computation.
 This limits client CPU exposure if a malicious or compromised server sends an excessively large iteration count.
 A value of zero disables this check.
+
+The `oauth*` properties below configure OAUTHBEARER ([RFC 7628](https://www.rfc-editor.org/rfc/rfc7628)) authentication.
+Three things hold for all of them. The server side `oauth` authentication method is only available for PostgreSQL version
+18 or higher. Unless `oauthAllowInsecureConnection` is enabled, the driver sends the token only over a secure connection to a
+verified server, so `sslmode` must be `verify-ca` or `verify-full`, or the connection must be encrypted by GSS; the
+default `sslmode=prefer` lets the server refuse TLS and continue in plaintext, which OAUTHBEARER then rejects, and
+`sslmode=require` is not enough either because it does not verify the server certificate. And `channelBinding=require`
+rules OAUTHBEARER out, since the driver has no channel binding to offer for it.
+
+Setting either `oauthToken` or `oauthTokenProviderClassName` also decides the mechanism: when the server offers both
+OAUTHBEARER and SCRAM-SHA-256, the driver answers with OAUTHBEARER and `password` is never used. Set
+`requireAuth=scram-sha-256` to authenticate with a password instead.
+
+* **`oauthToken (`*String*`)`** *Default `null`*\
+OAuth 2.0 bearer token used for OAUTHBEARER (RFC 7628) authentication.
+Takes precedence over `oauthTokenProviderClassName`.
+
+* **`oauthTokenProviderClassName (`*String*`)`** *Default `null`*\
+Fully qualified name of a class implementing the `org.postgresql.plugin.OAuthTokenProvider` interface, used to
+obtain an OAuth bearer token at connection time. Ignored when `oauthToken` is set.
+
+* **`oauthIssuer (`*String*`)`** *Default `null`*\
+URL of the OAuth issuer (authorization server) to obtain a token from. The driver does not contact the issuer
+itself; the value is passed to the `oauthTokenProviderClassName` implementation. Unless `oauthAllowInsecureIssuer`
+is enabled, this URL must use HTTPS.
+
+* **`oauthAllowInsecureIssuer (`*boolean*`)`** *Default `false`*\
+Allow the `oauthIssuer` URL to use a plaintext `http` scheme instead of HTTPS. By default, a non-HTTPS issuer is
+rejected. Enabling this is intended for development and testing only;
+do not enable it in production.
+
+* **`oauthClientId (`*String*`)`** *Default `null`*\
+OAuth client id, passed to the `oauthTokenProviderClassName` implementation.
+
+* **`oauthClientSecret (`*String*`)`** *Default `null`*\
+OAuth client secret, passed to the `oauthTokenProviderClassName` implementation.
+
+* **`oauthScope (`*String*`)`** *Default `null`*\
+OAuth scope to request, passed to the `oauthTokenProviderClassName` implementation.
+
+* **`oauthAllowInsecureConnection (`*boolean*`)`** *Default `false`*\
+Allow OAUTHBEARER authentication over a connection that is neither encrypted by TLS with a verified server
+certificate (`sslmode=verify-ca` or `verify-full`) nor by GSS.
+[RFC 7628, section 3](https://www.rfc-editor.org/rfc/rfc7628#section-3) requires TLS, because the bearer
+token is otherwise exposed to the network or to an impostor server.
+The remedy for a connection the driver refuses on these grounds is to raise `sslmode` to `verify-ca` or higher, not to
+enable this property. Enabling it is intended for development and testing only and logs a warning; do not enable it in
+production.\
+Whether the server certificate was verified is read from `sslmode`, which is exact for the driver's own SSL factory.
+A custom `sslfactory` replaces the driver's certificate validation, and the driver cannot inspect what that factory
+does, so using `sslfactory=org.postgresql.ssl.NonValidatingFactory` bypasses the driver's certificate validation.
+Selecting a non-validating factory is as explicit a choice as enabling this property, and the driver treats it as one.
 
 ### Unix sockets
 
