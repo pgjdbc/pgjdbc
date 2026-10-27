@@ -270,6 +270,58 @@ class ParserTest {
     assertFalse(parseInfo.isFunction(), () -> "isFunction() should be false for: " + sql);
   }
 
+  /**
+   * A generated-key column name that cannot become an identifier is reported as a SQLException.
+   * An empty name used to raise StringIndexOutOfBoundsException out of the middle of the parser,
+   * and the server rejects the quoted form anyway with "zero-length delimited identifier".
+   */
+  @Test
+  void returningColumnNamesAreValidated() {
+    PSQLException empty = assertThrows(PSQLException.class,
+        () -> Parser.parseJdbcSql("insert into t(a) values(1)", true, true, true, true, true, ""));
+    assertEquals(PSQLState.INVALID_PARAMETER_VALUE.getState(), empty.getSQLState());
+
+    PSQLException nullName = assertThrows(PSQLException.class,
+        () -> Parser.parseJdbcSql("insert into t(a) values(1)", true, true, true, true, true,
+            "id", null));
+    assertEquals(PSQLState.INVALID_PARAMETER_VALUE.getState(), nullName.getSQLState());
+    assertTrue(nullName.getMessage().contains("index 1"), nullName.getMessage());
+
+    // The name is checked whether or not the driver would quote it: with quoting off it would
+    // otherwise be appended verbatim and produce "RETURNING " with nothing after it
+    PSQLException unquoted = assertThrows(PSQLException.class,
+        () -> Parser.parseJdbcSql("insert into t(a) values(1)", true, true, true, true, false, ""));
+    assertEquals(PSQLState.INVALID_PARAMETER_VALUE.getState(), unquoted.getSQLState());
+
+    // Which name is unusable does not decide whether the caller gets an exception
+    PSQLException second = assertThrows(PSQLException.class,
+        () -> Parser.parseJdbcSql("insert into t(a) values(1)", true, true, true, true, true,
+            "id", ""));
+    assertEquals(PSQLState.INVALID_PARAMETER_VALUE.getState(), second.getSQLState());
+    assertTrue(second.getMessage().contains("index 1"), second.getMessage());
+  }
+
+  /**
+   * {@code *} is the sentinel meaning every column, and only that exact name. A column named
+   * {@code *abc} is an ordinary identifier.
+   */
+  @Test
+  void asteriskReturningColumnIsAnExactMatch() throws SQLException {
+    assertEquals("insert into t(a) values(1)\nRETURNING *",
+        Parser.parseJdbcSql("insert into t(a) values(1)", true, true, true, true, true, "*")
+            .get(0).nativeSql);
+    assertEquals("insert into t(a) values(1)\nRETURNING \"*abc\"",
+        Parser.parseJdbcSql("insert into t(a) values(1)", true, true, true, true, true, "*abc")
+            .get(0).nativeSql);
+  }
+
+  @Test
+  void nullReturningColumnArrayAddsNoClause() throws SQLException {
+    assertEquals("insert into t(a) values(1)",
+        Parser.parseJdbcSql("insert into t(a) values(1)", true, true, true, true, true,
+            (String[]) null).get(0).nativeSql);
+  }
+
   @Test
   void unterminatedEscape() throws Exception {
     assertEquals("{oj ", Parser.replaceProcessing("{oj ", true, false));
