@@ -15,6 +15,7 @@ import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
+import org.postgresql.core.Parser;
 import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
@@ -91,7 +92,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -2069,24 +2069,138 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return;
     }
     String sql = originalQuery.toString(null);
-    StringTokenizer st = new StringTokenizer(sql, " \r\t\n");
-    boolean tableFound = false;
-    boolean tablesChecked = false;
-    String name = "";
-
     singleTable = true;
+    tableName = findTableName(sql.toCharArray(), connection.getStandardConformingStrings());
+  }
 
-    while (!tableFound && !tablesChecked && st.hasMoreTokens()) {
-      name = st.nextToken();
-      if ("from".equalsIgnoreCase(name)) {
-        tableName = st.nextToken();
-        if ("only".equalsIgnoreCase(tableName)) {
-          tableName = st.nextToken();
-          onlyTable = "ONLY ";
-        }
-        tableFound = true;
+  /**
+   * Finds the table reference after the outermost {@code FROM} of the query, which is the table an
+   * updatable result set writes back to.
+   *
+   * <p>The query is scanned with the lexer in {@link Parser}, so a {@code FROM} or a parenthesis
+   * inside a string literal, a quoted identifier, a dollar-quoted string or a comment is not seen.
+   * Parentheses are counted relative to the first keyword, so a query wrapped in parentheses still
+   * finds its {@code FROM}, while a {@code FROM} nested in a select-list sub-query, in a function
+   * call such as {@code extract(year from ...)} or in a CTE body is skipped.</p>
+   *
+   * @param query the query text
+   * @param standardConformingStrings whether backslashes are ordinary characters in string literals
+   * @return the table reference, or {@code null} if the query has no {@code FROM} at the depth of
+   *     its first keyword
+   */
+  private @Nullable String findTableName(char[] query, boolean standardConformingStrings) {
+    int depth = 0;
+    // depth of the first keyword; parentheses that wrap the whole query do not count
+    int baseDepth = -1;
+    int i = 0;
+    while (i < query.length) {
+      char c = query[i];
+      switch (c) {
+        case '\'':
+          i = Parser.parseSingleQuotes(query, i, standardConformingStrings) + 1;
+          break;
+        case '"':
+          i = Parser.parseDoubleQuotes(query, i) + 1;
+          break;
+        case '-':
+          i = Parser.parseLineComment(query, i) + 1;
+          break;
+        case '/':
+          i = Parser.parseBlockComment(query, i) + 1;
+          break;
+        case '$':
+          i = Parser.parseDollarQuotes(query, i) + 1;
+          break;
+        case '(':
+          depth++;
+          i++;
+          break;
+        case ')':
+          depth--;
+          i++;
+          break;
+        default:
+          if (Parser.isIdentifierStartChar(c)) {
+            int end = identifierEnd(query, i);
+            if (baseDepth < 0) {
+              baseDepth = depth;
+            }
+            if (depth == baseDepth && isFromKeyword(query, i, end)) {
+              return readTableReference(query, end);
+            }
+            i = end;
+          } else {
+            i++;
+          }
+          break;
       }
     }
+    return null;
+  }
+
+  /**
+   * Reads the table reference that follows a {@code FROM} ending at {@code pos}: the token up to
+   * the next whitespace, with quoted identifiers kept whole, after any whitespace and comments. A
+   * leading {@code ONLY} is consumed and remembered for the statements the result set issues.
+   */
+  private @Nullable String readTableReference(char[] query, int pos) {
+    int start = skipSpaceAndComments(query, pos);
+    int end = referenceEnd(query, start);
+    if (end == start) {
+      return null;
+    }
+    String reference = new String(query, start, end - start);
+    if (!"only".equalsIgnoreCase(reference)) {
+      return reference;
+    }
+    onlyTable = "ONLY ";
+    start = skipSpaceAndComments(query, end);
+    end = referenceEnd(query, start);
+    return end == start ? null : new String(query, start, end - start);
+  }
+
+  private static int identifierEnd(char[] query, int start) {
+    int i = start + 1;
+    while (i < query.length && Parser.isIdentifierContChar(query[i])) {
+      i++;
+    }
+    return i;
+  }
+
+  private static boolean isFromKeyword(char[] query, int start, int end) {
+    return end - start == 4
+        && (query[start] | 32) == 'f'
+        && (query[start + 1] | 32) == 'r'
+        && (query[start + 2] | 32) == 'o'
+        && (query[start + 3] | 32) == 'm';
+  }
+
+  private static int skipSpaceAndComments(char[] query, int i) {
+    while (i < query.length) {
+      char c = query[i];
+      if (Parser.isSpace(c)) {
+        i++;
+      } else if (c == '-' && i + 1 < query.length && query[i + 1] == '-') {
+        i = Parser.parseLineComment(query, i) + 1;
+      } else if (c == '/' && i + 1 < query.length && query[i + 1] == '*') {
+        i = Parser.parseBlockComment(query, i) + 1;
+      } else {
+        break;
+      }
+    }
+    return i;
+  }
+
+  /**
+   * Returns the end of the token starting at {@code start}: the next whitespace outside a quoted
+   * identifier, or the end of the query.
+   */
+  private static int referenceEnd(char[] query, int start) {
+    int i = start;
+    while (i < query.length && !Parser.isSpace(query[i])) {
+      i = query[i] == '"' ? Parser.parseDoubleQuotes(query, i) + 1 : i + 1;
+    }
+    return Math.min(i, query.length);
   }
 
   private void setRowBufferColumn(Tuple rowBuffer,

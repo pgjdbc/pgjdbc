@@ -22,6 +22,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.ByteArrayInputStream;
 import java.io.StringReader;
@@ -146,6 +148,97 @@ public class UpdateableResultTest extends BaseTest4 {
 
     rs.close();
     st.close();
+  }
+
+  @Test
+  public void testUpdateWithScalarSubqueryInSelectList() throws Exception {
+    TestUtil.execute(con, "insert into updateable (id, name) values (1, 'original')");
+
+    try (Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = st.executeQuery(
+            "select id, name, (select name1 from second where id1 = updateable.id) as other "
+                + "from updateable where id = 1")) {
+      assertTrue(rs.next());
+      rs.updateString("name", "updated");
+      rs.updateRow();
+    }
+
+    assertUpdateableName(1, "updated");
+    try (Statement st = con.createStatement();
+        ResultSet rs = st.executeQuery("select name1 from second where id1 = 1")) {
+      assertTrue(rs.next());
+      assertEquals("anyvalue", rs.getString(1), "the sub-query table must be left untouched");
+    }
+  }
+
+  /**
+   * The table of an updatable result set is the one after the outermost {@code FROM}. A
+   * {@code FROM} inside a sub-query or a function call, and a parenthesis inside a string literal,
+   * a quoted identifier, a dollar-quoted string or a comment, must not change which table is
+   * resolved.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {
+      // parentheses that are not syntax
+      "select id, '(' , name from updateable where id = 1",
+      "select id, coalesce(name, '(') as c, name from updateable where id = 1",
+      "select id, name, name as \"weird(col\" from updateable where id = 1",
+      "select id, name, E'\\'(' as x from updateable where id = 1",
+      "select id, name, $$($$ as x from updateable where id = 1",
+      "select id, name, $tag$($tag$ as x from updateable where id = 1",
+      "select id, name /* ( */ from updateable where id = 1",
+      "select id, name -- (\nfrom updateable where id = 1",
+      "select id, name -- (\rfrom updateable where id = 1",
+      // FROM that does not introduce the table
+      "select id, name, extract(year from now()) as y from updateable where id = 1",
+      "select id, name, substring(name from 1 for 2) as s from updateable where id = 1",
+      // the query itself wrapped in parentheses
+      "(select id, name from updateable where id = 1)",
+      // a comment between FROM and the table
+      "select id, name from /* c */ updateable where id = 1",
+  })
+  public void testUpdateResolvesTableAfterOutermostFrom(String query) throws Exception {
+    TestUtil.execute(con, "insert into updateable (id, name) values (1, 'original')");
+
+    try (Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = st.executeQuery(query)) {
+      assertTrue(rs.next());
+      rs.updateString("name", "updated");
+      rs.updateRow();
+    }
+
+    assertUpdateableName(1, "updated");
+  }
+
+  /**
+   * With {@code standard_conforming_strings = off} a backslash escapes the quote, so {@code '\'('}
+   * is one literal and the parenthesis inside it must not be counted.
+   */
+  @Test
+  public void testUpdateWithBackslashEscapedQuoteWhenStandardConformingStringsOff()
+      throws Exception {
+    TestUtil.execute(con, "insert into updateable (id, name) values (1, 'original')");
+    TestUtil.execute(con, "set standard_conforming_strings = off");
+
+    try (Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = st.executeQuery("select id, name, '\\'(' as x from updateable where id = 1")) {
+      assertTrue(rs.next());
+      rs.updateString("name", "updated");
+      rs.updateRow();
+    }
+
+    assertUpdateableName(1, "updated");
+  }
+
+  private void assertUpdateableName(int id, String expected) throws Exception {
+    try (Statement st = con.createStatement();
+        ResultSet rs = st.executeQuery("select name from updateable where id = " + id)) {
+      assertTrue(rs.next());
+      assertEquals(expected, rs.getString(1));
+    }
   }
 
   @Test
