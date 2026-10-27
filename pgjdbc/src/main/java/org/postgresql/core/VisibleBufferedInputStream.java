@@ -87,6 +87,16 @@ public class VisibleBufferedInputStream extends InputStream {
   private final Runnable onProtocolViolation;
 
   /**
+   * Whether {@link #close()} has run. Every read method except {@link #readRaw()} throws once it
+   * is set.
+   *
+   * <p>The field is deliberately not volatile. This class is unsynchronized throughout, and a
+   * reader that has not yet observed the write behaves exactly as every reader did before this
+   * field was added: it reads from the buffer and the wrapped stream as if nothing were closed.</p>
+   */
+  private boolean closed;
+
+  /**
    * Creates a new buffer around the given stream.
    *
    * @param in The stream to buffer.
@@ -169,6 +179,10 @@ public class VisibleBufferedInputStream extends InputStream {
    * Reads byte from the buffer without any checks. This method never reads from the underlying
    * stream. Before calling this method the {@link #ensureBytes} method must have been called.
    *
+   * <p>This method does not check whether the stream is closed: after {@link #close()} it still
+   * returns the bytes buffered before the close. {@link #ensureBytes(int)} throws on a closed
+   * stream.</p>
+   *
    * @return The next byte from the buffer.
    * @throws ArrayIndexOutOfBoundsException If ensureBytes was not called to make sure the buffer
    *         contains the byte.
@@ -184,7 +198,7 @@ public class VisibleBufferedInputStream extends InputStream {
    *
    * @param n The amount of bytes to ensure exists in buffer
    * @return true if required bytes are available and false if EOF
-   * @throws IOException If reading of the wrapped stream failed.
+   * @throws IOException If reading of the wrapped stream failed, or the stream is closed.
    */
   public boolean ensureBytes(int n) throws IOException {
     return ensureBytes(n, true);
@@ -197,9 +211,10 @@ public class VisibleBufferedInputStream extends InputStream {
    * @param n The amount of bytes to ensure exists in buffer
    * @param block whether or not to block the IO
    * @return true if required bytes are available and false if EOF or the parameter block was false and socket timeout occurred.
-   * @throws IOException If reading of the wrapped stream failed.
+   * @throws IOException If reading of the wrapped stream failed, or the stream is closed.
    */
   public boolean ensureBytes(int n, boolean block) throws IOException {
+    checkOpen();
     int required = n - endIndex + index;
     while (required > 0) {
       if (!readMore(required, block)) {
@@ -319,6 +334,7 @@ public class VisibleBufferedInputStream extends InputStream {
    */
   @Override
   public int read(byte[] to, int off, int len) throws IOException {
+    checkOpen();
     int read = readInternal(to, off, len);
     if (read > 0) {
       position += read;
@@ -387,6 +403,7 @@ public class VisibleBufferedInputStream extends InputStream {
    */
   @Override
   public long skip(long n) throws IOException {
+    checkOpen();
     long skipped = skipInternal(n);
     position += skipped;
     return skipped;
@@ -413,16 +430,37 @@ public class VisibleBufferedInputStream extends InputStream {
    */
   @Override
   public int available() throws IOException {
+    checkOpen();
     int avail = endIndex - index;
     return avail > 0 ? avail : wrapped.available();
   }
 
   /**
-   * {@inheritDoc}
+   * Closes the wrapped stream. A second call does nothing.
+   *
+   * <p>Afterwards every read method except {@link #readRaw()} throws {@link IOException}, even
+   * when the buffer still holds the requested bytes. Those bytes were read from a connection
+   * that is closed, and the protocol message they belong to can no longer be completed.</p>
+   *
+   * <p>The buffer array and the read position stay as they are. {@code Connection.close()} takes
+   * no lock, so this method can run on another thread while a reader is between
+   * {@link #ensureBytes(int)} and its access through {@link #getBuffer()} and {@link #getIndex()}.
+   * That reader decodes the bytes {@code ensureBytes} made available, and a later read throws once
+   * it observes the close.</p>
    */
   @Override
   public void close() throws IOException {
+    if (closed) {
+      return;
+    }
+    closed = true;
     wrapped.close();
+  }
+
+  private void checkOpen() throws IOException {
+    if (closed) {
+      throw new IOException(GT.tr("Stream is closed."));
+    }
   }
 
   /**
@@ -457,7 +495,7 @@ public class VisibleBufferedInputStream extends InputStream {
    * Scans the length of the next null terminated string (C-style string) from the stream.
    *
    * @return The length of the next null terminated string.
-   * @throws IOException If reading of stream fails.
+   * @throws IOException If reading of stream fails, or the stream is closed.
    * @throws EOFException If the stream did not contain any null terminators.
    */
   public int scanCStringLength() throws IOException {
@@ -470,10 +508,12 @@ public class VisibleBufferedInputStream extends InputStream {
    *
    * @param maxLength the most bytes the string may occupy, including its terminator.
    * @return The length of the next null terminated string.
-   * @throws IOException If reading of stream fails, or no terminator is within maxLength.
+   * @throws IOException If reading of stream fails, no terminator is within maxLength, or the
+   *         stream is closed.
    * @throws EOFException If the stream did not contain any null terminators.
    */
   public int scanCStringLength(int maxLength) throws IOException {
+    checkOpen();
     int scanned = 0;
     while (true) {
       // Resume where the last pass stopped, relative to index since readMore may compact.
