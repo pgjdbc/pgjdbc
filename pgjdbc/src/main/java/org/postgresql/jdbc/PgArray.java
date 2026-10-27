@@ -438,7 +438,7 @@ public class PgArray implements Array {
 
         final ArrayEncoding.ArrayEncoder arraySupport = ArrayEncoding.getArrayEncoder(array);
         assert arraySupport != null;
-        fieldString = arraySupport.toArrayString(connection.getTypeInfo().getArrayDelimiter(oid), array);
+        fieldString = arraySupport.toArrayString(connection, connection.getTypeInfo().getArrayDelimiter(oid), array);
       } catch (SQLException e) {
         fieldString = "NULL"; // punt
       }
