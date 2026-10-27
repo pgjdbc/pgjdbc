@@ -194,7 +194,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           flags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
         }
 
-        execute(preparedQuery, preparedParameters, flags);
+        execute(getQueryToExecute(), preparedParameters, flags);
 
         checkClosed();
         return result != null && result.getResultSet() != null;
@@ -202,6 +202,16 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     } finally {
       defaultTimeZone = null;
     }
+  }
+
+  /**
+   * Returns the query {@link #executeWithFlags(int)} sends for the current parameters.
+   *
+   * @return {@link #preparedQuery} or another form of it that takes the same parameters
+   * @throws SQLException if the other form cannot be parsed
+   */
+  protected CachedQuery getQueryToExecute() throws SQLException {
+    return preparedQuery;
   }
 
   @Override

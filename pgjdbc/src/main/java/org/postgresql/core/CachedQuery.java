@@ -18,16 +18,28 @@ public class CachedQuery implements CanEstimateSize {
   public final Object key;
   public final Query query;
   public final boolean isFunction;
+  /**
+   * Whether a call that registers two or more OUT parameters executes another form of this query.
+   *
+   * @see JdbcCallParseInfo#hasMultipleOutParameterForm()
+   */
+  public final boolean hasMultipleOutParameterForm;
 
   private int executeCount;
 
   public CachedQuery(Object key, Query query, boolean isFunction) {
+    this(key, query, isFunction, false);
+  }
+
+  public CachedQuery(Object key, Query query, boolean isFunction,
+      boolean hasMultipleOutParameterForm) {
     assert key instanceof String || key instanceof CanEstimateSize
         : "CachedQuery.key should either be String or implement CanEstimateSize."
         + " Actual class is " + key.getClass();
     this.key = key;
     this.query = query;
     this.isFunction = isFunction;
+    this.hasMultipleOutParameterForm = hasMultipleOutParameterForm;
   }
 
   public void increaseExecuteCount() {

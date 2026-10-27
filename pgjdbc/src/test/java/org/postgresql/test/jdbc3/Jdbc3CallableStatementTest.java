@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import org.postgresql.PGStatement;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
@@ -1054,6 +1055,24 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
     cs.setInt(3, 3);
     cs.execute();
     assertEquals(5, cs.getInt(1), "2+3 should be 5 when executed via {?= call mysum(?, ?)}");
+  }
+
+  /**
+   * A call with one OUT parameter executes the query that prepareCall parsed, so that query's
+   * execute count, which isUseServerPrepare() reads, reaches the prepare threshold.
+   */
+  @Test
+  void aCallWithOneOutParameterIsServerPreparedAtThePrepareThreshold() throws SQLException {
+    try (CallableStatement cs = con.prepareCall("{?= call mysum(?, ?)}")) {
+      PGStatement pgStatement = cs.unwrap(PGStatement.class);
+      pgStatement.setPrepareThreshold(2);
+      cs.registerOutParameter(1, Types.INTEGER);
+      cs.setInt(2, 2);
+      cs.setInt(3, 3);
+      cs.execute();
+      assertTrue(pgStatement.isUseServerPrepare(),
+          "isUseServerPrepare() after one execution with prepareThreshold=2");
+    }
   }
 
   @Test
