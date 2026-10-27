@@ -431,10 +431,11 @@ public class Parser {
   public static int parseSingleQuotes(final char[] query, int offset,
       boolean standardConformingStrings) {
     // check for escape string syntax (E'')
+    // An E at the start of the input opens a token of its own, so no terminator precedes it
     if (standardConformingStrings
-        && offset >= 2
+        && offset >= 1
         && (query[offset - 1] == 'e' || query[offset - 1] == 'E')
-        && charTerminatesIdentifier(query[offset - 2])) {
+        && (offset == 1 || charTerminatesIdentifier(query[offset - 2]))) {
       standardConformingStrings = false;
     }
 
