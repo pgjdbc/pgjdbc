@@ -1,5 +1,7 @@
 # Generated files by hugo
 /public/
+# The version list that scripts/fetch-central.sh writes beside public/
+/central-versions.txt
 /resources/_gen/
 
 # Temporary lock file while building

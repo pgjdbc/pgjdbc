@@ -56,7 +56,7 @@ jobs:
             VERSION=$(grep "^pgjdbc.version=" gradle.properties | cut -d'=' -f2)
             echo "Got release version from gradle.properties: $VERSION"
           fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Check if tag exists
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
