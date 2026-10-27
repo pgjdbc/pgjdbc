@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.util.PSQLException;
@@ -18,10 +19,16 @@ import org.postgresql.util.PSQLState;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Test cases for the Parser.
@@ -270,6 +277,206 @@ class ParserTest {
     assertFalse(parseInfo.isFunction(), () -> "isFunction() should be false for: " + sql);
   }
 
+  /**
+   * The END after the last {@code ;} of a BEGIN ATOMIC function body ends the CREATE, so the
+   * statement after it is parsed as a statement of its own. The parser used to treat everything
+   * after BEGIN ATOMIC as part of the body, and the server then rejected the string with "cannot
+   * insert multiple commands into a prepared statement".
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "create function f() returns int language sql begin atomic select 1; select 2; end",
+      "create function f() returns int language sql begin atomic select 1; END",
+      "create function f() returns int language sql begin atomic select 1; /* c */ end",
+      "create function f() returns int language sql begin atomic select 1;\n-- c\nend",
+      // END is followed by a comment rather than by the ';'
+      "create function f() returns int language sql begin atomic select 1; end /* c */",
+      // A quoted name is not a keyword, so no keyword precedes the last ';'
+      "create function f() returns int language sql begin atomic select 1 as \"v\"; end",
+  })
+  void bodyEndsAtTheEndAfterItsLastSemicolon(String create) throws SQLException {
+    assertEquals(Arrays.asList(create, " select 42"), nativeSqlOf(create + "; select 42"));
+  }
+
+  /**
+   * A CASE expression inside a BEGIN ATOMIC body ends with an END of its own, and that END leaves
+   * the body open.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "create function f() returns int language sql begin atomic"
+          + " select case when true then 1 else 2 end; end",
+      "create function f() returns int language sql begin atomic"
+          + " select case when true then case when false then 1 else 2 end else 3 end; end",
+  })
+  void caseExpressionEndLeavesTheBodyOpen(String create) throws SQLException {
+    assertEquals(Arrays.asList(create, " select 42"), nativeSqlOf(create + "; select 42"));
+  }
+
+  /**
+   * END is a reserved keyword, but PostgreSQL accepts it as a column label, so a statement inside a
+   * BEGIN ATOMIC body may end on a column labeled {@code end}, with or without AS. Such an END
+   * follows a value or AS, never a {@code ;}, and it leaves the body open.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "create function f() returns int language sql begin atomic select 1 as end; end",
+      "create function f() returns int language sql begin atomic select 1 end; end",
+      // A label inside a CASE expression follows its value or AS like any other label
+      "create function f() returns int language sql begin atomic"
+          + " select case when (select 1 as end) = 1 then 1 else 2 end; end",
+      "create function f() returns int language sql begin atomic"
+          + " select case when (select 1 end) = 1 then 1 else 2 end; end",
+  })
+  void endAsAColumnLabelLeavesTheBodyOpen(String create) throws SQLException {
+    assertEquals(Arrays.asList(create, " select 42"), nativeSqlOf(create + "; select 42"));
+  }
+
+  /**
+   * An empty BEGIN ATOMIC body has no {@code ;}, so its END is the first keyword after the
+   * ATOMIC.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "create function f() returns void language sql begin atomic end",
+      // END is followed by a comment rather than by the ';'
+      "create function f() returns void language sql begin atomic end /* c */",
+  })
+  void emptyBodyEndsAtTheEndAfterAtomic(String create) throws SQLException {
+    assertEquals(Arrays.asList(create, " select 42"), nativeSqlOf(create + "; select 42"));
+  }
+
+  /**
+   * ATOMIC is an ordinary identifier in PostgreSQL, so a BEGIN ATOMIC body may name a parameter, a
+   * column, or a qualified column {@code atomic}. Only the ATOMIC that opens the body makes the
+   * next keyword an empty body's END, so the label END after any other {@code atomic} leaves the
+   * body open.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "create function f(atomic int) returns int language sql begin atomic"
+          + " select atomic end; select 1; end",
+      "create function f(atomic int) returns int language sql begin atomic"
+          + " select tc.atomic + 1 end from tc; select 1; end",
+      "create function f(atomic int) returns int language sql begin atomic"
+          + " select 1 as atomic, 2 end; select 2; end",
+  })
+  void atomicAsAnIdentifierMarksNoEmptyBody(String create) throws SQLException {
+    assertEquals(Arrays.asList(create, " select 42"), nativeSqlOf(create + "; select 42"));
+  }
+
+  /**
+   * A BEGIN ATOMIC body whose first statement is empty puts the {@code ;} right after ATOMIC, and
+   * that {@code ;} belongs to the body. The parser used to split the CREATE there, and the server
+   * rejected the first part with "syntax error at end of input".
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "create procedure p() language sql begin atomic; select 1; end",
+      "create procedure p() language sql begin atomic; end",
+      // ATOMIC ends at the space, so the ';' is handled after it as usual
+      "create procedure p() language sql begin atomic ; select 1; end",
+  })
+  void semicolonRightAfterAtomicStaysInTheBody(String create) throws SQLException {
+    assertEquals(Arrays.asList(create, " select 42"), nativeSqlOf(create + "; select 42"));
+  }
+
+  /**
+   * The end of one BEGIN ATOMIC body leaves no state behind, so a second CREATE with its own body
+   * is split off at its own END.
+   */
+  @Test
+  void consecutiveBeginAtomicFunctionsAreSplitApart() throws SQLException {
+    assertEquals(
+        Arrays.asList(
+            "create function f() returns int language sql begin atomic select 1; end",
+            " create function g() returns int language sql begin atomic select 2; end",
+            " select 42"),
+        nativeSqlOf(
+            "create function f() returns int language sql begin atomic select 1; end;"
+                + " create function g() returns int language sql begin atomic select 2; end;"
+                + " select 42"));
+  }
+
+  /**
+   * BEGIN is an ordinary identifier in PostgreSQL, so a statement may end on one. That BEGIN does
+   * not pair with an {@code atomic;} in a later statement, and every {@code ;} after it splits.
+   * PostgreSQL accepts each string as the statements listed.
+   */
+  @ParameterizedTest
+  @MethodSource("statementsAfterABeginThatOpensNoBody")
+  void beginFromAnEarlierStatementOpensNoBody(String sql, List<String> statements)
+      throws SQLException {
+    assertEquals(statements, nativeSqlOf(sql));
+  }
+
+  static Stream<Arguments> statementsAfterABeginThatOpensNoBody() {
+    return Stream.of(
+        argumentSet("column named begin",
+            "create index i on t (begin); select 1 as atomic; select 2",
+            Arrays.asList("create index i on t (begin)", " select 1 as atomic", " select 2")),
+        argumentSet("table named begin",
+            "create table begin(); select 1 as atomic; select 2",
+            Arrays.asList("create table begin()", " select 1 as atomic", " select 2")),
+        argumentSet("table named begin, atomic two statements later",
+            "create table begin(); select 1; select 2 as atomic; select 3",
+            Arrays.asList("create table begin()", " select 1", " select 2 as atomic", " select 3")));
+  }
+
+  /**
+   * BEGIN ATOMIC opens a function body only when nothing but whitespace and comments separates the
+   * two words. Neither is reserved in PostgreSQL, so a CREATE may use both as names, and when code
+   * separates them, a {@code ;} after them ends the statement.
+   */
+  @ParameterizedTest
+  @MethodSource("beginAndAtomicSeparatedByCode")
+  void beginAndAtomicSeparatedByCodeOpenNoBody(String sql, List<String> statements)
+      throws SQLException {
+    assertEquals(statements, nativeSqlOf(sql));
+  }
+
+  static Stream<Arguments> beginAndAtomicSeparatedByCode() {
+    return Stream.of(
+        argumentSet("aliases separated by a parenthesis, atomic before the ';'",
+            "create view v as select * from (select 1 as begin) atomic; select 42",
+            Arrays.asList("create view v as select * from (select 1 as begin) atomic",
+                " select 42")),
+        argumentSet("table begin with a column atomic",
+            "create table begin(atomic int); select 42",
+            Arrays.asList("create table begin(atomic int)", " select 42")),
+        argumentSet("a comment between begin and atomic still opens a body",
+            "create function f() returns int language sql begin /* c */ atomic select 1; end;"
+                + " select 42",
+            Arrays.asList(
+                "create function f() returns int language sql begin /* c */ atomic select 1; end",
+                " select 42")));
+  }
+
+  /**
+   * A BEGIN ATOMIC body that never reaches its END keeps every {@code ;} after it, since each of
+   * them may separate the statements of the body.
+   */
+  @Test
+  void bodyWithoutEndKeepsEverySemicolon() throws SQLException {
+    String sql = "create function f() returns int language sql begin atomic select 1; select 2";
+    assertEquals(Collections.singletonList(sql), nativeSqlOf(sql));
+  }
+
+  /**
+   * CASE is a reserved keyword, but PostgreSQL accepts it as a column label, so a statement inside
+   * a BEGIN ATOMIC body may name a column {@code case}. The body still ends at the END after its
+   * last {@code ;}, because the parser does not pair CASE with END.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "create function f() returns int language sql begin atomic select 1 as case; end",
+      "create function f() returns int language sql begin atomic select 1 case; end",
+      "create function f() returns int language sql begin atomic select t.case from t; end",
+  })
+  void caseAsAColumnLabelDoesNotHideTheBodyEnd(String create) throws SQLException {
+    assertEquals(Arrays.asList(create, " select 42"), nativeSqlOf(create + "; select 42"));
+  }
+
   @Test
   void unterminatedEscape() throws Exception {
     assertEquals("{oj ", Parser.replaceProcessing("{oj ", true, false));
@@ -411,5 +618,17 @@ class ParserTest {
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true, returningColumns);
     assertNotNull(qry);
     assertEquals(1, qry.size(), "There should only be one query returned here");
+  }
+
+  /**
+   * Returns the {@code nativeSql} of each statement the parser splits {@code sql} into, so a
+   * failed assertion shows where the split fell.
+   */
+  private static List<String> nativeSqlOf(String sql) throws SQLException {
+    List<String> statements = new ArrayList<>();
+    for (NativeQuery query : Parser.parseJdbcSql(sql, true, true, true, true, true)) {
+      statements.add(query.nativeSql);
+    }
+    return statements;
   }
 }

@@ -54,6 +54,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 class StatementTest {
+  /**
+   * Defines a function whose result comes from the last statement of its body, then calls it.
+   */
+  private static final String CREATE_THEN_CALL =
+      "create or replace function pg_temp.after_atomic() returns int language sql"
+          + " begin atomic select 1; select case when true then 42 end; end;"
+          + " select pg_temp.after_atomic()";
+
   private Connection con;
 
   @BeforeAll
@@ -100,6 +108,34 @@ class StatementTest {
       stmt.getResultSet();
       fail("statements should not be re-used after close");
     } catch (SQLException ex) {
+    }
+  }
+
+  /**
+   * A statement after a BEGIN ATOMIC function body runs as a statement of its own, after the
+   * CREATE has defined the function with its whole body. The driver used to send both as one
+   * statement, and the server rejected it with "cannot insert multiple commands into a prepared
+   * statement".
+   */
+  @Test
+  void statementAfterBeginAtomicBody() throws SQLException {
+    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v14),
+        "BEGIN ATOMIC function bodies need PostgreSQL 14");
+    try (Statement stmt = con.createStatement()) {
+      assertCreateThenCall(stmt, stmt.execute(CREATE_THEN_CALL));
+    }
+  }
+
+  /**
+   * The string {@link #statementAfterBeginAtomicBody()} executes, prepared instead, so the driver
+   * splits it when {@link Connection#prepareStatement(String)} runs rather than on execute.
+   */
+  @Test
+  void preparedStatementAfterBeginAtomicBody() throws SQLException {
+    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v14),
+        "BEGIN ATOMIC function bodies need PostgreSQL 14");
+    try (PreparedStatement ps = con.prepareStatement(CREATE_THEN_CALL)) {
+      assertCreateThenCall(ps, ps.execute());
     }
   }
 
@@ -1123,6 +1159,16 @@ class StatementTest {
       assertEquals(PSQLState.SYNTAX_ERROR.getState(), e.getSQLState(), "Query should fail with unterminated " + errorType);
     } finally {
       TestUtil.closeQuietly(ps);
+    }
+  }
+
+  private static void assertCreateThenCall(Statement stmt, boolean firstIsResultSet)
+      throws SQLException {
+    assertFalse(firstIsResultSet, "execute() of the CREATE");
+    assertTrue(stmt.getMoreResults(), "getMoreResults() after the CREATE");
+    try (ResultSet rs = stmt.getResultSet()) {
+      assertTrue(rs.next(), "rs.next() of the call");
+      assertEquals(42, rs.getInt(1), "pg_temp.after_atomic()");
     }
   }
 }
