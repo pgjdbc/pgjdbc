@@ -5,6 +5,7 @@
 
 package org.postgresql.core;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -18,9 +19,12 @@ import org.postgresql.util.PSQLState;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -231,6 +235,19 @@ class ParserTest {
   }
 
   /**
+   * The call escape sits inside the comment that {@code /*}{@code /} opens and never closes, so the
+   * statement passes through unchanged.
+   */
+  @Test
+  void modifyJdbcCallIgnoresCallEscapeInsideUnterminatedComment() throws SQLException {
+    JdbcCallParseInfo parseInfo = Parser.modifyJdbcCall("/*/ {call lower(?,?)}", true,
+        ServerVersion.v11.getVersionNum(), EscapeSyntaxCallMode.CALL);
+    assertAll(
+        () -> assertEquals("/*/ {call lower(?,?)}", parseInfo.getSql(), "getSql()"),
+        () -> assertFalse(parseInfo.isFunction(), "isFunction()"));
+  }
+
+  /**
    * A {@code CALL} (or {@code { ? = call ... }} escape) preceded by a comment must still be
    * recognised as a function call, otherwise OUT parameter registration fails. See issue #2538.
    */
@@ -273,6 +290,89 @@ class ParserTest {
   @Test
   void unterminatedEscape() throws Exception {
     assertEquals("{oj ", Parser.replaceProcessing("{oj ", true, false));
+  }
+
+  /**
+   * The {@code /} that follows the opening {@code /*} is the first character of the comment body,
+   * so it cannot close the comment. PostgreSQL 18 ends each comment at the same {@code /}. The rows
+   * {@code /**}{@code /} and {@code /**}{@code /*}{@code /} pin where the scan starts.
+   */
+  @ParameterizedTest
+  @CsvSource(delimiter = '|', value = {
+      "/**/        | 0 | 3",
+      "/*abc*/     | 0 | 6",
+      "/**/*/      | 0 | 3",
+      "/*/ x */    | 0 | 7",
+      "/*/**/*/    | 0 | 7",
+      "/* /* */ */ | 0 | 10",
+      "x/*/ */     | 1 | 6",
+  })
+  void closedBlockCommentEndsAtItsClosingSlash(String sql, int offset, int closingSlash) {
+    assertEquals(closingSlash, Parser.parseBlockComment(sql.toCharArray(), offset),
+        () -> "parseBlockComment(\"" + sql + "\", " + offset + ")");
+  }
+
+  /**
+   * PostgreSQL 18 reports {@code unterminated /* comment} for every row. The scan passes the last
+   * character for {@code /*} and for a row that ends with a nested {@code /*} or
+   * {@code *}{@code /}; {@code /*}{@code /*}{@code /} and {@code /*}{@code /*}{@code /*}{@code /}
+   * open nested comments through the {@code /} after the opening {@code /*}.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "/*",
+      "/*/",
+      "/*/*/",
+      "/*/*/*/",
+      "/* /*",
+      "/*a/*",
+      "/* /* */",
+      "/*/**/",
+  })
+  void unterminatedBlockCommentEndsAtInputLength(String sql) {
+    assertEquals(sql.length(), Parser.parseBlockComment(sql.toCharArray(), 0),
+        () -> "parseBlockComment(\"" + sql + "\", 0)");
+  }
+
+  @Test
+  void unterminatedSlashStarSlashIsRejectedByEscapeProcessing() {
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> Parser.replaceProcessing("SELECT 1 /*/", true, true));
+    assertEquals(PSQLState.SYNTAX_ERROR.getState(), e.getSQLState());
+  }
+
+  @Test
+  void quoteAfterSlashStarSlashStaysInsideTheComment() throws SQLException {
+    assertEquals("SELECT /*/ ' */ 1",
+        Parser.replaceProcessing("SELECT /*/ ' */ 1", true, true));
+  }
+
+  @Test
+  void escapeAfterSlashStarSlashStaysInsideTheComment() throws SQLException {
+    assertEquals("SELECT /*/ {fn abs(-1)} */ 1",
+        Parser.replaceProcessing("SELECT /*/ {fn abs(-1)} */ 1", true, true));
+  }
+
+  @Test
+  void placeholderAfterSlashStarSlashStaysInsideTheComment() throws SQLException {
+    List<NativeQuery> qry =
+        Parser.parseJdbcSql("SELECT /*/ ? */ 1", true, true, true, true, true);
+    assertEquals(Collections.singletonList("SELECT /*/ ? */ 1"), nativeSql(qry));
+  }
+
+  @Test
+  void semicolonAfterSlashStarSlashStaysInsideTheComment() throws SQLException {
+    List<NativeQuery> qry =
+        Parser.parseJdbcSql("SELECT /*/ ; */ 1", true, true, true, true, true);
+    assertEquals(Collections.singletonList("SELECT /*/ ; */ 1"), nativeSql(qry));
+  }
+
+  private static List<String> nativeSql(List<NativeQuery> queries) {
+    List<String> result = new ArrayList<>();
+    for (NativeQuery query : queries) {
+      result.add(query.nativeSql);
+    }
+    return result;
   }
 
   @Test
