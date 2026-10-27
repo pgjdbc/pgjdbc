@@ -77,7 +77,9 @@ public class AdaptiveFetchCache {
       if (adaptiveFetchCacheEntry != null) {
         int adaptiveMaximumRowSize = adaptiveFetchCacheEntry.getMaximumRowSizeBytes();
         if (adaptiveMaximumRowSize < maximumRowSizeBytes && maximumRowSizeBytes > 0) {
-          int newFetchSize = (int) (maximumResultBufferSize / maximumRowSizeBytes);
+          // Execute treats a row limit of 0 or less as "all rows", so the size stays in 1..MAX_VALUE
+          int newFetchSize = (int) Math.max(1,
+              Math.min(Integer.MAX_VALUE, maximumResultBufferSize / maximumRowSizeBytes));
           newFetchSize = adjustFetchSize(newFetchSize);
 
           adaptiveFetchCacheEntry.setMaximumRowSizeBytes(maximumRowSizeBytes);
