@@ -18,34 +18,42 @@ import java.nio.ByteBuffer;
 import java.sql.SQLException;
 
 /**
- * This implements a basic output stream that writes to a LargeObject.
+ * Buffered output stream over a {@link LargeObject}.
+ *
+ * <p>Writes are held in a buffer that grows on demand up to a maximum, so the large object trails
+ * what the caller has written until the stream flushes. {@link #close()} closes the underlying
+ * large object as well, so a caller that still needs it should flush instead.</p>
  */
 public class BlobOutputStream extends OutputStream {
   static final int DEFAULT_MAX_BUFFER_SIZE = 512 * 1024;
 
   /**
-   * The parent LargeObject.
+   * The large object being written to, or {@code null} once this stream is closed.
    */
   private @Nullable LargeObject lo;
   private final ResourceLock lock = new ResourceLock();
 
   /**
-   * Buffer.
+   * Bytes written but not yet sent, held in {@code buf[0]} through {@code buf[bufferPosition)}, or
+   * {@code null} before the first write allocates one.
    */
   private byte @Nullable [] buf;
 
   /**
-   * Size of the buffer (default 1K).
+   * Largest buffer this stream will hold, {@value #DEFAULT_MAX_BUFFER_SIZE} bytes unless the
+   * caller asked for another size. The buffer starts small and grows towards this as the stream is
+   * written to, so a stream that stays small never allocates it in full.
    */
   private final @Positive int maxBufferSize;
 
   /**
-   * Position within the buffer.
+   * Number of bytes held in {@link #buf}, and the index the next one goes to.
    */
   private int bufferPosition;
 
   /**
-   * Create an OutputStream to a large object.
+   * Create an OutputStream to a large object, buffering up to
+   * {@value #DEFAULT_MAX_BUFFER_SIZE} bytes.
    *
    * @param lo LargeObject
    */
@@ -57,7 +65,9 @@ public class BlobOutputStream extends OutputStream {
    * Create an OutputStream to a large object.
    *
    * @param lo LargeObject
-   * @param bufferSize The size of the buffer for single-byte writes
+   * @param bufferSize the largest buffer to hold, in bytes, rounded down to a power of two, and
+   *        raised to one byte if it is smaller than that. It bounds every write this stream
+   *        buffers, not only single-byte ones.
    */
   public BlobOutputStream(LargeObject lo, int bufferSize) {
     this.lo = lo;
@@ -66,9 +76,13 @@ public class BlobOutputStream extends OutputStream {
   }
 
   /**
-   * Grows an internal buffer to ensure the extra bytes fit in the buffer.
+   * Returns a buffer with room for the extra bytes, growing the current one if it is too small.
+   *
+   * <p>Growth stops at {@link #maxBufferSize}, so the buffer returned may still be too small for
+   * the request. Callers past that point write to the large object instead of buffering.</p>
+   *
    * @param extraBytes the number of extra bytes that should fit in the buffer
-   * @return new buffer
+   * @return the buffer to write into, which is the current one when it already has the room
    */
   private byte[] growBuffer(int extraBytes) {
     byte[] buf = this.buf;
@@ -94,6 +108,8 @@ public class BlobOutputStream extends OutputStream {
     try (ResourceLock ignore = lock.obtain()) {
       LargeObject lo = checkClosed();
       loId = lo.getLongOID();
+      // Ask for a little headroom rather than for the single byte, so the buffer grows a step
+      // before it fills rather than on the write that fills it
       byte[] buf = growBuffer(16);
       if (bufferPosition >= buf.length) {
         lo.write(buf);
@@ -230,6 +246,8 @@ public class BlobOutputStream extends OutputStream {
         flush();
         lo.close();
         this.lo = null;
+        // The buffer is up to maxBufferSize bytes and nothing will read it again
+        this.buf = null;
       }
     } catch (SQLException e) {
       throw new IOException(
