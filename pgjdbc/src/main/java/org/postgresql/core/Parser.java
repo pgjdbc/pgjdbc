@@ -1166,8 +1166,10 @@ public class Parser {
             inQuotes = !inQuotes;
             ++i;
           } else if (inQuotes && ch == '\\' && !stdStrings) {
-            // Backslash in string constant, skip next character.
-            i += 2;
+            // Backslash in string constant, skip next character. A trailing backslash has nothing
+            // to escape, so stop at the end of the input: stepping past it would skip the
+            // "ran out of query" check below and reach substring() with endIndex still -1.
+            i = Math.min(i + 2, len);
           } else if (!inQuotes && ch == '{') {
             inEscape = !inEscape;
             ++i;
