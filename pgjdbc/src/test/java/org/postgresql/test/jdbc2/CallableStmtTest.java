@@ -18,6 +18,8 @@ import org.postgresql.test.TestUtil;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.math.BigDecimal;
 import java.sql.Array;
@@ -27,14 +29,25 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Instant;
+import java.util.Calendar;
+import java.util.TimeZone;
 
 /**
  * CallableStatement tests.
  *
  * @author Paul Bethe
  */
+@ParameterizedClass
+@EnumSource(BaseTest4.BinaryMode.class)
 public class CallableStmtTest extends BaseTest4 {
+  public CallableStmtTest(BinaryMode binaryMode) {
+    setBinaryMode(binaryMode);
+  }
+
   @BeforeAll
   public static void beforeClass() throws Exception {
     try (Connection con = TestUtil.openDB()) {
@@ -78,6 +91,24 @@ public class CallableStmtTest extends BaseTest4 {
         stmt.execute(
             "CREATE OR REPLACE FUNCTION testspg__insertInt(int) RETURNS int as "
                 + "'BEGIN INSERT INTO int_table(id) VALUES ($1); RETURN 1; END;' LANGUAGE plpgsql");
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getTimestamptz() RETURNS timestamptz as "
+                + "'SELECT ''2026-10-17 15:51:23+00''::timestamptz' LANGUAGE sql");
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getTimestamptzAfterIn(a int, OUT t timestamptz) as "
+                + "'SELECT ''2026-10-17 15:51:23+00''::timestamptz' LANGUAGE sql");
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getTimestamp() RETURNS timestamp as "
+                + "'SELECT ''2026-10-17 15:51:23''::timestamp' LANGUAGE sql");
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getTimetz() RETURNS timetz as "
+                + "'SELECT ''15:51:23+02''::timetz' LANGUAGE sql");
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getTime() RETURNS time as "
+                + "'SELECT ''15:51:23''::time' LANGUAGE sql");
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getDate() RETURNS date as "
+                + "'SELECT ''2026-10-17''::date' LANGUAGE sql");
       }
     }
   }
@@ -96,6 +127,12 @@ public class CallableStmtTest extends BaseTest4 {
       stmt.execute("DROP FUNCTION IF EXISTS testspg__getarray();");
       stmt.execute("DROP FUNCTION IF EXISTS testspg__raisenotice();");
       stmt.execute("DROP FUNCTION IF EXISTS testspg__insertInt(int);");
+      stmt.execute("DROP FUNCTION IF EXISTS testspg__getTimestamptz();");
+      stmt.execute("DROP FUNCTION IF EXISTS testspg__getTimestamptzAfterIn(int);");
+      stmt.execute("DROP FUNCTION IF EXISTS testspg__getTimestamp();");
+      stmt.execute("DROP FUNCTION IF EXISTS testspg__getTimetz();");
+      stmt.execute("DROP FUNCTION IF EXISTS testspg__getTime();");
+      stmt.execute("DROP FUNCTION IF EXISTS testspg__getDate();");
       TestUtil.dropTable(con, "int_table");
     }
   }
@@ -305,6 +342,92 @@ public class CallableStmtTest extends BaseTest4 {
     assertTrue(rs.next());
     assertEquals(3, rs.getInt(1));
     assertFalse(rs.next());
+  }
+
+  /**
+   * Returns a calendar in a fixed zone, GMT-03:17, that no JVM running the tests uses as its
+   * default, so a getter that applies the JVM zone where the calendar belongs moves the result.
+   */
+  private static Calendar calendarAtMinus0317() {
+    return Calendar.getInstance(TimeZone.getTimeZone("GMT-03:17"));
+  }
+
+  @Test
+  public void getTimestampWithCalendarKeepsTheInstantOfTimestamptz() throws SQLException {
+    try (CallableStatement call = con.prepareCall(func + pkgName + "getTimestamptz() }")) {
+      call.registerOutParameter(1, Types.TIMESTAMP);
+      call.execute();
+      Timestamp timestamp = call.getTimestamp(1, calendarAtMinus0317());
+      assertNotNull(timestamp, "getTimestamp(1, GMT-03:17)");
+      assertEquals(Instant.parse("2026-10-17T15:51:23Z"), timestamp.toInstant(),
+          "getTimestamp(1, GMT-03:17) for timestamptz '2026-10-17 15:51:23+00'");
+    }
+  }
+
+  /**
+   * The OUT parameter is the second parameter and the first result column, so the type of the
+   * column has to be looked up by parameter index.
+   */
+  @Test
+  public void getTimestampWithCalendarKeepsTheInstantOfTimestamptzAfterAnInParameter()
+      throws SQLException {
+    try (CallableStatement call = con.prepareCall("{ call " + pkgName + "getTimestamptzAfterIn(?, ?) }")) {
+      call.setInt(1, 1);
+      call.registerOutParameter(2, Types.TIMESTAMP);
+      call.execute();
+      Timestamp timestamp = call.getTimestamp(2, calendarAtMinus0317());
+      assertNotNull(timestamp, "getTimestamp(2, GMT-03:17)");
+      assertEquals(Instant.parse("2026-10-17T15:51:23Z"), timestamp.toInstant(),
+          "getTimestamp(2, GMT-03:17) for OUT timestamptz '2026-10-17 15:51:23+00'");
+    }
+  }
+
+  @Test
+  public void getTimestampWithCalendarReadsTimestampInTheCalendarZone() throws SQLException {
+    try (CallableStatement call = con.prepareCall(func + pkgName + "getTimestamp() }")) {
+      call.registerOutParameter(1, Types.TIMESTAMP);
+      call.execute();
+      Timestamp timestamp = call.getTimestamp(1, calendarAtMinus0317());
+      assertNotNull(timestamp, "getTimestamp(1, GMT-03:17)");
+      assertEquals(Instant.parse("2026-10-17T19:08:23Z"), timestamp.toInstant(),
+          "getTimestamp(1, GMT-03:17) for timestamp '2026-10-17 15:51:23'");
+    }
+  }
+
+  @Test
+  public void getTimeWithCalendarKeepsTheInstantOfTimetz() throws SQLException {
+    try (CallableStatement call = con.prepareCall(func + pkgName + "getTimetz() }")) {
+      call.registerOutParameter(1, Types.TIME);
+      call.execute();
+      Time time = call.getTime(1, calendarAtMinus0317());
+      assertNotNull(time, "getTime(1, GMT-03:17)");
+      assertEquals(Instant.parse("1970-01-01T13:51:23Z"), Instant.ofEpochMilli(time.getTime()),
+          "getTime(1, GMT-03:17) for timetz '15:51:23+02'");
+    }
+  }
+
+  @Test
+  public void getTimeWithCalendarReadsTimeInTheCalendarZone() throws SQLException {
+    try (CallableStatement call = con.prepareCall(func + pkgName + "getTime() }")) {
+      call.registerOutParameter(1, Types.TIME);
+      call.execute();
+      Time time = call.getTime(1, calendarAtMinus0317());
+      assertNotNull(time, "getTime(1, GMT-03:17)");
+      assertEquals(Instant.parse("1970-01-01T19:08:23Z"), Instant.ofEpochMilli(time.getTime()),
+          "getTime(1, GMT-03:17) for time '15:51:23'");
+    }
+  }
+
+  @Test
+  public void getDateWithCalendarReadsDateInTheCalendarZone() throws SQLException {
+    try (CallableStatement call = con.prepareCall(func + pkgName + "getDate() }")) {
+      call.registerOutParameter(1, Types.DATE);
+      call.execute();
+      java.sql.Date date = call.getDate(1, calendarAtMinus0317());
+      assertNotNull(date, "getDate(1, GMT-03:17)");
+      assertEquals(Instant.parse("2026-10-17T03:17:00Z"), Instant.ofEpochMilli(date.getTime()),
+          "getDate(1, GMT-03:17) for date '2026-10-17'");
+    }
   }
 
 }

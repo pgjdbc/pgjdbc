@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.Driver;
+import org.postgresql.core.Oid;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.util.GT;
@@ -50,6 +51,12 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   // returnTypeSet is true when a proper call to registerOutParameter has been made
   private boolean returnTypeSet;
   protected @Nullable Object @Nullable [] callResult;
+  /**
+   * Type OID of the column each {@link #callResult} entry was read from, so {@code getTime} and
+   * {@code getTimestamp} with a {@link Calendar} can tell {@code timestamptz} and {@code timetz},
+   * which carry their offset, from {@code timestamp} and {@code time}.
+   */
+  private int @Nullable [] callResultOids;
   private int lastIndex;
 
   PgCallableStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
@@ -107,7 +114,8 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
       }
 
       // figure out how many columns
-      int cols = rs.getMetaData().getColumnCount();
+      PgResultSetMetaData metaData = (PgResultSetMetaData) rs.getMetaData();
+      int cols = metaData.getColumnCount();
 
       int outParameterCount = preparedParameters.getOutParameterCount();
 
@@ -123,6 +131,8 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
       // allocate enough space for all possible parameters without regard to in/out
       @Nullable Object[] callResult = new Object[preparedParameters.getParameterCount() + 1];
       this.callResult = callResult;
+      int[] callResultOids = new int[callResult.length];
+      this.callResultOids = callResultOids;
 
       // move them into the result set
       for (int i = 0, j = 0; i < cols; i++, j++) {
@@ -135,7 +145,8 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
         }
 
         callResult[j] = rs.getObject(i + 1);
-        int columnType = rs.getMetaData().getColumnType(i + 1);
+        callResultOids[j] = metaData.getField(i + 1).getOID();
+        int columnType = metaData.getColumnType(i + 1);
 
         if (columnType != functionReturnType[j]) {
           // this is here for the sole purpose of passing the cts
@@ -488,6 +499,10 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     if (result == null) {
       return null;
     }
+    if (getCallResultOid(i) == Oid.TIMETZ) {
+      // The value carries its offset, so the calendar does not apply, as in PgResultSet.getTime
+      return new Time(((Time) result).getTime());
+    }
 
     return getTimestampUtils().toTime(cal, result.toString());
   }
@@ -499,8 +514,21 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     if (result == null) {
       return null;
     }
+    if (getCallResultOid(i) == Oid.TIMESTAMPTZ) {
+      // The value carries its offset, so the calendar does not apply, as in
+      // PgResultSet.getTimestamp
+      Timestamp timestamp = (Timestamp) result;
+      Timestamp copy = new Timestamp(timestamp.getTime());
+      copy.setNanos(timestamp.getNanos());
+      return copy;
+    }
 
     return getTimestampUtils().toTimestamp(cal, result.toString());
+  }
+
+  private int getCallResultOid(@Positive int parameterIndex) {
+    int[] callResultOids = this.callResultOids;
+    return callResultOids == null ? Oid.UNSPECIFIED : callResultOids[parameterIndex - 1];
   }
 
   @Override
