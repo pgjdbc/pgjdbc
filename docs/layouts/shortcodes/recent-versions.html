@@ -1,11 +1,36 @@
+{{- $rel := partialCached "releases.html" site }}
+{{- with $rel.current }}
+{{- /*
+  No release after 42.2.29 builds jre7 jars, and no release after 42.2.27
+  builds jre6 jars, so the Java 7 and Java 6 cards are set here.
+*/}}
+{{- $java8 := dict "j_name" "Java 8" "version" .version "suffix" ""
+  "description"
+  "If you are using Java 8 or newer then you should use the JDBC 4.2 version."
+}}
+{{- $java7 := dict "j_name" "Java 7" "version" "42.2.29" "suffix" "jre7"
+  "description"
+  "If you are using Java 7  then you should use the  JDBC 4.1 version."
+}}
+{{- $java6 := dict "j_name" "Java 6" "version" "42.2.27" "suffix" "jre6"
+  "description"
+  "If you are using Java 6  then you should use the  JDBC 4.0 version."
+}}
+{{- /*
+  copyToClipboard.js pairs the Nth .card__btn__right button with the element
+  coordinates-N, so both come from the same range in document order.
+*/}}
+{{- $cards := slice $java8 $java7 $java6 -}}
 <div class="card">
-    {{ range $ind, $ver := $.Site.Data.versions.recent }}
+    {{ range $ind, $ver := $cards }}
     <div class="card__item">
         <div class="card__title">{{$ver.j_name}}</div>
         <div class="card__subtitle">{{$ver.version}}</div>
         <p class="card__desc">{{$ver.description}}</p>
         <button class="card__btn__left">
-            <a href="{{$ver.url}}" class="card__btn__left__link">Download</a>
+            {{- $url := partial "jar-url.html"
+              (dict "version" $ver.version "suffix" $ver.suffix) }}
+            <a href="{{ $url }}" class="card__btn__left__link">Download</a>
         </button>
         <script class="maven" id="coordinates-{{$ind}}" type="application/xml">
             <dependency>
@@ -18,3 +43,4 @@
     </div>
     {{ end }}
 </div>
+{{- end }}
