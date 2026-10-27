@@ -114,8 +114,6 @@ public class BlobInputStream extends InputStream {
       // read more in if necessary
       if (buffer == null || bufferPosition >= buffer.length) {
         // Don't hold the buffer while waiting for DB to respond
-        // Note: lo.read(...) does not support "fetching the response into the user-provided buffer"
-        // See https://github.com/pgjdbc/pgjdbc/issues/3043
         int nextBufferSize = getNextBufferSize(1);
         buffer = lo.read(nextBufferSize);
         bufferPosition = 0;
