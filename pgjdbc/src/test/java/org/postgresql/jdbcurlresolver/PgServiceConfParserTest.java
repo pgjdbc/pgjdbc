@@ -109,7 +109,6 @@ class PgServiceConfParserTest {
     });
   }
 
-
   // "org.postgresql.pgservicefile" : missing
   // "PGSERVICEFILE"                : missing
   // ".pg_service.conf"             : exist
@@ -153,7 +152,6 @@ class PgServiceConfParserTest {
       assertEquals(4, result.size());
     });
   }
-
 
   // "org.postgresql.pgservicefile" : missing
   // "PGSERVICEFILE"                : exist
@@ -223,7 +221,6 @@ class PgServiceConfParserTest {
       assertNull(result);
     });
   }
-
 
   // "org.postgresql.pgservicefile" : exist
   // "PGSERVICEFILE"                : exist
@@ -298,7 +295,6 @@ class PgServiceConfParserTest {
       assertNull(result);
     });
   }
-
 
   // resource content read tests
   @Test

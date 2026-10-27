@@ -33,7 +33,7 @@ matrix.addAxis({
 });
 
 // We can't yet use EA here, see https://github.com/oracle-actions/setup-java/issues/65
-const eaJava = '26';
+const eaJava = '28';
 
 // Below versions will be used for testing only
 matrix.addAxis({
@@ -249,6 +249,38 @@ matrix.addAxis({
   ]
 });
 
+// Setting socketTimeout is the recommended production configuration, so test both branches.
+matrix.addAxis({
+  name: 'socket_timeout',
+  title: x => x == '' ? '' : 'socketTimeout ' + x,
+  values: [
+    '',
+    '60'
+  ]
+});
+
+// A non-zero loginTimeout hands the whole connect to an executor thread, so it is a different
+// code path rather than a different number.
+matrix.addAxis({
+  name: 'login_timeout',
+  title: x => x == '' ? '' : 'loginTimeout ' + x,
+  values: [
+    '',
+    '13'
+  ]
+});
+
+// connectTimeout defaults to 10, so this shortens the budget the negotiation retries and the
+// SSL handshake share, rather than switching it on. Keep it below loginTimeout.
+matrix.addAxis({
+  name: 'connect_timeout',
+  title: x => x == '' ? '' : 'connectTimeout ' + x,
+  values: [
+    '',
+    '7'
+  ]
+});
+
 // Occasionally constrain the JVM to a single CPU via -XX:ActiveProcessorCount=1. This shrinks
 // JVM-internal pools (ForkJoinPool common pool, GC threads, etc.) and has caught regressions
 // where bursty work cannot keep up with producers — e.g. LazyCleaner backed by FJP, see
@@ -272,16 +304,28 @@ matrix.addAxis({
   ]
 });
 
+matrix.addAxis({
+  name: 'standard_conforming_strings',
+  values: [
+    {value: 'yes', title: '', weight: 90},
+    // pgjdbc is known to have bugs with standard_conforming_strings=no
+    // so skip tests with 'no' until https://github.com/pgjdbc/pgjdbc/pull/4404 is merged
+    // {value: 'no', title: 'standard_conforming_strings=no', weight: 10},
+  ]
+});
+
 function lessThan(minVersion) {
-    return value => Number(value) < Number(minVersion);
+    // HEAD is the development branch, so it is newer than every numbered major.
+    return value => value === 'HEAD' ? false : Number(value) < Number(minVersion);
 }
 
 matrix.setNamePattern([
     'java_version', 'java_distribution', 'pg_version', 'query_mode', 'scram', 'ssl', 'hash', 'os',
     'server_tz', 'tz', 'locale',
     'gss', 'replication', 'slow_tests',
-    'adaptive_fetch', 'rewrite_batch_inserts', 'query_timeout',
-    'autosave', 'cleanupSavepoints', 'cpu_count', 'assertions'
+    'adaptive_fetch', 'rewrite_batch_inserts', 'query_timeout', 'socket_timeout',
+    'login_timeout', 'connect_timeout',
+    'autosave', 'cleanupSavepoints', 'cpu_count', 'assertions', 'standard_conforming_strings'
 ]);
 
 // We take EA builds from Oracle
@@ -306,6 +350,10 @@ matrix.exclude({os: {value: ['windows-latest', 'macos-latest']}, pg_version: les
 matrix.imply({pg_version: 'HEAD'}, {os: {value: 'ubuntu-latest'}});
 // cleanupSavepoints is not relevant when autosave=never
 matrix.imply({autosave: {value: 'never'}}, {cleanupSavepoints: {value: 'false'}});
+// PostgreSQL 19 accepts standard_conforming_strings=on only, and rejects off with
+// "non-standard string literals are not supported".
+// See https://git.postgresql.org/gitweb/?p=postgresql.git;a=commit;h=4576208
+matrix.imply({standard_conforming_strings: {value: 'no'}}, {pg_version: lessThan('19')});
 
 // Collect coverage from a single job that turns on every feature that moves coverage (ssl,
 // scram, xa, replication, the latest stable server, one query mode). The other flags add at
@@ -430,6 +478,7 @@ include.forEach(v => {
   v.rewrite_batch_inserts = v.rewrite_batch_inserts.value;
   v.autosave = v.autosave.value;
   v.cleanupSavepoints = v.cleanupSavepoints.value;
+  v.standard_conforming_strings = v.standard_conforming_strings.value;
 
   let includeTestTags = [];
   // See https://junit.org/junit5/docs/current/user-guide/#running-tests-tag-expressions
@@ -494,6 +543,15 @@ include.forEach(v => {
   }
   if (v.query_timeout) {
       testJvmArgs.push(`-DqueryTimeout=${v.query_timeout}`);
+  }
+  if (v.socket_timeout) {
+      testJvmArgs.push(`-DsocketTimeout=${v.socket_timeout}`);
+  }
+  if (v.login_timeout) {
+      testJvmArgs.push(`-DloginTimeout=${v.login_timeout}`);
+  }
+  if (v.connect_timeout) {
+      testJvmArgs.push(`-DconnectTimeout=${v.connect_timeout}`);
   }
   if (v.autosave !== 'never') {
       testJvmArgs.push(`-Dautosave=${v.autosave}`);

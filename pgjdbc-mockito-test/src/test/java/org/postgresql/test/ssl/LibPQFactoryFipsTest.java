@@ -15,6 +15,7 @@ import org.postgresql.ssl.LibPQFactory;
 import org.postgresql.ssl.SingleCertValidatingFactory.SingleCertTrustManager;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnJre;
 import org.mockito.MockedStatic;
 
 import java.io.InputStream;
@@ -33,6 +34,7 @@ import java.util.Properties;
  * <p>Each test makes <em>every</em> {@code KeyStore.getInstance(...)} call fail through a
  * thread-scoped static mock, which is stricter than real FIPS, and asserts the factory still works.
  */
+@DisabledOnJre(versions = 28, disabledReason = "Mockito static mocking of KeyStore.getInstance fails on JDK 28")
 class LibPQFactoryFipsTest {
 
   @Test

@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import java.sql.Connection;
 import java.util.Properties;
 
-class SocketFactoryTestSuite {
+class SocketFactoryTest {
 
   private static final String STRING_ARGUMENT = "name of a socket";
 

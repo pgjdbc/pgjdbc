@@ -6,6 +6,7 @@
 package org.postgresql.util.internal;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -289,6 +290,32 @@ public class PgBufferedOutputStreamTest {
                     + ", result: " + Arrays.toString(res));
           }
       );
+    }
+
+    /**
+     * {@code flush()} sends the buffer and resets its count, but leaves the 0xff bytes in the
+     * array, so {@code writeZeros} starts on an empty buffer that is not zeroed. It used to send
+     * those bytes in place of the zeros.
+     */
+    @ParameterizedTest
+    @ValueSource(ints = {1, ZEROS_BUFFER_SIZE - 1, ZEROS_BUFFER_SIZE, ZEROS_BUFFER_SIZE + 1,
+        ZEROS_BUFFER_SIZE * 2 + 1})
+    void writesZerosWhenTheFlushedBufferStillHoldsEarlierBytes(int numZeros) throws IOException {
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      int bufferSize = ZEROS_BUFFER_SIZE;
+      PgBufferedOutputStream out = new PgBufferedOutputStream(baos, bufferSize);
+      for (int i = 0; i < bufferSize; i++) {
+        out.write(0xff);
+      }
+      out.flush();
+
+      out.writeZeros(numZeros);
+      out.flush();
+
+      byte[] expected = new byte[bufferSize + numZeros];
+      Arrays.fill(expected, 0, bufferSize, (byte) 0xff);
+      assertArrayEquals(expected, baos.toByteArray(),
+          () -> bufferSize + " bytes of 0xff, flush(), writeZeros(" + numZeros + ")");
     }
   }
 

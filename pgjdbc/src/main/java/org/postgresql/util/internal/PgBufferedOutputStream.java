@@ -164,31 +164,18 @@ public class PgBufferedOutputStream extends FilterOutputStream {
    * @throws IOException in case writing to the underlying stream fails
    */
   public void writeZeros(int len) throws IOException {
-    int startPos = count;
-    if (count > 0) {
-      int avail = buf.length - count;
-      int prefixLength = Math.min(len, avail);
-      Arrays.fill(buf, count, count + prefixLength, (byte) 0);
-      count += prefixLength;
-      len -= prefixLength;
+    if (len < 0) {
+      throw new IllegalArgumentException("len must be non-negative, got " + len);
+    }
+    // If the buffer is full on entry, the first pass fills nothing and just flushes.
+    do {
+      int chunk = Math.min(len, buf.length - count);
+      Arrays.fill(buf, count, count + chunk, (byte) 0);
+      count += chunk;
+      len -= chunk;
       if (count == buf.length) {
         flushBuffer();
       }
-      if (len == 0) {
-        return;
-      }
-    }
-    // The buffer is empty at this point, and startPos..buf.length is filled with zeros
-    // So fill the beginning with zeros as well.
-    Arrays.fill(buf, 0, Math.min(startPos, len), (byte) 0);
-
-    while (len >= buf.length) {
-      // Pretend we have the full buffer
-      count = buf.length;
-      flushBuffer();
-      len -= buf.length;
-    }
-    // Pretend we have the remaining zeros in the buffer.
-    count = len;
+    } while (len > 0);
   }
 }

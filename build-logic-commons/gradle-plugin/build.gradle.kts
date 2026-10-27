@@ -14,14 +14,19 @@ dependencies {
     implementation("org.gradle.kotlin.kotlin-dsl:org.gradle.kotlin.kotlin-dsl.gradle.plugin:$expectedKotlinDslPluginsVersion")
 }
 
-// We need to figure out a version that is supported by the current JVM, and by the Kotlin Gradle plugin
-// So we settle on 21, 17, or 11 if the current JVM supports it
-listOf(21, 17, 11)
-    .firstOrNull { JavaVersion.toVersion(it) <= JavaVersion.current() }
-    ?.let { buildScriptJvmTarget ->
-        java {
-            toolchain {
-                languageVersion.set(JavaLanguageVersion.of(buildScriptJvmTarget))
+// -PjdkBuildVersion=0 means "build with the JVM Gradle runs on", as in the main build.
+// Skip the toolchain then: where only a newer JDK is installed, as in the Fedora Copr
+// chroot, none of 21, 17, and 11 resolves and configuration fails. Otherwise use the
+// highest of those three the current JVM provides; 21 is the newest the Kotlin Gradle
+// plugin targets.
+if (providers.gradleProperty("jdkBuildVersion").orNull != "0") {
+    listOf(21, 17, 11)
+        .firstOrNull { JavaVersion.toVersion(it) <= JavaVersion.current() }
+        ?.let { buildScriptJvmTarget ->
+            java {
+                toolchain {
+                    languageVersion.set(JavaLanguageVersion.of(buildScriptJvmTarget))
+                }
             }
         }
-    }
+}

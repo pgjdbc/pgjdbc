@@ -6,7 +6,7 @@
 pluginManagement {
     plugins {
         id("biz.aQute.bnd.builder") version "7.3.0"
-        id("com.github.burrunan.s3-build-cache") version "1.9.7"
+        id("com.github.burrunan.s3-build-cache") version "1.9.9"
         id("com.github.lburgazzoli.karaf") version "0.5.7"
         id("com.github.vlsi.crlf") version "3.0.2"
         id("com.github.vlsi.gettext") version "3.0.2"
@@ -16,12 +16,12 @@ pluginManagement {
         id("com.github.vlsi.stage-vote-release") version "3.0.2"
         id("org.nosphere.gradle.github.actions") version "1.4.0"
         id("me.champeau.jmh") version "0.7.3"
-        kotlin("jvm") version "2.4.0"
+        kotlin("jvm") version "2.4.20"
     }
 }
 
 plugins {
-    id("com.gradle.develocity") version "4.4.2"
+    id("com.gradle.develocity") version "4.5.0"
     id("com.github.burrunan.s3-build-cache")
 }
 
