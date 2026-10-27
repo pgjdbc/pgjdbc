@@ -1,0 +1,16 @@
+name: Deploy Website
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # Placeholder so that GitHub registers the workflow and it can be started
+      # on another branch. The real deploy replaces this.
+      - name: Placeholder
+        run: "false"
