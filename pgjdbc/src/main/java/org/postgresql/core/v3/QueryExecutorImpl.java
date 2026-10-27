@@ -454,6 +454,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         try {
           handler = sendQueryPreamble(handler, flags);
           autosave = sendAutomaticSavepoint(query, flags);
+          // The counter covers only the queries of this execution. A batch that stopped on an
+          // error read at a forced Sync leaves the estimate of the entry it did not send, which
+          // forces a needless Sync before the first query.
+          estimatedReceiveBufferBytes = 0;
           sendQuery(query, (V3ParameterList) parameters, maxRows, fetchSize, flags,
               handler, null, adaptiveFetch);
           if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
@@ -693,13 +697,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         estimatedReceiveBufferBytes = 0;
 
         for (int i = 0; i < queries.length; i++) {
-          SimpleQuery query = (SimpleQuery) queries[i];
-          if (i == 0) {
-            estimatedReceiveBufferBytes += estimateQueryResponseBytes(query, flags);
-          } else {
-            flushIfDeadlockRisk(query, handler, batchHandler, flags);
-          }
-
+          // An entry may be a CompositeQuery. sendQuery splits it into statements, so the
+          // receive-buffer check belongs there rather than in this loop.
+          Query query = queries[i];
           V3ParameterList parameters = (V3ParameterList) parameterLists[i];
           if (parameters == null) {
             parameters = SimpleQuery.NO_PARAMETERS;
@@ -1649,12 +1649,28 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   /**
-   * Returns estimated number of bytes produced by a single query execution, or
-   * {@link #MAX_BUFFERED_RECV_BYTES} if no estimation can be made.
-   * @param query input query
-   * @param flags query execution flags
-   * @return estimated number of bytes produced by a single query execution or MAX_BUFFERED_RECV_BYTES
+   * Returns the estimated number of bytes the backend sends for one execution of {@code query},
+   * summed over every statement of a composite query. A sum that reaches
+   * {@link #MAX_BUFFERED_RECV_BYTES}, or a statement that cannot be estimated, returns
+   * {@link #MAX_BUFFERED_RECV_BYTES}.
    */
+  private static int estimateQueryResponseBytes(Query query, int flags) {
+    Query[] subqueries = query.getSubqueries();
+    if (subqueries == null) {
+      return estimateQueryResponseBytes((SimpleQuery) query, flags);
+    }
+    // Stop at the limit: callers only compare the result with MAX_BUFFERED_RECV_BYTES, and the
+    // sum over enough statements would overflow an int.
+    int total = 0;
+    for (Query subquery : subqueries) {
+      total += estimateQueryResponseBytes((SimpleQuery) subquery, flags);
+      if (total >= MAX_BUFFERED_RECV_BYTES) {
+        return MAX_BUFFERED_RECV_BYTES;
+      }
+    }
+    return total;
+  }
+
   private static int estimateQueryResponseBytes(SimpleQuery query, int flags) {
     // Assume all statements need at least this much reply buffer space,
     // plus params
@@ -1680,8 +1696,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       if (maxResultRowSize >= 0) {
         resultBytes += maxResultRowSize;
       } else {
-        LOGGER.log(Level.FINEST, "Couldn''t estimate result size or result size unbounded, "
-            + "disabling batching for this query.");
+        LOGGER.log(Level.FINEST, "Couldn't estimate result size or result size unbounded, "
+            + "assuming it fills the receive buffer.");
         return MAX_BUFFERED_RECV_BYTES;
       }
     } else {
@@ -1701,20 +1717,25 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    *
    * See the comments above MAX_BUFFERED_RECV_BYTES's declaration for details.
    */
-  private void flushIfDeadlockRisk(SimpleQuery query,
+  private void flushIfDeadlockRisk(Query query,
       ResultHandler resultHandler,
       @Nullable BatchResultHandler batchHandler,
-      final int flags) throws IOException {
+      final int flags, boolean adaptiveFetch) throws IOException {
     int resultBytes = estimateQueryResponseBytes(query, flags);
 
     int estimatedReceiveBufferBytesTotal = estimatedReceiveBufferBytes + resultBytes;
-    if (estimatedReceiveBufferBytesTotal < MAX_BUFFERED_RECV_BYTES) {
+    // At zero no query of this execution is pending, only the small responses of the preamble, so
+    // a Sync would free next to nothing and the first query is sent whatever its estimate.
+    if (estimatedReceiveBufferBytesTotal < MAX_BUFFERED_RECV_BYTES
+        || estimatedReceiveBufferBytes == 0) {
       estimatedReceiveBufferBytes = estimatedReceiveBufferBytesTotal;
     } else {
       LOGGER.log(Level.FINEST, "Forcing Sync, receive buffer full or batching disallowed");
       sendSync();
       pgStream.flush();
-      processResults(resultHandler, flags);
+      // These are the caller's results, so record adaptive fetch for them as the processResults
+      // at the end of the execution does.
+      processResults(resultHandler, flags, adaptiveFetch);
       // We've processed incoming bytes, and the query to be executed would consume receive buffer
       estimatedReceiveBufferBytes = resultBytes;
       if (batchHandler != null) {
@@ -1733,6 +1754,18 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     Query[] subqueries = query.getSubqueries();
     SimpleParameterList[] subparams = parameters.getSubparams();
 
+    // The caller sees a composite query as one statement, so it is checked once, before any of it
+    // is sent. In the extended protocol a Sync between its statements commits the leading ones on
+    // their own under auto-commit, and secureProgress then records an entry that has not finished.
+    // A composite query whose own estimate reaches MAX_BUFFERED_RECV_BYTES cannot be sent without
+    // reading responses in between (issues #194 and #195), so it is checked per statement and a
+    // Sync may split it.
+    boolean checkPerSubStatement = subqueries != null
+        && estimateQueryResponseBytes(query, flags) >= MAX_BUFFERED_RECV_BYTES;
+    if (!checkPerSubStatement) {
+      flushIfDeadlockRisk(query, resultHandler, batchHandler, flags, adaptiveFetch);
+    }
+
     if (subqueries == null) {
       // If we saw errors, don't send anything more.
       if (resultHandler.getException() == null) {
@@ -1745,14 +1778,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     } else {
       for (int i = 0; i < subqueries.length; i++) {
         final SimpleQuery subquery = (SimpleQuery) subqueries[i];
-        if (i == 0) {
-          estimatedReceiveBufferBytes += estimateQueryResponseBytes(subquery, flags);
-        } else {
-          flushIfDeadlockRisk(subquery, resultHandler, batchHandler, flags);
-          // If we saw errors, don't send anything more.
-          if (resultHandler.getException() != null) {
-            break;
-          }
+        if (checkPerSubStatement) {
+          flushIfDeadlockRisk(subquery, resultHandler, batchHandler, flags, adaptiveFetch);
+        }
+
+        // If we saw errors, don't send anything more.
+        if (resultHandler.getException() != null) {
+          break;
         }
 
         // In the situation where parameters is already
@@ -1768,7 +1800,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         if (fetchSize != 0) {
           adaptiveFetchCache.addNewQuery(adaptiveFetch, subquery);
         }
-        sendOneQuery((SimpleQuery) subquery, subparam, maxRows, fetchSize, flags);
+        sendOneQuery(subquery, subparam, maxRows, fetchSize, flags);
       }
     }
   }
@@ -3420,7 +3452,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * The estimated server response size since we last consumed the input stream from the server, in
    * bytes.
    *
-   * <p>Starts at zero, reset by every Sync message. Mainly used for batches.</p>
+   * <p>Each execution clears it before its first query, and clears it again once it has read its
+   * results. A forced Sync sets it to the estimate of the query about to be sent. Mainly used for
+   * batches.</p>
    *
    * <p>Used to avoid deadlocks, see MAX_BUFFERED_RECV_BYTES.</p>
    */
