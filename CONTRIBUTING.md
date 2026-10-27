@@ -226,8 +226,10 @@ The build fails when:
 - A release changelog has no `date`.
 - No changelog file sets a release `version`.
 
-A pull request that changes `docs/` runs this build. To see the pages before you open the pull request, run
-`hugo server` in `docs/`.
+A pull request that changes `docs/` runs this build and uploads the built site as the `site` artifact of the run.
+The links in it are relative to the site root, so serve the unzipped directory with `python3 -m http.server`
+rather than opening the files directly. To see the pages before you open the pull request, run `hugo server` in
+`docs/`.
 
 ## Dependencies
 
