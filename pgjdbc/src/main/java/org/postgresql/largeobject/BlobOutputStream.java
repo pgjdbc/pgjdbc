@@ -103,7 +103,7 @@ public class BlobOutputStream extends OutputStream {
     } catch (SQLException e) {
       throw new IOException(
           GT.tr("Can not write data to large object {0}, requested write length: {1}",
-              loId, 1),
+              Long.toString(loId), "1"),
           e);
     }
   }
@@ -188,7 +188,7 @@ public class BlobOutputStream extends OutputStream {
     } catch (SQLException e) {
       throw new IOException(
           GT.tr("Can not write data to large object {0}, requested write length: {1}",
-              loId, len),
+              Long.toString(loId), Integer.toString(len)),
           e);
     }
   }
@@ -215,7 +215,7 @@ public class BlobOutputStream extends OutputStream {
     } catch (SQLException e) {
       throw new IOException(
           GT.tr("Can not flush large object {0}",
-              loId),
+              Long.toString(loId)),
           e);
     }
   }
@@ -234,7 +234,7 @@ public class BlobOutputStream extends OutputStream {
     } catch (SQLException e) {
       throw new IOException(
           GT.tr("Can not close large object {0}",
-              loId),
+              Long.toString(loId)),
           e);
     }
   }
