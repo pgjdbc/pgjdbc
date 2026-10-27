@@ -543,6 +543,25 @@ A value of zero disables this check.
 
 ### Unix sockets
 
+On Java 17 and later the driver ships a built-in Unix domain socket factory, so no extra dependency
+is needed. It is built on `java.net.UnixDomainSocketAddress` and packaged in the multi-release JAR,
+so it activates automatically when the driver runs on a supported runtime.
+
+Add `?socketFactory=org.postgresql.unixsocket.UnixDomainSocketFactory&socketFactoryArg=[socket-directory]`
+to the connection URL, where `socketFactoryArg` is the directory that holds the server socket (for
+example `/var/run/postgresql`). The driver appends `.s.PGSQL.<port>` to that directory, so the port
+in the URL still selects the socket file. You may also point `socketFactoryArg` directly at a socket
+file. The host part of the URL is ignored, so `localhost` is a convenient placeholder:
+
+```
+jdbc:postgresql://localhost/test?socketFactory=org.postgresql.unixsocket.UnixDomainSocketFactory&socketFactoryArg=/var/run/postgresql
+```
+
+On Java 16 and earlier the built-in factory is unavailable and the constructor fails fast; use
+junixsocket instead (below).
+
+#### junixsocket
+
 By adding junixsocket you can obtain a socket factory that works with the driver.
 Code can be found [here](https://github.com/kohlschutter/junixsocket) and instructions 
 [here](https://kohlschutter.github.io/junixsocket/dependency.html)
