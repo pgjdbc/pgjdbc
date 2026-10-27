@@ -235,11 +235,13 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
           XAException.XAER_RMERR);
     }
 
-    // TMNOFLAGS opens a fresh server-side transaction with an explicit BEGIN sent below
-    // QUERY_SUPPRESS_BEGIN so the JDBC autoCommit flag is left alone. TMJOIN attaches to an existing
-    // (ended) branch, where BEGIN was already sent at the prior start(TMNOFLAGS) call, so no SQL is
-    // issued here.
-    if (flags == TMNOFLAGS) {
+    // TMNOFLAGS opens a server-side transaction with BEGIN when the connection is idle.
+    // QUERY_SUPPRESS_BEGIN leaves the JDBC autoCommit flag alone. A pool can already have
+    // an open transaction (autoCommit off, then a validation query). BEGIN in that state
+    // warns 25001, and the warning is copied onto the connection, so adopt the open
+    // transaction instead. TMJOIN attaches to an ended branch, where BEGIN was already
+    // sent, so no SQL is issued here.
+    if (flags == TMNOFLAGS && conn.getTransactionState() == TransactionState.IDLE) {
       try {
         conn.execSQLUpdate("BEGIN");
       } catch (SQLException ex) {
