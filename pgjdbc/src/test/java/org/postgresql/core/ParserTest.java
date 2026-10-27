@@ -5,11 +5,13 @@
 
 package org.postgresql.core;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.util.PSQLException;
@@ -18,10 +20,13 @@ import org.postgresql.util.PSQLState;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Test cases for the Parser.
@@ -268,6 +273,148 @@ class ParserTest {
     JdbcCallParseInfo parseInfo = Parser.modifyJdbcCall(sql, true, ServerVersion.v14.getVersionNum(),
         EscapeSyntaxCallMode.CALL);
     assertFalse(parseInfo.isFunction(), () -> "isFunction() should be false for: " + sql);
+  }
+
+  /**
+   * Parses {@code sql} the way {@code Statement.executeUpdate(sql, columnNames)} does under
+   * {@code preferQueryMode=simple} and {@code extendedForPrepared}: no bind parameters, no
+   * splitting, and generated keys asked for column {@code id}.
+   */
+  private static NativeQuery parseUnsplitAskingForId(String sql) throws SQLException {
+    List<NativeQuery> queries = Parser.parseJdbcSql(sql, true, false, false, true, true, "id");
+    assertEquals(1, queries.size(), () -> "parseJdbcSql(" + sql + ") without splitting");
+    return queries.get(0);
+  }
+
+  static Stream<Arguments> unsplitSingleStatements() {
+    return Stream.of(
+        argumentSet("no separator",
+            "insert into t(a) values(1)",
+            "insert into t(a) values(1)\nRETURNING \"id\"", SqlCommandType.INSERT),
+        argumentSet("trailing separator",
+            "insert into t(a) values(1);",
+            "insert into t(a) values(1)\nRETURNING \"id\";", SqlCommandType.INSERT),
+        argumentSet("trailing separator and whitespace",
+            "insert into t(a) values(1);  ",
+            "insert into t(a) values(1)\nRETURNING \"id\";", SqlCommandType.INSERT),
+        argumentSet("line comment after the separator",
+            "insert into t(a) values(1); -- audit",
+            "insert into t(a) values(1)\nRETURNING \"id\"; -- audit", SqlCommandType.INSERT),
+        argumentSet("block comment after the separator",
+            "insert into t(a) values(1); /* audit */",
+            "insert into t(a) values(1)\nRETURNING \"id\"; /* audit */", SqlCommandType.INSERT),
+        argumentSet("empty statement after the separator",
+            "insert into t(a) values(1);;",
+            "insert into t(a) values(1)\nRETURNING \"id\";;", SqlCommandType.INSERT),
+        argumentSet("line comment between two separators",
+            "insert into t(a) values(1); -- audit\n;",
+            "insert into t(a) values(1)\nRETURNING \"id\"; -- audit\n;", SqlCommandType.INSERT),
+        argumentSet("block comment between two separators",
+            "insert into t(a) values(1); /* a */ ;",
+            "insert into t(a) values(1)\nRETURNING \"id\"; /* a */ ;", SqlCommandType.INSERT),
+        argumentSet("comment-only statement in front",
+            "/* a */; insert into t(a) values(1)",
+            "/* a */; insert into t(a) values(1)\nRETURNING \"id\"", SqlCommandType.INSERT),
+        argumentSet("RETURNING written in the query, then a comment",
+            "insert into t(a) values(1) returning a; -- audit",
+            "insert into t(a) values(1) returning a; -- audit", SqlCommandType.INSERT),
+        argumentSet("bind marker before a trailing separator",
+            "update t set a=?;",
+            "update t set a=?\nRETURNING \"id\";", SqlCommandType.UPDATE)
+    );
+  }
+
+  /**
+   * Empty statements and statements of nothing but comments do not count, so the string still
+   * holds one statement. The clause goes where that statement ends, and the query reports the
+   * statement's type and the clause, which the driver reads to decide that the first result
+   * holds the generated keys.
+   */
+  @ParameterizedTest
+  @MethodSource("unsplitSingleStatements")
+  void unsplitSingleStatementReportsReturningAndAddsItWhereItEnds(String sql, String expectedNativeSql,
+      SqlCommandType expectedType) throws SQLException {
+    NativeQuery query = parseUnsplitAskingForId(sql);
+    assertAll(
+        () -> assertEquals(expectedNativeSql, query.nativeSql, "nativeSql"),
+        () -> assertTrue(query.command.isReturningKeywordPresent(), "isReturningKeywordPresent"),
+        () -> assertEquals(expectedType, query.command.getType(), "command type")
+    );
+  }
+
+  static Stream<Arguments> unsplitMultipleStatements() {
+    return Stream.of(
+        argumentSet("two statements",
+            "insert into t(a) values(1); insert into t(a) values(2)"),
+        argumentSet("two statements and a trailing separator",
+            "insert into t(a) values(1); update t set a=2;"),
+        argumentSet("two statements and a trailing comment",
+            "insert into t(a) values(1); update t set a=2; -- audit"),
+        argumentSet("empty statement between two statements",
+            "insert into t(a) values(1);; update t set a=2"),
+        argumentSet("statement after a line comment",
+            "insert into t(a) values(1); -- audit\n update t set a=2"),
+        argumentSet("statement after a block comment",
+            "insert into t(a) values(1); /* audit */ update t set a=2"),
+        argumentSet("statement ending in a line comment",
+            "insert into t(a) values(1); select 1 -- audit"),
+        argumentSet("statement ending in a block comment",
+            "insert into t(a) values(1); select 1 /* audit */"),
+        argumentSet("minus as an operator",
+            "insert into t(a) values(1); select 1-1"),
+        argumentSet("slash as an operator",
+            "insert into t(a) values(1); select 4/2"),
+        argumentSet("RETURNING written in the last statement",
+            "insert into t(a) values(1); update t set a=2 returning a"),
+        argumentSet("first statement ending in a bind marker",
+            "update t set a=?; update t set b=2")
+    );
+  }
+
+  /**
+   * The separators between the statements stay in the text. The driver reads the first
+   * result as the generated keys, and with several statements that result is the first
+   * statement's, so no clause is added. The separator used to be dropped, which glued the
+   * statements together and the server refused the text with 42601.
+   */
+  @ParameterizedTest
+  @MethodSource("unsplitMultipleStatements")
+  void unsplitMultipleStatementsKeepTheirSeparatorsAndGetNoReturning(String sql)
+      throws SQLException {
+    NativeQuery query = parseUnsplitAskingForId(sql);
+    assertAll(
+        () -> assertEquals(sql, query.nativeSql, "nativeSql"),
+        () -> assertFalse(query.command.isReturningKeywordPresent(), "isReturningKeywordPresent"),
+        () -> assertEquals(SqlCommandType.BLANK, query.command.getType(), "command type")
+    );
+  }
+
+  /**
+   * A string of nothing but separators, whitespace, and comments holds no statement to add the
+   * clause to.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"/* a */;", "; -- audit", "/* a */; -- b"})
+  void unsplitStringWithoutStatementsGetsNoReturning(String sql) throws SQLException {
+    NativeQuery query = parseUnsplitAskingForId(sql);
+    assertAll(
+        () -> assertFalse(query.command.isReturningKeywordPresent(), "isReturningKeywordPresent"),
+        () -> assertEquals(SqlCommandType.BLANK, query.command.getType(), "command type")
+    );
+  }
+
+  @Test
+  void splitStatementsEachGetReturningAndLoseTheSeparator() throws SQLException {
+    List<NativeQuery> queries = Parser.parseJdbcSql(
+        "update t set a=1; update t set a=2",
+        true, false, true, true, true, "id");
+    assertAll(
+        () -> assertEquals(2, queries.size(), "number of queries"),
+        () -> assertEquals("update t set a=1\nRETURNING \"id\"",
+            queries.get(0).nativeSql, "first query"),
+        () -> assertEquals(" update t set a=2\nRETURNING \"id\"",
+            queries.get(1).nativeSql, "second query")
+    );
   }
 
   @Test

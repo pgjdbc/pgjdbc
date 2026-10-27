@@ -37,10 +37,13 @@ public class Parser {
    * @param standardConformingStrings whether to allow backslashes to be used as escape characters
    *                                  in single quote literals
    * @param withParameters            whether to replace ?, ? with $1, $2, etc
-   * @param splitStatements           whether to split statements by semicolon
+   * @param splitStatements           whether to split statements by semicolon; without splitting,
+   *                                  the result is one query that separates the statements with ';'
    * @param isBatchedReWriteConfigured whether re-write optimization is enabled
    * @param quoteReturningIdentifiers whether to quote identifiers returned using returning clause
-   * @param returningColumnNames      for simple insert, update, delete add returning with given column names
+   * @param returningColumnNames      for simple insert, update, delete add returning with given column names;
+   *                                  an unsplit query gets the clause only when it holds one statement,
+   *                                  not counting empty ones and ones of nothing but comments
    * @return list of native queries
    * @throws SQLException if unable to add returning clause (invalid column names)
    */
@@ -76,6 +79,10 @@ public class Parser {
     SqlCommandType currentCommandType = SqlCommandType.BLANK;
     SqlCommandType prevCommandType = SqlCommandType.BLANK;
     int numberOfStatements = 0;
+    // Offset in nativeSql where the last statement followed by a ';' ends in an unsplit query, or -1
+    int unsplitStatementEnd = -1;
+    // Whether the statement being read holds anything but whitespace and comments
+    boolean statementHasCode = false;
 
     boolean whitespaceOnly = true;
     int keyWordCount = 0;
@@ -91,6 +98,7 @@ public class Parser {
       boolean isKeyWordChar = false;
       // ';' is ignored as it splits the queries. We do have to deal with ; in BEGIN ATOMIC functions
       whitespaceOnly &= aChar == ';' || Character.isWhitespace(aChar);
+      int charStart = i; // the sub-parsers below move i, so remember where this character was
       keywordEnd = i; // parseSingleQuotes, parseDoubleQuotes, etc move index so we keep old value
       switch (aChar) {
         case '\'': // single-quotes
@@ -147,14 +155,24 @@ public class Parser {
         case ';':
           // we don't split the queries if BEGIN ATOMIC is present
           if (!isBeginAtomicPresent && inParen == 0) {
+            // Whitespace and comments do not make a statement, so the second ';' in ';;' and in
+            // '; /* note */ ;' closes none. Their text is still copied.
+            boolean fragmentHasCode = statementHasCode;
+            statementHasCode = false;
             if (!whitespaceOnly) {
-              numberOfStatements++;
+              if (fragmentHasCode) {
+                numberOfStatements++;
+              }
               nativeSql.append(aChars, fragmentStart, i - fragmentStart);
               whitespaceOnly = true;
             }
             fragmentStart = i + 1;
             if (nativeSql.length() > 0) {
-              if (addReturning(nativeSql, currentCommandType, returningColumnNames, isReturningPresent, quoteReturningIdentifiers)) {
+              // Without splitting, the clause depends on how many statements the whole string
+              // holds, so it is added after the loop
+              if (splitStatements
+                  && addReturning(nativeSql, currentCommandType, returningColumnNames,
+                      isReturningPresent, quoteReturningIdentifiers)) {
                 isReturningPresent = true;
               }
 
@@ -178,8 +196,18 @@ public class Parser {
                         isReturningPresent, nativeQueries.size())));
               }
             }
-            prevCommandType = currentCommandType;
-            isReturningPresentPrev = isReturningPresent;
+            if (!splitStatements && nativeSql.length() > 0) {
+              // The statements share one query, so the separator stays between them
+              if (fragmentHasCode) {
+                unsplitStatementEnd = nativeSql.length();
+              }
+              nativeSql.append(';');
+            }
+            if (fragmentHasCode) {
+              // A separator that closed nothing leaves the statement before it as the last one
+              prevCommandType = currentCommandType;
+              isReturningPresentPrev = isReturningPresent;
+            }
             currentCommandType = SqlCommandType.BLANK;
             isReturningPresent = false;
             if (splitStatements) {
@@ -216,6 +244,11 @@ public class Parser {
             }
           }
           break;
+      }
+      if (aChar != ';' && !Character.isWhitespace(aChar)) {
+        // parseLineComment and parseBlockComment moved i past a comment; anything else is code,
+        // including a '-' or '/' that turned out to be an operator
+        statementHasCode |= (aChar != '-' && aChar != '/') || i == charStart;
       }
       if (keywordStart >= 0 && (i == aChars.length - 1 || !isKeyWordChar)) {
         int wordLength = (isKeyWordChar ? i + 1 : keywordEnd) - keywordStart;
@@ -310,8 +343,40 @@ public class Parser {
       return nativeQueries != null ? nativeQueries : Collections.emptyList();
     }
 
-    if (addReturning(nativeSql, currentCommandType, returningColumnNames, isReturningPresent, quoteReturningIdentifiers)) {
-      isReturningPresent = true;
+    if (splitStatements) {
+      if (addReturning(nativeSql, currentCommandType, returningColumnNames, isReturningPresent,
+          quoteReturningIdentifiers)) {
+        isReturningPresent = true;
+      }
+    } else {
+      // A trailing fragment of nothing but whitespace and comments is not another statement, and
+      // the statement before it is the one whose type was saved in prevCommandType at the ';'
+      boolean tailHasCode = statementHasCode;
+      SqlCommandType lastType = tailHasCode ? currentCommandType : prevCommandType;
+      boolean lastReturning = tailHasCode ? isReturningPresent : isReturningPresentPrev;
+      if (numberOfStatements + (tailHasCode ? 1 : 0) <= 1) {
+        // The query reports the type and the RETURNING clause of its one statement
+        currentCommandType = lastType;
+        isReturningPresent = lastReturning;
+        // The driver reads the first result the server sends as the generated keys, so the clause
+        // is added only to a string of one statement. It goes where that statement ends, in front
+        // of a trailing separator and any comment after it.
+        StringBuilder returning = new StringBuilder();
+        if (addReturning(returning, lastType, returningColumnNames, lastReturning,
+            quoteReturningIdentifiers)) {
+          isReturningPresent = true;
+          if (!tailHasCode && unsplitStatementEnd >= 0) {
+            nativeSql.insert(unsplitStatementEnd, returning);
+          } else {
+            nativeSql.append(returning);
+          }
+        }
+      } else {
+        // The first result belongs to the first statement, so the query reports neither the type
+        // nor a RETURNING clause of a later statement
+        currentCommandType = SqlCommandType.BLANK;
+        isReturningPresent = false;
+      }
     }
 
     NativeQuery lastQuery = new NativeQuery(nativeSql.toString(),
