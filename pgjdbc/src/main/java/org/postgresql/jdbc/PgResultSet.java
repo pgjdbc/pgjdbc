@@ -15,6 +15,7 @@ import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
+import org.postgresql.core.Parser;
 import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
@@ -2069,185 +2070,137 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
     String sql = originalQuery.toString(null);
     singleTable = true;
-    tableName = findTableName(sql);
+    tableName = findTableName(sql.toCharArray(), connection.getStandardConformingStrings());
   }
 
-  private @Nullable String findTableName(String sql) {
-    int length = sql.length();
+  /**
+   * Finds the table reference after the outermost {@code FROM} of the query, which is the table an
+   * updatable result set writes back to.
+   *
+   * <p>The query is scanned with the lexer in {@link Parser}, so a {@code FROM} or a parenthesis
+   * inside a string literal, a quoted identifier, a dollar-quoted string or a comment is not seen.
+   * Parentheses are counted relative to the first keyword, so a query wrapped in parentheses still
+   * finds its {@code FROM}, while a {@code FROM} nested in a select-list sub-query, in a function
+   * call such as {@code extract(year from ...)} or in a CTE body is skipped.</p>
+   *
+   * @param query the query text
+   * @param standardConformingStrings whether backslashes are ordinary characters in string literals
+   * @return the table reference, or {@code null} if the query has no {@code FROM} at the depth of
+   *     its first keyword
+   */
+  private @Nullable String findTableName(char[] query, boolean standardConformingStrings) {
     int depth = 0;
+    // depth of the first keyword; parentheses that wrap the whole query do not count
+    int baseDepth = -1;
     int i = 0;
-    while (i < length) {
-      char c = sql.charAt(i);
-      if (isLineCommentStart(sql, i)) {
-        i = skipLineComment(sql, i);
-      } else if (isBlockCommentStart(sql, i)) {
-        i = skipBlockComment(sql, i);
-      } else if (c == '\'' || c == '"') {
-        i = skipQuoted(sql, i, c);
-      } else if (c == '$') {
-        int dollarEnd = skipDollarQuoted(sql, i);
-        i = dollarEnd < 0 ? i + 1 : dollarEnd;
-      } else if (c == '(') {
-        depth++;
-        i++;
-      } else if (c == ')') {
-        depth = Math.max(0, depth - 1);
-        i++;
-      } else if (isIdentifierStart(c)) {
-        int wordEnd = skipIdentifier(sql, i);
-        if (depth == 0 && "from".equalsIgnoreCase(sql.substring(i, wordEnd))) {
-          return readTableReference(sql, wordEnd);
-        }
-        i = wordEnd;
-      } else {
-        i++;
+    while (i < query.length) {
+      char c = query[i];
+      switch (c) {
+        case '\'':
+          i = Parser.parseSingleQuotes(query, i, standardConformingStrings) + 1;
+          break;
+        case '"':
+          i = Parser.parseDoubleQuotes(query, i) + 1;
+          break;
+        case '-':
+          i = Parser.parseLineComment(query, i) + 1;
+          break;
+        case '/':
+          i = Parser.parseBlockComment(query, i) + 1;
+          break;
+        case '$':
+          i = Parser.parseDollarQuotes(query, i) + 1;
+          break;
+        case '(':
+          depth++;
+          i++;
+          break;
+        case ')':
+          depth--;
+          i++;
+          break;
+        default:
+          if (Parser.isIdentifierStartChar(c)) {
+            int end = identifierEnd(query, i);
+            if (baseDepth < 0) {
+              baseDepth = depth;
+            }
+            if (depth == baseDepth && isFromKeyword(query, i, end)) {
+              return readTableReference(query, end);
+            }
+            i = end;
+          } else {
+            i++;
+          }
+          break;
       }
     }
     return null;
   }
 
-  private @Nullable String readTableReference(String sql, int pos) {
-    int start = skipWhitespaceAndComments(sql, pos);
-    int end = skipReferenceToken(sql, start);
+  /**
+   * Reads the table reference that follows a {@code FROM} ending at {@code pos}: the token up to
+   * the next whitespace, with quoted identifiers kept whole, after any whitespace and comments. A
+   * leading {@code ONLY} is consumed and remembered for the statements the result set issues.
+   */
+  private @Nullable String readTableReference(char[] query, int pos) {
+    int start = skipSpaceAndComments(query, pos);
+    int end = referenceEnd(query, start);
     if (end == start) {
       return null;
     }
-    String reference = sql.substring(start, end);
+    String reference = new String(query, start, end - start);
     if (!"only".equalsIgnoreCase(reference)) {
       return reference;
     }
     onlyTable = "ONLY ";
-    start = skipWhitespaceAndComments(sql, end);
-    end = skipReferenceToken(sql, start);
-    return end == start ? null : sql.substring(start, end);
+    start = skipSpaceAndComments(query, end);
+    end = referenceEnd(query, start);
+    return end == start ? null : new String(query, start, end - start);
   }
 
-  private static int skipReferenceToken(String sql, int start) {
-    int length = sql.length();
+  private static int identifierEnd(char[] query, int start) {
+    int i = start + 1;
+    while (i < query.length && Parser.isIdentifierContChar(query[i])) {
+      i++;
+    }
+    return i;
+  }
+
+  private static boolean isFromKeyword(char[] query, int start, int end) {
+    return end - start == 4
+        && (query[start] | 32) == 'f'
+        && (query[start + 1] | 32) == 'r'
+        && (query[start + 2] | 32) == 'o'
+        && (query[start + 3] | 32) == 'm';
+  }
+
+  private static int skipSpaceAndComments(char[] query, int i) {
+    while (i < query.length) {
+      char c = query[i];
+      if (Parser.isSpace(c)) {
+        i++;
+      } else if (c == '-' && i + 1 < query.length && query[i + 1] == '-') {
+        i = Parser.parseLineComment(query, i) + 1;
+      } else if (c == '/' && i + 1 < query.length && query[i + 1] == '*') {
+        i = Parser.parseBlockComment(query, i) + 1;
+      } else {
+        break;
+      }
+    }
+    return i;
+  }
+
+  /**
+   * Returns the end of the token starting at {@code start}: the next whitespace outside a quoted
+   * identifier, or the end of the query.
+   */
+  private static int referenceEnd(char[] query, int start) {
     int i = start;
-    while (i < length) {
-      char c = sql.charAt(i);
-      if (isSqlWhitespace(c)) {
-        break;
-      }
-      i = c == '"' ? skipQuoted(sql, i, '"') : i + 1;
+    while (i < query.length && !Parser.isSpace(query[i])) {
+      i = query[i] == '"' ? Parser.parseDoubleQuotes(query, i) + 1 : i + 1;
     }
-    return i;
-  }
-
-  private static int skipWhitespaceAndComments(String sql, int i) {
-    int length = sql.length();
-    while (i < length) {
-      char c = sql.charAt(i);
-      if (isSqlWhitespace(c)) {
-        i++;
-      } else if (isLineCommentStart(sql, i)) {
-        i = skipLineComment(sql, i);
-      } else if (isBlockCommentStart(sql, i)) {
-        i = skipBlockComment(sql, i);
-      } else {
-        break;
-      }
-    }
-    return i;
-  }
-
-  private static int skipQuoted(String sql, int i, char quote) {
-    int length = sql.length();
-    i++;
-    while (i < length) {
-      if (sql.charAt(i) == quote) {
-        if (i + 1 < length && sql.charAt(i + 1) == quote) {
-          i += 2;
-        } else {
-          return i + 1;
-        }
-      } else {
-        i++;
-      }
-    }
-    return length;
-  }
-
-  private static int skipDollarQuoted(String sql, int i) {
-    int tagEnd = dollarQuoteTagEnd(sql, i);
-    if (tagEnd < 0) {
-      return -1;
-    }
-    String tag = sql.substring(i, tagEnd);
-    int close = sql.indexOf(tag, tagEnd);
-    return close < 0 ? sql.length() : close + tag.length();
-  }
-
-  private static int dollarQuoteTagEnd(String sql, int i) {
-    int length = sql.length();
-    int j = i + 1;
-    if (j < length && sql.charAt(j) == '$') {
-      return j + 1;
-    }
-    if (j >= length || !isIdentifierStart(sql.charAt(j))) {
-      return -1;
-    }
-    j++;
-    while (j < length && isIdentifierPart(sql.charAt(j))) {
-      j++;
-    }
-    return j < length && sql.charAt(j) == '$' ? j + 1 : -1;
-  }
-
-  private static int skipLineComment(String sql, int i) {
-    int length = sql.length();
-    i += 2;
-    while (i < length && sql.charAt(i) != '\n') {
-      i++;
-    }
-    return i;
-  }
-
-  private static int skipBlockComment(String sql, int i) {
-    int length = sql.length();
-    int depth = 0;
-    do {
-      if (isBlockCommentStart(sql, i)) {
-        depth++;
-        i += 2;
-      } else if (i + 1 < length && sql.charAt(i) == '*' && sql.charAt(i + 1) == '/') {
-        depth--;
-        i += 2;
-      } else {
-        i++;
-      }
-    } while (i < length && depth > 0);
-    return i;
-  }
-
-  private static int skipIdentifier(String sql, int i) {
-    int length = sql.length();
-    i++;
-    while (i < length && isIdentifierPart(sql.charAt(i))) {
-      i++;
-    }
-    return i;
-  }
-
-  private static boolean isLineCommentStart(String sql, int i) {
-    return i + 1 < sql.length() && sql.charAt(i) == '-' && sql.charAt(i + 1) == '-';
-  }
-
-  private static boolean isBlockCommentStart(String sql, int i) {
-    return i + 1 < sql.length() && sql.charAt(i) == '/' && sql.charAt(i + 1) == '*';
-  }
-
-  private static boolean isSqlWhitespace(char c) {
-    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
-  }
-
-  private static boolean isIdentifierStart(char c) {
-    return Character.isLetter(c) || c == '_';
-  }
-
-  private static boolean isIdentifierPart(char c) {
-    return Character.isLetterOrDigit(c) || c == '$' || c == '_';
+    return Math.min(i, query.length);
   }
 
   private void setRowBufferColumn(Tuple rowBuffer,
