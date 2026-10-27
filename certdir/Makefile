@@ -3,11 +3,13 @@ PK8_PASSWORD=sslpwd
 P12_PASSWORD=sslpwd
 SERVER_CRT_DIR=server/
 
-all : $(SERVER_CRT_DIR)root.key $(SERVER_CRT_DIR)root.crt $(SERVER_CRT_DIR)server.crt goodroot.crt goodclient badclient
+all : $(SERVER_CRT_DIR)root.key $(SERVER_CRT_DIR)root.crt $(SERVER_CRT_DIR)server.crt goodroot.crt goodclient badclient ecclient
 
 goodclient: goodclient.crt goodclient.p12 goodclient.pk8
 
 badclient: badclient.crt badclient.p12
+
+ecclient: ecclient.crt ecclient-chain.crt
 
 .PHONY: clean
 clean:
@@ -70,3 +72,18 @@ badclient.crt badclient.key : badroot.key badroot.crt
 	openssl x509 -req -in $($@_CERT_FILE).csr -CA badroot.crt -CAkey badroot.key -passin pass:$(ROOT_CA_PASSWORD) -CAcreateserial -out $($@_CERT_FILE).crt -days 3650 -sha256
 	@rm $($@_CERT_FILE).csr
 	@echo
+
+ecclient.crt ecclient.key : $(SERVER_CRT_DIR)root.key $(SERVER_CRT_DIR)root.crt
+	$(eval $@_CERT_FILE := ecclient)
+	@echo Creating EC P-384 client certificate $@
+	openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-384 -out $($@_CERT_FILE).key
+	# CN=test has to match user name
+	openssl req -new -sha384 -key $($@_CERT_FILE).key -subj "/C=US/ST=CA/O=PgJdbc tests/CN=test" -out $($@_CERT_FILE).csr
+	openssl x509 -req -in $($@_CERT_FILE).csr -CA $(SERVER_CRT_DIR)root.crt -CAkey $(SERVER_CRT_DIR)root.key -passin pass:$(ROOT_CA_PASSWORD) -CAcreateserial -out $($@_CERT_FILE).crt -days 3650 -sha384
+	@rm $($@_CERT_FILE).csr
+	@echo
+
+# The EC client certificate followed by the RSA root that signed it, so the
+# leaf and the last certificate in the file use different key algorithms.
+ecclient-chain.crt : ecclient.crt $(SERVER_CRT_DIR)root.crt
+	cat ecclient.crt $(SERVER_CRT_DIR)root.crt > $@
