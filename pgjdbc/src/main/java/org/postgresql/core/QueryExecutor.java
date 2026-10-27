@@ -525,6 +525,17 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   TransactionState getTransactionState();
 
   /**
+   * Returns the first error of the current transaction while it is in
+   * {@link TransactionState#FAILED} state.
+   *
+   * @return the first error of the failed transaction, or {@code null} if the transaction has not
+   *     failed or the error is unknown
+   */
+  default @Nullable SQLException getTransactionFailCause() {
+    return null;
+  }
+
+  /**
    * Returns whether the server treats string-literals according to the SQL standard or if it uses
    * traditional PostgreSQL escaping rules. Versions up to 8.1 always treated backslashes as escape
    * characters in string-literals. Since 8.2, this depends on the value of the
