@@ -60,7 +60,7 @@ public class DataSourceFactoryTest {
         defaultPgjdbcOsgiOptions(),
         // The bundle declares DataSourceFactory class, so we add it otherwise even
         // the test class itself won't work as it would fail to wire dataSourceFactory field
-        mavenBundle("org.osgi", "org.osgi.service.jdbc").version("1.0.0")
+        mavenBundle("org.osgi", "org.osgi.service.jdbc").versionAsInProject()
     );
   }
 
