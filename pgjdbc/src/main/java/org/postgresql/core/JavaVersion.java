@@ -6,27 +6,26 @@
 package org.postgresql.core;
 
 public enum JavaVersion {
-  // Note: order is important,
+  // Constants follow release order: TimestampUtils compares versions with compareTo
   v1_8,
   other;
 
   private static final JavaVersion RUNTIME_VERSION = from(System.getProperty("java.version"));
 
   /**
-   * Returns enum value that represents current runtime. For instance, when using -jre7.jar via Java
-   * 8, this would return v18
-   *
-   * @return enum value that represents current runtime.
+   * Returns the enum value for the JVM the driver runs on, which can be newer than the version the
+   * driver was compiled for.
    */
   public static JavaVersion getRuntimeVersion() {
     return RUNTIME_VERSION;
   }
 
   /**
-   * Java version string like in {@code "java.version"} property.
+   * Maps a Java version string to the enum value it belongs to.
    *
-   * @param version string like 1.6, 1.7, etc
-   * @return JavaVersion enum
+   * @param version value of the {@code "java.version"} system property, such as {@code 1.8.0_452}
+   *     or {@code 17.0.9}
+   * @return {@link #v1_8} for a Java 8 version string, {@link #other} for every other value
    */
   public static JavaVersion from(String version) {
     if (version.startsWith("1.8")) {
