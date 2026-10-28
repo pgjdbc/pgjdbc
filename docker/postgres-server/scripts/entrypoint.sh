@@ -79,6 +79,14 @@ IDENT
         sed -i '/^# TYPE\b/a\
 host    all         testoauth   all      oauth   scope=pgjdbc,issuer=http://keycloak:8080/realms/pgjdbc,map=oauthmap' "${pg_hba}"
 
+        if [ "$OAUTH" = "all" ]; then
+            # "all": map the same service account to the "test" role and switch that role to oauth,
+            # in the "test" database only (the one the general suite connects to).
+            echo 'oauthmap      service-account-pgjdbc-test    test' >> /tmp/pg_ident.conf
+            sed -i '/^# TYPE\b/a\
+host    test        test        all      oauth   scope=pgjdbc,issuer=http://keycloak:8080/realms/pgjdbc,map=oauthmap' "${pg_hba}"
+        fi
+
         add_pg_opt "-c oauth_validator_libraries=pg_oidc_validator"
         add_pg_opt "-c pg_oidc_validator.authn_field=preferred_username"
         add_pg_opt "-c ident_file=/tmp/pg_ident.conf"

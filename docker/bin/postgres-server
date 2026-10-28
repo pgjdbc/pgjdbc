@@ -11,8 +11,8 @@ set -euo pipefail
 #    SSL   = "yes" | "no"                   - Whether to enable SSL
 #    XA    = "yes" | "no"                   - Whether to enable XA for prepared transactions
 #    SCRAM = "yes" | "no"                   - Whether to enable SCRAM authentication
-#    OAUTH = "no" | "smoke"                 - Whether to start Keycloak and enable OAuth for the
-#                                             testoauth role (PG 18+)
+#    OAUTH = "no" | "smoke" | "all"         - OAuth mode: off, add the testoauth role, or also switch
+#                                             the test role to OAuth (PG 18 only)
 #    TZ    = "Etc/UTC" | ...                - Override server timezone (default Etc/UTC)
 #    CREATE_REPLICAS = "yes" | "no"         - Whether to create two streaming replicas (defaults to off)
 #
@@ -47,8 +47,14 @@ set -euo pipefail
 #
 #     PGV=18 OAUTH=smoke docker/bin/postgres-server
 #
-# OAUTH=smoke starts a Keycloak container that binds
-# 127.0.0.1:8080 on the host.
+# To also switch the test role to OAuth, for running the suite with -DauthMode=oauth:
+#
+#     PGV=18 OAUTH=all docker/bin/postgres-server
+#
+# Any OAuth mode other than "no" starts a Keycloak container that binds
+# 127.0.0.1:8080 on the host, and runs the server as linux/amd64, since
+# pg_oidc_validator is published for amd64 only. On an arm64 host that means
+# emulation, which is noticeably slower.
 
 log () {
     echo "$@" 1>&2

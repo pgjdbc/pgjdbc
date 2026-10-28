@@ -57,8 +57,8 @@ If you have Docker, you can use `docker compose` to launch test database (see [d
     SSL   = "yes" | "no"                   - Whether to enable SSL
     XA    = "yes" | "no"                   - Whether to enable XA for prepared transactions
     SCRAM = "yes" | "no"                   - Whether to enable SCRAM authentication
-    OAUTH = "no" | "smoke"                 - Whether to start Keycloak and enable OAuth for the
-                                             testoauth role (PG 18+)
+    OAUTH = "no" | "smoke" | "all"         - OAuth mode: off, add the testoauth role, or also switch
+                                             the test role to OAuth (PG 18 only)
     TZ    = "Etc/UTC" | ...                - Override server timezone (default Etc/UTC)
     CREATE_REPLICAS = "yes" | "no"         - Whether to create two streaming replicas (defaults to off)
 
@@ -93,8 +93,9 @@ If you have Docker, you can use `docker compose` to launch test database (see [d
 
     PGV=18 OAUTH=smoke docker/bin/postgres-server
 
-    OAUTH=smoke starts a Keycloak container that binds
-    127.0.0.1:8080 on the host.
+    To also switch the test role to OAuth, for running the suite with -DauthMode=oauth:
+
+    PGV=18 OAUTH=all docker/bin/postgres-server
 
 An alternative way is to use a Vagrant script: [jackdb/pgjdbc-test-vm](https://github.com/jackdb/pgjdbc-test-vm).
 Follow the instructions on that project's [README](https://github.com/jackdb/pgjdbc-test-vm) page.
@@ -295,7 +296,9 @@ for improvement to the pgsql-jdbc@postgresql.org mailing list.
 
 `OauthTest` exercises OAUTHBEARER authentication ([RFC 7628](https://www.rfc-editor.org/rfc/rfc7628)) against a real server and a real authorization server. Every test in it skips unless `-Denable_oauth_tests=true` is given, so a plain `./gradlew test` never runs them.
 
-`OauthTest` connects over plaintext to a plain-`http` Keycloak in most tests, so they set `oauthAllowInsecureConnection=true`. `OauthTest.connectsOverVerifiedTls` covers the secure transport path with `sslmode=verify-full` when the SSL tests are enabled too.
+Under `-DauthMode=oauth` the default `test` role authenticates through OAuth for the whole suite, so every test that opens a connection takes the OAuth path (see `TestUtil.addOauthProperties`). Tests that cannot work that way call `TestUtil.assumeNotOauthMode()` and skip.
+
+Both modes connect without verifying the server certificate, and Keycloak serves plain `http`, so `authMode=oauth` sets `oauthAllowInsecureConnection=true` for the whole suite, and most of `OauthTest` sets it as well. The secure transport path is therefore not what most of CI exercises. `OauthTest.connectsOverVerifiedTls` covers it with `sslmode=verify-full` when the SSL tests are enabled too.
 
 ### Requirements
 
@@ -318,6 +321,13 @@ Then run the tests:
 
 ```sh
 ./gradlew :postgresql:test --tests '*OauthTest' -Denable_oauth_tests=true
+```
+
+`OAUTH=all` switches the `test` role to OAuth as well, which is what `authMode=oauth` expects:
+
+```sh
+PGV=18 OAUTH=all docker/bin/postgres-server
+./gradlew test -Denable_oauth_tests=true -DauthMode=oauth
 ```
 
 ### Manual setup
@@ -357,6 +367,7 @@ The tests obtain their own tokens through `org.postgresql.test.OauthTestTokenPro
 | Property | Default | Meaning |
 | --- | --- | --- |
 | `enable_oauth_tests` | `false` | Runs the tests in `OauthTest` rather than skipping them |
+| `authMode` | `default` | `oauth` routes the whole suite through OAuth |
 | `oauthTest.issuer` | `http://localhost:8080/realms/pgjdbc` | Realm the token is requested from |
 | `oauthTest.clientId` | `pgjdbc-test` | Client the token is requested as |
 | `oauthTest.clientSecret` | `pgjdbc-test-client-secret` | Secret of that client |
@@ -364,5 +375,5 @@ The tests obtain their own tokens through `org.postgresql.test.OauthTestTokenPro
 | `oauthTokenProviderClassName` | `org.postgresql.test.OauthTestTokenProvider` | Provider the tests configure the driver with |
 | `oauthRole` | `testoauth` | Role the tests connect as |
 
-The build forwards `enable_oauth_tests` to the forked test JVM; see the `passProperty` list in `build-logic/jvm/src/main/kotlin/build-logic.test-base.gradle.kts`. The remaining properties are not on that list, so `-D` on the Gradle command line does not reach the tests. Add them to that list, or export `_JAVA_OPTIONS`, which every JVM picks up and which is how CI passes its test properties.
+The build forwards `enable_oauth_tests` and `authMode` to the forked test JVM; see the `passProperty` list in `build-logic/jvm/src/main/kotlin/build-logic.test-base.gradle.kts`. The remaining properties are not on that list, so `-D` on the Gradle command line does not reach the tests. Add them to that list, or export `_JAVA_OPTIONS`, which every JVM picks up and which is how CI passes its test properties.
 

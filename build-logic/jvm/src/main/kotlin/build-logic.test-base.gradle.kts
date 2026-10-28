@@ -50,7 +50,7 @@ tasks.configureEach<Test> {
         "privilegedUser", "privilegedPassword",
         "simpleProtocolOnly", "enable_ssl_tests",
         "autosave", "cleanupSavepoints",
-        "enable_oauth_tests")) {
+        "enable_oauth_tests", "authMode")) {
         passProperty(p)
     }
 }
