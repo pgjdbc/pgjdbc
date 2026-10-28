@@ -5,10 +5,14 @@
 
 package org.postgresql.test.gss;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.GSSEncMode;
+import org.postgresql.util.GT;
+import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.Test;
 
@@ -88,12 +92,63 @@ class GssEncryptionTest {
       assertGssConnection(client, postgres, "test", "test1", "secret1",
           "SELECT gss_authenticated AND not encrypted from pg_stat_gssapi where pid = pg_backend_pid()",
           "GSS authenticated and not encrypted");
+
+      // requireAuth: without GSS encryption the server sends AuthenticationGSS, and the Kerberos
+      // exchange that answers it meets requireAuth=gss.
+      client.addProperty(PGProperty.REQUIRE_AUTH, "gss");
+      assertGssConnection(client, postgres, "test", "test1", "secret1",
+          "SELECT gss_authenticated AND not encrypted from pg_stat_gssapi where pid = pg_backend_pid()",
+          "requireAuth=gss, GSS authenticated and not encrypted");
+
+      // With GSS encryption and a gss rule the server sends no authentication request at all.
+      // The encryption meets requireAuth=gss, and nothing meets a requireAuth that leaves gss out.
+      postgres.enableGss("127.0.0.1", "hostgssenc");
+      postgres.reload();
+      client.addProperty(PGProperty.GSS_ENC_MODE, GSSEncMode.REQUIRE.value);
+      assertGssConnection(client, postgres, "test", "test1", "secret1",
+          "SELECT gss_authenticated AND encrypted from pg_stat_gssapi where pid = pg_backend_pid()",
+          "requireAuth=gss, GSS authenticated and encrypted");
+      client.addProperty(PGProperty.REQUIRE_AUTH, "scram-sha-256");
+      assertRefusedByRequireAuth(client, postgres, "test", "test1", "secret1");
+
+      // A list of ! options allows none unless it names !none, so, as in libpq, !gss accepts
+      // the connection the server lets in without a request, and !gss,!none refuses it.
+      client.addProperty(PGProperty.REQUIRE_AUTH, "!gss");
+      assertGssConnection(client, postgres, "test", "test1", "secret1",
+          "SELECT gss_authenticated AND encrypted from pg_stat_gssapi where pid = pg_backend_pid()",
+          "requireAuth=!gss, GSS authenticated and encrypted");
+      client.addProperty(PGProperty.REQUIRE_AUTH, "!gss,!none");
+      assertRefusedByRequireAuth(client, postgres, "test", "test1", "secret1");
+
+      // GSS encryption followed by a SCRAM exchange meets requireAuth=scram-sha-256: the
+      // encryption does not have to be allowed as well.
+      postgres.writePgHba("hostgssenc all all 127.0.0.1/32 scram-sha-256");
+      postgres.reload();
+      assertGssConnection(client, postgres, "test", "test1", "secret1",
+          "SELECT encrypted AND NOT gss_authenticated from pg_stat_gssapi where pid = pg_backend_pid()",
+          "requireAuth=scram-sha-256, SCRAM over GSS encryption");
+      // null removes the property, so a later step connects without requireAuth
+      client.addProperty(PGProperty.REQUIRE_AUTH, null);
     } finally {
       if (pg != null) {
         pg.destroy();
       }
       kerberos.destroy();
     }
+  }
+
+  private static void assertRefusedByRequireAuth(PgGssConnection client, Postgres postgres,
+      String database, String user, String password) throws Exception {
+    SQLException ex = assertThrows(SQLException.class,
+        () -> client.tryConnect(database, KERBEROS_HOST, postgres.getPort(), user, password).close(),
+        "requireAuth should refuse the connection; pg_hba.conf:\n" + postgres.readPgHba());
+    assertEquals(PSQLState.CONNECTION_REJECTED.getState(), ex.getSQLState(), ex.toString());
+    assertEquals(
+        GT.tr("The server accepted the GSS-encrypted connection without requesting further "
+            + "authentication, which requireAuth does not allow. Allow ''gss'' in requireAuth "
+            + "to accept the Kerberos authentication done while setting up GSS encryption, or "
+            + "set gssEncMode to disable to authenticate without it."),
+        ex.getMessage());
   }
 
   private static void assertGssConnection(PgGssConnection client, Postgres postgres, String database,
