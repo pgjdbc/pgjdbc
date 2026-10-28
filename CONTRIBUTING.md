@@ -165,7 +165,8 @@ Prerequisites:
 This project defines a [manual release workflow](.github/workflows/release.yml).
 
 The suggested flow is as follows:
-1. Prepare release notes, commit it to Git.
+1. Prepare release notes, and merge the changelog of the release to `master`, also for a release from a
+   `release/**` branch. See [Updating the website](#updating-the-website).
 2. Open the "release" action at 👉 [Actions tab → release.yml](https://github.com/pgjdbc/pgjdbc/actions/workflows/release.yml).
 3. Click "run workflow".
 4. Set "Release version number" if you want to bump the version before the release. Note: if the current version already exists, then the release workflow would abort.
@@ -173,13 +174,147 @@ The suggested flow is as follows:
 
 The workflow performs the following steps:
 
-1. It updates the version in `gradle.properties` if the current version in Git differs from the one in the manual workflow call.
-2. It builds and pushes artifacts to Central Portal.
-3. It updates the version to the next patch version.
+1. Its `check-changelog` job builds the website from `master` with the release version, and stops the release
+   before Maven Central when no changelog on `master` sets that version. The job then fails with
+   `master's docs/ does not build with HUGO_PARAMS_RELEASEVERSION=<version>. If the Hugo error above says that
+   no changelog sets version <version>, merge the changelog for <version> to master and start the release
+   again.`, where `<version>` is the release version.
+2. It updates the version in `gradle.properties` if the current version in Git differs from the one in the manual workflow call.
+3. It builds and pushes artifacts to Central Portal.
+4. It updates the version to the next patch version.
+5. It starts the deploy workflow on `master` with the release version, which publishes the site to GitHub Pages
+   (see [Deploying the website](#deploying-the-website)). This step runs once the GitHub release is published,
+   even when an earlier step after the publish failed.
+
+When the deploy does not start, the release workflow fails with `The release is published, but the website
+deploy did not start. Run: gh workflow run docs.yml -R pgjdbc/pgjdbc --ref master -f version=<version>`. Run
+that command. It is also the fix when the deploy itself fails, for example when Maven Central does not have the
+jar after the retries.
+
+A release from a branch whose release workflow has no `check-changelog` job gets neither the check nor the
+deploy. The branches `release/42.2.x` to `release/42.6.x` have no release workflow at all. The same holds for
+a release published by hand, without the release workflow. For such a release:
+
+1. Merge the changelog of the release to `master`.
+2. Publish the release.
+3. After the jar is on Maven Central, run
+   `gh workflow run docs.yml -R pgjdbc/pgjdbc --ref master -f version=<version>`.
+
+For releases from several branches at once, merge all their changelogs to `master` first. A deploy fails while
+the site links a jar that Maven Central does not list yet, and the site keeps its previous deploy. So the
+deploys of the earlier releases fail, and the deploy of the last release succeeds once Maven Central lists all
+of them. If it fails too, run `gh workflow run docs.yml -R pgjdbc/pgjdbc --ref master` again when Maven
+Central lists them.
 
 ### Updating changelog
 
 - run `./release_notes.sh`, edit as desired. This has been deprecated. Currently release notes are created manually
+
+### Updating the website
+
+The website reads its release data from the front matter of the changelog files in `docs/content/changelogs/`.
+To add a release to the website, add one file named `<yyyy-mm-dd>-<version>-release.md`:
+
+```yaml
+---
+title: "PostgreSQL JDBC Driver 42.7.15 Released"
+date: 2026-11-04 10:00:00 -0400
+categories:
+    - new release
+version: 42.7.15
+summary: "One or two sentences for the home page."
+---
+```
+
+The current release is the release with the highest `version`. From the changelog files, Hugo builds:
+
+- on the home page, the "Current release" paragraph: the current release, its `summary` if the file sets one,
+  and a link to its changelog;
+- on the home page, the "Latest Releases" list: the five releases with the highest `version`, highest first,
+  each with its `date`;
+- on the download page, the Java 8 card: the current release;
+- on the download page, the "Older Versions" list: the other releases in the minor line of the current release,
+  then the release with the highest `version` in each older minor line.
+
+The pages show the `date` from the front matter. The date in the file name sets only the URL. Hugo builds a
+changelog even when its `date` is later than the time of the build.
+
+The Java 7 and Java 6 cards on the download page name 42.2.29.jre7 and 42.2.27.jre6, which
+`docs/layouts/shortcodes/recent-versions.html` sets. No release after 42.2.29 builds jre7 jars, and no release
+after 42.2.27 builds jre6 jars.
+
+Each jar link on the download page points at `/download/postgresql-<version>.jar`.
+[Deploying the website](#deploying-the-website) says where those files come from.
+
+Merging the changelog to `master` updates jdbc.postgresql.org.
+
+The build fails when:
+
+- a file whose name ends in `-release.md` has no `version`, or a `version` that is not three numbers separated
+  by dots, each without a leading zero;
+- a file whose name contains a version, such as `2026-11-04-42.7.15.md`, does not end in `-release.md`;
+- two changelog files set the same `version`;
+- a release changelog has no `date`;
+- no changelog file sets a release `version`.
+
+A pull request that changes `docs/` runs this build. To see the pages before you open the pull request, run
+`hugo server` in `docs/`.
+
+### Deploying the website
+
+The deploy workflow, `.github/workflows/docs.yml`, builds the site and publishes it to GitHub Pages. It runs
+these steps:
+
+1. Hugo builds the pages from `docs/` into `docs/public/`. With `-f version=<version>`, the build fails when no
+   changelog sets that version.
+2. A second Hugo build, with the version 0.0.0, must fail with the error for a version that no changelog sets.
+   This shows that the version check, which also stops a release without a changelog, works.
+3. `docs/scripts/test-site-scripts.sh` tests `fetch-central.sh` against a copy of Maven Central in a temporary
+   directory, signed with a key that the test makes, and `check-site.sh` against fixture sites. It needs no
+   network.
+4. `docs/scripts/fetch-central.sh` reads the versions from Maven Central's `maven-metadata.xml` and downloads
+   the jar of every version from 42.0.0 on to `docs/public/download/postgresql-<version>.jar`. That includes the
+   jre6 and jre7 builds, and later major versions such as 43.0.0. It unpacks the Javadoc jar of the highest
+   version without a jre suffix into `docs/public/documentation/publicapi/`. It checks each file against the
+   SHA-1 that Maven Central publishes, and checks its `.asc` signature with `gpgv` against the release keys in
+   `docs/scripts/release-keys.asc`. It fails the run when a check fails. The jars of 42.2.14 to 42.2.16, with
+   their jre6 and jre7 builds, skip only the signature check. `fetch-central.sh` lists them and gives the reason.
+5. `docs/scripts/check-site.sh` fails the run when the site links no jar, when a linked jar is not in the site,
+   when the home page does not name exactly one current release, when the current release is not the version of
+   the Javadoc, or when the site holds a symbolic link. On a pull request, a jar or a Javadoc for a version that
+   Maven Central does not list yet is a warning instead, so that the pull request of a changelog can pass before
+   its release.
+6. On a pull request, actionlint checks `.github/workflows/docs.yml` and `.github/workflows/release.yml`.
+7. On every other run, the site is uploaded and deployed.
+
+A pull request that changes `docs/`, `.github/workflows/docs.yml`, `.github/workflows/release.yml` or
+`.github/actions/update_version/` runs every step except the upload and the deploy.
+
+`docs/scripts/release-keys.asc` holds the public keys whose fingerprints `docs/content/security/_index.md`
+lists, with their unexpired subkeys. When that page gets a new release key, add the key to the file, with
+`gpg --armor --export-options export-minimal --export <fingerprint>`, in the same pull request.
+
+To deploy the site, run the workflow on `master`:
+
+```sh
+gh workflow run docs.yml -R pgjdbc/pgjdbc --ref master
+```
+
+The `github-pages` environment refuses a deploy from a tag or a release branch. For a release that Maven
+Central may not list yet, add `-f version=<version>`: the run then adds that version to the list and retries its
+jar, and its Javadoc when it is the highest version, up to 30 times, 60 seconds apart.
+
+`hugo server` shows the pages without the jars and the Javadoc. To build the whole site locally, run from the
+repository root:
+
+```sh
+out=$(mktemp -d)/public
+hugo --minify -s docs -d "$out" && docs/scripts/fetch-central.sh "$out"
+```
+
+The fetch downloads about 133 MB (147 jars on 2026-10-10). It writes the version list to
+`$(dirname "$out")/central-versions.txt`, outside the site, and prints the Javadoc version. To check the site, run
+`docs/scripts/check-site.sh "$out" "$(dirname "$out")/central-versions.txt" <javadoc-version> deploy`.
 
 ## Dependencies
 
