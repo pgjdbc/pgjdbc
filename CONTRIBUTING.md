@@ -234,8 +234,11 @@ rather than opening the files directly. To see the pages before you open the pul
 ### Deploying the website
 
 `.github/workflows/docs.yml` builds the site with the Hugo version that it pins and uploads it as the `site`
-artifact of the run. `.github/workflows/docs-deploy.yml` calls it and then deploys the site. The deploy runs only
-from the `www-release` branch. After a release, once the jar is on Maven Central, update `www-release` to the
+artifact of the run. When its `include_javadoc` input is true, it also adds the Javadoc of the current release from
+Maven Central under `/documentation/publicapi/`. Before it unpacks the javadoc jar, it checks the signature of the
+jar against the keys in `KEYS`. The input defaults to false, so a pull request build leaves out the Javadoc.
+`.github/workflows/docs-deploy.yml` calls it with the input set to true and then deploys the site. The deploy runs
+only from the `www-release` branch. After a release, once the jar is on Maven Central, update `www-release` to the
 commit to deploy and start the deploy on it:
 
 ```sh
@@ -256,8 +259,7 @@ The workflows read these repository variables:
 - `SITE_S3_BUCKET`, the bucket that holds the site. The deploy deletes anything in it that is not part of the site.
 - `SITE_CLOUDFRONT_DISTRIBUTION_ID`, the CloudFront distribution that serves the bucket.
 
-CloudFront serves `/download/` and the Javadoc under `/documentation/publicapi/` from another origin, so they are not
-in the bucket.
+CloudFront serves `/download/` from another origin, so it is not in the bucket.
 
 ## Dependencies
 

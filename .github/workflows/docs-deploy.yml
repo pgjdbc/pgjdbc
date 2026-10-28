@@ -32,6 +32,8 @@ jobs:
   build:
     needs: check-branch
     uses: ./.github/workflows/docs.yml
+    with:
+      include_javadoc: true
 
   deploy:
     needs: build

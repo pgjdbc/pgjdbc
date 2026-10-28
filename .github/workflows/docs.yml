@@ -7,9 +7,18 @@ on:
       - '.github/workflows/docs.yml'
       - '.github/workflows/docs-deploy.yml'
   workflow_call:
+    inputs:
+      include_javadoc:
+        description: Add the Javadoc of the current release from Maven Central
+        type: boolean
+        default: false
 
 permissions:
   contents: read
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
 
 concurrency:
   group: docs-${{ github.ref }}
@@ -42,6 +51,48 @@ jobs:
           BASE_URL: ${{ vars.SITE_BASE_URL || 'https://jdbc.postgresql.org/' }}
         run: hugo --minify --baseURL "${BASE_URL}"
         working-directory: ./docs
+
+      # The newest version in the changelogs is the one that the home page and
+      # the download page list as the current release.
+      - name: Add the Javadoc of the current release
+        if: inputs.include_javadoc
+        run: |
+          version=$(sed -n 's/^version: *//p' docs/content/changelogs/*-release.md | sort -V | tail -n 1)
+          echo "Adding the Javadoc of ${version}"
+          url="https://repo1.maven.org/maven2/org/postgresql/postgresql/${version}/postgresql-${version}-javadoc.jar"
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --location \
+            --output "${RUNNER_TEMP}/javadoc.jar" \
+            "${url}"
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --location \
+            --output "${RUNNER_TEMP}/javadoc.jar.asc" \
+            "${url}.asc"
+          # The keyring holds only the keys in KEYS, so a good signature means
+          # that one of those keys signed the jar.
+          export GNUPGHOME="${RUNNER_TEMP}/gnupg"
+          mkdir -m 700 "${GNUPGHOME}"
+          gpg \
+            --batch \
+            --quiet \
+            --import \
+            KEYS
+          gpgv \
+            --keyring "${GNUPGHOME}/pubring.kbx" \
+            "${RUNNER_TEMP}/javadoc.jar.asc" \
+            "${RUNNER_TEMP}/javadoc.jar"
+          mkdir -p ./docs/public/documentation/publicapi
+          unzip \
+            -q \
+            "${RUNNER_TEMP}/javadoc.jar" \
+            -x 'META-INF/*' \
+            -d ./docs/public/documentation/publicapi
 
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
