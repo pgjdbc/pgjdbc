@@ -83,7 +83,7 @@ class CheckAuthCompletedTest {
    */
   @Test
   void gssEncryptionDoesNotMeetRequireAuthForAnotherMethod() {
-    EnumSet<AuthMethod> allowed = EnumSet.of(AuthMethod.SCRAM_SHA_256, AuthMethod.MD5);
+    EnumSet<AuthMethod> allowed = EnumSet.of(AuthMethod.SCRAM_SHA_256, AuthMethod.OAUTH);
 
     PSQLException ex = assertThrows(PSQLException.class,
         () -> AuthMethod.checkAuthCompleted(allowed, false, false, true));
@@ -131,11 +131,11 @@ class CheckAuthCompletedTest {
   }
 
   /**
-   * A GSS-encrypted connection that then authenticated with, say, SCRAM meets a
-   * requireAuth naming that method: the encryption does not have to be named as well.
+   * A GSS-encrypted connection that then completed another exchange meets a requireAuth naming
+   * that method: the encryption does not have to be named as well.
    */
   @ParameterizedTest
-  @EnumSource(value = AuthMethod.class, names = {"SCRAM_SHA_256", "PASSWORD", "MD5"})
+  @EnumSource(value = AuthMethod.class, names = {"OAUTH", "SCRAM_SHA_256", "PASSWORD", "MD5"})
   void anExchangeOverGssEncryptionDoesNotAlsoRequireGss(AuthMethod method) throws Exception {
     AuthMethod.checkAuthCompleted(EnumSet.of(method), true, true, true);
   }

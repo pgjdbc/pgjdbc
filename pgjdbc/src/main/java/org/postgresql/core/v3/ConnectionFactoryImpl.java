@@ -45,6 +45,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
 import org.postgresql.util.internal.Nullness;
 
+import com.ongres.scram.common.ScramMechanism;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
@@ -54,6 +55,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -307,7 +309,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       sendStartupPacket(newStream, ProtocolVersion.fromMajorMinor(protocolMajor,protocolMinor), paramList);
 
       // Do authentication (until AuthenticationOk).
-      doAuthentication(newStream, hostSpec.getHost(), user, info);
+      doAuthentication(newStream, hostSpec.getHost(), user, sslMode, info);
 
       return newStream;
     } catch (IOException e) {
@@ -325,6 +327,85 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       closeStream(newStream, e);
       throw e;
     }
+  }
+
+  /**
+   * Picks the mechanism to answer an {@code AuthenticationSASL} request with. OAUTHBEARER is
+   * preferred over SCRAM when the server offers both and the driver can use it.
+   *
+   * @param saslMechanisms mechanisms offered by the server
+   * @param info connection properties
+   * @param authMethods methods allowed by {@code requireAuth}, or {@code null} if unrestricted
+   * @param channelBinding the {@code channelBinding} setting
+   * @return {@link AuthMethod#OAUTH} or {@link AuthMethod#SCRAM_SHA_256}
+   * @throws PSQLException if no offered mechanism is both usable by the driver and allowed
+   */
+  static AuthMethod selectSaslMechanism(List<String> saslMechanisms, Properties info,
+      @Nullable EnumSet<AuthMethod> authMethods, ChannelBinding channelBinding)
+      throws PSQLException {
+    boolean oauthOffered = saslMechanisms.contains(OauthAuthenticator.SASL_MECHANISM);
+    boolean scramOffered = !Collections.disjoint(saslMechanisms,
+        ScramMechanism.supportedMechanisms());
+    boolean oauthAllowed = oauthOffered && AuthMethod.isAllowed(authMethods, AuthMethod.OAUTH);
+    boolean scramAllowed = scramOffered
+        && AuthMethod.isAllowed(authMethods, AuthMethod.SCRAM_SHA_256);
+    boolean oauthConfigured = OauthAuthenticator.isOauthConfigured(info);
+
+    if (oauthAllowed && oauthConfigured && channelBinding != ChannelBinding.REQUIRE) {
+      logSaslMechanismChoice(saslMechanisms, OauthAuthenticator.SASL_MECHANISM,
+          "oauthToken or oauthTokenProviderClassName is set");
+      return AuthMethod.OAUTH;
+    }
+
+    if (scramAllowed) {
+      if (channelBinding == ChannelBinding.REQUIRE
+          && saslMechanisms.stream().noneMatch(m -> m.endsWith("-PLUS"))) {
+        throw new PSQLException(
+            GT.tr("Channel Binding is required, but server did not offer an "
+                + "authentication method that supports channel binding"),
+            PSQLState.CONNECTION_REJECTED);
+      }
+      if (LOGGER.isLoggable(Level.FINE)) {
+        String reason;
+        if (!oauthConfigured) {
+          reason = "neither oauthToken nor oauthTokenProviderClassName is set";
+        } else if (!oauthOffered) {
+          reason = "the server did not offer OAUTHBEARER";
+        } else if (!oauthAllowed) {
+          reason = "requireAuth does not allow oauth";
+        } else {
+          reason = "channelBinding=require, which OAUTHBEARER cannot provide";
+        }
+        logSaslMechanismChoice(saslMechanisms, "SCRAM", reason);
+      }
+      return AuthMethod.SCRAM_SHA_256;
+    }
+    if (oauthAllowed) {
+      if (oauthConfigured && channelBinding == ChannelBinding.REQUIRE) {
+        throw new PSQLException(
+            GT.tr("Channel binding is not supported for OAuth authentication."),
+            PSQLState.CONNECTION_REJECTED);
+      }
+      throw new PSQLException(
+          GT.tr("The server requested OAuth authentication, but neither {0} nor {1} is configured.",
+              PGProperty.OAUTH_TOKEN.getName(),
+              PGProperty.OAUTH_TOKEN_PROVIDER_CLASS_NAME.getName()),
+          PSQLState.CONNECTION_REJECTED);
+    }
+    if (oauthOffered || scramOffered) {
+      throw new PSQLException(GT.tr("Authentication method is not allowed by requireAuth"),
+          PSQLState.CONNECTION_REJECTED);
+    }
+    throw new PSQLException(
+        GT.tr("The server requested SASL authentication with mechanisms {0}, "
+            + "but the driver supports none of them.",
+            saslMechanisms),
+        PSQLState.CONNECTION_REJECTED);
+  }
+
+  private static void logSaslMechanismChoice(List<String> offered, String chosen, String reason) {
+    LOGGER.log(Level.FINE, "The server offered SASL mechanisms {0}, using {1} because {2}",
+        new Object[]{offered, chosen, reason});
   }
 
   @Override
@@ -791,7 +872,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
-  private static void doAuthentication(PGStream pgStream, String host, String user, Properties info) throws IOException, SQLException {
+  private static void doAuthentication(PGStream pgStream, String host, String user,
+      SslMode sslMode, Properties info) throws IOException, SQLException {
     // Now get the response from the backend, either an error message
     // or an authentication request
 
@@ -800,6 +882,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     /* SCRAM authentication state, if used */
     ScramAuthenticator scramAuthenticator = null;
+
+    /* OAuth authentication state, if used */
+    OauthAuthenticator oauthAuthenticator = null;
+
     // TODO: figure out how to deal with new protocols
     int protocol = 3 << 16;
 
@@ -876,7 +962,16 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             ServerErrorMessage errorMsg =
                 new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
             LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
-            throw new PSQLException(errorMsg, PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
+            PSQLException error =
+                new PSQLException(errorMsg, PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
+            // Attach the OAuth error result as the cause, so the thrown exception keeps the
+            // ErrorResponse's SQLState.
+            PSQLException oauthErrorResult =
+                oauthAuthenticator != null ? oauthAuthenticator.getErrorResult() : null;
+            if (oauthErrorResult != null) {
+              error.initCause(oauthErrorResult);
+            }
+            throw error;
 
           case PgMessageType.AUTHENTICATION_RESPONSE:
             // Authentication request.
@@ -1054,46 +1149,90 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 break;
 
               case AUTH_REQ_SASL: {
-                List<String> saslMechanisms = readMechanisms(pgStream, msgLen - 8);
-                AuthMethod.checkAuth(authMethods, AuthMethod.SCRAM_SHA_256);
-                int scramMaxIterations = PGProperty.SCRAM_MAX_ITERATIONS.getInt(info);
-                if (scramMaxIterations < 0) {
+                if (oauthAuthenticator != null || scramAuthenticator != null) {
                   throw new PSQLException(
-                      GT.tr("{0} must be a non-negative integer, but was: {1}",
-                          PGProperty.SCRAM_MAX_ITERATIONS.getName(), scramMaxIterations),
-                      PSQLState.INVALID_PARAMETER_VALUE);
+                      GT.tr("Server started a second SASL exchange."),
+                      PSQLState.PROTOCOL_VIOLATION);
                 }
-                scramAuthenticator = AuthenticationPluginManager.<ScramAuthenticator>withPassword(AuthenticationRequestType.SASL, info, password -> {
-                  if (password == null) {
-                    throw new PSQLException(
-                        GT.tr(
-                            "The server requested SCRAM-based authentication, but no password was provided."),
-                        PSQLState.CONNECTION_REJECTED);
+                List<String> saslMechanisms = readMechanisms(pgStream, msgLen - 8);
+                AuthMethod selectedMechanism =
+                    selectSaslMechanism(saslMechanisms, info, authMethods, channelBinding);
+
+                if (selectedMechanism == AuthMethod.OAUTH) {
+                  boolean allowInsecure =
+                      PGProperty.OAUTH_ALLOW_INSECURE_CONNECTION.getBoolean(info);
+                  oauthAuthenticator = new OauthAuthenticator(pgStream, sslMode,
+                      PGProperty.SSL_FACTORY.getOrDefault(info), allowInsecure);
+                  char [] oauthToken =
+                      OauthAuthenticator.resolveOauthToken(pgStream.getHostSpec(), user, info);
+                  try {
+                    oauthAuthenticator.handleAuthenticationSASL(oauthToken);
+                  } finally {
+                    Arrays.fill(oauthToken, (char) 0);
                   }
-                  if (password.length == 0) {
+
+                  authFinished = true;
+                } else {
+                  // SCRAM_SHA_256, the only other mechanism selectSaslMechanism returns.
+                  int scramMaxIterations = PGProperty.SCRAM_MAX_ITERATIONS.getInt(info);
+                  if (scramMaxIterations < 0) {
                     throw new PSQLException(
-                        GT.tr(
-                            "The server requested SCRAM-based authentication, but the password is an empty string."),
-                        PSQLState.CONNECTION_REJECTED);
+                        GT.tr("{0} must be a non-negative integer, but was: {1}",
+                            PGProperty.SCRAM_MAX_ITERATIONS.getName(), scramMaxIterations),
+                        PSQLState.INVALID_PARAMETER_VALUE);
                   }
-                  return new ScramAuthenticator(password, pgStream, channelBinding, scramMaxIterations,
-                      saslMechanisms);
-                });
-                scramAuthenticator.handleAuthenticationSASL();
+                  scramAuthenticator =
+                      AuthenticationPluginManager.<ScramAuthenticator>withPassword(
+                          AuthenticationRequestType.SASL, info, password -> {
+                            if (password == null) {
+                              throw new PSQLException(
+                                  OauthAuthenticator.withOauthHint(info,
+                                      GT.tr("The server requested SCRAM-based authentication,"
+                                          + " but no password was provided.")),
+                                  PSQLState.CONNECTION_REJECTED);
+                            }
+                            if (password.length == 0) {
+                              throw new PSQLException(
+                                  GT.tr("The server requested SCRAM-based authentication,"
+                                      + " but the password is an empty string."),
+                                  PSQLState.CONNECTION_REJECTED);
+                            }
+                            return new ScramAuthenticator(password, pgStream, channelBinding,
+                                scramMaxIterations, saslMechanisms);
+                          });
+                  scramAuthenticator.handleAuthenticationSASL();
+                }
                 break;
               }
 
               case AUTH_REQ_SASL_CONTINUE:
-                castNonNull(scramAuthenticator).handleAuthenticationSASLContinue(msgLen - 4 - 4);
+                if (oauthAuthenticator != null) {
+                  oauthAuthenticator.handleAuthenticationSASLContinue(msgLen - 4 - 4);
+                } else if (scramAuthenticator != null) {
+                  scramAuthenticator.handleAuthenticationSASLContinue(msgLen - 4 - 4);
+                } else {
+                  throw new PSQLException(
+                      GT.tr("SASL CONTINUE message received out of order."),
+                      PSQLState.PROTOCOL_VIOLATION);
+                }
                 break;
 
               case AUTH_REQ_SASL_FINAL:
-                castNonNull(scramAuthenticator).handleAuthenticationSASLFinal(msgLen - 4 - 4);
-                saslHandshakeCompleted = true;
-                authFinished = true;
+                if (scramAuthenticator != null) {
+                  scramAuthenticator.handleAuthenticationSASLFinal(msgLen - 4 - 4);
+                  saslHandshakeCompleted = true;
+                  authFinished = true;
+                } else {
+                  throw new PSQLException(
+                      GT.tr("SASL FINAL message received out of order."),
+                      PSQLState.PROTOCOL_VIOLATION);
+                }
                 break;
 
               case AUTH_REQ_OK:
+                if (oauthAuthenticator != null) {
+                  oauthAuthenticator.handleAuthenticationOk();
+                }
                 AuthMethod.checkAuthCompleted(authMethods, authRequested,
                     authFinished, pgStream.isGssEncrypted());
                 /* Cleanup after successful authentication */

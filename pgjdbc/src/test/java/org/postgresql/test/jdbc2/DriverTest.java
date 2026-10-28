@@ -647,9 +647,11 @@ class DriverTest {
     }
   }
 
-  private static final String URL_CREDENTIALS = "password=secret&sslpassword=passphrase";
+  private static final String URL_CREDENTIALS =
+      "password=secret&sslpassword=passphrase&oauthToken=token";
 
-  private static final String MASKED_URL_CREDENTIALS = "password=***&sslpassword=***";
+  private static final String MASKED_URL_CREDENTIALS =
+      "password=***&sslpassword=***&oauthToken=***";
 
   @Test
   void malformedUrlWarningsMaskCredentials() {

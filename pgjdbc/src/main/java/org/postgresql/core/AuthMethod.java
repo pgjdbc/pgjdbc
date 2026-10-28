@@ -17,7 +17,7 @@ import java.util.EnumSet;
  * Enumeration of PostgreSQL authentication methods.
  */
 public enum AuthMethod {
-  NONE, PASSWORD, MD5, GSS, SSPI, SCRAM_SHA_256;
+  NONE, PASSWORD, MD5, GSS, SSPI, SCRAM_SHA_256, OAUTH;
 
   public static AuthMethod fromString(String method) throws PSQLException {
     switch (method) {
@@ -27,6 +27,7 @@ public enum AuthMethod {
       case "gss": return GSS;
       case "sspi": return SSPI;
       case "scram-sha-256": return SCRAM_SHA_256;
+      case "oauth": return OAUTH;
       default: throw new PSQLException(GT.tr("Invalid authentication method: {0}", method), PSQLState.INVALID_PARAMETER_VALUE);
     }
   }
@@ -90,6 +91,10 @@ public enum AuthMethod {
     return allowedMethods;
   }
 
+  public static boolean isAllowed(@Nullable EnumSet<AuthMethod> allowedMethods, AuthMethod authMethod) {
+    return allowedMethods == null || allowedMethods.contains(authMethod);
+  }
+
   /**
    * Refuses an authentication method that {@code requireAuth} does not allow.
    *
@@ -100,10 +105,7 @@ public enum AuthMethod {
    *     method is not allowed
    */
   public static void checkAuth(@Nullable EnumSet<AuthMethod> allowedMethods, AuthMethod authMethod) throws PSQLException {
-    if (allowedMethods == null) {
-      return;
-    }
-    if (!allowedMethods.contains(authMethod)) {
+    if (!isAllowed(allowedMethods, authMethod)) {
       throw new PSQLException(GT.tr("Authentication method is not allowed by requireAuth"), PSQLState.CONNECTION_REJECTED);
     }
   }

@@ -52,13 +52,6 @@ final class ScramAuthenticator {
       ChannelBinding channelBinding, List<String> mechanisms) throws PSQLException {
     try {
       LOGGER.log(Level.FINEST, "channelBinding( {0} )", channelBinding);
-      if (channelBinding == ChannelBinding.REQUIRE
-          && !mechanisms.stream().anyMatch(m -> m.endsWith("-PLUS"))) {
-        throw new PSQLException(
-            GT.tr("Channel Binding is required, but server did not offer an "
-                + "authentication method that supports channel binding"),
-            PSQLState.CONNECTION_REJECTED);
-      }
       final byte[] cbindData = getChannelBindingData(stream, channelBinding);
       ScramClient client = ScramClient.builder()
           .advertisedMechanisms(mechanisms)
