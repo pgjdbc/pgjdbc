@@ -11,6 +11,7 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 import org.postgresql.PGProperty;
 import org.postgresql.core.AuthMethod;
 import org.postgresql.core.ConnectionFactory;
+import org.postgresql.core.Encoding;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.PgMessageType;
 import org.postgresql.core.ProtocolVersion;
@@ -1052,7 +1053,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 }
                 break;
 
-              case AUTH_REQ_SASL:
+              case AUTH_REQ_SASL: {
+                List<String> saslMechanisms = readMechanisms(pgStream, msgLen - 8);
                 AuthMethod.checkAuth(authMethods, AuthMethod.SCRAM_SHA_256);
                 int scramMaxIterations = PGProperty.SCRAM_MAX_ITERATIONS.getInt(info);
                 if (scramMaxIterations < 0) {
@@ -1074,10 +1076,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                             "The server requested SCRAM-based authentication, but the password is an empty string."),
                         PSQLState.CONNECTION_REJECTED);
                   }
-                  return new ScramAuthenticator(password, pgStream, channelBinding, scramMaxIterations);
+                  return new ScramAuthenticator(password, pgStream, channelBinding, scramMaxIterations,
+                      saslMechanisms);
                 });
                 scramAuthenticator.handleAuthenticationSASL();
                 break;
+              }
 
               case AUTH_REQ_SASL_CONTINUE:
                 castNonNull(scramAuthenticator).handleAuthenticationSASLContinue(msgLen - 4 - 4);
@@ -1121,6 +1125,52 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
       }
     }
+  }
+
+  /*
+   * Reads the null-terminated mechanism list from an AuthenticationSASL message body.
+   * For the format see https://www.postgresql.org/docs/current/protocol-message-formats.html#PROTOCOL-MESSAGE-FORMATS-AUTHENTICATIONSASL
+   */
+  static List<String> readMechanisms(PGStream stream, int length)
+      throws PSQLException, IOException {
+    if (length < 1) {
+      throw new PSQLException(
+          GT.tr("Received AuthenticationSASL message with an invalid length: {0}.", length),
+          PSQLState.PROTOCOL_VIOLATION);
+    }
+
+    byte[] body = stream.receive(length);
+    if (body[length - 1] != 0) {
+      throw new PSQLException(
+          GT.tr("Received invalid AuthenticationSASL message."),
+          PSQLState.PROTOCOL_VIOLATION);
+    }
+
+    List<String> mechanisms = new ArrayList<>();
+    Encoding encoding = stream.getEncoding();
+    int start = 0;
+    while (start < length && body[start] != 0) {
+      int end = start;
+      while (body[end] != 0) {
+        end++;
+      }
+      mechanisms.add(encoding.decode(body, start, end - start));
+      start = end + 1;
+    }
+
+    if (start != length - 1) {
+      throw new PSQLException(
+          GT.tr("Received AuthenticationSASL message with invalid authentication mechanism list."),
+          PSQLState.PROTOCOL_VIOLATION);
+    }
+
+    if (mechanisms.isEmpty()) {
+      throw new PSQLException(
+          GT.tr("Received AuthenticationSASL message with 0 mechanisms!"),
+          PSQLState.PROTOCOL_VIOLATION);
+    }
+    LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL( {0} )", mechanisms);
+    return mechanisms;
   }
 
   private static void runInitialQueries(QueryExecutor queryExecutor, Properties info)
