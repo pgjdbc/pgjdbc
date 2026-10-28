@@ -93,6 +93,11 @@ jobs:
             "${RUNNER_TEMP}/javadoc.jar" \
             -x 'META-INF/*' \
             -d ./docs/public/documentation/publicapi
+          # The JDK 21 stylesheet imports resources/fonts/dejavu.css, but the JDK
+          # ships no fonts. An empty file avoids the 404, and the stylesheet falls
+          # back to Arial, Georgia and monospace as before.
+          mkdir -p ./docs/public/documentation/publicapi/resources/fonts
+          touch ./docs/public/documentation/publicapi/resources/fonts/dejavu.css
 
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
