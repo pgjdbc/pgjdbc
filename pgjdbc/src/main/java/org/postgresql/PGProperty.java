@@ -906,12 +906,36 @@ public enum PGProperty {
       new String []{"any", "primary", "master", "slave", "secondary", "preferSlave", "preferSecondary", "preferPrimary"}),
 
   /**
-   * Enable or disable TCP keep-alive. The default is {@code false}.
+   * Enable or disable TCP keep-alive. {@code tcpKeepAliveCount}, {@code tcpKeepAliveIdle} and {@code tcpKeepAliveInterval} have no effect unless it is {@code true}. The default is {@code false}.
    */
   TCP_KEEP_ALIVE(
       "tcpKeepAlive",
       "false",
-      "Enable or disable TCP keep-alive. The default is {@code false}."),
+      "Enable or disable TCP keep-alive. {@code tcpKeepAliveCount}, {@code tcpKeepAliveIdle} and {@code tcpKeepAliveInterval} have no effect unless it is {@code true}. The default is {@code false}."),
+
+  /**
+   * The number of unanswered keep-alive probes after which the connection is considered broken. When unset, the operating system's value applies. Has no effect unless {@code tcpKeepAlive} is {@code true}. Only takes effect on Linux and macOS from JDK 11, on AIX from JDK 21 and on Windows from JDK 22; where the JDK, the operating system or the socket from {@code socketFactory} does not support it, the driver logs a warning and connects without it. A value that is not a positive integer, or that the operating system rejects, fails the connection.
+   */
+  TCP_KEEP_ALIVE_COUNT(
+      "tcpKeepAliveCount",
+      null,
+      "The number of unanswered keep-alive probes after which the connection is considered broken. Requires tcpKeepAlive=true; when unset, the operating system's value applies."),
+
+  /**
+   * The idle time in seconds before the first keep-alive probe. When unset, the operating system's value applies. Has no effect unless {@code tcpKeepAlive} is {@code true}. Only takes effect on Linux and macOS from JDK 11, on AIX from JDK 21 and on Windows from JDK 22; where the JDK, the operating system or the socket from {@code socketFactory} does not support it, the driver logs a warning and connects without it. A value that is not a positive integer, or that the operating system rejects, fails the connection.
+   */
+  TCP_KEEP_ALIVE_IDLE(
+      "tcpKeepAliveIdle",
+      null,
+      "The idle time in seconds before the first keep-alive probe. Requires tcpKeepAlive=true; when unset, the operating system's value applies."),
+
+  /**
+   * The time in seconds between keep-alive probes. When unset, the operating system's value applies. Has no effect unless {@code tcpKeepAlive} is {@code true}. Only takes effect on Linux and macOS from JDK 11, on AIX from JDK 21 and on Windows from JDK 22; where the JDK, the operating system or the socket from {@code socketFactory} does not support it, the driver logs a warning and connects without it. A value that is not a positive integer, or that the operating system rejects, fails the connection.
+   */
+  TCP_KEEP_ALIVE_INTERVAL(
+      "tcpKeepAliveInterval",
+      null,
+      "The time in seconds between keep-alive probes. Requires tcpKeepAlive=true; when unset, the operating system's value applies."),
 
   TCP_NO_DELAY(
       "tcpNoDelay",

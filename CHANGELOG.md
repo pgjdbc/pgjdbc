@@ -4,6 +4,9 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
+### Added
+* feat: add `tcpKeepAliveCount`, `tcpKeepAliveIdle` and `tcpKeepAliveInterval` connection properties to set the TCP keep-alive probe count, idle time and interval instead of the operating system's defaults. They apply only with `tcpKeepAlive=true`, on Linux and macOS from JDK 11, AIX from JDK 21 and Windows from JDK 22; elsewhere the driver logs `Ignoring tcpKeepAliveIdle: ...` and connects without the option. A zero or negative value fails the connection with `tcpKeepAliveIdle parameter value must be a positive integer but was: 0`, and a value the operating system rejects with `The operating system rejected tcpKeepAliveIdle=...` [Issue #2487](https://github.com/pgjdbc/pgjdbc/issues/2487) [PR #3964](https://github.com/pgjdbc/pgjdbc/pull/3964)
+
 ### Fixed
 * fix: `PGStream.skip` no longer loops forever when the connection ends while the driver is discarding bytes, and no longer mistakes a stream that skips nothing for one that has ended. `InputStream.skip` may return zero with more data still coming, which a stream supplied through the `socketFactory` property is free to do; the driver now reads a byte in that case and treats only `-1` as the end [PR #4358](https://github.com/pgjdbc/pgjdbc/pull/4358)
 * fix: `LargeObjectManager` operations now work inside an active XA transaction. Since 42.7.13 an XA branch keeps the caller's `autoCommit=true`, and the guard rejected large objects as if the connection were idle. It now checks the server transaction state (`getTransactionState()`) instead of `autoCommit`, so a genuine auto-commit connection with no open transaction is still refused [Issue #4309](https://github.com/pgjdbc/pgjdbc/issues/4309) [PR #4310](https://github.com/pgjdbc/pgjdbc/pull/4310)
