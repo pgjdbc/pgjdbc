@@ -534,6 +534,12 @@ value in the connection properties will be used.
 Comma-separated list of acceptable authentication methods. Use '!' prefix to reject methods (e.g., '!password' to reject cleartext). 
 Supported methods: `password`, `md5`, `gss`, `sspi`, `scram-sha-256`, `none`. Cannot mix positive and negative options.
 Examples: `requireAuth=md5,scram-sha-256` (allow only MD5 or SCRAM-SHA-256), `requireAuth=!password,!none` (reject cleartext and trust authentication).
+If the server lets the client in without asking it to authenticate, as with a `trust` rule in `pg_hba.conf`, the
+connection fails unless `requireAuth` allows `none`. A list of `!` options allows `none` unless it includes `!none`.
+One exception: on a GSS-encrypted connection (see `gssEncMode`), allowing `gss` is enough when the server sends no
+authentication request, as with a `gss` rule, because setting up the encryption already authenticated the client with
+Kerberos. The driver cannot see which `pg_hba.conf` rule matched, so, as in libpq, this also accepts a `trust` rule
+over GSS encryption.
 
 * **`scramMaxIterations (`*int*`)`** *Default `100000`*\
 Maximum PBKDF2 iteration count that pgjdbc will accept from the server during SCRAM authentication.

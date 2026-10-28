@@ -637,7 +637,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
             return void.class;
           });
-          pgStream.setFinishedAuthenticationRequests();
           return pgStream;
         } catch (PSQLException ex) {
           // allow the connection to proceed
@@ -809,6 +808,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     // Parse requireAuth property for authentication method validation
     String requireAuth = PGProperty.REQUIRE_AUTH.getOrDefault(info);
     @Nullable EnumSet<AuthMethod> authMethods = AuthMethod.parseRequireAuth(requireAuth);
+    boolean authRequested = false;
 
     try {
       int messages = 0;
@@ -901,6 +901,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                           getAuthenticationMethodName(areq)),
                       PSQLState.CONNECTION_REJECTED);
               }
+            }
+
+            // Every authentication message but AuthenticationOk asks the client for
+            // something: a request starts an exchange, a continuation carries it on
+            if (areq != AUTH_REQ_OK) {
+              authRequested = true;
             }
 
             // Process the request.
@@ -1027,6 +1033,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                         PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
                     return void.class;
                   });
+                  pgStream.setFinishedAuthenticationRequests();
                 }
                 break;
 
@@ -1076,15 +1083,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 break;
 
               case AUTH_REQ_OK:
-                if (requireAuth != null) {
-                  // this will happen if the authentication method is trust
-                  if (!pgStream.isFinishedAuthenticationRequests()) {
-                    AuthMethod.checkAuth(authMethods, AuthMethod.NONE);
-                  }
-                  if (pgStream.isGssEncrypted()) {
-                    AuthMethod.checkAuth(authMethods, AuthMethod.GSS);
-                  }
-                }
+                AuthMethod.checkAuthCompleted(authMethods, authRequested,
+                    pgStream.isFinishedAuthenticationRequests(), pgStream.isGssEncrypted());
                 /* Cleanup after successful authentication */
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationOk");
                 break authloop; // We're done.
