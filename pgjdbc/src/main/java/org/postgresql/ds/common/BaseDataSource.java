@@ -13,6 +13,7 @@ import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
+import org.postgresql.util.PGPropertyUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.URLCoder;
@@ -99,14 +100,23 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       Connection con = DriverManager.getConnection(getUrl(), user, password);
       if (LOGGER.isLoggable(Level.FINE)) {
         LOGGER.log(Level.FINE, "Created a {0} for {1} at {2}",
-            new Object[]{getDescription(), user, getUrl()});
+            new Object[]{getDescription(), user, getMaskedUrl()});
       }
       return con;
     } catch (SQLException e) {
-      LOGGER.log(Level.FINE, "Failed to create a {0} for {1} at {2}: {3}",
-          new Object[]{getDescription(), user, getUrl(), e});
+      if (LOGGER.isLoggable(Level.FINE)) {
+        LOGGER.log(Level.FINE, "Failed to create a {0} for {1} at {2}: {3}",
+            new Object[]{getDescription(), user, getMaskedUrl(), e});
+      }
       throw e;
     }
+  }
+
+  /**
+   * Returns {@link #getUrl()} with the value of every credential masked, for logging.
+   */
+  private String getMaskedUrl() {
+    return PGPropertyUtil.maskSensitiveValues(getUrl());
   }
 
   /**
@@ -1523,7 +1533,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     Properties p = Driver.parseURL(url, null);
 
     if (p == null) {
-      throw new IllegalArgumentException("URL invalid " + url);
+      throw new IllegalArgumentException("URL invalid " + PGPropertyUtil.maskSensitiveValues(url));
     }
     for (PGProperty property : PGProperty.values()) {
       if (!this.properties.containsKey(property.getName())) {

@@ -8,7 +8,9 @@ package org.postgresql.test.jdbc2;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.Driver;
@@ -17,6 +19,8 @@ import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.GT;
+import org.postgresql.util.TestLogHandler;
 import org.postgresql.util.URLCoder;
 
 import org.junit.jupiter.api.AfterEach;
@@ -26,12 +30,20 @@ import org.junit.jupiter.api.Test;
 import java.beans.BeanInfo;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
+import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.sql.DriverPropertyInfo;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 class PGPropertyTest {
 
@@ -294,5 +306,148 @@ class PGPropertyTest {
     assertFalse(PGProperty.USER.isPresent(parsed), "user");
     assertFalse(PGProperty.PASSWORD.isPresent(parsed), "password");
     assertEquals(applicationName, PGProperty.APPLICATION_NAME.getOrDefault(parsed), "APPLICATION_NAME");
+  }
+
+  @Test
+  void setUrlMasksCredentialsInItsError() {
+    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+        () -> new PGSimpleDataSource().setURL(
+            "jdbc:postgresql://localhost/a/b?password=p4ss&sslpassword=sslp4ss"));
+    for (String secret : new String[]{"p4ss", "sslp4ss"}) {
+      assertFalse(e.getMessage().contains(secret), () -> "The credential is in " + e.getMessage());
+    }
+  }
+
+  @Test
+  void getConnectionMasksCredentialsInItsLog() throws Exception {
+    int closedPort;
+    try (ServerSocket socket = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
+      closedPort = socket.getLocalPort();
+    }
+    PGSimpleDataSource dataSource = new PGSimpleDataSource();
+    dataSource.setServerNames(new String[]{"127.0.0.1"});
+    dataSource.setPortNumbers(new int[]{closedPort});
+    dataSource.setSslPassword("sslp4ssword");
+
+    List<String> messages = recordFineMessages(BaseDataSource.class,
+        () -> assertThrows(SQLException.class, dataSource::getConnection));
+
+    assertTrue(messages.stream().anyMatch(message -> message.contains("Failed to create")),
+        () -> "Expected the failure to be logged, but got " + messages);
+    for (String message : messages) {
+      assertFalse(message.contains("sslp4ssword"), () -> "The credential was logged: " + message);
+    }
+  }
+
+  private static final String[] URL_SECRETS = {"p4ss", "sslp4ss"};
+  private static final String URL_CREDENTIALS =
+      "password=p4ss&sslpassword=sslp4ss";
+
+  private static void assertNoUrlSecret(String text) {
+    for (String secret : URL_SECRETS) {
+      assertFalse(text.contains(secret), () -> "The credential is in: " + text);
+    }
+  }
+
+  @Test
+  void malformedUrlWarningsMaskCredentials() {
+    List<String> messages = recordFineMessages(Driver.class, () -> {
+      assertNull(Driver.parseURL("jdbc:postgresql://localhost/a/b?" + URL_CREDENTIALS, null));
+      assertNull(Driver.parseURL("jdbc:postgresql://localhost?" + URL_CREDENTIALS, null));
+    });
+
+    assertTrue(messages.stream().anyMatch(message -> message.contains("too many / characters")),
+        () -> "Expected the too many / warning, but got " + messages);
+    assertTrue(messages.stream().anyMatch(message -> message.contains("must contain a /")),
+        () -> "Expected the missing / warning, but got " + messages);
+    messages.forEach(PGPropertyTest::assertNoUrlSecret);
+  }
+
+  @Test
+  void unableToParseUrlMasksCredentials() {
+    SQLException e = assertThrows(SQLException.class,
+        () -> new Driver().connect("jdbc:postgresql://localhost/a/b?" + URL_CREDENTIALS,
+            new Properties()));
+    assertEquals(
+        GT.tr("Unable to parse URL {0}", "jdbc:postgresql://localhost/a/b?password=***&sslpassword=***"),
+        e.getMessage());
+    assertNoUrlSecret(e.getMessage());
+  }
+
+  @Test
+  void connectingWithUrlMasksCredentials() throws Exception {
+    int closedPort;
+    try (ServerSocket socket = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
+      closedPort = socket.getLocalPort();
+    }
+    String url = "jdbc:postgresql://127.0.0.1:" + closedPort + "/test?" + URL_CREDENTIALS;
+
+    List<String> messages = recordFineMessages(Driver.class,
+        () -> assertThrows(SQLException.class, () -> new Driver().connect(url, new Properties())));
+
+    assertTrue(messages.stream().anyMatch(message -> message.contains("Connecting with URL")),
+        () -> "Expected the URL to be logged, but got " + messages);
+    messages.forEach(PGPropertyTest::assertNoUrlSecret);
+  }
+
+  /** Runs the action with the logger of the given class at FINE and returns what it logged. */
+  private static List<String> recordFineMessages(Class<?> loggerClass, Runnable action) {
+    Logger logger = Logger.getLogger(loggerClass.getName());
+    TestLogHandler logHandler = new TestLogHandler();
+    Level previousLevel = logger.getLevel();
+    boolean previousUseParentHandlers = logger.getUseParentHandlers();
+    logger.addHandler(logHandler);
+    logger.setLevel(Level.FINE);
+    // Route the records to our handler only, so they do not pollute standard output
+    logger.setUseParentHandlers(false);
+    try {
+      action.run();
+    } finally {
+      logger.removeHandler(logHandler);
+      logger.setLevel(previousLevel);
+      logger.setUseParentHandlers(previousUseParentHandlers);
+    }
+    SimpleFormatter formatter = new SimpleFormatter();
+    List<String> messages = new ArrayList<>();
+    for (LogRecord record : logHandler.records) {
+      messages.add(formatter.formatMessage(record));
+    }
+    return messages;
+  }
+
+  /**
+   * A parameter value that fails to URL-decode may be a credential, so only its name is logged.
+   */
+  @Test
+  void malformedCredentialValueIsNotLogged() {
+    Logger driverLogger = Logger.getLogger(Driver.class.getName());
+    TestLogHandler logHandler = new TestLogHandler();
+    Level previousLevel = driverLogger.getLevel();
+    boolean previousUseParentHandlers = driverLogger.getUseParentHandlers();
+    driverLogger.addHandler(logHandler);
+    driverLogger.setLevel(Level.FINE);
+    // Route the records to our handler only, so they do not pollute standard output
+    driverLogger.setUseParentHandlers(false);
+    try {
+      // "%zz" is not a valid percent-escape, so decoding the value fails
+      assertNull(Driver.parseURL(
+          "jdbc:postgresql://localhost:5432/test?sslpassword=s3cr3t%zz", null));
+    } finally {
+      driverLogger.removeHandler(logHandler);
+      driverLogger.setLevel(previousLevel);
+      driverLogger.setUseParentHandlers(previousUseParentHandlers);
+    }
+
+    SimpleFormatter formatter = new SimpleFormatter();
+    List<String> messages = new ArrayList<>();
+    for (LogRecord record : logHandler.records) {
+      messages.add(formatter.formatMessage(record));
+    }
+    assertFalse(messages.isEmpty(), "Expected the driver to log the decoding failure");
+    for (String message : messages) {
+      assertFalse(message.contains("s3cr3t"), () -> "The credential was logged: " + message);
+    }
+    assertTrue(messages.stream().anyMatch(message -> message.contains("sslpassword")),
+        () -> "Expected the parameter name in the log, but got " + messages);
   }
 }
