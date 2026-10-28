@@ -58,6 +58,32 @@ main () {
         sed  -i -e "s/^hostssl\b/#hostssl/" "${pg_hba}"
     fi
 
+    if [[ "${OAUTH:-no}" != "no" ]]; then
+        is_pg_version_at_least "18" || err "OAuth testing requires a minimum of 18 but PG_MAJOR=${PG_MAJOR}. Disable with OAUTH=no"
+        echo "Installing pg_oidc_validator for OAuth testing..."
+        apt-get update -qq
+        apt-get install -y -qq wget libcurl4
+        # TODO: Use official PGDG repo once pg_oidc_validator is available there
+        # See https://github.com/pgdg-packaging/apt.postgresql.org-issues/issues/2
+        local deb_url="https://github.com/percona/pg_oidc_validator/releases/download/latest/pg-oidc-validator-pgdg18.deb"
+        wget -q -O /tmp/pg_oidc_validator.deb "${deb_url}"
+        apt-get install -y /tmp/pg_oidc_validator.deb
+        rm /tmp/pg_oidc_validator.deb
+
+        cat > /tmp/pg_ident.conf <<'IDENT'
+# map-name    system-username                database-username
+oauthmap      service-account-pgjdbc-test    testoauth
+IDENT
+
+        # Insert the OAuth rule above all host rules so it takes precedence.
+        sed -i '/^# TYPE\b/a\
+host    all         testoauth   all      oauth   scope=pgjdbc,issuer=http://keycloak:8080/realms/pgjdbc,map=oauthmap' "${pg_hba}"
+
+        add_pg_opt "-c oauth_validator_libraries=pg_oidc_validator"
+        add_pg_opt "-c pg_oidc_validator.authn_field=preferred_username"
+        add_pg_opt "-c ident_file=/tmp/pg_ident.conf"
+    fi
+
     if is_option_enabled "${XA}"; then
         pg_opts="${pg_opts} -c max_prepared_transactions=64"
     fi
