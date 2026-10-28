@@ -194,15 +194,16 @@ matrix.addAxis({
   ]
 });
 
-// Available options for oauth:
-//   no    - no infrastructure is started and the OAuth integration tests are skipped
-//   smoke - start the required infrastructure and run OAuth tests
+// oauth: no    - no Keycloak, OauthTest skipped
+//        smoke - start Keycloak and run OauthTest
+//        all   - smoke, plus the test role authenticates through OAuth for the whole suite
 matrix.addAxis({
   name: 'oauth',
   title: x => x.value === 'no' ? '' : 'oauth_' + x.value,
   values: [
     {value: 'no', weight: 10},
     {value: 'smoke', weight: 2},
+    {value: 'all', weight: 1},
   ]
 });
 
@@ -357,11 +358,15 @@ matrix.imply({java_distribution: {value: 'oracle'}}, {java_version: v => v === e
 matrix.exclude({java_distribution: {value: 'semeru'}, java_version: '21'})
 matrix.imply({gss: {value: 'yes'}}, {os: {value: 'ubuntu-latest'}})
 // The pg_oidc_validator package is available for PostgreSQL 18 only.
-matrix.imply({oauth: {value: 'smoke'}}, {pg_version: '18'})
+matrix.imply({oauth: {value: ['smoke', 'all']}}, {pg_version: '18'})
 // OAuth tests require the Keycloak container, which only the Linux setup starts.
-matrix.imply({oauth: {value: 'smoke'}}, {os: {value: 'ubuntu-latest'}})
+matrix.imply({oauth: {value: ['smoke', 'all']}}, {os: {value: 'ubuntu-latest'}})
 // Some OAuth tests require SSL to be enabled.
-matrix.imply({oauth: {value: 'smoke'}}, {ssl: {value: 'yes'}})
+matrix.imply({oauth: {value: ['smoke', 'all']}}, {ssl: {value: 'yes'}})
+// oauth=all switches the test role to OAuth, but the GSS and replication tests authenticate it
+// another way.
+matrix.exclude({oauth: {value: 'all'}, gss: {value: 'yes'}})
+matrix.exclude({oauth: {value: 'all'}, replication: {value: 'yes'}})
 // ikalnytskyi/action-setup-postgres supports PostgreSQL 14+ only
 matrix.exclude({os: {value: ['windows-latest', 'macos-latest']}, pg_version: lessThan('14')});
 // HEAD is built from pgdg-snapshot inside Docker, which only runs on Linux.
@@ -597,6 +602,10 @@ include.forEach(v => {
   delete v.assertions;
   if (v.oauth !== 'no') {
       jvmArgs.push('-Denable_oauth_tests=true');
+  }
+  if (v.oauth === 'all') {
+      // Redirect connections of the default user to OAuth, see TestUtil.addOauthProperties
+      jvmArgs.push('-DauthMode=oauth');
   }
   v.extraJvmArgs = jvmArgs.join(' ');
   v.testExtraJvmArgs = testJvmArgs.join(' ::: ');

@@ -34,6 +34,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
+import java.util.logging.Filter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -63,6 +64,7 @@ public class OauthTest {
   private static final TestLogHandler logHandler = new TestLogHandler();
   private static @Nullable Level previousLevel;
   private static boolean previousUseParentHandlers;
+  private static @Nullable Filter previousFilter;
   private static boolean loggerConfigured;
 
   @BeforeAll
@@ -77,10 +79,13 @@ public class OauthTest {
 
     previousLevel = oauthLogger.getLevel();
     previousUseParentHandlers = oauthLogger.getUseParentHandlers();
+    previousFilter = oauthLogger.getFilter();
     oauthLogger.addHandler(logHandler);
     oauthLogger.setLevel(Level.ALL);
     // Record the messages here without also emitting them to the console.
     oauthLogger.setUseParentHandlers(false);
+    // In oauth=all mode TestUtil filters out the insecure-connection messages these tests check.
+    oauthLogger.setFilter(null);
     loggerConfigured = true;
   }
 
@@ -90,6 +95,7 @@ public class OauthTest {
       oauthLogger.removeHandler(logHandler);
       oauthLogger.setLevel(previousLevel);
       oauthLogger.setUseParentHandlers(previousUseParentHandlers);
+      oauthLogger.setFilter(previousFilter);
       loggerConfigured = false;
     }
     TestUtil.closeDB(con);

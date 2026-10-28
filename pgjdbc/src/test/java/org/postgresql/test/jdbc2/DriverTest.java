@@ -240,6 +240,7 @@ class DriverTest {
    */
   @Test
   void connect() throws Exception {
+    TestUtil.assumeNotOauthMode();
     // Test with the url, username & password
     String url = TestUtil.getURL();
     String user = TestUtil.getUser();
@@ -414,6 +415,7 @@ class DriverTest {
    */
   @Test
   void connectPassword01() throws Exception {
+    TestUtil.assumeNotOauthMode();
     TestUtil.initDriver(); // Set up log levels, etc.
 
     // Create temporary .pgpass file
@@ -447,6 +449,7 @@ class DriverTest {
    */
   @Test
   void connectPassword02() throws Exception {
+    TestUtil.assumeNotOauthMode();
     TestUtil.initDriver(); // Set up log levels, etc.
     String wrongPassword = "random wrong";
 
@@ -485,6 +488,7 @@ class DriverTest {
    */
   @Test
   void connectPassword03() throws Exception {
+    TestUtil.assumeNotOauthMode();
     TestUtil.initDriver(); // Set up log levels, etc.
     String wrongPassword = "random wrong";
 
@@ -525,6 +529,7 @@ class DriverTest {
    */
   @Test
   void connectPassword04() throws Exception {
+    TestUtil.assumeNotOauthMode();
     TestUtil.initDriver(); // Set up log levels, etc.
     String wrongPassword = "random wrong";
 
@@ -567,6 +572,7 @@ class DriverTest {
    */
   @Test
   void connectFailover() throws Exception {
+    TestUtil.assumeNotOauthMode();
     String url = "jdbc:postgresql://invalidhost.not.here," + TestUtil.getServer() + ":"
         + TestUtil.getPort() + "/" + TestUtil.getDatabase() + "?connectTimeout=5";
     Connection con = DriverManager.getConnection(url, TestUtil.getUser(), TestUtil.getPassword());
@@ -579,6 +585,7 @@ class DriverTest {
    */
   @Test
   void readOnly() throws Exception {
+    TestUtil.assumeNotOauthMode();
     TestUtil.initDriver(); // Set up log levels, etc.
 
     Connection con = DriverManager.getConnection(TestUtil.getURL() + "&readOnly=true",
@@ -644,6 +651,7 @@ class DriverTest {
 
   @Test
   void systemErrIsNotClosedWhenCreatedMultipleConnections() throws Exception {
+    TestUtil.assumeNotOauthMode();
     TestUtil.initDriver();
     PrintStream err = System.err;
     PrintStream buffer = new PrintStream(new ByteArrayOutputStream());

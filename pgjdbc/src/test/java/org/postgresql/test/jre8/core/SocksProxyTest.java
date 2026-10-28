@@ -33,6 +33,7 @@ class SocksProxyTest {
    */
   @Test
   void connectWithSocksNonProxyHost() throws Exception {
+    TestUtil.assumeNotOauthMode();
     System.setProperty("socksProxyHost", "fake-socks-proxy");
     System.setProperty("socksProxyPort", "9999");
     System.setProperty("socksNonProxyHosts", TestUtil.getServer());
