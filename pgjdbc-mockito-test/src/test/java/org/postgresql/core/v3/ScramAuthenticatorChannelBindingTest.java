@@ -12,6 +12,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import org.postgresql.core.PGStream;
+import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -20,6 +21,8 @@ import org.junit.jupiter.api.Test;
 import java.net.Socket;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.List;
 
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
@@ -31,6 +34,9 @@ import javax.net.ssl.SSLSocket;
  * TLS socket, so it needs no live server.
  */
 class ScramAuthenticatorChannelBindingTest {
+
+  private static final List<String> MECHANISMS =
+      Arrays.asList("SCRAM-SHA-256", "SCRAM-SHA-256-PLUS");
 
   @Test
   void requireRejectsCertificateWithoutChannelBindingHash() throws Exception {
@@ -48,7 +54,8 @@ class ScramAuthenticatorChannelBindingTest {
     when(stream.getSocket()).thenReturn(socket);
 
     PSQLException ex = assertThrows(PSQLException.class,
-        () -> new ScramAuthenticator("secret".toCharArray(), stream, ChannelBinding.REQUIRE, 0));
+        () -> new ScramAuthenticator("secret".toCharArray(), stream, ChannelBinding.REQUIRE, 0,
+            MECHANISMS));
 
     assertEquals(PSQLState.CONNECTION_REJECTED.getState(), ex.getSQLState());
     // The message names the offending signature algorithm so an operator can act.
@@ -61,8 +68,10 @@ class ScramAuthenticatorChannelBindingTest {
     when(stream.getSocket()).thenReturn(mock(Socket.class));
 
     PSQLException ex = assertThrows(PSQLException.class,
-        () -> new ScramAuthenticator("secret".toCharArray(), stream, ChannelBinding.REQUIRE, 0));
+        () -> new ScramAuthenticator("secret".toCharArray(), stream, ChannelBinding.REQUIRE, 0,
+            MECHANISMS));
 
     assertEquals(PSQLState.CONNECTION_REJECTED.getState(), ex.getSQLState());
+    assertEquals(GT.tr("Channel Binding is required, but SSL is not in use"), ex.getMessage());
   }
 }
