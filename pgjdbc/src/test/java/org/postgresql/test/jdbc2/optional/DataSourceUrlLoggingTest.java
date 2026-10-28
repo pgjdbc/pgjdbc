@@ -69,8 +69,9 @@ class DataSourceUrlLoggingTest {
     TestLogHandler.recordFineMessages(Driver.class, () -> {
       IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
           () -> new PGSimpleDataSource().setURL(
-              "jdbc:postgresql://localhost/a/b?password=secret&sslpassword=passphrase"));
-      assertEquals("URL invalid jdbc:postgresql://localhost/a/b?password=***&sslpassword=***",
+              "jdbc:postgresql://localhost/a/b?password=secret&sslpassword=passphrase&oauthToken=token"));
+      assertEquals(
+          "URL invalid jdbc:postgresql://localhost/a/b?password=***&sslpassword=***&oauthToken=***",
           e.getMessage());
     });
   }
@@ -80,7 +81,11 @@ class DataSourceUrlLoggingTest {
     PGSimpleDataSource dataSource = new PGSimpleDataSource();
     dataSource.setServerNames(new String[]{"127.0.0.1"});
     dataSource.setPortNumbers(new int[]{TestUtil.getClosedLoopbackPort()});
-    String maskedUrl = setSslPasswordAndGetMaskedUrl(dataSource);
+    dataSource.setOauthToken("token");
+    String sslPasswordMaskedUrl = setSslPasswordAndGetMaskedUrl(dataSource);
+    assertTrue(sslPasswordMaskedUrl.contains("oauthToken=token"),
+        () -> "Unexpected data source URL " + sslPasswordMaskedUrl);
+    String maskedUrl = sslPasswordMaskedUrl.replace("oauthToken=token", "oauthToken=***");
 
     List<String> messages = TestLogHandler.recordFineMessages(BaseDataSource.class,
         () -> assertThrows(SQLException.class, dataSource::getConnection));

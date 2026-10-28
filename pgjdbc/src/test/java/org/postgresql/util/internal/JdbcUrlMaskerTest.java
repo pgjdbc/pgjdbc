@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 class JdbcUrlMaskerTest {
 
   @ParameterizedTest
-  @ValueSource(strings = {"password", "sslpassword"})
+  @ValueSource(strings = {"password", "sslpassword", "oauthToken"})
   void masksCredentialValue(String propertyName) {
     PGProperty property = PGProperty.forName(propertyName);
     assertNotNull(property, propertyName);

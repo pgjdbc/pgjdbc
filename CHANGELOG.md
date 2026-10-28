@@ -4,6 +4,9 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
+### Added
+* feat: OAUTHBEARER authentication for PostgreSQL 18, set by `oauthToken` or by an `org.postgresql.plugin.OauthTokenProvider` named in `oauthTokenProviderClassName`. The provider receives the host, port, user and database being tried, and reads any settings of its own from the connection properties; the driver does not contact the issuer. `requireAuth` accepts `oauth`. The token is sent only with `sslmode=verify-ca` or `verify-full`, or over GSS encryption, so the default `sslmode=prefer` fails with `OAUTHBEARER sends the bearer token only ...`. `sslfactory=org.postgresql.ssl.NonValidatingFactory` counts as unverified whatever `sslmode` says; `oauthAllowInsecureConnection=true` is for testing [Issue #3816](https://github.com/pgjdbc/pgjdbc/issues/3816) [PR #4251](https://github.com/pgjdbc/pgjdbc/pull/4251)
+
 ### Fixed
 * fix: with GSS encryption, `GSSInputStream.available()` now returns the number of decrypted bytes that have not been read yet. Before, it always returned 0. `PGConnection.getNotifications()` and reads during a non-blocking `COPY` now see those bytes at once [PR #4383](https://github.com/pgjdbc/pgjdbc/pull/4383)
 * fix: `PGStream.skip` no longer loops forever when the connection ends while the driver is discarding bytes, and no longer mistakes a stream that skips zero bytes for one that has ended. `InputStream.skip` may return zero with more data still coming, which a stream supplied through the `socketFactory` property is free to do; the driver now reads a byte in that case and treats only `-1` as the end [PR #4358](https://github.com/pgjdbc/pgjdbc/pull/4358)
