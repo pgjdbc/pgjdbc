@@ -355,6 +355,10 @@ public class PGStream implements Closeable, Flushable {
    * Switch this stream to using a new socket. Any existing socket is <em>not</em> closed; it's
    * assumed that we are changing to a new socket that delegates to the original socket (e.g. SSL).
    *
+   * <p>The new socket takes the {@code TCP_NODELAY} setting of the socket it replaces, so a
+   * {@code tcpNoDelay=false} connection keeps Nagle's algorithm after the SSL upgrade. The first
+   * socket of a stream gets {@code TCP_NODELAY} on.</p>
+   *
    * @param socket the new socket to change to
    * @throws IOException if something goes wrong
    */
@@ -363,6 +367,9 @@ public class PGStream implements Closeable, Flushable {
         + " This is a no-op, however, it re-allocates buffered streams, so refrain from"
         + " excessive changeSocket calls";
 
+    // A replacement socket keeps the setting of the socket it replaces, which the tcpNoDelay
+    // property may have turned off.
+    boolean tcpNoDelay = connection == null || connection.getTcpNoDelay();
     this.connection = socket;
     // The new stream starts its own byte count.
     messageEnd = -1;
@@ -370,7 +377,7 @@ public class PGStream implements Closeable, Flushable {
     // Submitted by Jason Venner <jason@idiom.com>. Disable Nagle
     // as we are selective about flushing output only when we
     // really need to.
-    connection.setTcpNoDelay(true);
+    connection.setTcpNoDelay(tcpNoDelay);
 
     pgInput = new VisibleBufferedInputStream(connection.getInputStream(), 8192, markBroken());
     int sendBufferSize = Math.min(maxSendBufferSize, Math.max(8192, socket.getSendBufferSize()));
