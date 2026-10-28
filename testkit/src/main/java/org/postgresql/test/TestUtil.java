@@ -55,6 +55,19 @@ public class TestUtil {
    */
   public static final String TEST_URL_PROPERTY_PREFIX = "test.url.";
 
+  public static final String TOKEN_PROVIDER_CLASS = "org.postgresql.test.OauthTestTokenProvider";
+  /**
+   * OIDC issuer of the test realm. It differs from the {@code issuer=} the server is configured
+   * with in {@code pg_hba.conf} only by hostname: the tests reach Keycloak through the port mapped
+   * onto the host, the server reaches it through the compose network.
+   */
+  public static final String OAUTH_ISSUER = "http://localhost:8080/realms/pgjdbc";
+  public static final String OAUTH_CLIENT_ID = "pgjdbc-test";
+  public static final String OAUTH_CLIENT_SECRET = "pgjdbc-test-client-secret";
+  public static final String OAUTH_SCOPE = "pgjdbc";
+  /** Database role the OAuth integration tests connect as. */
+  public static final String OAUTH_ROLE = "testoauth";
+
   private static final ResourceLock lock = new ResourceLock();
 
   static {
@@ -222,6 +235,31 @@ public class TestUtil {
     return System.getProperty("privilegedPassword");
   }
 
+  public static String getTokenProviderClassName() {
+    return System.getProperty(
+        PGProperty.OAUTH_TOKEN_PROVIDER_CLASS_NAME.getName(), TOKEN_PROVIDER_CLASS);
+  }
+
+  public static String getOauthIssuer() {
+    return System.getProperty(OauthTestTokenProvider.ISSUER, OAUTH_ISSUER);
+  }
+
+  public static String getOauthClientId() {
+    return System.getProperty(OauthTestTokenProvider.CLIENT_ID, OAUTH_CLIENT_ID);
+  }
+
+  public static String getOauthClientSecret() {
+    return System.getProperty(OauthTestTokenProvider.CLIENT_SECRET, OAUTH_CLIENT_SECRET);
+  }
+
+  public static String getOauthScope() {
+    return System.getProperty(OauthTestTokenProvider.SCOPE, OAUTH_SCOPE);
+  }
+
+  public static String getOauthRole() {
+    return System.getProperty("oauthRole", OAUTH_ROLE);
+  }
+
   static {
     try {
       initDriver();
@@ -284,6 +322,10 @@ public class TestUtil {
     }
     File certdir = TestUtil.getFile(certdirProp);
     return new File(certdir, name).getAbsolutePath();
+  }
+
+  public static void assumeOauthTestsEnabled() {
+    assumeTrue(Boolean.parseBoolean(System.getProperty("enable_oauth_tests")));
   }
 
   public static void initDriver() {
