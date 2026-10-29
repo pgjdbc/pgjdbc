@@ -344,6 +344,8 @@ matrix.imply({java_distribution: {value: 'oracle'}}, {java_version: v => v === e
 // TODO: Semeru does not ship Java 21 builds yet
 matrix.exclude({java_distribution: {value: 'semeru'}, java_version: '21'})
 matrix.imply({gss: {value: 'yes'}}, {os: {value: 'ubuntu-latest'}})
+// The GSS server configuration uses hostgssenc, which PostgreSQL 12 introduced
+matrix.exclude({gss: {value: 'yes'}, pg_version: lessThan('12')});
 // ikalnytskyi/action-setup-postgres supports PostgreSQL 14+ only
 matrix.exclude({os: {value: ['windows-latest', 'macos-latest']}, pg_version: lessThan('14')});
 // HEAD is built from pgdg-snapshot inside Docker, which only runs on Linux.
@@ -381,7 +383,7 @@ const include = matrix.generateRows(Number(process.env.MATRIX_JOBS || 6), {
         ssl: {value: 'yes'}, scram: {value: 'yes'},
         xa: {value: 'yes'}, replication: {value: 'yes'},
         // slow tests add ~0 coverage but cost runtime; GSS exercises the driver's encryption
-        // paths and the krb5 setup runs anyway on this Linux job, so keep it on.
+        // paths, so keep it on.
         slow_tests: {value: 'no'}, gss: {value: 'yes'},
       },
       tag: row => { row.collectCoverage = true; },
