@@ -1022,6 +1022,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 if (useSSPI) {
                   /* SSPI requested and detected as available */
                   castNonNull(sspiClient).startSSPI();
+                  // A one-round exchange ends here, and the server answers with AuthenticationOk
+                  if (castNonNull(sspiClient).isComplete()) {
+                    pgStream.setFinishedAuthenticationRequests();
+                  }
                 } else {
                   /* Use JGSS's GSSAPI for this request */
                   AuthenticationPluginManager.withPassword(AuthenticationRequestType.GSS, info, password -> {
@@ -1042,7 +1046,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                  * Only called for SSPI, as GSS is handled by an inner loop in MakeGSS.
                  */
                 castNonNull(sspiClient).continueSSPI(msgLen - 8);
-                pgStream.setFinishedAuthenticationRequests();
+                if (castNonNull(sspiClient).isComplete()) {
+                  pgStream.setFinishedAuthenticationRequests();
+                }
                 break;
 
               case AUTH_REQ_SASL:
