@@ -2294,9 +2294,23 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       sendSync();
     }
 
-    String nativeSql = query.toString(
-        params,
-        SqlSerializationContext.of(getStandardConformingStrings(), false));
+    String nativeSql;
+    try {
+      nativeSql = query.toString(
+          params,
+          SqlSerializationContext.of(getStandardConformingStrings(), false));
+    } catch (Exception e) {
+      // SimpleParameterList.toString throws PSQLException without declaring it when it cannot
+      // render a parameter, for instance a bytea stream whose read() fails.
+      // Nothing of this query is written yet, but the messages queued before it (BEGIN, or the
+      // earlier entries of a batch) still wait for their replies. Report the failure as a failed
+      // Bind, as sendBind does in the extended protocol: a single statement then reads those
+      // replies and the connection stays usable, and a batch closes the connection.
+      if (e instanceof PSQLException) {
+        throw new PGBindException(new IOException(e.getMessage(), e));
+      }
+      throw e;
+    }
 
     LOGGER.log(Level.FINEST, " FE=> SimpleQuery(query=\"{0}\")", nativeSql);
     Encoding encoding = pgStream.getEncoding();
