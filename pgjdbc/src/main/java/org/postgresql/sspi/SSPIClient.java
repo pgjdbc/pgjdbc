@@ -265,6 +265,14 @@ public class SSPIClient implements ISSPIClient {
     }
   }
 
+  @Override
+  public boolean isComplete() {
+    // Waffle sets the continue flag while InitializeSecurityContext returns
+    // SEC_I_CONTINUE_NEEDED, and clears it once the context is established.
+    WindowsSecurityContextImpl sspiContext = this.sspiContext;
+    return sspiContext != null && !sspiContext.isContinue();
+  }
+
   private void sendSSPIResponse(byte[] outToken) throws IOException {
     /*
      * The sspiContext now contains a token we can send to the server to start the handshake. Send a
