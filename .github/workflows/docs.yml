@@ -73,6 +73,8 @@ jobs:
             --silent \
             --show-error \
             --location \
+            --retry 3 \
+            --retry-max-time 120 \
             --output "${RUNNER_TEMP}/javadoc.jar" \
             "${url}"
           curl \
@@ -80,6 +82,8 @@ jobs:
             --silent \
             --show-error \
             --location \
+            --retry 3 \
+            --retry-max-time 120 \
             --output "${RUNNER_TEMP}/javadoc.jar.asc" \
             "${url}.asc"
           # The keyring holds only the keys in KEYS, so a good signature means
