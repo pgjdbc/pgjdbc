@@ -806,9 +806,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     ChannelBinding channelBinding = ChannelBinding.of(info);
 
     // Parse requireAuth property for authentication method validation
-    String requireAuth = PGProperty.REQUIRE_AUTH.getOrDefault(info);
-    @Nullable EnumSet<AuthMethod> authMethods = AuthMethod.parseRequireAuth(requireAuth);
+    @Nullable EnumSet<AuthMethod> authMethods =
+        AuthMethod.parseRequireAuth(PGProperty.REQUIRE_AUTH.getOrDefault(info));
     boolean authRequested = false;
+    boolean authFinished = false;
 
     try {
       int messages = 0;
@@ -936,7 +937,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 }
                 pgStream.sendChar(0);
                 pgStream.flush();
-                pgStream.setFinishedAuthenticationRequests();
+                authFinished = true;
                 break;
               }
 
@@ -953,7 +954,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 });
                 pgStream.sendChar(0);
                 pgStream.flush();
-                pgStream.setFinishedAuthenticationRequests();
+                authFinished = true;
 
                 break;
               }
@@ -1023,7 +1024,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                   castNonNull(sspiClient).startSSPI();
                   // A one-round exchange ends here, and the server answers with AuthenticationOk
                   if (castNonNull(sspiClient).isComplete()) {
-                    pgStream.setFinishedAuthenticationRequests();
+                    authFinished = true;
                   }
                 } else {
                   /* Use JGSS's GSSAPI for this request */
@@ -1036,7 +1037,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                         PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
                     return void.class;
                   });
-                  pgStream.setFinishedAuthenticationRequests();
+                  authFinished = true;
                 }
                 break;
 
@@ -1046,7 +1047,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                  */
                 castNonNull(sspiClient).continueSSPI(msgLen - 8);
                 if (castNonNull(sspiClient).isComplete()) {
-                  pgStream.setFinishedAuthenticationRequests();
+                  authFinished = true;
                 }
                 break;
 
@@ -1084,12 +1085,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               case AUTH_REQ_SASL_FINAL:
                 castNonNull(scramAuthenticator).handleAuthenticationSASLFinal(msgLen - 4 - 4);
                 saslHandshakeCompleted = true;
-                pgStream.setFinishedAuthenticationRequests();
+                authFinished = true;
                 break;
 
               case AUTH_REQ_OK:
                 AuthMethod.checkAuthCompleted(authMethods, authRequested,
-                    pgStream.isFinishedAuthenticationRequests(), pgStream.isGssEncrypted());
+                    authFinished, pgStream.isGssEncrypted());
                 /* Cleanup after successful authentication */
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationOk");
                 break authloop; // We're done.
