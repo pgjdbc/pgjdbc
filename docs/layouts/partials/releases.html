@@ -27,8 +27,15 @@
     {{- $key := printf "%05d%05d%05d"
       (int (index $m 1)) (int (index $m 2)) (int (index $m 3)) -}}
     {{- $line := printf "%s.%s" (index $m 1) (index $m 2) -}}
+    {{- $jarLocation := printf "%v" (.Params.jar_location | default "maven") -}}
+    {{- if not (in (slice "maven" "download") $jarLocation) -}}
+      {{- errorf
+        "changelog %s: jar_location must be maven or download, found %q"
+        $path $jarLocation -}}
+    {{- end -}}
     {{- $list = $list | append (dict
-      "key" $key "version" $version "line" $line "page" .) -}}
+      "key" $key "version" $version "line" $line "jar_location" $jarLocation
+      "page" .) -}}
   {{- else if $isReleaseName -}}
     {{- errorf
       "changelog %s: a file named *-release.md must set version to three numbers separated by dots, each without a leading zero, found %q"

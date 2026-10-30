@@ -216,7 +216,14 @@ The Java 7 and Java 6 cards on the download page name 42.2.29.jre7 and 42.2.27.j
 `docs/layouts/shortcodes/recent-versions.html` sets. No release after 42.2.29 builds jre7 jars, and no release
 after 42.2.27 builds jre6 jars.
 
-Each jar link on the download page points at `/download/postgresql-<version>.jar`.
+The `jar_location` property of a changelog sets where the download page links to the jar of that release:
+
+- `maven`, the default, links to the jar on Maven Central,
+  `https://repo1.maven.org/maven2/org/postgresql/postgresql/<version>/postgresql-<version>.jar`.
+- `download` links to `/download/postgresql-<version>.jar`. The changelogs of the releases before 42.7.0 set it.
+
+The changelog of a new release, including a backport to an older line, does not set `jar_location`. The Java 7 and
+Java 6 cards always link to `/download/`.
 
 The build fails when:
 
@@ -224,6 +231,7 @@ The build fails when:
   by dots, each without a leading zero.
 - A file whose name contains a version, such as `2026-11-04-42.7.15.md`, does not end in `-release.md`.
 - Two changelog files set the same `version`.
+- A changelog sets `jar_location` to a value other than `maven` or `download`.
 - A release changelog has no `date`.
 - No changelog file sets a release `version`.
 

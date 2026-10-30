@@ -5,14 +5,17 @@
   builds jre6 jars, so the Java 7 and Java 6 cards are set here.
 */}}
 {{- $java8 := dict "j_name" "Java 8" "version" .version "suffix" ""
+  "location" .jar_location
   "description"
   "If you are using Java 8 or newer then you should use the JDBC 4.2 version."
 }}
 {{- $java7 := dict "j_name" "Java 7" "version" "42.2.29" "suffix" "jre7"
+  "location" "download"
   "description"
   "If you are using Java 7  then you should use the  JDBC 4.1 version."
 }}
 {{- $java6 := dict "j_name" "Java 6" "version" "42.2.27" "suffix" "jre6"
+  "location" "download"
   "description"
   "If you are using Java 6  then you should use the  JDBC 4.0 version."
 }}
@@ -28,8 +31,9 @@
         <div class="card__subtitle">{{$ver.version}}</div>
         <p class="card__desc">{{$ver.description}}</p>
         <button class="card__btn__left">
-            {{- $url := partial "jar-url.html"
-              (dict "version" $ver.version "suffix" $ver.suffix) }}
+            {{- $url := partial "jar-url.html" (dict
+              "version" $ver.version "suffix" $ver.suffix
+              "location" $ver.location) }}
             <a href="{{ $url }}" class="card__btn__left__link">Download</a>
         </button>
         <script class="maven" id="coordinates-{{$ind}}" type="application/xml">

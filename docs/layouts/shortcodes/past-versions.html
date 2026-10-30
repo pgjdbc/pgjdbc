@@ -11,7 +11,8 @@
     {{- $show := ne .line $prevLine }}
     {{- if eq .line $current.line }}{{ $show = ne .key $current.key }}{{ end }}
     {{- if $show }}
-    {{- $url := partial "jar-url.html" (dict "version" .version "suffix" "") }}
+    {{- $url := partial "jar-url.html" (dict
+      "version" .version "suffix" "" "location" .jar_location) }}
     <li><a href="{{ $url }}">{{ .version }}</a></li>
     {{ end }}
     {{- $prevLine = .line }}

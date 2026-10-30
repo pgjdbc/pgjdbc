@@ -1,7 +1,14 @@
 {{- /*
-  Returns the /download/ URL of the jar of .version. The file name includes
-  .suffix, such as jre7, when .suffix is not empty.
+  Returns the URL of the jar of .version. The file name includes .suffix,
+  such as jre7, when .suffix is not empty. .location is maven for the jar on
+  Maven Central, or download for the jar under /download/.
 */ -}}
 {{- $name := .version -}}
 {{- with .suffix }}{{ $name = printf "%s.%s" $name . }}{{ end -}}
-{{- return relURL (printf "download/postgresql-%s.jar" $name) -}}
+{{- $url := relURL (printf "download/postgresql-%s.jar" $name) -}}
+{{- if eq .location "maven" -}}
+  {{- $url = printf
+    "https://repo1.maven.org/maven2/org/postgresql/postgresql/%s/postgresql-%s.jar"
+    $name $name -}}
+{{- end -}}
+{{- return $url -}}
