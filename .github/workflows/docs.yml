@@ -117,6 +117,7 @@ jobs:
           mkdir -p ./docs/public/documentation/publicapi
           unzip \
             -q \
+            -DD \
             "${RUNNER_TEMP}/javadoc.jar" \
             -x 'META-INF/*' \
             -d ./docs/public/documentation/publicapi
