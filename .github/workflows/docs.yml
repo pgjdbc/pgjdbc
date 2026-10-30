@@ -12,6 +12,10 @@ on:
         description: Add the Javadoc of the current release from Maven Central
         type: boolean
         default: false
+    outputs:
+      version:
+        description: The version of the current release
+        value: ${{ jobs.build.outputs.version }}
 
 permissions:
   contents: read
@@ -28,6 +32,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      version: ${{ steps.release.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -55,8 +61,8 @@ jobs:
 
       # The newest version in the changelogs that are not drafts is the one
       # that the home page and the download page list as the current release.
-      - name: Add the Javadoc of the current release
-        if: inputs.include_javadoc
+      - name: Find the current release
+        id: release
         run: |
           # yq extracts the front matter of the first file only, so it reads
           # one file at a time. errexit does not apply in the command
@@ -67,8 +73,16 @@ jobs:
               yq --front-matter=extract 'select(.draft != true) | .version' "${file}" || exit 1
             done | sort -V | tail -n 1
           )
-          echo "Adding the Javadoc of ${version}"
-          url="https://repo1.maven.org/maven2/org/postgresql/postgresql/${version}/postgresql-${version}-javadoc.jar"
+          echo "The current release is ${version}"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Add the Javadoc of the current release
+        if: inputs.include_javadoc
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          echo "Adding the Javadoc of ${VERSION}"
+          url="https://repo1.maven.org/maven2/org/postgresql/postgresql/${VERSION}/postgresql-${VERSION}-javadoc.jar"
           curl \
             --fail \
             --silent \
