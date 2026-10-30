@@ -255,9 +255,9 @@ gh workflow run docs-deploy.yml -R pgjdbc/pgjdbc --ref www-release
 ```
 
 The deploy uploads the site to the root of the S3 bucket, then deletes the files in the bucket that are no longer in
-the site, and then invalidates the CloudFront cache. Each deploy replaces the previous one and no earlier version is
-kept. To roll back, set `www-release` back to an earlier commit and start the deploy again. A run on any other
-branch fails with an error before it builds the site.
+the site, then uploads `/deploy-info.json` with metadata about the deployment, and then invalidates the CloudFront
+cache. Each deploy replaces the previous one and no earlier version is kept. To roll back, set `www-release` back to an
+earlier commit and start the deploy again. A run on any other branch fails with an error before it builds the site.
 
 The workflows read these repository variables:
 

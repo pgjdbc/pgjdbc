@@ -76,7 +76,28 @@ jobs:
             ./public \
             "s3://${BUCKET}/" \
             --delete \
+            --exclude deploy-info.json \
             --no-follow-symlinks \
+            --no-progress
+
+      - name: Upload the deploy metadata
+        env:
+          BUCKET: ${{ vars.SITE_S3_BUCKET }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          jq \
+            --null-input \
+            --arg deployed_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg version "${VERSION}" \
+            --arg commit "${GITHUB_SHA}" \
+            --arg run_id "${GITHUB_RUN_ID}" \
+            '{deployed_at: $deployed_at, version: $version, commit: $commit, run_id: $run_id}' \
+            > "${RUNNER_TEMP}/deploy-info.json"
+          cat "${RUNNER_TEMP}/deploy-info.json"
+          aws s3 cp \
+            "${RUNNER_TEMP}/deploy-info.json" \
+            "s3://${BUCKET}/deploy-info.json" \
+            --content-type application/json \
             --no-progress
 
       - name: Invalidate the CloudFront cache
