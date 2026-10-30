@@ -1,0 +1,8 @@
+{{ define "title" }}Page not found | {{ .Site.Title }}{{ end }}
+{{ define "main" }}
+<section class="container flow">
+    <h2>Page not found</h2>
+    <p>The page you requested does not exist. Start from the <a href="{{ relURL "" }}">home page</a> or the
+        <a href="{{ relURL "documentation/" }}">documentation</a>.</p>
+</section>
+{{ end }}

@@ -270,6 +270,8 @@ The workflows read these repository variables:
 
 CloudFront serves `/download/` from another origin, so it is not in the bucket.
 
+For a path that is not in the bucket, CloudFront serves `/404.html`, which `docs/layouts/404.html` builds.
+
 ## Dependencies
 
 PgJDBC has optional dependencies on other libraries for some features. These
