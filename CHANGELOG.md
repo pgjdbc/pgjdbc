@@ -24,6 +24,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * fix: the read buffer returns to its initial size once the message that grew it is drained, so a connection no longer retains 32 MiB after one large error [Issue #4015](https://github.com/pgjdbc/pgjdbc/issues/4015)
 * fix: exceeding `maxResultBuffer` closes the connection. The row is not read past the limit, so the connection cannot continue, and it is now dropped where the limit is exceeded rather than refused as a protocol violation at the next message. The error reported is the limit alone, with SQLState `08S01` as before [Issue #4015](https://github.com/pgjdbc/pgjdbc/issues/4015)
 
+### Security
+* fix: the value of a `password` or `sslpassword` parameter in the JDBC URL is replaced with `***` wherever the driver logs the URL or puts it in an exception message. Before, the driver logged the full URL at `FINE` on every connection and at `WARNING` when the URL had too many `/` characters or no `/` after the host, so the default logging configuration could write the password. The URL also appeared in full in the exception for a URL the driver could not parse. A URL parameter whose value fails to decode is now logged by name only; before, its value was logged.
+
 ## [42.7.14] (2026-10-07)
 
 ### Security
