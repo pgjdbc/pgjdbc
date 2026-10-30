@@ -209,7 +209,8 @@ The current release is the release with the highest `version`. From the changelo
   release, then the release with the highest `version` in each older minor line.
 
 The pages show the `date` from the front matter. The date in the file name sets only the URL. Hugo builds a
-changelog even when its `date` is later than the time of the build.
+changelog even when its `date` is later than the time of the build. A changelog that sets `draft: true` is left out
+of the site, and its release is not the current release.
 
 The Java 7 and Java 6 cards on the download page name 42.2.29.jre7 and 42.2.27.jre6, which
 `docs/layouts/shortcodes/recent-versions.html` sets. No release after 42.2.29 builds jre7 jars, and no release
