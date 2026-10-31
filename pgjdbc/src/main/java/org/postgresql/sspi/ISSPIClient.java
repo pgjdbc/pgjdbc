@@ -22,5 +22,13 @@ public interface ISSPIClient {
 
   void continueSSPI(int msgLength) throws SQLException, IOException;
 
+  /**
+   * Returns whether the security context is established, so the server expects no further token
+   * from the client.
+   *
+   * @return true once SSPI negotiation is complete
+   */
+  boolean isComplete();
+
   void dispose();
 }

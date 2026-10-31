@@ -7,7 +7,9 @@ package org.postgresql.core;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.util.PSQLState;
@@ -34,7 +36,9 @@ import javax.net.SocketFactory;
 /**
  * A requireAuth value that excludes every method must refuse the connection
  * with {@link PSQLState#CONNECTION_REJECTED}, whatever the server asks for,
- * and the driver must not send the password.
+ * and the driver must not send the password. A server that lets the client in
+ * without a finished exchange must be refused with a message that says which
+ * of the two happened.
  */
 public class RequireAuthConnectTest {
 
@@ -45,6 +49,15 @@ public class RequireAuthConnectTest {
   /** AuthenticationOk sent before any request: trust authentication. */
   private static final byte[] AUTHENTICATION_OK =
       {'R', 0, 0, 0, 8, 0, 0, 0, 0};
+
+  /**
+   * AuthenticationSASL offering SCRAM-SHA-256, then AuthenticationOk before
+   * the exchange is complete.
+   */
+  private static final byte[] SASL_REQUEST_THEN_OK =
+      {'R', 0, 0, 0, 23, 0, 0, 0, 10,
+          'S', 'C', 'R', 'A', 'M', '-', 'S', 'H', 'A', '-', '2', '5', '6', 0, 0,
+          'R', 0, 0, 0, 8, 0, 0, 0, 0};
 
   private static final String PASSWORD = "secret";
 
@@ -94,6 +107,40 @@ public class RequireAuthConnectTest {
         () -> server.connect(RequireAuthValues.EVERY_METHOD_EXCLUDED));
     assertEquals(PSQLState.CONNECTION_REJECTED.getState(), e.getSQLState(),
         "SQLState of the refusal");
+  }
+
+  /**
+   * A server that requests nothing gets a message that says so and names
+   * none as what would allow the connection.
+   */
+  @Test
+  void refusesTrustWithAMessageThatNamesNone() {
+    FakeServer server = new FakeServer(AUTHENTICATION_OK);
+    SQLException e = assertThrows(SQLException.class,
+        () -> server.connect("scram-sha-256"));
+    assertEquals(PSQLState.CONNECTION_REJECTED.getState(), e.getSQLState(),
+        "SQLState of the refusal");
+    assertTrue(e.getMessage().contains("without requesting authentication"),
+        e.getMessage());
+    assertTrue(e.getMessage().contains("'none'"), e.getMessage());
+  }
+
+  /**
+   * A server that requests SCRAM and sends AuthenticationOk before the
+   * exchange is complete is refused. The message must not suggest allowing
+   * none: that would let a server skip the SCRAM server signature, which
+   * proves it knows the password, and so weaken requireAuth.
+   */
+  @Test
+  void refusesAnIncompleteScramExchange() {
+    FakeServer server = new FakeServer(SASL_REQUEST_THEN_OK);
+    SQLException e = assertThrows(SQLException.class,
+        () -> server.connect("scram-sha-256"));
+    assertEquals(PSQLState.CONNECTION_REJECTED.getState(), e.getSQLState(),
+        "SQLState of the refusal");
+    assertTrue(e.getMessage().contains("before the authentication exchange was complete"),
+        e.getMessage());
+    assertFalse(e.getMessage().contains("none"), e.getMessage());
   }
 
   /** Replies with a fixed message and records what the driver writes. */
