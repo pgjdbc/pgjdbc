@@ -3,11 +3,26 @@
 <nav role="navigation" class="sidebar">
   <ul role="list" class="flow sidebar__wrapper">
     {{ range .Site.Menus.docs.ByWeight }}
+    {{- if .HasChildren }}
+    <li role="listitem" class="sidebar__group">
+      <span class="sidebar__group__title">{{ .Name }}</span>
+      <ul role="list" class="flow sidebar__group__links">
+        {{- range .Children.ByWeight }}
+        <li role="listitem" class="sidebar__links">
+          <a href="{{ .URL }}" class="sidebar__links__link{{ if eq $currentPage.RelPermalink .URL }}--active{{end}}">
+            {{.Name }}
+          </a>
+        </li>
+        {{- end }}
+      </ul>
+    </li>
+    {{- else }}
     <li role="listitem" class="sidebar__links">
       <a href="{{ .URL }}" class="sidebar__links__link{{ if eq $currentPage.RelPermalink .URL }}--active{{end}}">
         {{.Name }}
       </a>
     </li>
+    {{- end }}
     {{- end}}
   </ul>
 </nav>

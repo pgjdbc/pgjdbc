@@ -1,0 +1,28 @@
+{{- /*
+  Sends a link to a section that moved to another page on to that page.
+  Aliases and the pages that lost sections cannot redirect by fragment on the server.
+  In data/anchormoves.json, "pages" maps the last path segment of an old URL to the page
+  it named, and "moves" maps that page's heading id to the new URL. A target ending in "#"
+  keeps the original fragment.
+*/ -}}
+<script>
+(function () {
+  var data = {{ hugo.Data.anchormoves | jsonify | safeJS }};
+  var hash = window.location.hash;
+  if (!hash) return;
+  var m = window.location.pathname.match(/\/documentation\/(?:head\/|\d\d\/)?([a-z0-9-]+?)(?:\.html|\/index\.html|\/)?$/);
+  var page = m && data.pages[m[1]];
+  if (!page) return;
+  var id;
+  try {
+    id = decodeURIComponent(hash.slice(1));
+  } catch (e) {
+    return;
+  }
+  var target = data.moves[page][id];
+  if (!target) return;
+  var path = target.replace(/#$/, "");
+  if (path === window.location.pathname) return;
+  window.location.replace(target.slice(-1) === "#" ? path + hash : path);
+})();
+</script>

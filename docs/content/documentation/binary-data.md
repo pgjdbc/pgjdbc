@@ -2,7 +2,7 @@
 title: "Storing Binary Data"
 date: 2022-06-19T22:46:55+05:30
 draft: false
-weight: 6
+weight: 170
 toc: false
 aliases:
     - "/documentation/head/binary-data.html"
@@ -17,6 +17,18 @@ aliases:
     - "/documentation/92/binary-data.html"
     - "/documentation/93/binary-data.html"
     - "/documentation/94/binary-data.html"
+    - "/documentation/head/largeobjects.html"
+    - "/documentation/80/largeobjects.html"
+    - "/documentation/81/largeobjects.html"
+    - "/documentation/82/largeobjects.html"
+    - "/documentation/83/largeobjects.html"
+    - "/documentation/84/largeobjects.html"
+    - "/documentation/85/largeobjects.html"
+    - "/documentation/90/largeobjects.html"
+    - "/documentation/91/largeobjects.html"
+    - "/documentation/92/largeobjects.html"
+    - "/documentation/93/largeobjects.html"
+    - "/documentation/94/largeobjects.html"
 ---
 
 PostgreSQL® provides two distinct ways to store binary data.  Binary data can be stored in a table using the data type
@@ -37,7 +49,7 @@ in 7.2 has introduced a change in behaviour as compared to previous releases. Si
 `getBytes()` , `setBytes()` , `getBinaryStream()` , and `setBinaryStream()` operate on the BYTEA data type. In 7.1 and
 earlier, these methods operated on the OID data type associated with Large Objects. It is possible to revert the driver
 back to the old 7.1 behaviour by setting the property `compatible` on the `Connection` object to the value `7.1`.
-More details on connection properties are available in the section called [Connection Parameters](/documentation/use/#connection-parameters).
+More details on connection properties are available in the section called [Connection Parameters](/documentation/connection-properties/).
 
 To use the BYTEA data type you should simply use the `getBytes()` , `setBytes()` , `getBinaryStream()` , or `setBinaryStream()` methods.
 
@@ -174,3 +186,15 @@ try (PreparedStatement ps = conn.prepareStatement("SELECT imgoid FROM imageslo W
 // Finally, commit the transaction.
 conn.commit();
 ```
+
+## Large Objects
+
+Large objects are supported in the standard JDBC specification. However, that
+interface is limited, and the API provided by PostgreSQL® allows for random
+access to the objects contents, as if it was a local file.
+
+The org.postgresql.largeobject package provides to Java the libpq C interface's
+large object API. It consists of two classes, `LargeObjectManager` , which deals
+with creating, opening and deleting large objects, and `LargeObject` which deals
+with an individual object.  For an example usage of this API, please see
+[Processing Binary Data in JDBC](/documentation/binary-data/#example71processing-binary-data-in-jdbc).

@@ -11,11 +11,22 @@
 <div class="docsmenu mobilemenu dn">
     <ul role="list">
         {{ range .Site.Menus.docs.ByWeight }}
+        {{- if .HasChildren }}
+        <li role="listitem" class="mobilemenu__group">{{ .Name }}</li>
+        {{- range .Children.ByWeight }}
         <li role="listitem" class="hover-bg-black">
             <a href="{{ .URL }}">
                 {{.Name }}
             </a>
         </li>
+        {{- end }}
+        {{- else }}
+        <li role="listitem" class="hover-bg-black">
+            <a href="{{ .URL }}">
+                {{.Name }}
+            </a>
+        </li>
+        {{- end }}
         {{- end}}
     </ul>
 </div>

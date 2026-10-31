@@ -2,57 +2,45 @@
 title: "Setting up the JDBC Driver"
 date: 2022-06-19T22:46:55+05:30
 draft: false
-weight: 1
+weight: 10
 toc: true
 aliases:
     - "/documentation/head/setup.html"
     - "/documentation/head/classpath.html"
-    - "/documentation/head/prepare.html"
-    - "/documentation/head/your-database.html"
     - "/documentation/80/setup.html"
     - "/documentation/80/classpath.html"
-    - "/documentation/80/prepare.html"
-    - "/documentation/80/your-database.html"
     - "/documentation/81/setup.html"
     - "/documentation/81/classpath.html"
-    - "/documentation/81/prepare.html"
-    - "/documentation/81/your-database.html"
     - "/documentation/82/setup.html"
     - "/documentation/82/classpath.html"
-    - "/documentation/82/prepare.html"
-    - "/documentation/82/your-database.html"
     - "/documentation/83/setup.html"
     - "/documentation/83/classpath.html"
-    - "/documentation/83/prepare.html"
-    - "/documentation/83/your-database.html"
     - "/documentation/84/setup.html"
     - "/documentation/84/classpath.html"
-    - "/documentation/84/prepare.html"
-    - "/documentation/84/your-database.html"
     - "/documentation/85/setup.html"
     - "/documentation/85/classpath.html"
-    - "/documentation/85/prepare.html"
-    - "/documentation/85/your-database.html"
     - "/documentation/90/setup.html"
     - "/documentation/90/classpath.html"
-    - "/documentation/90/prepare.html"
-    - "/documentation/90/your-database.html"
     - "/documentation/91/setup.html"
     - "/documentation/91/classpath.html"
-    - "/documentation/91/prepare.html"
-    - "/documentation/91/your-database.html"
     - "/documentation/92/setup.html"
     - "/documentation/92/classpath.html"
-    - "/documentation/92/prepare.html"
-    - "/documentation/92/your-database.html"
     - "/documentation/93/setup.html"
     - "/documentation/93/classpath.html"
-    - "/documentation/93/prepare.html"
-    - "/documentation/93/your-database.html"
     - "/documentation/94/setup.html"
     - "/documentation/94/classpath.html"
-    - "/documentation/94/prepare.html"
-    - "/documentation/94/your-database.html"
+    - "/documentation/head/load.html"
+    - "/documentation/80/load.html"
+    - "/documentation/81/load.html"
+    - "/documentation/82/load.html"
+    - "/documentation/83/load.html"
+    - "/documentation/84/load.html"
+    - "/documentation/85/load.html"
+    - "/documentation/90/load.html"
+    - "/documentation/91/load.html"
+    - "/documentation/92/load.html"
+    - "/documentation/93/load.html"
+    - "/documentation/94/load.html"
 ---
 
 This section describes the steps you need to take before you can write or run programs that use the JDBC interface.
@@ -103,15 +91,26 @@ export CLASSPATH=/usr/local/lib/myapp.jar:/usr/local/pgsql/share/java/postgresql
 
 Current Java applications will likely use maven, gradle or some other package manager. [Use this to search](https://mvnrepository.com/artifact/org.postgresql/postgresql) for the latest jars and how to include them in your project
 
-Loading the driver from within the application is covered in [Initializing the Driver](/documentation/use/).
+Loading the driver from within the application is covered in [Initializing the Driver](/documentation/setup/#loading-the-driver).
 
-## Preparing the Database Server for JDBC
+## Importing JDBC
 
-Out of the box, Java does not support unix sockets so the PostgreSQL® server must be configured to allow TCP/IP connections. Starting with server version 8.0 TCP/IP connections are allowed from `localhost` . To allow connections to other interfaces
-than the loopback interface, you must modify the `postgresql.conf` file's `listen_addresses` setting.
+Any source file that uses JDBC needs to import the `java.sql` package, using:
 
-Once you have made sure the server is correctly listening for TCP/IP connections the next step is to verify that users are allowed to connect to the server. Client authentication is setup in `pg_hba.conf` . Refer to the main PostgreSQL® [documentation](https://www.postgresql.org/docs/current/auth-pg-hba-conf.html) for details .
+```java
+import java.sql.*;
+```
 
-## Creating a Database
+> **NOTE**
+>
+> You should not import the `org.postgresql` package unless you are using PostgreSQL® extensions to the JDBC API.
 
-When creating a database to be accessed via JDBC it is important to select an appropriate encoding for your data. Many other client interfaces do not care what data you send back and forth, and will allow you to do inappropriate things, but Java makes sure that your data is correctly encoded.  Do not use a database that uses the `SQL_ASCII` encoding. This is not a real encoding and you will have problems the moment you store data in it that does not fit in the seven bit ASCII character set. If you do not know what your encoding will be or are otherwise unsure about what you will be storing the `UNICODE` encoding is a reasonable default to use.
+## Loading the Driver
+
+Applications do not need to explicitly load the `org.postgresql.Driver` class because the pgJDBC driver jar supports the Java Service Provider mechanism. The driver will be loaded by the JVM when the application connects to PostgreSQL® (as long as the driver's jar file is on the classpath).
+
+> **NOTE**
+>
+> Prior to Java 1.6, the driver had to be loaded by the application: either by calling `Class.forName("org.postgresql.Driver");` or by passing the driver class name as a JVM parameter `java -Djdbc.drivers=org.postgresql.Driver example.ImageViewer`
+
+These older methods of loading the driver are still supported, but they are no longer necessary.

@@ -1,102 +1,10 @@
 ---
-title: "Initializing the Driver"
+title: "Connection Parameters"
 date: 2022-06-19T22:46:55+05:30
 draft: false
-weight: 2
+weight: 40
 toc: true
-aliases:
-    - "/documentation/head/use.html"
-    - "/documentation/head/connect.html"
-    - "/documentation/head/load.html"
-    - "/documentation/80/use.html"
-    - "/documentation/80/connect.html"
-    - "/documentation/80/load.html"
-    - "/documentation/81/use.html"
-    - "/documentation/81/connect.html"
-    - "/documentation/81/load.html"
-    - "/documentation/82/use.html"
-    - "/documentation/82/connect.html"
-    - "/documentation/82/load.html"
-    - "/documentation/83/use.html"
-    - "/documentation/83/connect.html"
-    - "/documentation/83/load.html"
-    - "/documentation/84/use.html"
-    - "/documentation/84/connect.html"
-    - "/documentation/84/load.html"
-    - "/documentation/85/use.html"
-    - "/documentation/85/connect.html"
-    - "/documentation/85/load.html"
-    - "/documentation/90/use.html"
-    - "/documentation/90/connect.html"
-    - "/documentation/90/load.html"
-    - "/documentation/91/use.html"
-    - "/documentation/91/connect.html"
-    - "/documentation/91/load.html"
-    - "/documentation/92/use.html"
-    - "/documentation/92/connect.html"
-    - "/documentation/92/load.html"
-    - "/documentation/93/use.html"
-    - "/documentation/93/connect.html"
-    - "/documentation/93/load.html"
-    - "/documentation/94/use.html"
-    - "/documentation/94/connect.html"
-    - "/documentation/94/load.html"
 ---
-
-This section describes how to load and initialize the JDBC driver in your programs.
-
-## Importing JDBC
-
-Any source file that uses JDBC needs to import the `java.sql` package, using:
-
-```java
-import java.sql.*;
-```
-
-> **NOTE**
->
-> You should not import the `org.postgresql` package unless you are using PostgreSQL® extensions to the JDBC API.
-
-## Loading the Driver
-
-Applications do not need to explicitly load the `org.postgresql.Driver` class because the pgJDBC driver jar supports the Java Service Provider mechanism. The driver will be loaded by the JVM when the application connects to PostgreSQL® (as long as the driver's jar file is on the classpath).
-
-> **NOTE**
->
-> Prior to Java 1.6, the driver had to be loaded by the application: either by calling `Class.forName("org.postgresql.Driver");` or by passing the driver class name as a JVM parameter `java -Djdbc.drivers=org.postgresql.Driver example.ImageViewer`
-
-These older methods of loading the driver are still supported, but they are no longer necessary.
-
-## Connecting to the Database
-
-With JDBC, a database is represented by a URL (Uniform Resource Locator). With PostgreSQL®, this takes one of the following forms:
-
-* jdbc:postgresql:database
-* jdbc:postgresql://
-* jdbc:postgresql://host/database
-* jdbc:postgresql://host/
-* jdbc:postgresql://host:port/database
-* jdbc:postgresql://host:port/
-
-The parameters have the following meanings:
-
-* **`host`** = The host name of the server. Defaults to `localhost` . To specify an IPv6 address your must enclose the `host` parameter with square brackets, for example: `jdbc:postgresql://[::1]:5740/accounting`
-
-* **`port`** = The port number the server is listening on. Defaults to the PostgreSQL® standard port number (5432).
-
-* **`database`** = The database name. The default is to connect to a database with the same name as the user name used to connect to the server.
-
-To connect, you need to get a `Connection` instance from JDBC. To do this, you use the `DriverManager.getConnection()` method:
- `Connection db = DriverManager.getConnection(url, username, password)`
-
-> **Important**
-> 
-> Any reserved characters for URLs (for example, /, :, @, (, ), [, ], &, #, =, ?, and space) that appear in any part of the connection URL must be percent encoded. See [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986#section-2) for details.
-
-### System Properties
-`pgjdbc.config.cleanup.thread.ttl` (milliseconds, default: 30000). The driver has an internal cleanup thread which monitors and cleans up unclosed connections. This property sets the duration the cleanup thread will keep running if there is nothing to clean up.
-
-### Connection Parameters
 
 In addition to the standard connection parameters the driver supports a number of additional properties which can be used to specify additional driver behaviour specific to PostgreSQL®. These properties may be specified in either the connection
 URL or an additional `Properties` object parameter to `DriverManager.getConnection` . The following examples illustrate the use of both methods to establish an SSL connection.
@@ -271,12 +179,12 @@ A value of `0` disables the cache.
 Determine the number of `PreparedStatement` executions required before switching over to use server side prepared statements. 
 The default is five, meaning start using server side prepared statements on the fifth execution of the same `PreparedStatement` object. 
 A value of `-1` activates server side prepared statements and forces binary transfer for enabled types (see `binaryTransfer` ).
-More information on server side prepared statements is available in the section called [Server Prepared Statements](/documentation/server-prepare/#server-prepared-statements).
+More information on server side prepared statements is available in the section called [Server Prepared Statements](/documentation/server-prepare/).
 
 * **`preparedStatementCacheQueries (`*int*`)`** *Default `256`*\
 Determine the number of queries that are cached in each connection. 
 The default is 256, meaning if you use more than 256 different queries in `prepareStatement()` calls, the least recently used ones will be discarded. 
-The cache allows application to benefit from [Server Prepared Statements](/documentation/server-prepare/#server-prepared-statements) (see `prepareThreshold` ) even if the prepared statement is closed after each execution. 
+The cache allows application to benefit from [Server Prepared Statements](/documentation/server-prepare/) (see `prepareThreshold` ) even if the prepared statement is closed after each execution. 
 The value of 0 disables the cache. N. B. Each connection has its own statement cache.
 
 * **`preparedStatementCacheSizeMiB (`*int*`)`** *Default `5`*\
@@ -540,45 +448,3 @@ Maximum PBKDF2 iteration count that pgjdbc will accept from the server during SC
 During SCRAM-SHA-256 authentication, the server sends the iteration count used to derive the salted password. If the server advertises a value higher than `scramMaxIterations`, the driver rejects authentication before starting the PBKDF2 computation.
 This limits client CPU exposure if a malicious or compromised server sends an excessively large iteration count.
 A value of zero disables this check.
-
-### Unix sockets
-
-By adding junixsocket you can obtain a socket factory that works with the driver.
-Code can be found [here](https://github.com/kohlschutter/junixsocket) and instructions 
-[here](https://kohlschutter.github.io/junixsocket/dependency.html)
-
-Dependencies for junixsocket are :
-
-```xml
-<dependency>
-  <groupId>com.kohlschutter.junixsocket</groupId>
-  <artifactId>junixsocket-core</artifactId>
-  <version>2.5.1</version>
-</dependency>
-```
-
-Simply add  `?socketFactory=org.newsclub.net.unix.AFUNIXSocketFactory$FactoryArg&socketFactoryArg=[path-to-the-unix-socket]` 
-to the connection URL.
-
-For many distros the default path is /var/run/postgresql/.s.PGSQL.5432
-
-### Connection Fail-over
-
-To support simple connection fail-over it is possible to define multiple endpoints (host and port pairs) in the connection 
-url separated by commas. The driver will try once to connect to each of them in order until the connection succeeds.
-If none succeeds a normal connection exception is thrown.
-
-The syntax for the connection url is: `jdbc:postgresql://host1:port1,host2:port2/database`
-
-The simple connection fail-over is useful when running against a high availability postgres installation that has identical 
-data on each node. For example streaming replication postgres or postgres-xc cluster.
-
-For example an application can create two connection pools.
-One data source is for writes, another for reads. The write pool limits connections only to a primary node:`jdbc:postgresql://node1,node2,node3/accounting?targetServerType=primary` .
-
-And the read pool balances connections between secondary nodes, but allows connections also to a primary if no secondaries
-are available: `jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSecondary&loadBalanceHosts=true`
-
-If a secondary fails, all secondaries in the list will be tried first. In the case that there are no available secondaries
-the primary will be tried. If all the servers are marked as "can't connect" in the cache then an attempt
-will be made to connect to all the hosts in the URL, in order.

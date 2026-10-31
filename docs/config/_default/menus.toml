@@ -39,73 +39,198 @@ weight = 6
 ### DOCS ITEMS
 
 [[docs]]
-identifier = "setup"
-name = "Getting Started"
-url = "/documentation/setup/"
-weight = 2
-
-[[docs]]
-identifier = "use"
-name = "Initializing the Driver"
-url = "/documentation/use/"
-weight = 3
-
-[[docs]]
-identifier = "ssl"
-name = "Using SSL"
-url = "/documentation/ssl/"
-weight = 4
-
-[[docs]]
-identifier = "query"
-name = "Issuing a Query and Processing the Result"
-url = "/documentation/query/"
-weight = 5
-
-[[docs]]
-identifier = "callproc"
-name = "Calling Stored Functions and Procedures"
-url = "/documentation/callproc/"
-weight = 6
-
-[[docs]]
-identifier = "binary-data"
-name = "Storing Binary Data"
-url = "/documentation/binary-data/"
-weight = 7
-
-[[docs]]
-identifier = "escapes"
-name = "JDBC escapes"
-url = "/documentation/escapes/"
-weight = 8
-
-[[docs]]
-identifier = "server-prepare"
-name = "PostgreSQL™ Extensions to the JDBC API"
-url = "/documentation/server-prepare/"
-weight = 9
-
-[[docs]]
-identifier = "thread"
-name = "Using the Driver in a Multithreaded or a Servlet Environment"
-url = "/documentation/thread/"
+identifier = "group-get-started"
+name = "Get started"
 weight = 10
+
+[[docs]]
+identifier = "setup"
+name = "Setting up the JDBC Driver"
+parent = "group-get-started"
+url = "/documentation/setup/"
+weight = 10
+
+[[docs]]
+identifier = "server-setup"
+name = "Preparing the Database Server for JDBC"
+parent = "group-get-started"
+url = "/documentation/server-setup/"
+weight = 20
+
+[[docs]]
+identifier = "group-connect"
+name = "Connect"
+weight = 20
+
+[[docs]]
+identifier = "connect"
+name = "Connecting to the Database"
+parent = "group-connect"
+url = "/documentation/connect/"
+weight = 30
+
+[[docs]]
+identifier = "connection-properties"
+name = "Connection Parameters"
+parent = "group-connect"
+url = "/documentation/connection-properties/"
+weight = 40
+
+[[docs]]
+identifier = "system-properties"
+name = "System Properties"
+parent = "group-connect"
+url = "/documentation/system-properties/"
+weight = 50
 
 [[docs]]
 identifier = "datasource"
 name = "Connection Pools and Data Sources"
+parent = "group-connect"
 url = "/documentation/datasource/"
-weight = 11
+weight = 60
+
+[[docs]]
+identifier = "ssl"
+name = "Using SSL"
+parent = "group-connect"
+url = "/documentation/ssl/"
+weight = 70
+
+[[docs]]
+identifier = "multiple-hosts"
+name = "Connection Fail-over"
+parent = "group-connect"
+url = "/documentation/multiple-hosts/"
+weight = 80
+
+[[docs]]
+identifier = "group-run-sql"
+name = "Run SQL"
+weight = 30
+
+[[docs]]
+identifier = "query"
+name = "Issuing a Query and Processing the Result"
+parent = "group-run-sql"
+url = "/documentation/query/"
+weight = 90
+
+[[docs]]
+identifier = "large-results"
+name = "Getting results based on a cursor"
+parent = "group-run-sql"
+url = "/documentation/large-results/"
+weight = 100
+
+[[docs]]
+identifier = "server-prepare"
+name = "Server Prepared Statements"
+parent = "group-run-sql"
+url = "/documentation/server-prepare/"
+weight = 110
+
+[[docs]]
+identifier = "callproc"
+name = "Calling Stored Functions and Procedures"
+parent = "group-run-sql"
+url = "/documentation/callproc/"
+weight = 120
+
+[[docs]]
+identifier = "escapes"
+name = "JDBC escapes"
+parent = "group-run-sql"
+url = "/documentation/escapes/"
+weight = 130
+
+[[docs]]
+identifier = "thread"
+name = "Using the Driver in a Multithreaded or a Servlet Environment"
+parent = "group-run-sql"
+url = "/documentation/thread/"
+weight = 140
+
+[[docs]]
+identifier = "group-data-types"
+name = "Data types"
+weight = 40
+
+[[docs]]
+identifier = "date-time"
+name = "Using Java 8 Date and Time classes"
+parent = "group-data-types"
+url = "/documentation/date-time/"
+weight = 150
+
+[[docs]]
+identifier = "arrays"
+name = "Arrays"
+parent = "group-data-types"
+url = "/documentation/arrays/"
+weight = 160
+
+[[docs]]
+identifier = "binary-data"
+name = "Storing Binary Data"
+parent = "group-data-types"
+url = "/documentation/binary-data/"
+weight = 170
+
+[[docs]]
+identifier = "types"
+name = "Geometric Data Types"
+parent = "group-data-types"
+url = "/documentation/types/"
+weight = 180
+
+[[docs]]
+identifier = "group-extensions"
+name = "PostgreSQL extensions"
+weight = 50
+
+[[docs]]
+identifier = "extensions"
+name = "PostgreSQL® Extensions to the JDBC API"
+parent = "group-extensions"
+url = "/documentation/extensions/"
+weight = 190
+
+[[docs]]
+identifier = "copy"
+name = "CopyManager"
+parent = "group-extensions"
+url = "/documentation/copy/"
+weight = 200
+
+[[docs]]
+identifier = "listen-notify"
+name = "Listen / Notify"
+parent = "group-extensions"
+url = "/documentation/listen-notify/"
+weight = 210
+
+[[docs]]
+identifier = "replication"
+name = "Physical and Logical replication API"
+parent = "group-extensions"
+url = "/documentation/replication/"
+weight = 220
+
+[[docs]]
+identifier = "group-production"
+name = "Run in production"
+weight = 60
 
 [[docs]]
 identifier = "logging"
 name = "Logging using java.util.logging"
+parent = "group-production"
 url = "/documentation/logging/"
-weight = 12
+weight = 230
 
 [[docs]]
 identifier = "reading"
 name = "Further Reading"
 url = "/documentation/reading/"
-weight = 13
+weight = 70

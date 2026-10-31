@@ -17,3 +17,7 @@ mediaType = "application/json"
 home = ["HTML", "RSS", "SearchIndex"]
 # section = ["HTML", "RSS", "SearchIndex"]
 page = ["HTML"]
+
+# hugo.Data, used by layouts/partials/anchor-moves.html, was added in Hugo 0.156.0.
+[module.hugoVersion]
+min = "0.156.0"
