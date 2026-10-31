@@ -165,7 +165,7 @@ Prerequisites:
 This project defines a [manual release workflow](.github/workflows/release.yml).
 
 The suggested flow is as follows:
-1. Prepare release notes, commit it to Git.
+1. Prepare release notes, commit it to Git. See [Updating the website](#updating-the-website).
 2. Open the "release" action at 👉 [Actions tab → release.yml](https://github.com/pgjdbc/pgjdbc/actions/workflows/release.yml).
 3. Click "run workflow".
 4. Set "Release version number" if you want to bump the version before the release. Note: if the current version already exists, then the release workflow would abort.
@@ -180,6 +180,97 @@ The workflow performs the following steps:
 ### Updating changelog
 
 - run `./release_notes.sh`, edit as desired. This has been deprecated. Currently release notes are created manually
+
+### Updating the website
+
+Hugo reads the release data for the website from the front matter of the changelog files in
+`docs/content/changelogs/`.
+To add a release to the website, add one file named `<yyyy-mm-dd>-<version>-release.md`:
+
+```yaml
+---
+title: "PostgreSQL JDBC Driver 42.7.15 Released"
+date: 2026-11-04 10:00:00 -0400
+categories:
+    - new release
+version: 42.7.15
+summary: "One or two sentences for the home page."
+---
+```
+
+The current release is the release with the highest `version`. From the changelog files, Hugo builds:
+
+- The "Current release" paragraph on the home page names the current release, adds its `summary` if the file
+  sets one, and links to its changelog.
+- The "Latest Releases" list on the home page shows the five releases with the highest `version`, highest first,
+  each with its `date`.
+- The Java 8 card on the download page names the current release.
+- The "Older Versions" list on the download page shows the other releases in the minor line of the current
+  release, then the release with the highest `version` in each older minor line.
+
+The pages show the `date` from the front matter. The date in the file name sets only the URL. Hugo builds a
+changelog even when its `date` is later than the time of the build. A changelog that sets `draft: true` is left out
+of the site, and its release is not the current release.
+
+The Java 7 and Java 6 cards on the download page name 42.2.29.jre7 and 42.2.27.jre6, which
+`docs/layouts/shortcodes/recent-versions.html` sets. No release after 42.2.29 builds jre7 jars, and no release
+after 42.2.27 builds jre6 jars.
+
+The `jar_location` property of a changelog sets where the download page links to the jar of that release:
+
+- `maven`, the default, links to the jar on Maven Central,
+  `https://repo1.maven.org/maven2/org/postgresql/postgresql/<version>/postgresql-<version>.jar`.
+- `download` links to `/download/postgresql-<version>.jar`. The changelogs of the releases before 42.7.0 set it.
+
+The changelog of a new release, including a backport to an older line, does not set `jar_location`. The Java 7 and
+Java 6 cards always link to `/download/`.
+
+The build fails when:
+
+- A file whose name ends in `-release.md` has no `version`, or a `version` that is not three numbers separated
+  by dots, each without a leading zero.
+- A file whose name contains a version, such as `2026-11-04-42.7.15.md`, does not end in `-release.md`.
+- Two changelog files set the same `version`.
+- A changelog sets `jar_location` to a value other than `maven` or `download`.
+- A release changelog has no `date`.
+- No changelog file sets a release `version`.
+
+A pull request that changes `docs/` runs this build and uploads the built site as the `site` artifact of the run.
+The links in it are relative to the site root, so serve the unzipped directory with `python3 -m http.server`
+rather than opening the files directly. To see the pages before you open the pull request, run `hugo server` in
+`docs/`.
+
+### Deploying the website
+
+`.github/workflows/docs.yml` builds the site with the Hugo version that it pins and uploads it as the `site`
+artifact of the run. When its `include_javadoc` input is true, it also adds the Javadoc of the current release from
+Maven Central under `/documentation/publicapi/`. Before it unpacks the javadoc jar, it checks the signature of the
+jar against the keys in `KEYS`. The input defaults to false, so a pull request build leaves out the Javadoc.
+`.github/workflows/docs-deploy.yml` calls it with the input set to true and then deploys the site. The deploy runs
+only from the `www-release` branch. After a release, once the jar is on Maven Central, update `www-release` to the
+commit to deploy and start the deploy on it:
+
+```sh
+gh workflow run docs-deploy.yml -R pgjdbc/pgjdbc --ref www-release
+```
+
+The deploy uploads the site to the root of the S3 bucket, then deletes the files in the bucket that are no longer in
+the site, then uploads `/deploy-info.json` with metadata about the deployment, and then invalidates the CloudFront
+cache. Each deploy replaces the previous one and no earlier version is kept. To roll back, set `www-release` back to an
+earlier commit and start the deploy again. A run on any other branch fails with an error before it builds the site.
+
+The workflows read these repository variables:
+
+- `SITE_BASE_URL`, the URL the site is published at. Unset means `https://jdbc.postgresql.org/`. A fork sets it to
+  publish a test copy of the site to another domain.
+- `SITE_AWS_ROLE_ARN`, the IAM role that the workflow assumes through GitHub OIDC.
+- `SITE_AWS_REGION`, the AWS region of that role.
+- `SITE_S3_BUCKET`, the bucket that holds the site. The deploy deletes anything in it that is not part of the site.
+- `SITE_CLOUDFRONT_DISTRIBUTION_ID`, the CloudFront distribution that serves the bucket.
+
+CloudFront serves `/download/` from another origin, so it is not in the bucket.
+
+For a path that is not in the bucket, CloudFront serves `/404.html`, which `docs/layouts/404.html` builds.
 
 ## Dependencies
 

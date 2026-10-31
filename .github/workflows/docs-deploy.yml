@@ -6,11 +6,105 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
+
+# A newly queued run cancels a pending run in the same group, so only
+# www-release runs, which deploy, share the site group.
+concurrency:
+  group: >-
+    ${{ github.ref == 'refs/heads/www-release' && 'site'
+    || format('docs-deploy-{0}', github.ref) }}
+  cancel-in-progress: false
+
 jobs:
-  deploy:
+  check-branch:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      # Placeholder so that GitHub registers the workflow and it can be started
-      # on another branch. The real deploy replaces this.
-      - name: Placeholder
-        run: "false"
+      - name: Check the branch
+        run: |
+          if [[ "${GITHUB_REF}" != refs/heads/www-release ]]; then
+            echo "::error::The site deploys only from the www-release branch, not from ${GITHUB_REF}."
+            exit 1
+          fi
+
+  build:
+    needs: check-branch
+    uses: ./.github/workflows/docs.yml
+    with:
+      include_javadoc: true
+
+  deploy:
+    needs: build
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: site
+          path: ./public
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.SITE_AWS_ROLE_ARN }}
+          aws-region: ${{ vars.SITE_AWS_REGION }}
+
+      - name: Upload the site to S3
+        env:
+          BUCKET: ${{ vars.SITE_S3_BUCKET }}
+        run: |
+          aws s3 sync \
+            ./public \
+            "s3://${BUCKET}/" \
+            --no-follow-symlinks \
+            --no-progress
+
+      # Deleting in a second pass keeps a page that moved available while the
+      # new files upload.
+      - name: Delete the files that are no longer in the site
+        env:
+          BUCKET: ${{ vars.SITE_S3_BUCKET }}
+        run: |
+          aws s3 sync \
+            ./public \
+            "s3://${BUCKET}/" \
+            --delete \
+            --exclude deploy-info.json \
+            --no-follow-symlinks \
+            --no-progress
+
+      - name: Upload the deploy metadata
+        env:
+          BUCKET: ${{ vars.SITE_S3_BUCKET }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          jq \
+            --null-input \
+            --arg deployed_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg version "${VERSION}" \
+            --arg commit "${GITHUB_SHA}" \
+            --arg run_id "${GITHUB_RUN_ID}" \
+            '{deployed_at: $deployed_at, version: $version, commit: $commit, run_id: $run_id}' \
+            > "${RUNNER_TEMP}/deploy-info.json"
+          cat "${RUNNER_TEMP}/deploy-info.json"
+          aws s3 cp \
+            "${RUNNER_TEMP}/deploy-info.json" \
+            "s3://${BUCKET}/deploy-info.json" \
+            --content-type application/json \
+            --no-progress
+
+      - name: Invalidate the CloudFront cache
+        env:
+          DISTRIBUTION_ID: ${{ vars.SITE_CLOUDFRONT_DISTRIBUTION_ID }}
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${DISTRIBUTION_ID}" \
+            --paths '/*' \
+            --output text
