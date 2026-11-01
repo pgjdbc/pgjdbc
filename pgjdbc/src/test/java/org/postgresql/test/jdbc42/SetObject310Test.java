@@ -53,6 +53,7 @@ import java.util.TimeZone;
 @Isolated("Uses TimeZone.setDefault")
 public class SetObject310Test extends BaseTest4 {
   private static final TimeZone saveTZ = TimeZone.getDefault();
+  private static final ZoneOffset INDIA = ZoneOffset.ofHoursMinutes(5, 30);
 
   public static final DateTimeFormatter LOCAL_TIME_FORMATTER =
       new DateTimeFormatterBuilder()
@@ -494,6 +495,76 @@ public class SetObject310Test extends BaseTest4 {
   public void testSetOffsetTimeWithoutType() throws SQLException {
     OffsetTime data = OffsetTime.parse("16:21:51+12:34");
     insertThenReadWithoutType(data, "time_with_time_zone_column", Time.class);
+  }
+
+  /**
+   * Half a microsecond rounds up, as it does for {@code time} and {@code timestamp} parameters.
+   */
+  @Test
+  public void testSetOffsetTimeRoundsHalfMicrosecondUp() throws SQLException {
+    assertTimetzServerText(OffsetTime.of(1, 2, 3, 500, INDIA),
+        "01:02:03.000001+05:30");
+  }
+
+  /**
+   * A nanosecond remainder over half a microsecond rounds up to the next microsecond.
+   */
+  @Test
+  public void testSetOffsetTimeRoundsSubMicrosecondUp() throws SQLException {
+    assertTimetzServerText(OffsetTime.of(10, 15, 30, 123_456_700, INDIA),
+        "10:15:30.123457+05:30");
+  }
+
+  /**
+   * A nanosecond remainder under half a microsecond is dropped, not rounded up.
+   */
+  @Test
+  public void testSetOffsetTimeRoundsBelowHalfMicrosecondDown() throws SQLException {
+    assertTimetzServerText(OffsetTime.of(10, 15, 30, 123_456_499, INDIA),
+        "10:15:30.123456+05:30");
+  }
+
+  /**
+   * Control: a value that is already an exact microsecond keeps its digits.
+   */
+  @Test
+  public void testSetOffsetTimeKeepsExactMicrosecond() throws SQLException {
+    assertTimetzServerText(OffsetTime.of(10, 15, 30, 123_456_000, INDIA),
+        "10:15:30.123456+05:30");
+  }
+
+  /**
+   * Control: rounding past the end of the day gives {@code 24:00:00} and keeps the offset.
+   */
+  @Test
+  public void testSetOffsetTimeRoundsPastTheEndOfTheDay() throws SQLException {
+    assertTimetzServerText(OffsetTime.of(23, 59, 59, 999_999_600, INDIA),
+        "24:00:00+05:30");
+  }
+
+  /**
+   * Asserts the text the server stores for <i>data</i>, through both {@code setObject} forms the
+   * driver offers for a {@code timetz} column. The text is read with a {@code ::text} cast so that
+   * binary and regular mode read the same server text.
+   */
+  private void assertTimetzServerText(OffsetTime data, String expected) throws SQLException {
+    insert(data, "time_with_time_zone_column", null);
+    assertEquals(expected, readServerText("time_with_time_zone_column"),
+        "setObject(int, Object) for " + data);
+    deleteRows();
+
+    insert(data, "time_with_time_zone_column", Types.TIME);
+    assertEquals(expected, readServerText("time_with_time_zone_column"),
+        "setObject(int, Object, Types.TIME) for " + data);
+    deleteRows();
+  }
+
+  private String readServerText(String columnName) throws SQLException {
+    try (Statement st = con.createStatement();
+        ResultSet rs = st.executeQuery("SELECT " + columnName + "::text FROM testsetobj310")) {
+      assertTrue(rs.next(), "query should return one row");
+      return rs.getString(1);
+    }
   }
 
 }

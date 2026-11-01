@@ -51,7 +51,7 @@ public class ByteaArraysTest extends AbstractArraysTest<byte[][]> {
 
     final ArrayEncoding.ArrayEncoder<Object[]> copySupport = ArrayEncoding.getArrayEncoder(array);
     try {
-      copySupport.toArrayString(',', array);
+      copySupport.toArrayString(ENCODING_CONNECTION, ',', array);
       fail("byte[] in Object[] should not be supported");
     } catch (UnsupportedOperationException e) {
       assertEquals("byte[] nested inside Object[]", e.getMessage());
