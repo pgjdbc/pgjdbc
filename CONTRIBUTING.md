@@ -216,7 +216,10 @@ The Java 7 and Java 6 cards on the download page name 42.2.29.jre7 and 42.2.27.j
 `docs/layouts/shortcodes/recent-versions.html` sets. No release after 42.2.29 builds jre7 jars, and no release
 after 42.2.27 builds jre6 jars.
 
-Each jar link on the download page points at `/download/postgresql-<version>.jar`.
+Each jar link on the download page points at `<downloadBaseURL>postgresql-<version>.jar`. The `downloadBaseURL` param
+in `docs/config/_default/config.toml` defaults to `https://jdbc.postgresql.org/download/`, so the links also work in a
+local or test copy of the site. To link to `/download/` on the site being built, set `HUGO_PARAMS_DOWNLOADBASEURL` to
+`/download/`.
 
 The build fails when:
 
