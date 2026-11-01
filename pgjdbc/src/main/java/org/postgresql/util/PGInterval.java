@@ -13,6 +13,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * This implements a class that handles the PostgreSQL interval type.
@@ -20,6 +22,25 @@ import java.util.StringTokenizer;
 public class PGInterval extends PGobject implements Serializable, Cloneable {
 
   private static final int MICROS_IN_SECOND = 1000000;
+  // EncodeInterval in PostgreSQL's src/backend/utils/adt/datetime.c emits SQL-standard
+  // zero, year-month, day-time (with optional days), or explicitly signed compound values.
+  // Zero and time-only values continue through the existing tokenizer.
+  // A year-month value has one sign for both fields.
+  private static final Pattern SQL_STANDARD_YEAR_MONTH = Pattern.compile(
+      "^([+-]?)(\\d+)-(\\d+)$");
+  // Candidates reject malformed SQL-standard-like input before the permissive tokenizer.
+  // They are unnecessary once all unrecognized literals are rejected (see PR #3062).
+  private static final Pattern SQL_STANDARD_YEAR_MONTH_CANDIDATE = Pattern.compile(
+      "^[+-]?\\d+-.*$");
+  // Seconds are optional for compatibility with the tokenizer's pre-7.4 time format.
+  private static final Pattern SQL_STANDARD_DAY_TIME = Pattern.compile(
+      "^([+-]?)(\\d+)\\s+([+-]?)(\\d+):(\\d{2})(?::(\\d{2}(?:\\.\\d+)?))?$");
+  // As above, do not let a malformed numeric day-time value silently become zero.
+  private static final Pattern SQL_STANDARD_DAY_TIME_CANDIDATE = Pattern.compile(
+      "^[+-]?\\d+\\s+[+-]?\\d+:.*$");
+  // Compound values give the year-month, day, and time groups their own signs.
+  private static final Pattern SQL_STANDARD_COMPOUND = Pattern.compile(
+      "^([+-]?)(\\d+)-(\\d+)\\s+([+-])(\\d+)\\s+([+-])(\\d+):(\\d{2}):(\\d{2}(?:\\.\\d+)?)$");
 
   private int years;
   private int months;
@@ -110,6 +131,60 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
+   * Reads SQL-standard year-month, day-time, and compound literals. A leading sign applies
+   * to every field in its group; an unsigned time inherits the day-time value's leading sign.
+   *
+   * @param value interval literal
+   * @return false when the literal does not match these formats, so other parsers can try it
+   * @throws SQLException if a matching literal contains a number outside the integer field range
+   */
+  private boolean parseSqlStandardFormat(String value) throws SQLException {
+    try {
+      Matcher yearMonthMatcher = SQL_STANDARD_YEAR_MONTH.matcher(value);
+      if (yearMonthMatcher.matches()) {
+        String sign = yearMonthMatcher.group(1);
+        setValue(
+            Integer.parseInt(sign + yearMonthMatcher.group(2)),
+            Integer.parseInt(sign + yearMonthMatcher.group(3)), 0, 0, 0, 0);
+        return true;
+      }
+
+      Matcher dayTimeMatcher = SQL_STANDARD_DAY_TIME.matcher(value);
+      if (dayTimeMatcher.matches()) {
+        String daySign = dayTimeMatcher.group(1);
+        // A single leading sign covers the whole day-time value. Also accept a separate
+        // time sign for compatibility, although the server emits mixed signs as compound values.
+        String timeSign = dayTimeMatcher.group(3).isEmpty()
+            ? daySign : dayTimeMatcher.group(3);
+        String seconds = dayTimeMatcher.group(6);
+        setValue(0, 0,
+            Integer.parseInt(daySign + dayTimeMatcher.group(2)),
+            Integer.parseInt(timeSign + dayTimeMatcher.group(4)),
+            Integer.parseInt(timeSign + dayTimeMatcher.group(5)),
+            seconds == null ? 0 : Double.parseDouble(timeSign + seconds));
+        return true;
+      }
+
+      Matcher compoundMatcher = SQL_STANDARD_COMPOUND.matcher(value);
+      if (!compoundMatcher.matches()) {
+        return false;
+      }
+
+      String yearMonthSign = compoundMatcher.group(1);
+      setValue(
+          Integer.parseInt(yearMonthSign + compoundMatcher.group(2)),
+          Integer.parseInt(yearMonthSign + compoundMatcher.group(3)),
+          Integer.parseInt(compoundMatcher.group(4) + compoundMatcher.group(5)),
+          Integer.parseInt(compoundMatcher.group(6) + compoundMatcher.group(7)),
+          Integer.parseInt(compoundMatcher.group(6) + compoundMatcher.group(8)),
+          Double.parseDouble(compoundMatcher.group(6) + compoundMatcher.group(9)));
+      return true;
+    } catch (NumberFormatException e) {
+      throw badLiteral(value, e);
+    }
+  }
+
+  /**
    * Initializes all values of this interval to the specified values.
    *
    * @param years years
@@ -127,11 +202,16 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Sets a interval string represented value to this instance. This method only recognize the
-   * format, that Postgres returns - not all input formats are supported (e.g. '1 yr 2 m 3 s').
+   * Sets this interval from PostgreSQL output in {@code postgres}, {@code postgres_verbose},
+   * {@code sql_standard}, or {@code iso_8601} style. This is not the server's general interval
+   * input parser: not all input formats are supported (e.g. {@code 1 yr 2 m 3 s}). SQL-standard
+   * compound values require separate signs on the day and time groups, so an input such as
+   * {@code 1-2 3 4:05:06} is rejected. Fields must fit the integer range of this class, which
+   * does not cover every interval PostgreSQL can represent.
    *
    * @param value String represented interval (e.g. '3 years 2 mons')
-   * @throws SQLException Is thrown if the string representation has an unknown format
+   * @throws SQLException if a SQL-standard-like literal is malformed or a parsed integer
+   *     field in the SQL-standard or traditional PostgreSQL formats is out of range
    */
   @Override
   public void setValue(@Nullable String value) throws SQLException {
@@ -146,6 +226,13 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
       parseISO8601Format(value);
       return;
     }
+    if (parseSqlStandardFormat(value)) {
+      return;
+    }
+    if (SQL_STANDARD_YEAR_MONTH_CANDIDATE.matcher(value).matches()
+        || SQL_STANDARD_DAY_TIME_CANDIDATE.matcher(value).matches()) {
+      throw badLiteral(value);
+    }
     // Just a simple '0'
     if (!postgresFormat && value.length() == 3 && value.charAt(2) == '0') {
       setValue(0, 0, 0, 0, 0, 0.0);
@@ -159,6 +246,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     int minutes = 0;
     double seconds = 0;
 
+    String originalValue = value;
     try {
       String valueToken = null;
 
@@ -217,8 +305,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
         }
       }
     } catch (NumberFormatException e) {
-      throw new PSQLException(GT.tr("Conversion of interval failed"),
-          PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE, e);
+      throw badLiteral(originalValue, e);
     }
 
     if (!postgresFormat && value.endsWith("ago")) {
@@ -227,6 +314,15 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     } else {
       setValue(years, months, days, hours, minutes, seconds);
     }
+  }
+
+  private static PSQLException badLiteral(String value) {
+    return badLiteral(value, null);
+  }
+
+  private static PSQLException badLiteral(String value, @Nullable Throwable cause) {
+    return new PSQLException(GT.tr("Conversion of interval failed: {0}", value),
+        PSQLState.BAD_DATETIME_FORMAT, cause);
   }
 
   /**
