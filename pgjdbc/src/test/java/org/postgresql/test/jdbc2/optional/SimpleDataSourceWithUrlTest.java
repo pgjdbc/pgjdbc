@@ -27,6 +27,7 @@ public class SimpleDataSourceWithUrlTest extends BaseDataSourceTest {
       bds.setUser(TestUtil.getUser());
       bds.setPassword(TestUtil.getPassword());
       bds.setProtocolVersion(TestUtil.getProtocolVersion());
+      TestUtil.configureOAuthIfNeeded(bds);
     }
   }
 }

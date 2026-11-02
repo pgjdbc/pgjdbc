@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -17,6 +18,7 @@ import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.TestLogHandler;
 import org.postgresql.util.URLCoder;
 
 import org.junit.jupiter.api.AfterEach;
@@ -28,10 +30,15 @@ import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.sql.DriverPropertyInfo;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 class PGPropertyTest {
 
@@ -294,5 +301,62 @@ class PGPropertyTest {
     assertFalse(PGProperty.USER.isPresent(parsed), "user");
     assertFalse(PGProperty.PASSWORD.isPresent(parsed), "password");
     assertEquals(applicationName, PGProperty.APPLICATION_NAME.getOrDefault(parsed), "APPLICATION_NAME");
+  }
+
+  @Test
+  void credentialsAreNotPassedAsUrlParameters() {
+    PGSimpleDataSource dataSource = new PGSimpleDataSource();
+    dataSource.setPassword("p4ssword");
+    dataSource.setSslPassword("sslp4ssword");
+    dataSource.setOAuthToken("t0ken");
+    dataSource.setOAuthClientSecret("s3cret");
+    // A non-secret OAuth property to show that only the credentials are held back
+    dataSource.setOAuthClientId("pgjdbc");
+
+    String url = dataSource.getURL();
+    Properties parsed = Driver.parseURL(url, new Properties());
+    assertNotNull(parsed, url);
+    for (PGProperty property : PGProperty.values()) {
+      if (property.isSensitive()) {
+        assertFalse(property.isPresent(parsed), () -> property.getName() + " in " + url);
+      }
+    }
+    assertEquals("pgjdbc", PGProperty.OAUTH_CLIENT_ID.getOrDefault(parsed), "oauthClientId");
+  }
+
+  /**
+   * A parameter value that fails to URL-decode may be a credential, so only its name is logged.
+   */
+  @Test
+  void malformedCredentialValueIsNotLogged() {
+    Logger driverLogger = Logger.getLogger(Driver.class.getName());
+    TestLogHandler logHandler = new TestLogHandler();
+    Level previousLevel = driverLogger.getLevel();
+    boolean previousUseParentHandlers = driverLogger.getUseParentHandlers();
+    driverLogger.addHandler(logHandler);
+    driverLogger.setLevel(Level.FINE);
+    // Route the records to our handler only, so they do not pollute standard output
+    driverLogger.setUseParentHandlers(false);
+    try {
+      // "%zz" is not a valid percent-escape, so decoding the value fails
+      assertNull(Driver.parseURL(
+          "jdbc:postgresql://localhost:5432/test?oauthToken=s3cr3t%zz", null));
+    } finally {
+      driverLogger.removeHandler(logHandler);
+      driverLogger.setLevel(previousLevel);
+      driverLogger.setUseParentHandlers(previousUseParentHandlers);
+    }
+
+    SimpleFormatter formatter = new SimpleFormatter();
+    List<String> messages = new ArrayList<>();
+    for (LogRecord record : logHandler.records) {
+      messages.add(formatter.formatMessage(record));
+    }
+    assertFalse(messages.isEmpty(), "Expected the driver to log the decoding failure");
+    for (String message : messages) {
+      assertFalse(message.contains("s3cr3t"), () -> "The credential was logged: " + message);
+    }
+    assertTrue(messages.stream().anyMatch(message -> message.contains("oauthToken")),
+        () -> "Expected the parameter name in the log, but got " + messages);
   }
 }
