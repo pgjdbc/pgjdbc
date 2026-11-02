@@ -399,6 +399,76 @@ class ParserTest {
     assertEquals(SqlCommandType.ALTER, command.getType());
   }
 
+  /**
+   * Simple and extendedForPrepared mode do not split a non-parameterized query, so the whole SQL
+   * ends up in one {@link NativeQuery}. Returning columns are the only reason the parser runs at
+   * all on that path, and it used to drop the semicolon that separated the statements while
+   * appending {@code RETURNING} to the first one, which the server rejected with 42601.
+   */
+  @Test
+  void unsplitMultiStatementKeepsSeparatorAndDropsReturning() throws SQLException {
+    String[] returningColumns = {"id"};
+    String query = "insert into t(a) values(1); insert into t(a) values(2)";
+    List<NativeQuery> qry =
+        Parser.parseJdbcSql(query, true, false, false, false, true, returningColumns);
+    assertEquals(1, qry.size(), "Unsplit SQL is a single native query");
+    assertEquals(query, qry.get(0).nativeSql);
+    assertEquals(SqlCommandType.BLANK, qry.get(0).getCommand().getType());
+  }
+
+  /**
+   * The semicolon used to be dropped even where no {@code RETURNING} clause was added, because the
+   * parser consumed it as a statement separator on a path that never splits.
+   */
+  @Test
+  void unsplitMultiStatementKeepsSeparatorForNonDmlStatements() throws SQLException {
+    String[] returningColumns = {"id"};
+    String query = "select 1; select 2";
+    List<NativeQuery> qry =
+        Parser.parseJdbcSql(query, true, false, false, false, true, returningColumns);
+    assertEquals(1, qry.size(), "Unsplit SQL is a single native query");
+    assertEquals(query, qry.get(0).nativeSql);
+  }
+
+  /**
+   * A single statement still gets its {@code RETURNING} clause when the statements are not split.
+   * The trailing semicolon is not part of it.
+   */
+  @Test
+  void unsplitSingleStatementGetsReturning() throws SQLException {
+    String[] returningColumns = {"id"};
+    for (String query : new String[]{"insert into t(a) values(1)", "insert into t(a) values(1);"}) {
+      List<NativeQuery> qry =
+          Parser.parseJdbcSql(query, true, false, false, false, true, returningColumns);
+      assertEquals(1, qry.size(), () -> "Unsplit SQL is a single native query: " + query);
+      assertEquals("insert into t(a) values(1)\nRETURNING \"id\"", qry.get(0).nativeSql,
+          () -> "RETURNING clause for " + query);
+      assertEquals(SqlCommandType.INSERT, qry.get(0).getCommand().getType(),
+          () -> "Command type for " + query);
+    }
+  }
+
+  /**
+   * A comment terminated by a semicolon counts as a statement, so the query is treated as
+   * multi-statement and gives up its generated keys. That follows from the statement counter the
+   * unsplit path now consults, not from the surviving separator: the split path splits the same
+   * SQL into two queries and has always answered the same way.
+   */
+  @Test
+  void unsplitCommentBeforeSeparatorCountsAsStatement() throws SQLException {
+    String[] returningColumns = {"id"};
+    String query = "/*c*/; insert into t(a) values(1)";
+    List<NativeQuery> qry =
+        Parser.parseJdbcSql(query, true, false, false, false, true, returningColumns);
+    assertEquals(1, qry.size(), "Unsplit SQL is a single native query");
+    assertEquals(query, qry.get(0).nativeSql);
+    assertEquals(SqlCommandType.BLANK, qry.get(0).getCommand().getType());
+
+    List<NativeQuery> split =
+        Parser.parseJdbcSql(query, true, false, true, false, true, returningColumns);
+    assertEquals(2, split.size(), "The split path counts the comment as a statement as well");
+  }
+
   @Test
   void parseV14functions() throws SQLException {
     String[] returningColumns = {"*"};

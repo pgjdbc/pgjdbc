@@ -13,8 +13,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import org.postgresql.PGProperty;
 import org.postgresql.PGStatement;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLState;
@@ -23,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -30,6 +33,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Properties;
 
 @ParameterizedClass
 @MethodSource("data")
@@ -434,6 +438,80 @@ public class GeneratedKeysTest extends BaseTest4 {
         ps = con.prepareStatement(sql, returningInQuery.columns);
     }
     return ps;
+  }
+
+  /**
+   * Multi-statement SQL cannot report generated keys: it becomes a CompositeQuery, whose
+   * getSqlCommand() is null. Requesting them used to append RETURNING to every DML statement
+   * anyway. Statement splitting is off for a non-parameterized query below extended mode, and
+   * there the parser also drops the separating semicolon, so the RETURNING clause landed in the
+   * middle of the concatenated SQL and the server answered 42601. Every mode is exercised
+   * because the entry points failed differently in each.
+   */
+  @Test
+  public void multiStatementIgnoresGeneratedKeys() throws Exception {
+    assumeTrue(returningInQuery == ReturningInQuery.NO,
+        "the test drives the RETURNING clause itself");
+    String sql = "INSERT INTO genkeys VALUES (1, 'a', 2); INSERT INTO genkeys VALUES (2, 'b', 4)";
+
+    for (PreferQueryMode mode : new PreferQueryMode[]{PreferQueryMode.SIMPLE,
+        PreferQueryMode.EXTENDED_FOR_PREPARED, PreferQueryMode.EXTENDED}) {
+      Properties props = new Properties();
+      updateProperties(props);
+      PGProperty.PREFER_QUERY_MODE.set(props, mode.value());
+      try (Connection modeCon = TestUtil.openDB(props)) {
+        TestUtil.createTempTable(modeCon, "genkeys", "a serial, b varchar(5), c int");
+
+        // Both statements insert one row, so whichever count the driver reports has to be 1
+        try (PreparedStatement ps = modeCon.prepareStatement(sql, new String[]{"c"})) {
+          assertEquals(1, ps.executeUpdate(), () -> mode + ": executeUpdate of " + sql);
+          assertFalse(ps.getGeneratedKeys().next(),
+              () -> mode + ": generated keys are not reported for multi-statement SQL");
+        }
+        assertEquals(2, countGenkeys(modeCon), () -> mode + ": both statements must run");
+
+        try (Statement stmt = modeCon.createStatement()) {
+          stmt.executeUpdate("DELETE FROM genkeys");
+          assertEquals(1, stmt.executeUpdate(sql, new String[]{"c"}),
+              () -> mode + ": executeUpdate of " + sql);
+          assertFalse(stmt.getGeneratedKeys().next(),
+              () -> mode + ": generated keys are not reported for multi-statement SQL");
+        }
+        assertEquals(2, countGenkeys(modeCon), () -> mode + ": both statements must run");
+      }
+    }
+  }
+
+  /**
+   * A comment after the final semicolon counts as a statement, so the query reports no generated
+   * keys - in every mode, and before this change as well. The update count is what used to be
+   * wrong: RETURNING was appended to SQL the driver then classified as BLANK, so a row came back
+   * that nothing read and executeUpdate answered -1.
+   */
+  @Test
+  public void trailingCommentKeepsUpdateCount() throws Exception {
+    assumeTrue(returningInQuery == ReturningInQuery.NO,
+        "the test drives the RETURNING clause itself");
+
+    for (String sql : new String[]{"INSERT INTO genkeys VALUES (1, 'a', 2); -- done",
+        "INSERT INTO genkeys VALUES (1, 'a', 2); /* done */"}) {
+      try (Statement stmt = con.createStatement()) {
+        stmt.executeUpdate("DELETE FROM genkeys");
+        assertEquals(1, stmt.executeUpdate(sql, new String[]{"c"}),
+            () -> "executeUpdate of " + sql);
+        assertFalse(stmt.getGeneratedKeys().next(),
+            () -> "a trailing comment counts as a statement, so no keys are reported: " + sql);
+      }
+      assertEquals(1, countGenkeys(con), () -> "the statement must run: " + sql);
+    }
+  }
+
+  private static int countGenkeys(Connection con) throws SQLException {
+    try (Statement stmt = con.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT count(*) FROM genkeys")) {
+      rs.next();
+      return rs.getInt(1);
+    }
   }
 
   @Test
