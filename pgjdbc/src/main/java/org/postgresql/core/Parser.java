@@ -1441,12 +1441,32 @@ public class Parser {
     return i;
   }
 
+  /**
+   * Finds the {@code (} that opens the argument list of a {@code {fn name(...)}} escape. The scan
+   * stops at the <code>}</code> that closes the escape, and skips a delimited identifier or a comment
+   * whole, since a {@code (} or <code>}</code> inside one belongs to neither the argument list nor the
+   * escape.
+   *
+   * @param sql input SQL text
+   * @param i offset of the function name
+   * @return offset of the {@code (}; offset of the <code>}</code> when the escape has no argument
+   *     list; or {@code sql.length} when the input ends before either
+   */
   private static int findOpenParenthesis(char[] sql, int i) {
     int posArgs = i;
-    while (posArgs < sql.length && sql[posArgs] != '(') {
+    while (posArgs < sql.length && sql[posArgs] != '(' && sql[posArgs] != '}') {
+      char ch = sql[posArgs];
+      if (ch == '"') {
+        posArgs = parseDoubleQuotes(sql, posArgs);
+      } else if (ch == '-') {
+        posArgs = parseLineComment(sql, posArgs);
+      } else if (ch == '/') {
+        posArgs = parseBlockComment(sql, posArgs);
+      }
       posArgs++;
     }
-    return posArgs;
+    // parseBlockComment can return sql.length + 1 for an unclosed comment
+    return Math.min(posArgs, sql.length);
   }
 
   private static void checkParsePosition(int i, int len, int i0, char[] sql,
@@ -1461,20 +1481,75 @@ public class Parser {
   }
 
   private static int escapeFunction(char[] sql, int i, StringBuilder newsql, boolean stdStrings) throws SQLException {
-    String functionName;
     int argPos = findOpenParenthesis(sql, i);
-    if (argPos < sql.length) {
-      functionName = new String(sql, i, argPos - i).trim();
-      // extract arguments
-      i = argPos + 1;// we start the scan after the first (
-      i = escapeFunctionArguments(newsql, functionName, sql, i, stdStrings);
+    if (argPos >= sql.length) {
+      // The input ended inside the escape, a delimited identifier, or a comment
+      throw new PSQLException(
+          GT.tr("Unterminated JDBC escape function call whose name starts at position {0} in SQL "
+              + "{1}. The SQL ends inside the escape, a quoted name, or a comment", i, new String(sql)),
+          PSQLState.SYNTAX_ERROR);
     }
+    if (sql[argPos] != '(') {
+      throw new PSQLException(
+          GT.tr("JDBC escape function name at position {0} in SQL {1} has no argument list. "
+              + "Expected a name followed by parentheses, as in '{'fn now()'}'",
+              i, new String(sql)),
+          PSQLState.SYNTAX_ERROR);
+    }
+    String functionName = escapeFunctionName(sql, i, argPos);
+    // extract arguments
+    i = argPos + 1;// we start the scan after the first (
+    i = escapeFunctionArguments(newsql, functionName, sql, i, stdStrings);
     // go to the end of the function copying anything found
     i++;
     while (i < sql.length && sql[i] != '}') {
       newsql.append(sql[i++]);
     }
     return i;
+  }
+
+  /**
+   * Returns the trimmed function name of a {@code {fn ...}} escape, with each comment in it
+   * replaced by a space.
+   *
+   * <p>The name is the text from {@code start} up to the {@code (} at {@code argPos}. It is both
+   * the key {@link EscapedFunctions2#getFunction} looks up and the text emitted right before the
+   * {@code (}, so no comment may survive in it: a line comment there would turn the argument list
+   * into comment text.</p>
+   *
+   * @param sql    SQL text
+   * @param start  offset of the function name
+   * @param argPos offset of the {@code (} that opens the argument list
+   * @return the name, with no comment left in it and no whitespace at either end
+   */
+  private static String escapeFunctionName(char[] sql, int start, int argPos) {
+    StringBuilder name = new StringBuilder(argPos - start);
+    int i = start;
+    while (i < argPos) {
+      char ch = sql[i];
+      if (ch == '"') {
+        // A delimited identifier may hold anything, including what looks like a comment
+        int end = Math.min(parseDoubleQuotes(sql, i), argPos - 1);
+        name.append(sql, i, end - i + 1);
+        i = end + 1;
+      } else if (ch == '-' || ch == '/') {
+        int end = ch == '-' ? parseLineComment(sql, i) : parseBlockComment(sql, i);
+        if (end > i) {
+          // A comment separates tokens in PostgreSQL, so "con/**/cat" stays two identifiers. As
+          // the single name concat, EscapedFunctions2 would rewrite it into a valid call
+          name.append(' ');
+          i = end + 1;
+        } else {
+          // Not a comment after all, so it is part of the name
+          name.append(ch);
+          i++;
+        }
+      } else {
+        name.append(ch);
+        i++;
+      }
+    }
+    return name.toString().trim();
   }
 
   /**
