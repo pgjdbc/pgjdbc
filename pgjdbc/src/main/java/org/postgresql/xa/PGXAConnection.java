@@ -357,6 +357,11 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
           XAException.XAER_INVAL);
     }
 
+    if (conn.getTransactionState() == TransactionState.FAILED) {
+      throw rollbackAbortedBranch(xid,
+          GT.tr("Transaction was rolled back because a statement in it failed. prepare xid={0}", xid));
+    }
+
     try {
       String s = RecoveredXid.xidToString(xid);
       conn.execSQLUpdate("PREPARE TRANSACTION '" + s + "'");
@@ -570,6 +575,11 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
           XAException.XAER_PROTO);
     }
 
+    if (conn.getTransactionState() == TransactionState.FAILED) {
+      throw rollbackAbortedBranch(xid,
+          GT.tr("Transaction was rolled back because a statement in it failed. commit xid={0}", xid));
+    }
+
     // Send COMMIT through QUERY_SUPPRESS_BEGIN so it works regardless of the caller's autoCommit.
     // Cannot use conn.commit() because PgConnection.commit() throws when autoCommit=true, and the
     // new contract leaves autoCommit at whatever the caller set.
@@ -584,6 +594,35 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     state = State.IDLE;
     currentXid = null;
     committedOrRolledBack = true;
+  }
+
+  /**
+   * Rolls back the server transaction of the ended branch {@code xid}, which a failed statement has
+   * aborted, and returns the exception that reports the rollback with {@code XA_RBROLLBACK}. After
+   * the rollback the branch is forgotten: this resource returns to the IDLE state, and a later
+   * {@code rollback(xid)} or {@code commit(xid, ...)} reports {@code XAER_NOTA}. If ROLLBACK
+   * itself fails, the branch stays ENDED so that {@code rollback(xid)} can retry it.
+   *
+   * <p>PostgreSQL answers both PREPARE TRANSACTION and COMMIT in an aborted transaction with the
+   * command tag ROLLBACK and no error, so the transaction state has to be checked before sending
+   * either of them.</p>
+   *
+   * @param xid the branch whose transaction is aborted
+   * @param message the message of the returned exception
+   * @return the exception for the caller to throw
+   */
+  private PGXAException rollbackAbortedBranch(Xid xid, String message) {
+    try {
+      conn.execSQLUpdate("ROLLBACK");
+    } catch (SQLException ex) {
+      return new PGXAException(
+          GT.tr("Error rolling back a transaction that a failed statement aborted. xid={0}", xid),
+          ex, mapSQLStateToXAErrorCode(ex));
+    }
+    state = State.IDLE;
+    currentXid = null;
+    committedOrRolledBack = true;
+    return new PGXAException(message, XAException.XA_RBROLLBACK);
   }
 
   /**
