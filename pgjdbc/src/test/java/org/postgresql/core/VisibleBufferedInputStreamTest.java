@@ -5,6 +5,7 @@
 
 package org.postgresql.core;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -14,8 +15,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import java.io.ByteArrayInputStream;
+import java.io.EOFException;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.SocketException;
 import java.util.concurrent.TimeUnit;
 
 class VisibleBufferedInputStreamTest {
@@ -66,6 +71,33 @@ class VisibleBufferedInputStreamTest {
         to[off + i] = (byte) (pos++ % 251);
       }
       return len;
+    }
+  }
+
+  /** Holds the given bytes and reports {@code reported} from {@code available()}. */
+  private static class ReportsAvailable extends ByteArrayInputStream {
+    private final int reported;
+
+    ReportsAvailable(byte[] data, int reported) {
+      super(data);
+      this.reported = reported;
+    }
+
+    @Override
+    public synchronized int available() {
+      return reported;
+    }
+  }
+
+  /** Holds the given bytes and throws from {@code available()}, as a closed socket does. */
+  private static class ClosedSocketAvailable extends FilterInputStream {
+    ClosedSocketAvailable(byte[] data) {
+      super(new ByteArrayInputStream(data));
+    }
+
+    @Override
+    public int available() throws IOException {
+      throw new SocketException("Socket closed");
     }
   }
 
@@ -194,5 +226,61 @@ class VisibleBufferedInputStreamTest {
 
     assertThrows(IOException.class, () -> in.scanCStringLength());
     assertTrue(in.getBuffer().length <= VisibleBufferedInputStream.MAX_BUFFER_SIZE);
+  }
+
+  @Test
+  void availableCountsOnlyTheBufferWhileItHoldsBytes() throws IOException {
+    VisibleBufferedInputStream in = new VisibleBufferedInputStream(
+        new ReportsAvailable(new byte[]{1, 2, 3, 4, 5, 6, 7, 8}, 500), INITIAL_SIZE);
+    assertTrue(in.ensureBytes(8));
+    in.read();
+
+    assertEquals(7, in.available());
+  }
+
+  /** A closed socket throws from available(), and the bytes already buffered are still counted. */
+  @Test
+  void availableDoesNotCallAClosedWrappedSocketWhileTheBufferHoldsBytes() throws IOException {
+    VisibleBufferedInputStream in = new VisibleBufferedInputStream(
+        new ClosedSocketAvailable(new byte[]{1, 2, 3, 4, 5, 6, 7, 8}), INITIAL_SIZE);
+    assertTrue(in.ensureBytes(8));
+    in.read();
+
+    assertEquals(7, in.available());
+  }
+
+  @Test
+  void availableReportsTheWrappedStreamOnceTheBufferIsEmpty() throws IOException {
+    VisibleBufferedInputStream in = new VisibleBufferedInputStream(
+        new ReportsAvailable(new byte[]{1, 2, 3}, 500), INITIAL_SIZE);
+
+    assertEquals(500, in.available());
+  }
+
+  @Test
+  void scanCStringLengthCountsTheTerminatorAndLeavesTheStringUnread() throws IOException {
+    VisibleBufferedInputStream in = new VisibleBufferedInputStream(
+        new ByteArrayInputStream(new byte[]{'a', 'b', 'c', 0, 'd'}), INITIAL_SIZE);
+
+    int length = in.scanCStringLength();
+
+    assertAll(
+        () -> assertEquals(4, length, "length of \"abc\" and its terminator"),
+        () -> assertEquals(0, in.getPosition(), "bytes consumed by the scan"),
+        () -> assertEquals('a', in.getBuffer()[in.getIndex()], "byte at getIndex()"));
+  }
+
+  /**
+   * The EOFException used to carry no message, so a truncated backend message showed a bare stack
+   * trace.
+   */
+  @Test
+  void anUnterminatedStringAtTheEndOfStreamFailsWithAMessage() {
+    VisibleBufferedInputStream in = new VisibleBufferedInputStream(
+        new ByteArrayInputStream(new byte[]{'a', 'b', 'c'}), INITIAL_SIZE);
+
+    EOFException e = assertThrows(EOFException.class, in::scanCStringLength);
+
+    assertEquals("End of stream reached while looking for a string terminator.", e.getMessage());
   }
 }
