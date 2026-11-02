@@ -72,12 +72,21 @@ public class Parser {
     boolean isReturningPresent = false;
     boolean isReturningPresentPrev = false;
     boolean isBeginPresent = false;
+    // A BEGIN ATOMIC body can appear only in CREATE FUNCTION or CREATE PROCEDURE.
+    // isCreateObjectPending: the keyword after CREATE [OR REPLACE] is still to come.
+    // isRoutineDefinition: that keyword was FUNCTION or PROCEDURE.
+    boolean isRoutineDefinition = false;
+    boolean isCreateObjectPending = false;
     boolean isBeginAtomicPresent = false;
     SqlCommandType currentCommandType = SqlCommandType.BLANK;
     SqlCommandType prevCommandType = SqlCommandType.BLANK;
     int numberOfStatements = 0;
 
     boolean whitespaceOnly = true;
+    // The last character outside whitespace and comments, and the value it had when the
+    // current keyword started
+    char lastCodeChar = 0;
+    char codeCharBeforeKeyword = 0;
     int keyWordCount = 0;
     int keywordStart = -1;
     int keywordEnd = -1;
@@ -89,6 +98,7 @@ public class Parser {
     for (int i = 0; i < aChars.length; i++) {
       char aChar = aChars[i];
       boolean isKeyWordChar = false;
+      int charStart = i; // the sub-parsers below move i, so remember where this character was
       // ';' is ignored as it splits the queries. We do have to deal with ; in BEGIN ATOMIC functions
       whitespaceOnly &= aChar == ';' || Character.isWhitespace(aChar);
       keywordEnd = i; // parseSingleQuotes, parseDoubleQuotes, etc move index so we keep old value
@@ -144,59 +154,6 @@ public class Parser {
           fragmentStart = i + 1;
           break;
 
-        case ';':
-          // we don't split the queries if BEGIN ATOMIC is present
-          if (!isBeginAtomicPresent && inParen == 0) {
-            if (!whitespaceOnly) {
-              numberOfStatements++;
-              nativeSql.append(aChars, fragmentStart, i - fragmentStart);
-              whitespaceOnly = true;
-            }
-            fragmentStart = i + 1;
-            if (nativeSql.length() > 0) {
-              if (addReturning(nativeSql, currentCommandType, returningColumnNames, isReturningPresent, quoteReturningIdentifiers)) {
-                isReturningPresent = true;
-              }
-
-              if (splitStatements) {
-                if (nativeQueries == null) {
-                  nativeQueries = new ArrayList<>();
-                }
-
-                if (!isValuesFound || !isCurrentReWriteCompatible || valuesParenthesisClosePosition == -1
-                    || (bindPositions != null
-                    && valuesParenthesisClosePosition < bindPositions.get(bindPositions.size() - 1))) {
-                  valuesParenthesisOpenPosition = -1;
-                  valuesParenthesisClosePosition = -1;
-                }
-
-                nativeQueries.add(new NativeQuery(nativeSql.toString(),
-                    toIntArray(bindPositions), false,
-                    SqlCommand.createStatementTypeInfo(
-                        currentCommandType, isBatchedReWriteConfigured, valuesParenthesisOpenPosition,
-                        valuesParenthesisClosePosition,
-                        isReturningPresent, nativeQueries.size())));
-              }
-            }
-            prevCommandType = currentCommandType;
-            isReturningPresentPrev = isReturningPresent;
-            currentCommandType = SqlCommandType.BLANK;
-            isReturningPresent = false;
-            if (splitStatements) {
-              // Prepare for next query
-              if (bindPositions != null) {
-                bindPositions.clear();
-              }
-              nativeSql.setLength(0);
-              isValuesFound = false;
-              isCurrentReWriteCompatible = false;
-              valuesParenthesisOpenPosition = -1;
-              valuesParenthesisClosePosition = -1;
-              valuesParenthesisCloseFound = false;
-            }
-          }
-          break;
-
         default:
           if (keywordStart >= 0) {
             // When we are inside a keyword, we need to detect keyword end boundary
@@ -209,6 +166,7 @@ public class Parser {
           isKeyWordChar = isIdentifierStartChar(aChar);
           if (isKeyWordChar) {
             keywordStart = i;
+            codeCharBeforeKeyword = lastCodeChar;
             if (valuesParenthesisOpenPosition != -1 && inParen == 0) {
               // When the statement already has multi-values, stop looking for more of them
               // Since values(?,?),(?,?),... should not contain keywords in the middle
@@ -222,6 +180,7 @@ public class Parser {
         if (currentCommandType == SqlCommandType.BLANK) {
           if (wordLength == 6 && parseCreateKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.CREATE;
+            isCreateObjectPending = true;
           } else if (wordLength == 5 && parseAlterKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.ALTER;
           } else if (wordLength == 6 && parseUpdateKeyword(aChars, keywordStart)) {
@@ -235,15 +194,13 @@ public class Parser {
           } else if (wordLength == 4 && parseWithKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.WITH;
           } else if (wordLength == 6 && parseInsertKeyword(aChars, keywordStart)) {
-            if (!isInsertPresent && (nativeQueries == null || nativeQueries.isEmpty())) {
-              // Only allow rewrite for insert command starting with the insert keyword.
-              // Else, too many risks of wrong interpretation.
-              isCurrentReWriteCompatible = keyWordCount == 0;
-              isInsertPresent = true;
-              currentCommandType = SqlCommandType.INSERT;
-            } else {
-              isCurrentReWriteCompatible = false;
-            }
+            currentCommandType = SqlCommandType.INSERT;
+            // Only allow rewrite for insert command starting with the insert keyword.
+            // Else, too many risks of wrong interpretation.
+            isCurrentReWriteCompatible = keyWordCount == 0
+                && !isInsertPresent
+                && (nativeQueries == null || nativeQueries.isEmpty());
+            isInsertPresent = true;
           }
 
         } else if (currentCommandType == SqlCommandType.WITH
@@ -256,15 +213,27 @@ public class Parser {
           /*
           We are looking for BEGIN ATOMIC
            */
-          if (wordLength == 5 && parseBeginKeyword(aChars, keywordStart)) {
+          if (isCreateObjectPending && !isCreateModifier(aChars, keywordStart, wordLength)) {
+            // FUNCTION and PROCEDURE can follow CREATE only directly or after OR REPLACE
+            isRoutineDefinition = wordLength == 8 && parseFunctionKeyword(aChars, keywordStart)
+                || wordLength == 9 && parseProcedureKeyword(aChars, keywordStart);
+            isCreateObjectPending = false;
+          } else if (wordLength == 5 && parseBeginKeyword(aChars, keywordStart)) {
             isBeginPresent = true;
           } else {
             // found begin, now look for atomic
             if (isBeginPresent) {
-              if (wordLength == 6 && parseAtomicKeyword(aChars, keywordStart)) {
+              // BEGIN and ATOMIC are ordinary identifiers, so "select begin, atomic" is a column
+              // list. The pair opens a body only as two adjacent keywords at the statement level
+              // of a routine definition. isBeginPresent is set only when the previous keyword was
+              // BEGIN, and the last code character before ATOMIC is then a letter unless a token
+              // other than a comment stands between the two: a comma, a parenthesis, a literal.
+              if (isRoutineDefinition && inParen == 0 && wordLength == 6
+                  && Character.isLetter(codeCharBeforeKeyword)
+                  && parseAtomicKeyword(aChars, keywordStart)) {
                 isBeginAtomicPresent = true;
               }
-              // either way we reset beginFound
+              // isBeginPresent applies to the next keyword only
               isBeginPresent = false;
             }
           }
@@ -278,6 +247,69 @@ public class Parser {
         }
         keywordStart = -1;
         keyWordCount++;
+      }
+      // The split comes after the keyword flush, so a keyword right before ';', such as
+      // 'values', sets its flags on the statement it ends rather than on the next one
+      if (aChar == ';') {
+        // we don't split the queries if BEGIN ATOMIC is present
+        if (!isBeginAtomicPresent && inParen == 0) {
+          if (!whitespaceOnly) {
+            numberOfStatements++;
+            nativeSql.append(aChars, fragmentStart, i - fragmentStart);
+            whitespaceOnly = true;
+          }
+          fragmentStart = i + 1;
+          if (nativeSql.length() > 0) {
+            if (addReturning(nativeSql, currentCommandType, returningColumnNames, isReturningPresent, quoteReturningIdentifiers)) {
+              isReturningPresent = true;
+            }
+
+            if (splitStatements) {
+              if (nativeQueries == null) {
+                nativeQueries = new ArrayList<>();
+              }
+
+              if (!isValuesFound || !isCurrentReWriteCompatible || valuesParenthesisClosePosition == -1
+                  || (bindPositions != null
+                  && valuesParenthesisClosePosition < bindPositions.get(bindPositions.size() - 1))) {
+                valuesParenthesisOpenPosition = -1;
+                valuesParenthesisClosePosition = -1;
+              }
+
+              nativeQueries.add(new NativeQuery(nativeSql.toString(),
+                  toIntArray(bindPositions), false,
+                  SqlCommand.createStatementTypeInfo(
+                      currentCommandType, isBatchedReWriteConfigured, valuesParenthesisOpenPosition,
+                      valuesParenthesisClosePosition,
+                      isReturningPresent, nativeQueries.size())));
+            }
+          }
+          prevCommandType = currentCommandType;
+          isReturningPresentPrev = isReturningPresent;
+          currentCommandType = SqlCommandType.BLANK;
+          isRoutineDefinition = false;
+          isCreateObjectPending = false;
+          isBeginPresent = false;
+          isReturningPresent = false;
+          if (splitStatements) {
+            // Prepare for next query
+            if (bindPositions != null) {
+              bindPositions.clear();
+            }
+            nativeSql.setLength(0);
+            isValuesFound = false;
+            isCurrentReWriteCompatible = false;
+            valuesParenthesisOpenPosition = -1;
+            valuesParenthesisClosePosition = -1;
+            valuesParenthesisCloseFound = false;
+          }
+        }
+      }
+      if (!Character.isWhitespace(aChar)
+          && !((aChar == '-' || aChar == '/') && i > charStart)) {
+        // i moved past a '-' or '/' only if parseLineComment or parseBlockComment skipped a
+        // comment
+        lastCodeChar = aChar;
       }
       if (aChar == '(') {
         inParen++;
@@ -294,8 +326,12 @@ public class Parser {
       valuesParenthesisClosePosition = -1;
     }
 
-    if (fragmentStart < aChars.length && !whitespaceOnly) {
-      nativeSql.append(aChars, fragmentStart, aChars.length - fragmentStart);
+    // whitespaceOnly alone decides whether a statement follows the last ';'. fragmentStart also
+    // reaches the end of the input after a trailing '?', whose statement is already in nativeSql.
+    if (!whitespaceOnly) {
+      if (fragmentStart < aChars.length) {
+        nativeSql.append(aChars, fragmentStart, aChars.length - fragmentStart);
+      }
     } else {
       if (numberOfStatements > 1) {
         isReturningPresent = false;
@@ -758,6 +794,74 @@ public class Parser {
         && (query[offset + 3] | 32) == 'a'
         && (query[offset + 4] | 32) == 't'
         && (query[offset + 5] | 32) == 'e';
+  }
+
+  /**
+   * Returns whether the keyword is the OR or REPLACE of CREATE OR REPLACE, the only words that may
+   * stand between CREATE and FUNCTION or PROCEDURE.
+   *
+   * @param query      char[] of the query statement
+   * @param offset     position of the keyword
+   * @param wordLength length of the keyword
+   * @return true for the OR and REPLACE of CREATE OR REPLACE
+   */
+  private static boolean isCreateModifier(char[] query, int offset, int wordLength) {
+    if (wordLength == 2) {
+      return (query[offset] | 32) == 'o' && (query[offset + 1] | 32) == 'r';
+    }
+    return wordLength == 7
+        && (query[offset] | 32) == 'r'
+        && (query[offset + 1] | 32) == 'e'
+        && (query[offset + 2] | 32) == 'p'
+        && (query[offset + 3] | 32) == 'l'
+        && (query[offset + 4] | 32) == 'a'
+        && (query[offset + 5] | 32) == 'c'
+        && (query[offset + 6] | 32) == 'e';
+  }
+
+  /**
+   * Returns whether the word at {@code offset} is FUNCTION, in any case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of the word
+   * @return true if the word is FUNCTION
+   */
+  private static boolean parseFunctionKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 8)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'f'
+        && (query[offset + 1] | 32) == 'u'
+        && (query[offset + 2] | 32) == 'n'
+        && (query[offset + 3] | 32) == 'c'
+        && (query[offset + 4] | 32) == 't'
+        && (query[offset + 5] | 32) == 'i'
+        && (query[offset + 6] | 32) == 'o'
+        && (query[offset + 7] | 32) == 'n';
+  }
+
+  /**
+   * Returns whether the word at {@code offset} is PROCEDURE, in any case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of the word
+   * @return true if the word is PROCEDURE
+   */
+  private static boolean parseProcedureKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 9)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'p'
+        && (query[offset + 1] | 32) == 'r'
+        && (query[offset + 2] | 32) == 'o'
+        && (query[offset + 3] | 32) == 'c'
+        && (query[offset + 4] | 32) == 'e'
+        && (query[offset + 5] | 32) == 'd'
+        && (query[offset + 6] | 32) == 'u'
+        && (query[offset + 7] | 32) == 'r'
+        && (query[offset + 8] | 32) == 'e';
   }
 
   /**
