@@ -427,7 +427,15 @@ public class BlobInputStream extends InputStream {
       }
 
       // The constructor limit is relative to the initial position; -1 means no limit
-      limit = limit == -1 ? Long.MAX_VALUE : limit + absolutePosition;
+      if (limit == -1) {
+        limit = Long.MAX_VALUE;
+      } else {
+        long absoluteLimit = limit + absolutePosition;
+        // Making the limit absolute overflows for a limit near Long.MAX_VALUE, and the wrapped
+        // value lands behind the position, so the stream would serve nothing. A caller asking for
+        // more bytes than can exist means "everything", so saturate
+        limit = limit > 0 && absoluteLimit < 0 ? Long.MAX_VALUE : absoluteLimit;
+      }
       markPosition = absolutePosition;
     }
 

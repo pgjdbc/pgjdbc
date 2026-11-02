@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -621,6 +622,84 @@ class BlobTest {
       }
     }
     con.commit();
+  }
+
+  /**
+   * A limit larger than the bytes that can exist is "read everything", not "read nothing". The
+   * limit is stored relative to where the large object sits and made absolute on first use, so a
+   * limit near {@link Long#MAX_VALUE} used to wrap to a position behind the stream and serve
+   * nothing at all.
+   *
+   * @param startOffset where the large object is positioned when the stream is built
+   */
+  @ParameterizedTest
+  @ValueSource(ints = {0, 1024})
+  void limitBeyondLongRange(int startOffset) throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      blob.seek(startOffset);
+      byte[] served = readFully(blob.getInputStream(Long.MAX_VALUE));
+      assertEquals(96 * 1024 - startOffset, served.length,
+          () -> "bytes served by an unreachable limit from offset " + startOffset);
+      // Byte i of every 1024-byte block equals the block index
+      assertEquals(startOffset / 1024, served[0]);
+      assertEquals(95, served[served.length - 1]);
+    }
+  }
+
+  @Test
+  void binaryStreamRejectsPositionBelowOne() throws Exception {
+    try (Statement stmt = con.createStatement()) {
+      stmt.execute("INSERT INTO testblob(id,lo) VALUES ('1', lo_creat(-1))");
+      try (ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob where id = '1'")) {
+        assertTrue(rs.next());
+        Blob blob = rs.getBlob(1);
+        // Position 0 used to seek to -1, which the server refuses, taking the transaction with it
+        SQLException ex = assertThrows(SQLException.class, () -> blob.getBinaryStream(0, 10));
+        // The SQLState alone does not tell the two apart: the server's own "invalid large object
+        // seek target" is 22023 too. The statement below is what distinguishes them
+        assertEquals(PSQLState.INVALID_PARAMETER_VALUE.getState(), ex.getSQLState());
+      }
+    }
+
+    // The transaction is still usable, so nothing was sent to the server
+    try (Statement stmt = con.createStatement()) {
+      assertTrue(stmt.execute("SELECT 1"));
+    }
+  }
+
+  /**
+   * A negative length is not a length. The two negatives used to fail differently: -1 collided
+   * with the "no limit" sentinel of {@link LargeObject#getInputStream(long)} and quietly handed
+   * back the whole large object, and anything below it built a stream whose end sits before its
+   * start, which serves nothing.
+   *
+   * @param length the invalid length to ask for
+   */
+  @ParameterizedTest
+  @ValueSource(longs = {-1, -2})
+  void binaryStreamRejectsNegativeLength(long length) throws Exception {
+    try (Statement stmt = con.createStatement()) {
+      stmt.execute("INSERT INTO testblob(id,lo) VALUES ('1', lo_creat(-1))");
+      try (ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob where id = '1'")) {
+        assertTrue(rs.next());
+        Blob blob = rs.getBlob(1);
+        SQLException ex = assertThrows(SQLException.class, () -> blob.getBinaryStream(1, length));
+        assertEquals(PSQLState.INVALID_PARAMETER_VALUE.getState(), ex.getSQLState());
+      }
+    }
+  }
+
+  private static byte[] readFully(InputStream in) throws IOException {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    byte[] buf = new byte[8192];
+    int read;
+    while ((read = in.read(buf, 0, buf.length)) > 0) {
+      out.write(buf, 0, read);
+    }
+    return out.toByteArray();
   }
 
   /*
