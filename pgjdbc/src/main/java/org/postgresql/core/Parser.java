@@ -1250,7 +1250,8 @@ public class Parser {
     sb.append(prefix);
     sb.append(s);
 
-    int opening = s.indexOf('(') + 1;
+    int argListStart = findCallArgumentList(jdbcSqlChars, startIndex, endIndex, stdStrings);
+    int opening = argListStart < endIndex ? argListStart - startIndex + 1 : 0;
     if (opening == 0) {
       // here the function call has no parameters declaration eg : "{ ? = call pack_getValue}"
       sb.append(outParamBeforeFunc ? "(?)" : "()");
@@ -1279,6 +1280,46 @@ public class Parser {
       sql = sb.toString();
     }
     return new JdbcCallParseInfo(sql, isFunction);
+  }
+
+  /**
+   * Finds the {@code (} that opens the argument list of a call. A {@code (} inside a delimited
+   * identifier, a string constant or a comment belongs to the name rather than to the argument
+   * list, so those are skipped whole.
+   *
+   * @param sql        SQL text
+   * @param from       first offset of the call body
+   * @param to         offset just past the call body
+   * @param stdStrings whether standard_conforming_strings is on
+   * @return offset of the {@code (}, or {@code to} if the body has no argument list
+   */
+  private static int findCallArgumentList(char[] sql, int from, int to, boolean stdStrings) {
+    int i = from;
+    while (i < to) {
+      char ch = sql[i];
+      if (ch == '(') {
+        return i;
+      }
+      int skipped;
+      if (ch == '"') {
+        skipped = parseDoubleQuotes(sql, i) + 1;
+      } else if (ch == '\'') {
+        skipped = parseSingleQuotes(sql, i, stdStrings) + 1;
+      } else if (ch == '$') {
+        int end = parseDollarQuotes(sql, i);
+        skipped = end > i ? end + 1 : i + 1;
+      } else if (ch == '-') {
+        int end = parseLineComment(sql, i);
+        skipped = end > i ? end + 1 : i + 1;
+      } else if (ch == '/') {
+        int end = parseBlockComment(sql, i);
+        skipped = end > i ? end + 1 : i + 1;
+      } else {
+        skipped = i + 1;
+      }
+      i = Math.max(skipped, i + 1);
+    }
+    return to;
   }
 
   /**

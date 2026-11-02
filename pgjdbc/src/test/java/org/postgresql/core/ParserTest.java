@@ -270,6 +270,41 @@ class ParserTest {
     assertFalse(parseInfo.isFunction(), () -> "isFunction() should be false for: " + sql);
   }
 
+  /**
+   * The out parameter of {@code { ? = call ... }} becomes the first argument of the call, so it has
+   * to go after the {@code (} that opens the argument list. A {@code (} inside a comment or a
+   * delimited identifier belongs to the name, and inserting there corrupted the statement.
+   */
+  @Test
+  void outParameterGoesIntoTheArgumentList() throws SQLException {
+    assertEquals("select * from f/*(*/ (?,?) as result", modifySelectCall("{? = call f/*(*/ (?)}"));
+    assertEquals("select * from f -- (\n (?,?) as result",
+        modifySelectCall("{? = call f -- (\n (?)}"));
+    assertEquals("select * from \"we(ird\"(?) as result",
+        modifySelectCall("{? = call \"we(ird\"()}"));
+    assertEquals("select * from \"we(ird\"(?,?) as result",
+        modifySelectCall("{? = call \"we(ird\"(?)}"));
+  }
+
+  /**
+   * The shapes that already worked have to keep working: a plain call, an empty argument list, no
+   * argument list at all, and a parenthesis inside a string constant, which comes after the real
+   * argument list rather than before it.
+   */
+  @Test
+  void outParameterPlacementIsUnchangedForOrdinaryCalls() throws SQLException {
+    assertEquals("select * from f(?,?) as result", modifySelectCall("{? = call f(?)}"));
+    assertEquals("select * from f(?) as result", modifySelectCall("{? = call f()}"));
+    assertEquals("select * from f(?) as result", modifySelectCall("{? = call f}"));
+    assertEquals("select * from f(?,'(') as result", modifySelectCall("{? = call f('(')}"));
+    assertEquals("select * from f(/* */) as result", modifySelectCall("{call f(/* */)}"));
+  }
+
+  private static String modifySelectCall(String sql) throws SQLException {
+    return Parser.modifyJdbcCall(sql, true, ServerVersion.v9_6.getVersionNum(),
+        EscapeSyntaxCallMode.SELECT).getSql();
+  }
+
   @Test
   void unterminatedEscape() throws Exception {
     assertEquals("{oj ", Parser.replaceProcessing("{oj ", true, false));
