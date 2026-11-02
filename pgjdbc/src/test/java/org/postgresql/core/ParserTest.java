@@ -5,11 +5,13 @@
 
 package org.postgresql.core;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.util.PSQLException;
@@ -18,10 +20,13 @@ import org.postgresql.util.PSQLState;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Test cases for the Parser.
@@ -268,6 +273,101 @@ class ParserTest {
     JdbcCallParseInfo parseInfo = Parser.modifyJdbcCall(sql, true, ServerVersion.v14.getVersionNum(),
         EscapeSyntaxCallMode.CALL);
     assertFalse(parseInfo.isFunction(), () -> "isFunction() should be false for: " + sql);
+  }
+
+  /**
+   * The argument list of a {@code {fn name(...)}} escape is the first {@code (} before the
+   * <code>}</code> that closes the escape, outside a quoted name and outside a comment. PostgreSQL
+   * accepts {@code (} and <code>}</code> in a quoted identifier, as in {@code select 1 as "we(ird"}.
+   * A quoted name containing {@code (} used to be rejected as an unterminated identifier.
+   */
+  @ParameterizedTest
+  @MethodSource("escapeFunctionsWithArgumentList")
+  void escapeFunctionWithArgumentListIsTranslated(String sql, String expected) throws SQLException {
+    assertEquals(expected, Parser.replaceProcessing(sql, true, true),
+        () -> "replaceProcessing(" + sql + ")");
+  }
+
+  static Stream<Arguments> escapeFunctionsWithArgumentList() {
+    return Stream.of(
+        argumentSet("argument list right after the name",
+            "select {fn now()}", "select now()"),
+        argumentSet("space before the argument list",
+            "select {fn now ()}", "select now()"),
+        argumentSet("parenthesis after the escape",
+            "select {fn abs(-1)} from (t)", "select abs(-1) from (t)"),
+        argumentSet("brace inside a quoted name",
+            "{fn \"we}ird\"()}", "\"we}ird\"()"),
+        argumentSet("parenthesis inside a quoted name",
+            "{fn \"we(ird\"()}", "\"we(ird\"()"),
+        argumentSet("doubled quote inside a quoted name",
+            "{fn \"we\"\"ird\"()}", "\"we\"\"ird\"()"),
+        // The name is trimmed, so the space between the comment and '(' is dropped
+        argumentSet("brace inside a block comment",
+            "select {fn abs /* } */ (-1)}", "select abs /* } */(-1)"),
+        argumentSet("parenthesis inside a block comment",
+            "select {fn abs /* ( */ (-1)}", "select abs /* ( */(-1)")
+    );
+  }
+
+  /**
+   * A {@code {fn name}} escape with no argument list before its closing <code>}</code> is rejected
+   * as a syntax error. The escape used to be rewritten into a different statement:
+   * {@code select {fn now}} became {@code select ow}, and {@code select {fn now} from (t)} took
+   * the parenthesis of {@code from (t)} as the argument list.
+   */
+  @ParameterizedTest
+  @MethodSource("escapeFunctionsWithoutArgumentList")
+  void escapeFunctionWithoutArgumentListIsRejected(String sql) {
+    assertSyntaxError(sql, "has no argument list");
+  }
+
+  static Stream<Arguments> escapeFunctionsWithoutArgumentList() {
+    return Stream.of(
+        argumentSet("name only", "select {fn now}"),
+        argumentSet("parenthesis after the escape", "select {fn now} from (t)"),
+        argumentSet("parenthesis inside a quoted name", "select {fn \"we(ird\"}"),
+        argumentSet("parenthesis inside a block comment", "select {fn now /* ( */}"),
+        argumentSet("parenthesis inside a line comment", "select {fn now -- (\n}"),
+        argumentSet("minus sign that starts no comment", "select {fn now -}"),
+        argumentSet("slash that starts no comment", "select {fn now /}")
+    );
+  }
+
+  /**
+   * A {@code {fn ...}} escape whose closing <code>}</code> is never reached, because the escape, a
+   * quoted name, or a comment runs to the end of the SQL, is reported as unterminated rather than
+   * as missing its argument list.
+   */
+  @ParameterizedTest
+  @MethodSource("unterminatedEscapeFunctions")
+  void unterminatedEscapeFunctionIsReportedAsUnterminated(String sql) {
+    assertSyntaxError(sql, "Unterminated JDBC escape function call");
+  }
+
+  static Stream<Arguments> unterminatedEscapeFunctions() {
+    return Stream.of(
+        argumentSet("escape never closed", "select {fn now"),
+        argumentSet("quoted name never closed", "select {fn \"abc}"),
+        argumentSet("nested block comment never closed", "select {fn a/* /* */(1)}"),
+        // parseBlockComment returns one past the end of the SQL here
+        argumentSet("SQL ends inside an outer comment right after an inner one closes",
+            "select {fn a/* /* */"),
+        argumentSet("line comment runs to the end", "select {fn now -- }")
+    );
+  }
+
+  /**
+   * Asserts that {@code replaceProcessing} rejects {@code sql} with SQLState 42601 and a message
+   * containing {@code messagePart}, which tells the two kinds of malformed escape apart.
+   */
+  private static void assertSyntaxError(String sql, String messagePart) {
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> Parser.replaceProcessing(sql, true, true), () -> "replaceProcessing(" + sql + ")");
+    assertAll(
+        () -> assertEquals(PSQLState.SYNTAX_ERROR.getState(), e.getSQLState(), "SQLState"),
+        () -> assertTrue(e.getMessage().contains(messagePart),
+            () -> "message should contain \"" + messagePart + "\": " + e.getMessage()));
   }
 
   @Test
