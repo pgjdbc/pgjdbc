@@ -107,4 +107,51 @@ public enum AuthMethod {
       throw new PSQLException(GT.tr("Authentication method is not allowed by requireAuth"), PSQLState.CONNECTION_REJECTED);
     }
   }
+
+  /**
+   * Refuses an AuthenticationOk that {@code requireAuth} does not allow. Every
+   * request the server sent was checked by {@link #checkAuth} as it arrived,
+   * so what is left is a server that lets the client in without a finished
+   * exchange: it requested nothing, or it sent AuthenticationOk before the
+   * exchange it requested was complete. libpq makes the same check on
+   * AUTH_REQ_OK in {@code check_expected_areq}.
+   *
+   * @param allowedMethods the methods to allow, or {@code null} to allow
+   *     every method; an empty set refuses every method
+   * @param requested whether the server sent an authentication request
+   * @param finished whether the client finished the exchange it was asked for
+   * @param gssEncrypted whether the connection is GSS-encrypted
+   * @throws PSQLException with {@link PSQLState#CONNECTION_REJECTED} if the
+   *     connection is not allowed
+   */
+  public static void checkAuthCompleted(@Nullable EnumSet<AuthMethod> allowedMethods,
+      boolean requested, boolean finished, boolean gssEncrypted) throws PSQLException {
+    if (allowedMethods == null || finished) {
+      return;
+    }
+    // As in libpq, this also accepts an exchange of another method that the
+    // server started and did not finish.
+    if (allowedMethods.contains(NONE) || (gssEncrypted && allowedMethods.contains(GSS))) {
+      return;
+    }
+    if (requested) {
+      throw new PSQLException(
+          GT.tr("The server accepted the connection before the authentication exchange was "
+              + "complete, which requireAuth does not allow."),
+          PSQLState.CONNECTION_REJECTED);
+    }
+    if (gssEncrypted) {
+      throw new PSQLException(
+          GT.tr("The server accepted the GSS-encrypted connection without requesting further "
+              + "authentication, which requireAuth does not allow. Allow ''gss'' in requireAuth "
+              + "to accept the Kerberos authentication done while setting up GSS encryption, or "
+              + "set gssEncMode to disable to authenticate without it."),
+          PSQLState.CONNECTION_REJECTED);
+    }
+    throw new PSQLException(
+        GT.tr("The server accepted the connection without requesting authentication, which "
+            + "requireAuth does not allow. Check the pg_hba.conf entry the server matched, or "
+            + "allow ''none'' in requireAuth to accept an unauthenticated connection."),
+        PSQLState.CONNECTION_REJECTED);
+  }
 }
