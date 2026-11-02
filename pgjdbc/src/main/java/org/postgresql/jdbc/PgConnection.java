@@ -1165,6 +1165,19 @@ public class PgConnection implements BaseConnection {
     return castNonNull(catalog);
   }
 
+  String refreshCatalog() throws SQLException {
+    checkClosed();
+    if (getTransactionState() != TransactionState.FAILED) {
+      try (Statement stmt = createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            ResultSet rs = stmt.executeQuery("select current_catalog")) {
+        if (rs.next()) {
+          this.catalog = rs.getString(1);
+        }
+      }
+    }
+    return castNonNull(this.catalog);
+  }
+
   public boolean getHideUnprivilegedObjects() {
     return hideUnprivilegedObjects;
   }

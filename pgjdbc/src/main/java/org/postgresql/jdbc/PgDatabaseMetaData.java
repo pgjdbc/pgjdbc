@@ -59,6 +59,22 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   private int nameDataLength; // length for name datatype
   private int indexMaxKeys; // maximum number of keys in an index.
 
+  private boolean isCurrentCatalog(@Nullable String... catalogs) throws SQLException {
+    String currentCatalog = connection.getCatalog();
+    for (String catalog : catalogs) {
+      if (catalog != null && !catalog.equals(currentCatalog)) {
+        currentCatalog = connection.refreshCatalog();
+        break;
+      }
+    }
+    for (String catalog : catalogs) {
+      if (catalog != null && !catalog.equals(currentCatalog)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   protected int getMaxIndexKeys() throws SQLException {
     if (indexMaxKeys == 0) {
       String sql;
@@ -1191,7 +1207,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       throws SQLException {
 
     // if the catalog is specified and does not equal the current catalog then return an empty resultset
-    if (catalog != null && !catalog.equals(connection.getCatalog())) {
+    if (!isCurrentCatalog(catalog)) {
       int columns = 9;
       Field[] f = new Field[columns];
       List<Tuple> v = new ArrayList<>();
@@ -1245,7 +1261,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getProcedureColumns(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String procedureNamePattern, @Nullable String columnNamePattern)
       throws SQLException {
-    String currentCatalog = connection.getCatalog();
     int columns = 20;
 
     Field[] f = new Field[columns];
@@ -1271,10 +1286,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[17] = new Field("ORDINAL_POSITION", Oid.INT4);
     f[18] = new Field("IS_NULLABLE", Oid.VARCHAR);
     f[19] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
-    // if the catalog is specified and it does not equal the current catalog then just return an empty resultset
-    if (catalog != null && !catalog.equals(currentCatalog)) {
+    if (!isCurrentCatalog(catalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
+    String currentCatalog = connection.getCatalog();
     StringBuilder sql = new StringBuilder(
         // language = sql
         "SELECT current_database() AS current_database, n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
@@ -1459,7 +1474,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     String orderby;
     String useSchemas = "SCHEMAS";
     int columns = 10;
-    if (catalog != null && !catalog.equals(connection.getCatalog())) {
+    if (!isCurrentCatalog(catalog)) {
       Field[] f = new Field[columns];
       List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
       f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
@@ -1654,7 +1669,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getSchemas(@Nullable String catalog, @Nullable String schemaPattern)
       throws SQLException {
-    if (catalog != null && !catalog.equals(connection.getCatalog())) {
+    if (!isCurrentCatalog(catalog)) {
       int columns = 2;
       Field[] f = new Field[columns];
       List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
@@ -1711,7 +1726,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String tableNamePattern,
       @Nullable String columnNamePattern) throws SQLException {
 
-    String currentCatalog = connection.getCatalog();
     int numberOfFields = 24; // JDBC4
     List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
     Field[] f = new Field[numberOfFields]; // The field descriptors for the new ResultSet
@@ -1741,9 +1755,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[22] = new Field("IS_AUTOINCREMENT", Oid.VARCHAR);
     f[23] = new Field( "IS_GENERATEDCOLUMN", Oid.VARCHAR);
 
-    if (catalog != null && !catalog.equals(currentCatalog)) {
+    if (!isCurrentCatalog(catalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
+    String currentCatalog = connection.getCatalog();
     StringBuilder sql = new StringBuilder();
     List<String> args = new ArrayList<>();
     // a.attnum isn't decremented when preceding columns are dropped,
@@ -1965,7 +1980,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getColumnPrivileges(@Nullable String catalog, @Nullable String schema,
       String table, @Nullable String columnNamePattern) throws SQLException {
-    String currentCatalog = connection.getCatalog();
     Field[] f = new Field[8];
     List<Tuple> v = new ArrayList<>();
 
@@ -1978,9 +1992,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[6] = new Field("PRIVILEGE", Oid.VARCHAR);
     f[7] = new Field("IS_GRANTABLE", Oid.VARCHAR);
 
-    if (catalog != null && !catalog.equals(currentCatalog)) {
+    if (!isCurrentCatalog(catalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
+    String currentCatalog = connection.getCatalog();
 
     StringBuilder sql = new StringBuilder(
         "SELECT current_database() AS current_database, n.nspname,c.relname,r.rolname,c.relacl, "
@@ -2060,7 +2075,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getTablePrivileges(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String tableNamePattern) throws SQLException {
-    String currentCatalog = connection.getCatalog();
     Field[] f = new Field[7];
     List<Tuple> v = new ArrayList<>();
 
@@ -2071,9 +2085,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[4] = new Field("GRANTEE", Oid.VARCHAR);
     f[5] = new Field("PRIVILEGE", Oid.VARCHAR);
     f[6] = new Field("IS_GRANTABLE", Oid.VARCHAR);
-    if (catalog != null && !catalog.equals(currentCatalog)) {
+    if (!isCurrentCatalog(catalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
+    String currentCatalog = connection.getCatalog();
     // r = ordinary table, p = partitioned table, v = view, m = materialized view, f = foreign table
     StringBuilder sql = new StringBuilder(
         "SELECT current_database() AS current_database, n.nspname,c.relname,r.rolname,c.relacl "
@@ -2303,7 +2318,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getBestRowIdentifier(
       @Nullable String catalog, @Nullable String schema, String table,
       int scope, boolean nullable) throws SQLException {
-    String currentCatalog = connection.getCatalog();
     Field[] f = new Field[8];
     List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
 
@@ -2316,7 +2330,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[6] = new Field("DECIMAL_DIGITS", Oid.INT2);
     f[7] = new Field("PSEUDO_COLUMN", Oid.INT2);
 
-    if (catalog != null && !catalog.equals(currentCatalog)) {
+    if (!isCurrentCatalog(catalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
@@ -2380,7 +2394,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getVersionColumns(
       @Nullable String catalog, @Nullable String schema, String table)
       throws SQLException {
-    String currentCatalog = connection.getCatalog();
     Field[] f = new Field[8];
     List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
 
@@ -2393,7 +2406,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[6] = new Field("DECIMAL_DIGITS", Oid.INT2);
     f[7] = new Field("PSEUDO_COLUMN", Oid.INT2);
 
-    if (catalog != null && !catalog.equals(currentCatalog)) {
+    if (!isCurrentCatalog(catalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
     byte[] @Nullable [] tuple = new byte[8][];
@@ -2428,7 +2441,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getPrimaryKeys(@Nullable String catalog, @Nullable String schema, String table)
       throws SQLException {
 
-    String currentCatalog = connection.getCatalog();
     Field[] f = new Field[6];
     List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
 
@@ -2439,7 +2451,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[4] = new Field("KEY_SEQ", Oid.INT4);
     f[5] = new Field("PK_NAME", Oid.VARCHAR);
 
-    if (catalog != null && !catalog.equals(currentCatalog)) {
+    if (!isCurrentCatalog(catalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
     StringBuilder sql = new StringBuilder();
@@ -2592,8 +2604,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[12] = new Field("PK_NAME", Oid.VARCHAR);
     f[13] = new Field("DEFERRABILITY", Oid.INT2);
 
-    if (primaryCatalog != null && !primaryCatalog.equals(connection.getCatalog())
-        || foreignCatalog != null && !foreignCatalog.equals(connection.getCatalog()))  {
+    if (!isCurrentCatalog(primaryCatalog, foreignCatalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
     /*
@@ -2847,7 +2858,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String catalog, @Nullable String schema, String tableName,
       boolean unique, boolean approximate) throws SQLException {
 
-    String currentCatalog = connection.getCatalog();
     Field[] f = new Field[14];
     List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
 
@@ -2866,7 +2876,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[12] = new Field("FILTER_CONDITION", Oid.VARCHAR);
     f[13] = new Field("REMARKS", Oid.VARCHAR);
 
-    if (catalog != null && !catalog.equals(currentCatalog)) {
+    if (!isCurrentCatalog(catalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
     /*
@@ -3078,7 +3088,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getUDTs(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String typeNamePattern, int @Nullable [] types) throws SQLException {
 
-    String currentCatalog = connection.getCatalog();
     Field[] f = new Field[7];
     List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
 
@@ -3090,7 +3099,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[5] = new Field("REMARKS", Oid.VARCHAR);
     f[6] = new Field("BASE_TYPE", Oid.INT2);
 
-    if (catalog != null && !catalog.equals(currentCatalog)) {
+    if (!isCurrentCatalog(catalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
@@ -3267,7 +3276,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String functionNamePattern)
       throws SQLException {
 
-    String currentCatalog = connection.getCatalog();
     Field[] f = new Field[7];
     List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
 
@@ -3278,7 +3286,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[4] = new Field("FUNCTION_TYPE", Oid.INT2);
     f[6] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
 
-    if (catalog != null && !catalog.equals(currentCatalog)) {
+    if (!isCurrentCatalog(catalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
@@ -3338,7 +3346,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String functionNamePattern, @Nullable String columnNamePattern)
       throws SQLException {
     int columns = 17;
-    String currentCatalog = connection.getCatalog();
 
     Field[] f = new Field[columns];
     List<Tuple> v = new ArrayList<>();
@@ -3361,9 +3368,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[15] = new Field("IS_NULLABLE", Oid.VARCHAR);
     f[16] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
 
-    if (catalog != null && !catalog.equals(currentCatalog)) {
+    if (!isCurrentCatalog(catalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
+    String currentCatalog = connection.getCatalog();
 
     StringBuilder sql = new StringBuilder(
         "SELECT current_database() AS current_database, n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
