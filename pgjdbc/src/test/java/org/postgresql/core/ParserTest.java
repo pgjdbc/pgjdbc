@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.util.PSQLException;
@@ -18,10 +19,13 @@ import org.postgresql.util.PSQLState;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Test cases for the Parser.
@@ -268,6 +272,59 @@ class ParserTest {
     JdbcCallParseInfo parseInfo = Parser.modifyJdbcCall(sql, true, ServerVersion.v14.getVersionNum(),
         EscapeSyntaxCallMode.CALL);
     assertFalse(parseInfo.isFunction(), () -> "isFunction() should be false for: " + sql);
+  }
+
+  /**
+   * An {@code E} before the opening quote makes the literal an escape string, in which a backslash
+   * escapes the character after it. The {@code E} has to be a token of its own: a terminator
+   * character precedes it, or it starts the input. With {@code standard_conforming_strings} off, a
+   * backslash escapes the next character in every literal, wherever the literal sits.
+   *
+   * <p>An {@code E} that starts the input used to fall outside that check, so the same literal
+   * ended at the backslash there and after the escaped quote anywhere else.</p>
+   */
+  @ParameterizedTest
+  @MethodSource
+  void anEscapeStringLiteralEndsAfterTheEscapedQuote(String query, int offset,
+      boolean standardConformingStrings, int expectedEnd) {
+    assertEquals(expectedEnd,
+        Parser.parseSingleQuotes(query.toCharArray(), offset, standardConformingStrings));
+  }
+
+  static Stream<Arguments> anEscapeStringLiteralEndsAfterTheEscapedQuote() {
+    return Stream.of(
+        arguments("E'\\''", 1, true, 4),
+        arguments("e'\\''", 1, true, 4),
+        arguments(" E'\\''", 2, true, 5),
+        arguments("(E'\\''", 2, true, 5),
+        arguments("'\\''", 0, false, 3),
+        arguments("E'\\''", 1, false, 4),
+        arguments(" E'\\''", 2, false, 5),
+        arguments("1e'\\''", 2, false, 5)
+    );
+  }
+
+  /**
+   * A literal is ordinary unless an {@code E} that is a token of its own precedes the opening
+   * quote, so an {@code e} continuing the token before it, as in {@code 1e'...'}, leaves the
+   * backslash an ordinary character. A literal that opens the input has no character before it at
+   * all, and is ordinary for the same reason.
+   */
+  @ParameterizedTest
+  @MethodSource
+  void aPlainLiteralEndsAtTheQuoteAfterTheBackslash(String query, int offset,
+      boolean standardConformingStrings, int expectedEnd) {
+    assertEquals(expectedEnd,
+        Parser.parseSingleQuotes(query.toCharArray(), offset, standardConformingStrings));
+  }
+
+  static Stream<Arguments> aPlainLiteralEndsAtTheQuoteAfterTheBackslash() {
+    return Stream.of(
+        arguments("'\\''", 0, true, 2),
+        arguments("x'\\''", 1, true, 3),
+        arguments("1e'\\''", 2, true, 4),
+        arguments("ae'\\''", 2, true, 4)
+    );
   }
 
   @Test
