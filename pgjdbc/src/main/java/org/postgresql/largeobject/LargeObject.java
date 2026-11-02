@@ -12,6 +12,7 @@ import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.internal.ArrayRanges;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -19,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.SQLException;
+import java.util.Objects;
 
 /**
  * This class provides the basic methods required to run the interface, plus a pair of methods that
@@ -265,13 +267,22 @@ public class LargeObject
   /**
    * Writes some data from an array to the object.
    *
-   * @param buf destination array
+   * @param buf source array
    * @param off offset within array
    * @param len number of bytes to write
    * @throws SQLException if a database-access error occurs.
+   * @throws NullPointerException if {@code buf} is {@code null}
+   * @throws IndexOutOfBoundsException if {@code off} or {@code len} is negative, or if
+   *         {@code len} is greater than {@code buf.length - off}
    */
   public void write(byte[] buf, int off, int len) throws SQLException {
     checkClosed();
+    // Rejected on its own, so that the exception names the argument
+    Objects.requireNonNull(buf, "buf");
+    // The range has to be rejected here rather than on the way to the server: PGStream.send pads a
+    // range that runs past the end of the array with zeros instead of failing, so an out-of-range
+    // request would be stored as data rather than reported
+    ArrayRanges.checkFromIndexSize(buf, off, len);
     FastpathArg[] args = new FastpathArg[2];
     args[0] = new FastpathArg(fd);
     args[1] = new FastpathArg(buf, off, len);
