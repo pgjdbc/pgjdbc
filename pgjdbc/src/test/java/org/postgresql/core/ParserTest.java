@@ -5,11 +5,13 @@
 
 package org.postgresql.core;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.util.PSQLException;
@@ -18,10 +20,13 @@ import org.postgresql.util.PSQLState;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Test cases for the Parser.
@@ -162,19 +167,19 @@ class ParserTest {
   @Test
   void modifyJdbcCall() throws SQLException {
     ProtocolVersion protocolVersion = ProtocolVersion.fromMajorMinor(3,0);
-    assertEquals("select * from pack_getValue(?) as result", Parser.modifyJdbcCall("{ ? = call pack_getValue}", true, ServerVersion.v9_6.getVersionNum(),
+    assertEquals("select pack_getValue(?) as result", Parser.modifyJdbcCall("{ ? = call pack_getValue}", true, ServerVersion.v9_6.getVersionNum(),
         EscapeSyntaxCallMode.SELECT).getSql());
-    assertEquals("select * from pack_getValue(?,?)  as result", Parser.modifyJdbcCall("{ ? = call pack_getValue(?) }", true, ServerVersion.v9_6.getVersionNum(),
+    assertEquals("select pack_getValue(?,?)  as result", Parser.modifyJdbcCall("{ ? = call pack_getValue(?) }", true, ServerVersion.v9_6.getVersionNum(),
         EscapeSyntaxCallMode.SELECT).getSql());
-    assertEquals("select * from pack_getValue(?) as result", Parser.modifyJdbcCall("{ ? = call pack_getValue()}", true, ServerVersion.v9_6.getVersionNum(),
+    assertEquals("select pack_getValue(?) as result", Parser.modifyJdbcCall("{ ? = call pack_getValue()}", true, ServerVersion.v9_6.getVersionNum(),
         EscapeSyntaxCallMode.SELECT).getSql());
-    assertEquals("select * from pack_getValue(?,?,?,?)  as result", Parser.modifyJdbcCall("{ ? = call pack_getValue(?,?,?) }", true, ServerVersion.v9_6.getVersionNum(),
+    assertEquals("select pack_getValue(?,?,?,?)  as result", Parser.modifyJdbcCall("{ ? = call pack_getValue(?,?,?) }", true, ServerVersion.v9_6.getVersionNum(),
         EscapeSyntaxCallMode.SELECT).getSql());
-    assertEquals("select * from lower(?,?) as result", Parser.modifyJdbcCall("{ ? = call lower(?)}", true, ServerVersion.v9_6.getVersionNum(),
+    assertEquals("select lower(?,?) as result", Parser.modifyJdbcCall("{ ? = call lower(?)}", true, ServerVersion.v9_6.getVersionNum(),
         EscapeSyntaxCallMode.SELECT).getSql());
-    assertEquals("select * from lower(?,?) as result", Parser.modifyJdbcCall("{ ? = call lower(?)}", true, ServerVersion.v9_6.getVersionNum(),
+    assertEquals("select lower(?,?) as result", Parser.modifyJdbcCall("{ ? = call lower(?)}", true, ServerVersion.v9_6.getVersionNum(),
         EscapeSyntaxCallMode.CALL_IF_NO_RETURN).getSql());
-    assertEquals("select * from lower(?,?) as result", Parser.modifyJdbcCall("{ ? = call lower(?)}", true, ServerVersion.v9_6.getVersionNum(),
+    assertEquals("select lower(?,?) as result", Parser.modifyJdbcCall("{ ? = call lower(?)}", true, ServerVersion.v9_6.getVersionNum(),
         EscapeSyntaxCallMode.CALL).getSql());
     assertEquals("select * from lower(?,?) as result", Parser.modifyJdbcCall("{call lower(?,?)}", true, ServerVersion.v9_6.getVersionNum(),
         EscapeSyntaxCallMode.SELECT).getSql());
@@ -182,9 +187,9 @@ class ParserTest {
         EscapeSyntaxCallMode.CALL_IF_NO_RETURN).getSql());
     assertEquals("select * from lower(?,?) as result", Parser.modifyJdbcCall("{call lower(?,?)}", true, ServerVersion.v9_6.getVersionNum(),
         EscapeSyntaxCallMode.CALL).getSql());
-    assertEquals("select * from lower(?,?) as result", Parser.modifyJdbcCall("{ ? = call lower(?)}", true, ServerVersion.v11.getVersionNum(),
+    assertEquals("select lower(?,?) as result", Parser.modifyJdbcCall("{ ? = call lower(?)}", true, ServerVersion.v11.getVersionNum(),
         EscapeSyntaxCallMode.SELECT).getSql());
-    assertEquals("select * from lower(?,?) as result", Parser.modifyJdbcCall("{ ? = call lower(?)}", true, ServerVersion.v11.getVersionNum(),
+    assertEquals("select lower(?,?) as result", Parser.modifyJdbcCall("{ ? = call lower(?)}", true, ServerVersion.v11.getVersionNum(),
         EscapeSyntaxCallMode.CALL_IF_NO_RETURN).getSql());
     assertEquals("call lower(?,?)", Parser.modifyJdbcCall("{ ? = call lower(?)}", true, ServerVersion.v11.getVersionNum(),
         EscapeSyntaxCallMode.CALL).getSql());
@@ -196,6 +201,81 @@ class ParserTest {
         EscapeSyntaxCallMode.CALL).getSql());
   }
 
+  static Stream<Arguments> selectsOfAResultParameter() {
+    return Stream.of(
+        arguments("{ ? = call pack_getValue}", ServerVersion.v9_6, EscapeSyntaxCallMode.SELECT,
+            "select pack_getValue(?) as result",
+            "select * from pack_getValue(?) as result"),
+        arguments("{ ? = call pack_getValue(?) }", ServerVersion.v9_6, EscapeSyntaxCallMode.SELECT,
+            "select pack_getValue(?,?)  as result",
+            "select * from pack_getValue(?,?)  as result"),
+        arguments("{ ? = call lower(?)}", ServerVersion.v9_6, EscapeSyntaxCallMode.CALL_IF_NO_RETURN,
+            "select lower(?,?) as result",
+            "select * from lower(?,?) as result"),
+        arguments("{ ? = call lower(?)}", ServerVersion.v9_6, EscapeSyntaxCallMode.CALL,
+            "select lower(?,?) as result",
+            "select * from lower(?,?) as result"),
+        arguments("{ ? = call lower(?)}", ServerVersion.v11, EscapeSyntaxCallMode.SELECT,
+            "select lower(?,?) as result",
+            "select * from lower(?,?) as result"),
+        arguments("{ ? = call lower(?)}", ServerVersion.v11, EscapeSyntaxCallMode.CALL_IF_NO_RETURN,
+            "select lower(?,?) as result",
+            "select * from lower(?,?) as result")
+    );
+  }
+
+  /**
+   * A {@code select} of the {@code { ? = call ... }} form calls the function in the select list,
+   * so a composite result stays one value, and in {@code FROM} for two or more OUT parameters.
+   */
+  @ParameterizedTest
+  @MethodSource("selectsOfAResultParameter")
+  void aSelectOfAResultParameterHasAMultipleOutParameterForm(String jdbcSql,
+      ServerVersion serverVersion, EscapeSyntaxCallMode escapeSyntaxCallMode, String expectedSql,
+      String expectedMultipleOutParameterSql) throws SQLException {
+    JdbcCallParseInfo info = Parser.modifyJdbcCall(jdbcSql, true,
+        serverVersion.getVersionNum(), escapeSyntaxCallMode, false);
+    JdbcCallParseInfo multiple = Parser.modifyJdbcCall(jdbcSql, true,
+        serverVersion.getVersionNum(), escapeSyntaxCallMode, true);
+    assertAll(
+        () -> assertEquals(expectedSql, info.getSql(), "multipleOutParameters=false: getSql()"),
+        () -> assertEquals(expectedMultipleOutParameterSql, multiple.getSql(),
+            "multipleOutParameters=true: getSql()"),
+        () -> assertTrue(info.hasMultipleOutParameterForm(),
+            "multipleOutParameters=false: hasMultipleOutParameterForm()"));
+  }
+
+  static Stream<Arguments> callsWithOneForm() {
+    return Stream.of(
+        arguments("{ ? = call lower(?)}", ServerVersion.v11, EscapeSyntaxCallMode.CALL,
+            "call lower(?,?)"),
+        arguments("{call lower(?)}", ServerVersion.v11, EscapeSyntaxCallMode.SELECT,
+            "select * from lower(?) as result"),
+        arguments("{call lower(?)}", ServerVersion.v11, EscapeSyntaxCallMode.CALL_IF_NO_RETURN,
+            "call lower(?)")
+    );
+  }
+
+  /**
+   * A {@code call} statement, and the {@code { call ... }} form, which has no result parameter,
+   * keep their SQL for two or more OUT parameters.
+   */
+  @ParameterizedTest
+  @MethodSource("callsWithOneForm")
+  void aCallStatementOrACallWithoutAResultParameterHasOneForm(String jdbcSql,
+      ServerVersion serverVersion, EscapeSyntaxCallMode escapeSyntaxCallMode, String expectedSql)
+      throws SQLException {
+    JdbcCallParseInfo info = Parser.modifyJdbcCall(jdbcSql, true,
+        serverVersion.getVersionNum(), escapeSyntaxCallMode, false);
+    JdbcCallParseInfo multiple = Parser.modifyJdbcCall(jdbcSql, true,
+        serverVersion.getVersionNum(), escapeSyntaxCallMode, true);
+    assertAll(
+        () -> assertEquals(expectedSql, info.getSql(), "multipleOutParameters=false: getSql()"),
+        () -> assertEquals(expectedSql, multiple.getSql(), "multipleOutParameters=true: getSql()"),
+        () -> assertFalse(info.hasMultipleOutParameterForm(),
+            "multipleOutParameters=false: hasMultipleOutParameterForm()"));
+  }
+
   /**
    * When the single OUT parameter is moved into the function call, a comment between {@code (} and
    * {@code )} is not a real argument, so it must not gain a spurious comma. See issue #2538.
@@ -203,11 +283,11 @@ class ParserTest {
   @Test
   void modifyJdbcCallOutParamWithCommentOnlyArgs() throws SQLException {
     // Comment-only argument list: no comma, otherwise the result would be "f(?, )".
-    assertEquals("select * from pack_getValue(?/* no args */) as result",
+    assertEquals("select pack_getValue(?/* no args */) as result",
         Parser.modifyJdbcCall("{ ? = call pack_getValue(/* no args */)}", true,
             ServerVersion.v9_6.getVersionNum(), EscapeSyntaxCallMode.SELECT).getSql());
     // A real argument behind a comment still gets the comma.
-    assertEquals("select * from pack_getValue(?,/* c */ ?) as result",
+    assertEquals("select pack_getValue(?,/* c */ ?) as result",
         Parser.modifyJdbcCall("{ ? = call pack_getValue(/* c */ ?)}", true,
             ServerVersion.v9_6.getVersionNum(), EscapeSyntaxCallMode.SELECT).getSql());
   }

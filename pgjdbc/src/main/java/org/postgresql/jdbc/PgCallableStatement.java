@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.Driver;
+import org.postgresql.core.CachedQuery;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.util.GT;
@@ -51,10 +52,15 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   private boolean returnTypeSet;
   protected @Nullable Object @Nullable [] callResult;
   private int lastIndex;
+  private final String sql;
+  // The form of preparedQuery that executes when two or more OUT parameters are registered,
+  // borrowed on the first such execution
+  private @Nullable CachedQuery multipleOutParameterQuery;
 
   PgCallableStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
       int rsHoldability) throws SQLException {
     super(connection, connection.borrowCallableQuery(sql), rsType, rsConcurrency, rsHoldability);
+    this.sql = sql;
     this.isFunction = preparedQuery.isFunction;
 
     if (this.isFunction) {
@@ -82,6 +88,39 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   @Override
   public @Nullable Object getObject(String s, @Nullable Map<String, Class<?>> map) throws SQLException {
     return getObjectImpl(s, map);
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * <p>When the statement executes as a {@code select} of the {@code { ? = call ... }} form and two
+   * or more OUT parameters are registered, returns the form that calls the function in
+   * {@code FROM}, so each field of a composite or {@code record} result goes to the next registered
+   * OUT parameter. Otherwise returns {@link #preparedQuery}, which calls the function in the select
+   * list, so such a result is the value of the one OUT parameter.</p>
+   */
+  @Override
+  protected CachedQuery getQueryToExecute() throws SQLException {
+    if (!preparedQuery.hasMultipleOutParameterForm
+        || preparedParameters.getOutParameterCount() < 2) {
+      return preparedQuery;
+    }
+    CachedQuery query = multipleOutParameterQuery;
+    if (query == null) {
+      query = ((PgConnection) connection).borrowCallableQuery(sql, true);
+      multipleOutParameterQuery = query;
+    }
+    return query;
+  }
+
+  @Override
+  public void closeImpl() throws SQLException {
+    super.closeImpl();
+    CachedQuery query = multipleOutParameterQuery;
+    if (query != null) {
+      multipleOutParameterQuery = null;
+      ((PgConnection) connection).releaseQuery(query);
+    }
   }
 
   @Override

@@ -1052,7 +1052,11 @@ public class Parser {
   /**
    * Converts JDBC-specific callable statement escapes {@code { [? =] call <some_function> [(?,
    * [?,..])] }} into the PostgreSQL format which is {@code select <some_function> (?, [?, ...]) as
-   * result} or {@code select * from <some_function> (?, [?, ...]) as result} (7.3)
+   * result}, {@code select * from <some_function> (?, [?, ...]) as result}, or
+   * {@code call <some_function> (?, [?, ...])}.
+   *
+   * <p>Equivalent to {@link #modifyJdbcCall(String, boolean, int, EscapeSyntaxCallMode, boolean)}
+   * with {@code multipleOutParameters} set to {@code false}.</p>
    *
    * @param jdbcSql              sql text with JDBC escapes
    * @param stdStrings           if backslash in single quotes should be regular character or escape one
@@ -1063,6 +1067,34 @@ public class Parser {
    */
   public static JdbcCallParseInfo modifyJdbcCall(String jdbcSql, boolean stdStrings,
       int serverVersion, EscapeSyntaxCallMode escapeSyntaxCallMode) throws SQLException {
+    return modifyJdbcCall(jdbcSql, stdStrings, serverVersion, escapeSyntaxCallMode, false);
+  }
+
+  /**
+   * Converts JDBC-specific callable statement escapes {@code { [? =] call <some_function> [(?,
+   * [?,..])] }} into the PostgreSQL format which is {@code select <some_function> (?, [?, ...]) as
+   * result}, {@code select * from <some_function> (?, [?, ...]) as result}, or
+   * {@code call <some_function> (?, [?, ...])}.
+   *
+   * <p>A {@code select} of the {@code { ? = call ... }} form puts the function in the select list,
+   * so a composite or {@code record} result arrives as one column. When
+   * {@code multipleOutParameters} is {@code true}, it puts the function in {@code FROM} instead,
+   * and each field of such a result arrives as a column of its own. A {@code select} of the
+   * {@code { call ... }} form always puts the function in {@code FROM}.</p>
+   *
+   * @param jdbcSql              sql text with JDBC escapes
+   * @param stdStrings           if backslash in single quotes should be regular character or escape one
+   * @param serverVersion        server version
+   * @param escapeSyntaxCallMode mode specifying whether JDBC escape call syntax is transformed into a CALL/SELECT statement
+   * @param multipleOutParameters {@code true} for the form for a call that registers two or more
+   *                             OUT parameters
+   * @return the SQL for the server, whether it calls a function, and whether
+   *     {@code multipleOutParameters} changes the SQL
+   * @throws SQLException if given SQL is malformed
+   */
+  public static JdbcCallParseInfo modifyJdbcCall(String jdbcSql, boolean stdStrings,
+      int serverVersion, EscapeSyntaxCallMode escapeSyntaxCallMode, boolean multipleOutParameters)
+      throws SQLException {
     // Mini-parser for JDBC function-call syntax (only)
     // TODO: Merge with escape processing (and parameter parsing?) so we only parse each query once.
     // RE: frequently used statements are cached (see {@link org.postgresql.jdbc.PgConnection#borrowQuery}), so this "merge" is not that important.
@@ -1235,9 +1267,11 @@ public class Parser {
 
     String prefix;
     String suffix;
+    boolean hasMultipleOutParameterForm = false;
     if (escapeSyntaxCallMode == EscapeSyntaxCallMode.SELECT || serverVersion < 110000
         || (outParamBeforeFunc && escapeSyntaxCallMode == EscapeSyntaxCallMode.CALL_IF_NO_RETURN)) {
-      prefix = "select * from ";
+      hasMultipleOutParameterForm = outParamBeforeFunc;
+      prefix = outParamBeforeFunc && !multipleOutParameters ? "select " : "select * from ";
       suffix = " as result";
     } else {
       prefix = "call ";
@@ -1278,7 +1312,7 @@ public class Parser {
     } else {
       sql = sb.toString();
     }
-    return new JdbcCallParseInfo(sql, isFunction);
+    return new JdbcCallParseInfo(sql, isFunction, hasMultipleOutParameterForm);
   }
 
   /**
