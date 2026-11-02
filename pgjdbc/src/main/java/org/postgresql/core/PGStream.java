@@ -154,6 +154,15 @@ public class PGStream implements Closeable, Flushable {
 
   }
 
+  /**
+   * Whether {@link #close()} has run; a second call returns without closing anything.
+   *
+   * <p>{@link #isClosed()} cannot serve here: it reports true on a {@linkplain #isBroken() broken}
+   * stream, whose input stream and socket still have to be closed, and false after a
+   * {@link #close()} whose socket close failed.</p>
+   */
+  private boolean closeRan;
+
   private long nextStreamAvailableCheckTime;
   // This is a workaround for SSL sockets: sslInputStream.available() might return 0
   // so we perform "1ms reads" once in a while
@@ -909,19 +918,91 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * Closes the connection.
+   * Closes the output stream, the input stream, and the socket, in that order. A second call does
+   * nothing.
    *
-   * @throws IOException if an I/O Error occurs
+   * <p>Each step runs even when an earlier one throws. When {@link #isClosed()} reports the stream
+   * closed, the output stream is left unclosed, because closing it flushes.</p>
+   *
+   * @throws IOException the first failure, with the later ones added as suppressed exceptions. An
+   *     unchecked failure is thrown as it is.
    */
   @Override
   public void close() throws IOException {
-    if (!broken) {
-      // Flushing would send the rest of a half written request to a peer that is already
-      // discarding it.
-      pgOutput.close();
+    if (closeRan) {
+      return;
     }
-    pgInput.close();
-    connection.close();
+    closeRan = true;
+    // On a dropped connection the flush in pgOutput.close() throws, and pgInput and the socket
+    // still have to be closed, so that no read returns the buffered bytes. The catches take
+    // Throwable because a socket from the socketFactory connection property may throw anything.
+    Throwable failure = null;
+    // A broken stream must not send the rest of a half written request, and a write to a closed
+    // socket throws. The JDK closes an SSLSocket itself when a write to it fails.
+    if (!isClosed()) {
+      try {
+        pgOutput.close();
+      } catch (Throwable t) {
+        failure = alsoFailed(failure, t);
+      }
+    }
+    try {
+      pgInput.close();
+    } catch (Throwable t) {
+      failure = alsoFailed(failure, t);
+    }
+    try {
+      connection.close();
+    } catch (Throwable t) {
+      failure = alsoFailed(failure, t);
+    }
+    if (failure != null) {
+      rethrow(failure);
+    }
+  }
+
+  /**
+   * Records a failure of one step in a sequence of closes, keeping the first failure and adding
+   * the later ones to it as suppressed exceptions.
+   *
+   * <p>The first failure reports what went wrong with the connection. A later one is usually a
+   * consequence of closing a connection in that state.</p>
+   *
+   * @param failure the failure recorded so far, or null if no step has failed yet
+   * @param another the failure to record
+   * @return {@code failure}, or {@code another} when {@code failure} is null
+   */
+  static Throwable alsoFailed(@Nullable Throwable failure, Throwable another) {
+    if (failure == null) {
+      return another;
+    }
+    if (failure != another) {
+      // A stream may throw one stored exception from several calls, and addSuppressed throws
+      // IllegalArgumentException when given the exception it is called on.
+      failure.addSuppressed(another);
+    }
+    return failure;
+  }
+
+  /**
+   * Throws a failure recorded by {@link #alsoFailed}. An {@link IOException}, a
+   * {@link RuntimeException}, or an {@link Error} is thrown as it is.
+   *
+   * @param failure the failure to throw
+   * @throws IOException {@code failure} itself, or a new IOException with {@code failure} as the
+   *     cause when it is any other checked exception
+   */
+  static void rethrow(Throwable failure) throws IOException {
+    if (failure instanceof IOException) {
+      throw (IOException) failure;
+    }
+    if (failure instanceof RuntimeException) {
+      throw (RuntimeException) failure;
+    }
+    if (failure instanceof Error) {
+      throw (Error) failure;
+    }
+    throw new IOException(failure);
   }
 
   public void setNetworkTimeout(int milliseconds) throws IOException {
