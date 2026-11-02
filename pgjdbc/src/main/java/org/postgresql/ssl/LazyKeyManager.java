@@ -103,14 +103,17 @@ public class LazyKeyManager implements X509KeyManager {
         if (certchain == null) {
           return null;
         } else {
-          X509Certificate cert = certchain[certchain.length - 1];
-          X500Principal ourissuer = cert.getIssuerX500Principal();
-          String certKeyType = cert.getPublicKey().getAlgorithm();
+          // The server lists the CAs it accepts, so the issuer comes from the
+          // last certificate in the chain. The key type must come from the
+          // first certificate: it holds the public key for our private key.
+          X500Principal ourissuer = certchain[certchain.length - 1]
+              .getIssuerX500Principal();
+          String certKeyType = certchain[0].getPublicKey().getAlgorithm();
           boolean keyTypeFound = false;
           boolean found = false;
           if (keyType != null && keyType.length > 0) {
             for (String kt : keyType) {
-              if (kt.equalsIgnoreCase(certKeyType)) {
+              if (BaseX509KeyManager.keyTypeMatches(kt, certKeyType)) {
                 keyTypeFound = true;
               }
             }
