@@ -5,6 +5,8 @@
 
 package org.postgresql.core;
 
+import org.postgresql.util.internal.ArrayRanges;
+
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -31,9 +33,10 @@ public class FixedLengthOutputStream extends OutputStream {
 
   @Override
   public void write(byte[] buf, int offset, int len) throws IOException {
-    if ((offset < 0) || (len < 0) || ((offset + len) > buf.length)) {
-      throw new IndexOutOfBoundsException();
-    } else if (len == 0) {
+    // The target this forwards to does not necessarily bound its own copy, so a range that gets
+    // past here is not caught anywhere
+    ArrayRanges.checkFromIndexSize(buf, offset, len);
+    if (len == 0) {
       return;
     }
     verifyAllowed(len);
