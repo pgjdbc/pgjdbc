@@ -235,7 +235,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       case Types.NUMERIC:
       case Types.DECIMAL:
         return getNumeric(columnIndex,
-            field.getMod() == -1 ? null : (Integer) decodeNumericScale(field.getMod()), true);
+            field.getMod() == -1 ? null : (Integer) TypeInfoCache.numericScale(field.getMod()), true);
       case Types.REAL:
         return getFloat(columnIndex);
       case Types.FLOAT:
@@ -3556,18 +3556,6 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
     BigDecimal val = toBigDecimal(s);
     return scaleBigDecimal(val, scale);
-  }
-
-  /**
-   * Extracts the scale of a {@code numeric} column from its type modifier. Since PostgreSQL 15 the
-   * scale is a signed 11-bit value (e.g. {@code numeric(2,-2)}), so it must be sign-extended rather
-   * than masked with {@code 0xffff}.
-   *
-   * @param typmod the column type modifier, which must not be {@code -1}
-   * @return the (possibly negative) scale
-   */
-  private static int decodeNumericScale(int typmod) {
-    return ((((typmod - 4) & 0x7ff) ^ 0x400) - 0x400);
   }
 
   private static BigDecimal scaleBigDecimal(BigDecimal val, @Nullable Integer scale)
