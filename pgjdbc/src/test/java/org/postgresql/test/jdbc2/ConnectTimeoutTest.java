@@ -5,77 +5,79 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.util.RecordSleepAndTimeoutSocketFactory;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
-import java.net.NoRouteToHostException;
 import java.net.SocketTimeoutException;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
 class ConnectTimeoutTest {
-  // The IP below is non-routable (see http://stackoverflow.com/a/904609/1261287)
-  private static final String UNREACHABLE_HOST = "10.255.255.1";
-  private static final String UNREACHABLE_URL = "jdbc:postgresql://" + UNREACHABLE_HOST + ":5432/test";
-  private static final int CONNECT_TIMEOUT = 5;
+  private static final int CONNECT_TIMEOUT = 1;
 
   @BeforeEach
   void setUp() throws Exception {
     TestUtil.initDriver();
+    RecordSleepAndTimeoutSocketFactory.TIMEOUTS.clear();
   }
 
-  @Test
-  void timeout() {
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "10.255.255.1:5432",
+      "10.255.255.2:5432,10.255.255.3:5432,10.255.255.4:5432"
+  })
+  void eachHostGetsTheFullConnectTimeout(String hostList) {
     final Properties props = new Properties();
     PGProperty.USER.set(props, TestUtil.getUser());
     PGProperty.PASSWORD.set(props, TestUtil.getPassword());
-    // with 0 (default value) it hangs for about 60 seconds (platform dependent)
     PGProperty.CONNECT_TIMEOUT.set(props, CONNECT_TIMEOUT);
+    PGProperty.HOST_RECHECK_SECONDS.set(props, 0);
+    PGProperty.SOCKET_FACTORY.set(props, RecordSleepAndTimeoutSocketFactory.class.getName());
+    PGProperty.SSL_MODE.set(props, "disable");
 
-    final long startTime = System.currentTimeMillis();
-    try {
-      DriverManager.getConnection(UNREACHABLE_URL, props);
-    } catch (SQLException e) {
-      final long interval = System.currentTimeMillis() - startTime;
-      final long connectTimeoutMillis = CONNECT_TIMEOUT * 1000;
-      final long maxDeviation = connectTimeoutMillis / 10;
+    SQLException e = assertThrows(SQLException.class,
+        () -> DriverManager.getConnection("jdbc:postgresql://" + hostList + "/test", props));
 
-      /*
-       * If the platform fast-fails the unroutable address connection then this
-       * test may not time out, instead throwing
-       * java.net.NoRouteToHostException. The test has failed in that the connection
-       * attempt did not time out.
-       *
-       * We treat this as a skipped test, as the test didn't really "succeed"
-       * in testing the original behaviour, but it didn't fail either.
-       */
-      assumeFalse(
-          e.getCause() instanceof NoRouteToHostException
-              && interval < connectTimeoutMillis,
-          () -> "Host fast-failed connection to unreachable address "
-              + UNREACHABLE_HOST + " after " + interval + " ms, "
-              + " before timeout should have triggered.");
+    assertInstanceOf(
+        SocketTimeoutException.class,
+        e.getCause(),
+        () -> "Unexpected " + e + " with cause " + e.getCause());
 
-      assertInstanceOf(
-          SocketTimeoutException.class,
-          e.getCause(),
-          () -> "Unexpected " + e + " with cause " + e.getCause());
-      // check that it was not a default system timeout, an approximate value is used
-      assertTrue(Math.abs(interval - connectTimeoutMillis) < maxDeviation,
-          () -> "Connection timeout should be ~" + connectTimeoutMillis + " ms, but was "
-              + interval + " ms (deviation " + Math.abs(interval - connectTimeoutMillis)
-              + " ms exceeds maximum allowed " + maxDeviation + " ms)");
-      return;
-    }
-    fail("SQLException expected");
+    final long connectTimeoutMillis = CONNECT_TIMEOUT * 1000;
+    final long maxDeviation = connectTimeoutMillis / 10;
+
+    assertAll(
+        Arrays.stream(hostList.split(",")).map(host -> () -> {
+          final List<Integer> timeouts = RecordSleepAndTimeoutSocketFactory.TIMEOUTS.get(host);
+          assertNotNull(timeouts,
+              () -> "Connection should be tried for all given hosts " + hostList + ", but "
+                  + "socket connection was not tried for " + host + " host");
+          assertEquals(1, timeouts.size(),
+              () -> "Exactly one connection attempt is expected per each host, but "
+                  + host + " was tried " + timeouts.size() + " times");
+          final int actualTimeout = timeouts.get(0);
+          // check that it was not a default system timeout, an approximate value is used
+          assertTrue(connectTimeoutMillis - actualTimeout < maxDeviation,
+              () -> "Connection timeout for " + host + " host should be ~"
+                  + connectTimeoutMillis + " ms, but was " + actualTimeout
+                  + " ms (deviation " + (connectTimeoutMillis - actualTimeout)
+                  + " ms exceeds maximum allowed " + maxDeviation + " ms)");
+        })
+    );
   }
 }

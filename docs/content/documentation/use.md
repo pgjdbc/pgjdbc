@@ -300,6 +300,7 @@ The timeout value in seconds that the driver will wait for a query to execute if
 
 * **`loginTimeout (`*int*`)`** *Default `0`*\
 Specify how long to wait for establishment of a database connection. The timeout is specified in seconds max(2147484).
+With several hosts in the URL, `loginTimeout` limits the time spent on all of them, and `connectTimeout` applies to each host.
 
 * **`connectExecutor (`*String*`)`** *Default `null`*\
 The fully qualified name of a class implementing `java.util.concurrent.Executor`. When `loginTimeout` is in effect, `Driver.connect(...)` hands the worker task that runs the connection attempt to the configured `Executor`.
@@ -312,7 +313,8 @@ An optional String argument passed to the constructor of the `connectExecutor` c
 
 * **`connectTimeout (`*int*`)`** *Default `10`*\
 The timeout value used for socket connect operations. If connecting to the server takes longer than this value, the connection is broken. 
-The timeout is specified in seconds max(2147484) and a value of zero means that it is disabled.
+The timeout is specified in seconds max(2147484) and a value of zero means that it is disabled. With several hosts in the URL,
+each host gets its own `connectTimeout`, so failing over N unreachable hosts takes N times `connectTimeout`; use `loginTimeout` to limit the total.
 
 * **`socketTimeout (`*int*`)`** *Default `0`*\
 The timeout value used for socket read operations. If reading from the server takes longer than this value, the connection is closed. 
