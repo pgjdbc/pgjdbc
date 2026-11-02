@@ -89,6 +89,11 @@ public class BlobInputStream extends InputStream {
    * @param limit max number of bytes to read
    */
   public BlobInputStream(LargeObject lo, int bsize, long limit) {
+    if (bsize <= 0) {
+      // A stream that may read nothing per request reports end of stream on its first read, which
+      // a caller cannot tell from an empty large object
+      throw new IllegalArgumentException("Buffer size must be positive, but was " + bsize);
+    }
     this.lo = lo;
     this.maxBufferSize = bsize;
     // The very first read multiplies the last buffer size by two, so we divide by two to get
@@ -116,7 +121,7 @@ public class BlobInputStream extends InputStream {
         // Don't hold the buffer while waiting for DB to respond
         // Note: lo.read(...) does not support "fetching the response into the user-provided buffer"
         // See https://github.com/pgjdbc/pgjdbc/issues/3043
-        int nextBufferSize = getNextBufferSize(1);
+        int nextBufferSize = limitedBufferSize(getNextBufferSize(1));
         buffer = lo.read(nextBufferSize);
         bufferPosition = 0;
 
@@ -150,16 +155,44 @@ public class BlobInputStream extends InputStream {
    * Computes the next buffer size to use for reading data from the large object.
    * The idea is to avoid allocating too much memory, especially if the user will use just a few
    * bytes of the data.
+   *
+   * <p>The result is always between 1 and {@link #maxBufferSize}, and never smaller than the one
+   * before it. It does not account for the stream limit; {@link #limitedBufferSize} does that, and
+   * only once the limit is resolved.</p>
+   *
    * @param len estimated read request
    * @return next buffer size or {@link #maxBufferSize} if the buffer should not be increased
    */
-  private int getNextBufferSize(int len) {
-    int nextBufferSize = Math.min(maxBufferSize, this.lastBufferSize * 2);
+  int getNextBufferSize(int len) {
+    // Doubling overflows once the buffer passes 2^30, which a caller-supplied maxBufferSize allows
+    int nextBufferSize = lastBufferSize > Integer.MAX_VALUE / 2
+        ? maxBufferSize
+        : Math.min(maxBufferSize, lastBufferSize * 2);
     if (len > nextBufferSize) {
-      nextBufferSize = Math.min(maxBufferSize, Integer.highestOneBit(len * 2));
+      // Double the request's highest set bit, which is the smallest power of two above len. Not
+      // highestOneBit(len * 2): that doubling overflows for a request above 2^30, and
+      // highestOneBit of a negative int is Integer.MIN_VALUE, so the buffer size came out negative
+      int rounded = Integer.highestOneBit(len);
+      nextBufferSize = rounded > Integer.MAX_VALUE / 2
+          ? maxBufferSize
+          : Math.min(maxBufferSize, rounded * 2);
     }
     this.lastBufferSize = nextBufferSize;
     return nextBufferSize;
+  }
+
+  /**
+   * Caps a buffer size at the bytes the limit still allows, so a stream that may serve only a few
+   * more bytes does not ask the server for a full buffer and discard most of it.
+   *
+   * <p>Only correct once {@link #getLo()} has resolved the limit and the position, which both
+   * read methods do before they size a buffer.</p>
+   *
+   * @param bufferSize buffer size the growth policy asks for
+   * @return the same size, or the bytes left under the limit when that is smaller
+   */
+  private int limitedBufferSize(int bufferSize) {
+    return (int) Math.min(bufferSize, limit - absolutePosition);
   }
 
   @Override
@@ -204,7 +237,7 @@ public class BlobInputStream extends InputStream {
       }
 
       if (len > 0) {
-        int nextBufferSize = getNextBufferSize(len);
+        int nextBufferSize = limitedBufferSize(getNextBufferSize(len));
         // We are going to read data past the existing buffer, so we release the memory
         // before making a DB call
         buffer = null;
