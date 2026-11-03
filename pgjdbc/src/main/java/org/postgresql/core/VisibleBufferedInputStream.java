@@ -168,7 +168,7 @@ public class VisibleBufferedInputStream extends InputStream {
    * Reads more bytes into the buffer.
    *
    * <p>The wrapped stream is allowed to read nothing and still have more to give, which
-   * {@link org.postgresql.gss.GSSInputStream} does whenever a frame is still incomplete. A blocking
+   * {@link org.postgresql.gss.GSSInputStream} does whenever a packet is still incomplete. A blocking
    * call then blocks for a byte, because a zero-length read is not the end of the stream and
    * treating it as progress leaves {@link #ensureBytes(int)} looping over a request it can never
    * satisfy.</p>
@@ -261,7 +261,7 @@ public class VisibleBufferedInputStream extends InputStream {
    *
    * <p>Never returns {@code 0} for a non-empty request, as {@link InputStream#read(byte[], int,
    * int)} requires. The wrapped stream is allowed to read nothing and still have more to give,
-   * which {@link org.postgresql.gss.GSSInputStream} does whenever a frame is still incomplete, so
+   * which {@link org.postgresql.gss.GSSInputStream} does whenever a packet is still incomplete, so
    * this blocks for a byte in that case and reports the end of the stream as {@code -1}.</p>
    *
    * <p>A {@link SocketTimeoutException} is retried rather than reported unless

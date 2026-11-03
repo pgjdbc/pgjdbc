@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
  * nothing for one that has ended, or reports it to the caller as a read of nothing.
  *
  * <p>Two things reach this stream and read nothing without having ended:
- * {@link org.postgresql.gss.GSSInputStream}, which reads nothing whenever a GSS frame is still
+ * {@link org.postgresql.gss.GSSInputStream}, which reads nothing whenever a GSS packet is still
  * incomplete, and a socket whose timeout the driver set for its own purposes, such as the
  * replication status interval. Neither is the end of the stream, and neither is progress. Reading
  * a single byte is what tells them apart, because {@link InputStream#read()} can only block,
@@ -71,7 +71,7 @@ class VisibleBufferedInputStreamReadTest {
 
   /**
    * Reads nothing into an array, the way {@link org.postgresql.gss.GSSInputStream} does while a
-   * frame is still incomplete, and serves the payload one byte at a time through the single-byte
+   * packet is still incomplete, and serves the payload one byte at a time through the single-byte
    * read that has no way to say "nothing".
    */
   private static class ReadsNothing extends InputStream {
