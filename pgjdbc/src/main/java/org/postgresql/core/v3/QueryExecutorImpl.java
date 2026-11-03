@@ -213,9 +213,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private static final int SEARCH_PATH_SCAN_LIMIT = 1024;
 
   /**
-   * The longest copy response is 4 (length) + 1 (overall format) + 2 (field count) + 2 per
-   * field. The count is read through {@link PGStream#receiveInteger2()}, which is unsigned, so
-   * 0xFFFF and not Short.MAX_VALUE.
+   * Limit for CopyInResponse, CopyOutResponse and CopyBothResponse, which share a layout. The
+   * longest of them is 4 (length) + 1 (overall format) + 2 (field count) + 2 per field. The count
+   * is read through {@link PGStream#receiveInteger2()}, which is unsigned, so 0xFFFF and not
+   * {@code Short.MAX_VALUE}.
    */
   private static final int MAX_COPY_RESPONSE_LENGTH = 7 + 2 * 0xFFFF;
 
@@ -227,8 +228,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private static final int MAX_PARAMETER_DESCRIPTION_LENGTH = 6 + 4 * 0xFFFF;
 
   /**
-   * The shortest field description in a RowDescription is an empty name and its terminator,
-   * then table OID, column position, type OID, type length, type modifier and format code.
+   * The shortest field description in a RowDescription is the terminator of an empty name, then
+   * table OID, column position, type OID, type length, type modifier and format code.
    */
   private static final int MIN_FIELD_DESCRIPTION_LENGTH = 1 + 4 + 2 + 4 + 2 + 4 + 2;
 
@@ -1059,7 +1060,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           int msgLen = pgStream.receiveMessageLength("FunctionCallResponse", 8,
               PGStream.MAX_MESSAGE_LENGTH);
           int valueLen = pgStream.receiveInteger4();
-          // -1 is null and carries no bytes. Any other length fills the message exactly.
+          // A length of -1 is a SQL NULL and carries no bytes. The result ends the message, so
+          // any other length has to account for the rest of it exactly.
           int expectedLen = valueLen == -1 ? 8 : 8 + valueLen;
           if (valueLen < -1 || msgLen != expectedLen) {
             throw pgStream.protocolViolation(GT.tr("Function call result of {0} bytes does not"
@@ -1164,7 +1166,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       int len = pgStream.receiveMessageLength("CopyResponse", 7, MAX_COPY_RESPONSE_LENGTH);
       int rowFormat = pgStream.receiveChar();
       int numFields = pgStream.receiveInteger2();
-      // The formats are the whole body, so the count is determined by the length.
+      // The field formats end the message, so the count and the declared length have to agree.
+      // A larger count would otherwise read the formats out of the message that follows.
       if (len != 7 + 2 * numFields) {
         throw pgStream.protocolViolation(GT.tr(
             "Copy response of {0} bytes does not hold exactly {1} field formats.",
@@ -1550,10 +1553,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
             LOGGER.log(Level.FINEST, " <=BE CopyData");
 
-            // CopyData keeps the MaxAllocSize limit. The protocol gives it no smaller one, and
-            // a COPY row or a logical replication message can be that large, so if the stream
-            // goes out of sync inside a COPY the driver can still make one large allocation.
-            // maxResultBuffer is documented for result sets, so it is not used here.
+            // CopyData is read under the general limit because the protocol sets no smaller one:
+            // a single COPY row or logical replication message really can be that large. One
+            // consequence is that a stream which goes out of sync inside a COPY can still make
+            // one very large allocation. maxResultBuffer is not applied here, because it is
+            // documented as a limit on result sets.
             len = pgStream.receiveMessageLength("CopyData", 4, PGStream.MAX_MESSAGE_LENGTH) - 4;
 
             byte[] buf = pgStream.receive(len);
@@ -2434,7 +2438,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case PgMessageType.PARAMETER_DESCRIPTION_RESPONSE: {
-          // 4 (length) + 2 (parameter count) + 4 per parameter.
           int paramDescLen = pgStream.receiveMessageLength("ParameterDescription", 6,
               MAX_PARAMETER_DESCRIPTION_LENGTH);
 
@@ -2448,7 +2451,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           String origStatementName = describeData.statementName;
 
           int numParams = pgStream.receiveInteger2();
-          // The type OIDs are the whole body, so the count is determined by the length.
+          // The type OIDs end the message, so the count and the declared length have to agree.
+          // A larger count would otherwise read the OIDs out of the message that follows.
           if (paramDescLen != 6 + 4 * numParams) {
             throw pgStream.protocolViolation(GT.tr(
                 "ParameterDescription of {0} bytes does not hold exactly {1} parameter types.",
@@ -2675,7 +2679,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           } catch (SQLException e) {
             handler.handleError(e);
             if (pgStream.isBroken()) {
-              // The connection was dropped at the limit, so there is nothing left to read.
+              // A broken stream can no longer be read, so end the query here rather than wait
+              // for a ReadyForQuery that cannot arrive.
               endQuery = true;
             }
           }
@@ -2887,8 +2892,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * Ignore the response message by reading the message length and skipping over those bytes in the
    * communication stream.
    */
-  private void skipMessage(String packetName, int maxLength) throws IOException {
-    int len = pgStream.receiveMessageLength(packetName, 4, maxLength);
+  private void skipMessage(String messageName, int maxLength) throws IOException {
+    int len = pgStream.receiveMessageLength(messageName, 4, maxLength);
 
     // skip len-4 (length includes the 4 bytes for message length itself
     pgStream.skip(len - 4);
@@ -2981,7 +2986,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * Receive the field descriptions from the back end.
    */
   private Field[] receiveFields() throws IOException {
-    // 4 (length) + 2 (field count), then one field description each.
+    // 4 (length) + 2 (field count), then a field description for each field.
     int len = pgStream.receiveMessageLength("RowDescription", 6, PGStream.MAX_MESSAGE_LENGTH);
     int size = pgStream.receiveInteger2();
     // Without this a short message reads its field descriptions out of what follows it.
@@ -3036,8 +3041,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     int elen = pgStream.receiveMessageLength("ErrorResponse", 5, PGStream.MAX_MESSAGE_LENGTH);
 
-    // A body past the buffer maximum is truncated there and the rest drained. The fields before
-    // the truncation point are kept, later ones such as the query text are lost.
+    // Truncating keeps the fields before the truncation point and loses the later ones, such as
+    // the query text.
     int body = Math.min(elen, PGStream.MAX_BUFFERED_MESSAGE_LENGTH) - 4;
     EncodingPredictor.DecodeResult totalMessage = pgStream.receiveErrorString(body);
     pgStream.skip(elen - 4 - body);
