@@ -109,7 +109,7 @@ public class TypeInfoCache implements TypeInfo {
       {"json", Oid.JSON, Types.OTHER, "org.postgresql.util.PGobject", Oid.JSON_ARRAY},
       {"jsonb", Oid.JSONB, Types.OTHER, "org.postgresql.util.PGobject", Oid.JSONB_ARRAY},
       {"point", Oid.POINT, Types.OTHER, "org.postgresql.geometric.PGpoint", Oid.POINT_ARRAY},
-      {"box", Oid.BOX, Types.OTHER, "org.postgresql.geometric.PGBox", Oid.BOX_ARRAY}
+      {"box", Oid.BOX, Types.OTHER, "org.postgresql.geometric.PGbox", Oid.BOX_ARRAY}
   };
 
   /**

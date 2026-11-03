@@ -284,6 +284,29 @@ public class ArrayTest extends BaseTest4 {
     assertFalse(arrRs.next());
   }
 
+  /**
+   * A {@code PGbox[]} passed to {@code setObject} binds as {@code box[]}. The driver finds the
+   * array type by the element class name, and its type table used to spell that name
+   * {@code PGBox}, so the call failed with {@code Cannot cast an instance of
+   * [Lorg.postgresql.geometric.PGbox; to type Types.ARRAY}.
+   */
+  @Test
+  public void setObjectBindsAPGboxArrayAsBoxArray() throws SQLException {
+    String sql = "SELECT ?";
+    // The simple protocol sends the parameter as an untyped literal
+    if (preferQueryMode == PreferQueryMode.SIMPLE) {
+      sql = "SELECT ?::box[]";
+    }
+    PGbox[] in = {new PGbox(1, 2, 3, 4), new PGbox(5, 6, 7, 8)};
+
+    PreparedStatement pstmt = conn.prepareStatement(sql);
+    pstmt.setObject(1, in);
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    assertEquals("_box", rs.getMetaData().getColumnTypeName(1));
+    assertArrayEquals(in, (Object[]) rs.getArray(1).getArray());
+  }
+
   @Test
   public void testCreateArrayOfNull() throws SQLException {
     String sql = "SELECT ?";
