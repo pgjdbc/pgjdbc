@@ -79,6 +79,8 @@ public class DefaultPGXmlFactoryFactory implements PGXmlFactoryFactory {
     setFeatureQuietly(factory, "http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
     setFeatureQuietly(factory, "http://xml.org/sax/features/external-general-entities", false);
     setFeatureQuietly(factory, "http://xml.org/sax/features/external-parameter-entities", false);
+    // A SAX driver can refuse the features above, but not the resolver.
+    factory.setEntityResolver(EmptyStringEntityResolver.INSTANCE);
     factory.setErrorHandler(NullErrorHandler.INSTANCE);
     return factory;
   }
