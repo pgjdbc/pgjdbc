@@ -1525,10 +1525,9 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     if (p == null) {
       throw new IllegalArgumentException("URL invalid " + url);
     }
+    // setProperty ignores null, so a property that the URL does not set keeps its value.
     for (PGProperty property : PGProperty.values()) {
-      if (!this.properties.containsKey(property.getName())) {
-        setProperty(property, property.getOrDefault(p));
-      }
+      setProperty(property, property.getOrNull(p));
     }
   }
 
