@@ -5,6 +5,7 @@
 
 package org.postgresql.core.v3;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -22,16 +23,14 @@ import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.Tuple;
+import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.parallel.Isolated;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -40,31 +39,48 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Properties;
 
 /**
- * Drives the readers in {@link QueryExecutorImpl} from a canned reply, so the counts they take
- * off the wire can be given values a server would never send.
+ * Feeds the readers in {@link QueryExecutorImpl} canned backend messages and checks that the driver
+ * refuses any message whose declared length disagrees with what follows, rather than reading past
+ * the message or allocating from a count the length cannot hold. A canned message is what lets a
+ * test give a length or a count a value a server would never send.
+ *
+ * <p>A RowDescription, ParameterDescription or CopyOutResponse carries a field count, so its reader
+ * compares that count against the declared length and refuses the message before it reads anything
+ * from the count. A ParameterStatus carries no count, so a body that ends before the declared end
+ * is caught instead by the position check at the next message type. A message the driver buffers
+ * whole is refused above {@link PGStream#MAX_BUFFERED_MESSAGE_LENGTH}.</p>
+ *
+ * <p>Two messages are read differently. An ErrorResponse or NoticeResponse past that buffer limit
+ * is truncated rather than refused, and a DataRow past {@code maxResultBuffer} is never read: the
+ * driver reports the limit and drops the connection.</p>
+ *
+ * <p>Each assertion builds its expected text with {@link GT#tr}, the call the driver used, so the
+ * tests hold in any locale.</p>
  */
-@Isolated("Uses Locale.setDefault")
 class BackendMessageEnvelopeTest {
 
-  // The assertions match on message text, which GT.tr translates once these strings are
-  // localized.
-  private static Locale defaultLocale;
+  /**
+   * The longest ParameterDescription the driver accepts: 4 (length) + 2 (parameter count) + 4 per
+   * parameter, for the 65535 parameters an unsigned int2 count can announce.
+   */
+  private static final int MAX_PARAMETER_DESCRIPTION_LENGTH = 6 + 4 * 0xFFFF;
 
-  @BeforeAll
-  static void useRootLocale() {
-    defaultLocale = Locale.getDefault();
-    Locale.setDefault(Locale.ROOT);
+  /**
+   * The longest copy response the driver accepts: 4 (length) + 1 (overall format) + 2 (field
+   * count) + 2 per field, for the 65535 fields an unsigned int2 count can announce.
+   */
+  private static final int MAX_COPY_RESPONSE_LENGTH = 7 + 2 * 0xFFFF;
+
+  /** The refusal {@link PGStream#receiveMessageLength} builds for a length outside its range. */
+  private static String lengthRefusal(String messageName, int declared, int min, int max) {
+    return GT.tr("Backend declared a {0} message length of {1} bytes, expected {2} to {3} bytes.",
+        messageName, String.valueOf(declared), String.valueOf(min), String.valueOf(max));
   }
 
-  @AfterAll
-  static void restoreLocale() {
-    Locale.setDefault(defaultLocale);
-  }
-
+  /** Builds the bytes of a scripted backend reply. */
   private static class Script {
     private final ByteArrayOutputStream out;
 
@@ -76,6 +92,10 @@ class BackendMessageEnvelopeTest {
       out = new ByteArrayOutputStream(capacity);
     }
 
+    /**
+     * Appends a well-formed message: the type byte, a length that includes its own four bytes,
+     * then the body.
+     */
     Script message(char type, byte[] body) {
       out.write(type);
       int length = body.length + 4;
@@ -87,7 +107,10 @@ class BackendMessageEnvelopeTest {
       return this;
     }
 
-    /** A message whose declared length is not the length of what follows it. */
+    /**
+     * Appends a message whose length prefix declares {@code declaredLength} rather than the length
+     * of {@code body}.
+     */
     Script messageOfDeclaredLength(char type, int declaredLength, byte[] body) {
       out.write(type);
       out.write(declaredLength >>> 24);
@@ -98,6 +121,10 @@ class BackendMessageEnvelopeTest {
       return this;
     }
 
+    /**
+     * Appends the reply the {@link QueryExecutorImpl} constructor consumes, ending at
+     * ReadyForQuery.
+     */
     Script startup() {
       message('S', bytes(cstring("server_version"), cstring("17.0")));
       message('K', bytes(int4(1), int4(2)));
@@ -131,6 +158,7 @@ class BackendMessageEnvelopeTest {
     return new byte[]{(byte) (value >>> 8), (byte) value};
   }
 
+  /** Returns the UTF-8 bytes of {@code value} plus a zero byte. */
   private static byte[] cstring(String value) {
     byte[] encoded = value.getBytes(StandardCharsets.UTF_8);
     byte[] result = new byte[encoded.length + 1];
@@ -152,6 +180,7 @@ class BackendMessageEnvelopeTest {
     return new QueryExecutorImpl(streamOf(script), 0, new Properties());
   }
 
+  /** Keeps the last warning the query reported, and discards its rows and command status. */
   private static class CollectingHandler extends ResultHandlerBase {
     private @Nullable SQLWarning warning;
 
@@ -171,8 +200,8 @@ class BackendMessageEnvelopeTest {
   }
 
   /**
-   * Runs one simple query against the scripted reply and returns whatever error came out of it,
-   * or null if the reply was accepted.
+   * Runs one simple query against the scripted reply and returns the error it produced, or null
+   * if the reply was accepted.
    */
   private static @Nullable SQLException runQuery(Script script) throws IOException {
     try {
@@ -204,7 +233,7 @@ class BackendMessageEnvelopeTest {
     assertNull(runQuery(script));
   }
 
-  /** One byte short of what a single field description needs. */
+  /** The one field description is a byte short, 18 bytes where 19 are needed. */
   @Test
   void rejectsARowDescriptionTooShortForItsFieldCount() throws Exception {
     byte[] shortField = new byte[fieldDescription().length - 1];
@@ -215,12 +244,15 @@ class BackendMessageEnvelopeTest {
 
     SQLException e = runQuery(script);
     assertNotNull(e, "a RowDescription that cannot hold its fields must be refused");
-    assertTrue(rootCause(e).getMessage().contains("cannot hold"), rootCause(e).getMessage());
+    // 4 length + 2 count + the 18 bytes of the short description is a declared 24.
+    assertEquals(GT.tr("RowDescription of {0} bytes cannot hold {1} field descriptions.",
+        "24", "1"), rootCause(e).getMessage());
   }
 
   /**
-   * A tiny message claiming many fields would read its field descriptions out of the
-   * messages that follow it.
+   * The message declares 1664 fields and holds one field description. 1664 is the most fields a
+   * server can send, because PostgreSQL refuses a target list with more entries, and without the
+   * check the reader would take the other 1663 descriptions from the messages behind it.
    */
   @Test
   void rejectsARowDescriptionClaimingFieldsItCannotHold() throws Exception {
@@ -229,12 +261,15 @@ class BackendMessageEnvelopeTest {
         .readyForQuery();
 
     SQLException e = runQuery(script);
-    assertNotNull(e);
-    assertTrue(rootCause(e).getMessage().contains("cannot hold"), rootCause(e).getMessage());
+    assertNotNull(e, "a RowDescription claiming 1664 fields must be refused");
+    // 4 length + 2 count + the 19 bytes of the one description is a declared 25.
+    assertEquals(GT.tr("RowDescription of {0} bytes cannot hold {1} field descriptions.",
+        "25", "1664"), rootCause(e).getMessage());
   }
 
   /**
-   * Runs one describe-only parameterized query, the request a ParameterDescription answers.
+   * Runs one describe-only parameterized query and returns the error it produced, or null if the
+   * reply was accepted. Only such a request draws a ParameterDescription.
    */
   private static @Nullable SQLException describeQuery(Script script) throws IOException {
     try {
@@ -262,7 +297,7 @@ class BackendMessageEnvelopeTest {
     assertNull(describeQuery(script));
   }
 
-  /** One type OID more than the length can hold. */
+  /** The count claims two type OIDs where the declared 10 bytes hold the count and one OID. */
   @Test
   void rejectsAParameterDescriptionWhoseCountDoesNotFillIt() throws Exception {
     Script script = new Script().startup()
@@ -272,7 +307,26 @@ class BackendMessageEnvelopeTest {
 
     SQLException e = describeQuery(script);
     assertNotNull(e, "a ParameterDescription that does not hold its types must be refused");
-    assertTrue(rootCause(e).getMessage().contains("parameter types"), rootCause(e).getMessage());
+    assertEquals(GT.tr("ParameterDescription of {0} bytes does not hold exactly {1} parameter"
+        + " types.", "10", "2"), rootCause(e).getMessage());
+  }
+
+  /**
+   * A count of 65535 parameters fills {@link #MAX_PARAMETER_DESCRIPTION_LENGTH} exactly, so one
+   * byte more is refused by the length check, before the count is read.
+   */
+  @Test
+  void rejectsAParameterDescriptionAboveItsMaximumLength() throws Exception {
+    Script script = new Script().startup()
+        .message('1', new byte[0])
+        .messageOfDeclaredLength('t', MAX_PARAMETER_DESCRIPTION_LENGTH + 1,
+            bytes(int2(1), int4(23)))
+        .readyForQuery();
+
+    SQLException e = describeQuery(script);
+    assertNotNull(e, "a ParameterDescription longer than its maximum must be refused");
+    assertEquals(lengthRefusal("ParameterDescription", MAX_PARAMETER_DESCRIPTION_LENGTH + 1, 6,
+        MAX_PARAMETER_DESCRIPTION_LENGTH), rootCause(e).getMessage());
   }
 
   @Test
@@ -285,10 +339,10 @@ class BackendMessageEnvelopeTest {
 
     QueryExecutor executor = executorOf(script);
     CopyOperation op = executor.startCopy("copy t to stdout", true);
-    assertEquals(1, ((CopyOut) op).getFieldCount());
+    assertEquals(1, ((CopyOut) op).getFieldCount(), "field count of the copy operation");
   }
 
-  /** One field format too few for the declared length. */
+  /** The count claims one field format where the declared 11 bytes leave room for two. */
   @Test
   void rejectsACopyOutResponseWhoseFieldCountDoesNotFillIt() throws Exception {
     Script script = new Script().startup()
@@ -298,12 +352,31 @@ class BackendMessageEnvelopeTest {
     QueryExecutor executor = executorOf(script);
     SQLException e = assertThrows(SQLException.class,
         () -> executor.startCopy("copy t to stdout", true));
-    assertTrue(rootCause(e).getMessage().contains("field formats"), rootCause(e).getMessage());
+    assertEquals(GT.tr("Copy response of {0} bytes does not hold exactly {1} field formats.",
+        "11", "1"), rootCause(e).getMessage());
   }
 
   /**
-   * ParameterStatus is two C strings, so a reader that stops before the declared end is only
-   * caught by comparing the position at the next message.
+   * A count of 65535 fields fills {@link #MAX_COPY_RESPONSE_LENGTH} exactly, so one byte more is
+   * refused by the length check, before the count is read.
+   */
+  @Test
+  void rejectsACopyOutResponseAboveItsMaximumLength() throws Exception {
+    Script script = new Script().startup()
+        .messageOfDeclaredLength('H', MAX_COPY_RESPONSE_LENGTH + 1,
+            bytes(new byte[]{0}, int2(1), int2(0)))
+        .readyForQuery();
+
+    QueryExecutor executor = executorOf(script);
+    SQLException e = assertThrows(SQLException.class,
+        () -> executor.startCopy("copy t to stdout", true));
+    assertEquals(lengthRefusal("CopyResponse", MAX_COPY_RESPONSE_LENGTH + 1, 7,
+        MAX_COPY_RESPONSE_LENGTH), rootCause(e).getMessage());
+  }
+
+  /**
+   * ParameterStatus is two C strings, so a reader that stops before the declared end is caught
+   * only by the position check in {@link PGStream#receiveMessageType()}.
    */
   @Test
   void rejectsAParameterStatusThatDoesNotFillItsMessage() throws Exception {
@@ -312,7 +385,45 @@ class BackendMessageEnvelopeTest {
         .message('Z', new byte[]{'I'});
 
     IOException e = assertThrows(IOException.class, () -> executorOf(script));
-    assertTrue(e.getMessage().contains("stopped at byte"), e.getMessage());
+    // The type byte and the 4 length bytes end at stream position 5, so the declared 12 puts the
+    // end at 13, and the two strings leave the reader at 9.
+    assertEquals(GT.tr("The previous backend message declared its end at byte {0} of the stream,"
+        + " but its reader stopped at byte {1}.", "13", "9"), e.getMessage());
+  }
+
+  /**
+   * ParameterStatus is buffered whole, so its limit is
+   * {@link PGStream#MAX_BUFFERED_MESSAGE_LENGTH} and one byte more is refused rather than
+   * truncated. A real server sends kilobytes at most.
+   */
+  @Test
+  void rejectsAParameterStatusAboveTheBufferedMaximum() throws Exception {
+    Script script = new Script()
+        .messageOfDeclaredLength('S', PGStream.MAX_BUFFERED_MESSAGE_LENGTH + 1,
+            bytes(cstring("a"), cstring("b")))
+        .message('Z', new byte[]{'I'});
+
+    IOException e = assertThrows(IOException.class, () -> executorOf(script));
+
+    assertEquals(lengthRefusal("ParameterStatus", PGStream.MAX_BUFFERED_MESSAGE_LENGTH + 1, 6,
+        PGStream.MAX_BUFFERED_MESSAGE_LENGTH), e.getMessage());
+  }
+
+  /**
+   * A NotificationResponse is buffered whole as well, and its payload is under 8000 bytes at the
+   * default block size, so the same limit refuses one byte more.
+   */
+  @Test
+  void rejectsANotificationResponseAboveTheBufferedMaximum() throws Exception {
+    Script script = new Script().startup()
+        .messageOfDeclaredLength('A', PGStream.MAX_BUFFERED_MESSAGE_LENGTH + 1,
+            bytes(int4(1), cstring("channel"), cstring("payload")))
+        .readyForQuery();
+
+    SQLException e = runQuery(script);
+    assertNotNull(e, "a NotificationResponse longer than its maximum must be refused");
+    assertEquals(lengthRefusal("NotificationResponse", PGStream.MAX_BUFFERED_MESSAGE_LENGTH + 1, 10,
+        PGStream.MAX_BUFFERED_MESSAGE_LENGTH), rootCause(e).getMessage());
   }
 
   @Test
@@ -321,7 +432,7 @@ class BackendMessageEnvelopeTest {
         .message('S', bytes(cstring("a"), cstring("b")))
         .message('Z', new byte[]{'I'});
 
-    assertNotNull(executorOf(script));
+    assertNotNull(executorOf(script), "the connection must come up");
   }
 
   @Test
@@ -329,12 +440,13 @@ class BackendMessageEnvelopeTest {
     Script script = new Script().messageOfDeclaredLength('Z', 6, new byte[]{'I', 0});
 
     IOException e = assertThrows(IOException.class, () -> executorOf(script));
-    assertTrue(e.getMessage().contains("ReadyForQuery"), e.getMessage());
+    assertEquals(lengthRefusal("ReadyForQuery", 6, 5, 5), e.getMessage());
   }
 
   /**
-   * Error fields for a message one byte longer than the buffer maximum. The query field comes
-   * last, so it is the field that is truncated.
+   * Returns the error fields for a message one byte longer than
+   * {@link PGStream#MAX_BUFFERED_MESSAGE_LENGTH}. The query field comes last, so it is the field
+   * the truncation cuts.
    */
   private static byte[] oversizedErrorFields() {
     byte[] head = bytes(cstring("SERROR"), cstring("C42601"), cstring("Mboom"), new byte[]{'q'});
@@ -357,16 +469,18 @@ class BackendMessageEnvelopeTest {
 
     QueryExecutor executor = executorOf(script);
     SQLException e = runQuery(executor, new CollectingHandler());
-    assertNotNull(e);
+    assertNotNull(e, "the truncated ErrorResponse must still reach the caller");
     ServerErrorMessage message = ((PSQLException) e).getServerErrorMessage();
-    assertNotNull(message);
-    assertEquals("42601", message.getSQLState());
-    assertEquals("boom", message.getMessage());
+    assertNotNull(message, "the error must carry its server fields");
     String query = message.getInternalQuery();
-    assertNotNull(query);
-    assertTrue(query.startsWith("xxx") && query.length() < body.length, "truncated query field");
-
-    assertNull(runQuery(executor, new CollectingHandler()));
+    assertNotNull(query, "the query field must survive the truncation");
+    assertAll(
+        () -> assertEquals("42601", message.getSQLState(), "SQLState field"),
+        () -> assertEquals("boom", message.getMessage(), "message field"),
+        () -> assertTrue(query.startsWith("xxx") && query.length() < body.length,
+            "the query field must be kept and truncated"),
+        () -> assertNull(runQuery(executor, new CollectingHandler()),
+            "the connection must stay usable after the truncation"));
   }
 
   @Test
@@ -378,14 +492,14 @@ class BackendMessageEnvelopeTest {
         .readyForQuery();
 
     CollectingHandler handler = new CollectingHandler();
-    assertNull(runQuery(executorOf(script), handler));
-    assertNotNull(handler.warning);
-    assertEquals("42601", handler.warning.getSQLState());
+    assertNull(runQuery(executorOf(script), handler), "the query must succeed");
+    assertNotNull(handler.warning, "the truncated NoticeResponse must reach the handler");
+    assertEquals("42601", handler.warning.getSQLState(), "SQLState of the warning");
   }
 
   /**
-   * A NoticeResponse whose body is truncated in the middle of a multibyte UTF-8 character. The
-   * tolerant decoding must deliver the notice rather than fail the read.
+   * The truncation point falls between the two bytes of one character, and the tolerant decoding
+   * has to deliver the notice anyway rather than fail the read.
    */
   @Test
   void truncatesANoticeResponseThroughAMultibyteCharacter() throws Exception {
@@ -393,7 +507,7 @@ class BackendMessageEnvelopeTest {
     byte[] body = new byte[buffered + 8];
     body[0] = 'M';
     Arrays.fill(body, 1, buffered - 1, (byte) 'x');
-    // Two byte U+00E9 split by the truncation, lead byte inside and trail byte outside.
+    // U+00E9 takes two bytes, and the truncation keeps its lead byte and drops the trail byte.
     body[buffered - 1] = (byte) 0xC3;
     body[buffered] = (byte) 0xA9;
     Arrays.fill(body, buffered + 1, body.length - 1, (byte) 'x');
@@ -404,14 +518,17 @@ class BackendMessageEnvelopeTest {
         .readyForQuery();
 
     CollectingHandler handler = new CollectingHandler();
-    assertNull(runQuery(executorOf(script), handler));
-    assertNotNull(handler.warning);
+    assertNull(runQuery(executorOf(script), handler), "the query must succeed");
+    assertNotNull(handler.warning, "the truncated NoticeResponse must reach the handler");
     String message = handler.warning.getMessage();
-    assertNotNull(message);
+    assertNotNull(message, "the warning must carry its message field");
     assertTrue(message.startsWith("xxx"), message);
   }
 
-  /** A DataRow past maxResultBuffer reports the limit and drops the connection. */
+  /**
+   * The row is never read, so the stream is left in the middle of a message and cannot be used
+   * again. That is why the limit drops the connection rather than reporting and carrying on.
+   */
   @Test
   void dropsTheConnectionPastMaxResultBuffer() throws Exception {
     byte[] column = new byte[200];
@@ -425,12 +542,16 @@ class BackendMessageEnvelopeTest {
     stream.setMaxResultBuffer("100");
     QueryExecutor executor = new QueryExecutorImpl(stream, 0, new Properties());
     SQLException e = runQuery(executor, new CollectingHandler());
-    assertNotNull(e);
-    assertTrue(e.getMessage().contains("maxResultBuffer"), e.getMessage());
-    assertEquals(PSQLState.COMMUNICATION_ERROR.getState(), e.getSQLState());
-    assertNull(e.getNextException(), "the limit must be the only error reported");
-    assertTrue(stream.isBroken());
-    assertTrue(executor.isClosed());
+    assertNotNull(e, "the row past the limit must be reported");
+    assertAll(
+        // The declared 210 bytes leave 200 for column data, which is what the limit counts.
+        () -> assertEquals(GT.tr("Result set exceeded maxResultBuffer limit. Received:  {0};"
+            + " Current limit: {1}", "200", "100"), e.getMessage()),
+        () -> assertEquals(PSQLState.COMMUNICATION_ERROR.getState(), e.getSQLState(),
+            "SQLState of the refusal"),
+        () -> assertNull(e.getNextException(), "the limit must be the only error reported"),
+        () -> assertTrue(stream.isBroken(), "the stream must be marked broken"),
+        () -> assertTrue(executor.isClosed(), "the executor must report itself closed"));
   }
 
   private static Throwable rootCause(Throwable t) {
