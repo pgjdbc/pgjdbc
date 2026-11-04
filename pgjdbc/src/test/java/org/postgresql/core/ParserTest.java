@@ -143,6 +143,24 @@ class ParserTest {
   }
 
   @Test
+  void escapeEndsAtBraceOutsideOfLiterals() throws Exception {
+    assertEquals("TIMESTAMP '2024-01-01}{fn user()}--'",
+        Parser.replaceProcessing("{ts '2024-01-01}{fn user()}--'}", true, true));
+    assertEquals("DATE '}'", Parser.replaceProcessing("{d '}'}", true, true));
+    assertEquals("TIME '}'", Parser.replaceProcessing("{t '}'}", true, true));
+    assertEquals("a LIKE 'a}%' ESCAPE '}'", Parser.replaceProcessing("a LIKE 'a}%' {escape '}'}", true, true));
+    assertEquals("a LEFT OUTER JOIN b ON b.\"}\" = '}' /* } */ AND $$}$$ = $q$}$q$ -- }\n",
+        Parser.replaceProcessing("{oj a LEFT OUTER JOIN b ON b.\"}\" = '}' /* } */ AND $$}$$ = $q$}$q$ -- }\n}",
+            true, true));
+    String since = "2024-01-01 }{fn locate($$ */ $$,$$ is null)::int))) UNION SELECT token FROM api_keys --$$,{oj (/*";
+    assertEquals("SELECT 1 WHERE now() >= TIMESTAMP '" + since + "' AND 1 = 1",
+        Parser.replaceProcessing("SELECT 1 WHERE now() >= {ts '" + since + "'} AND 1 = 1", true, true));
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> Parser.replaceProcessing("{d '2020-01-01}", true, true));
+    assertEquals(PSQLState.SYNTAX_ERROR.getState(), e.getSQLState());
+  }
+
+  @Test
   void timestampAddDiffFracSecondIsRejected() throws Exception {
     // SQL_TSI_FRAC_SECOND has no portable size across databases (nanoseconds in ODBC/SQL Server,
     // microseconds in MySQL), so pgjdbc rejects it with an explicit error rather than risk
