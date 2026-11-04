@@ -419,9 +419,8 @@ public class Parser {
   /**
    * Find the end of the single-quoted string starting at the given offset.
    *
-   * <p>Note: for {@code 'single '' quote in string'}, this method currently returns the offset of
-   * first {@code '} character after the initial one. The caller must call the method a second time
-   * for the second part of the quoted string.</p>
+   * <p>A doubled quote and a continuation on a new line do not end the string. The rest of the
+   * string follows the rules of its first part, as in the backend.</p>
    *
    * @param query                     query
    * @param offset                    start offset
@@ -434,7 +433,8 @@ public class Parser {
     if (standardConformingStrings
         && offset >= 2
         && (query[offset - 1] == 'e' || query[offset - 1] == 'E')
-        && charTerminatesIdentifier(query[offset - 2])) {
+        && (charTerminatesIdentifier(query[offset - 2])
+            || isUnpairedSurrogate(query, offset - 2))) {
       standardConformingStrings = false;
     }
 
@@ -442,7 +442,11 @@ public class Parser {
       // do NOT treat backslashes as escape characters
       while (++offset < query.length) {
         if (query[offset] == '\'') {
-          return offset;
+          int continuation = findQuoteContinuation(query, offset + 1);
+          if (continuation == -1) {
+            return offset;
+          }
+          offset = continuation;
         }
       }
     } else {
@@ -453,7 +457,12 @@ public class Parser {
             ++offset;
             break;
           case '\'':
-            return offset;
+            int continuation = findQuoteContinuation(query, offset + 1);
+            if (continuation == -1) {
+              return offset;
+            }
+            offset = continuation;
+            break;
           default:
             break;
         }
@@ -461,6 +470,40 @@ public class Parser {
     }
 
     return query.length;
+  }
+
+  /**
+   * Find the quote that continues a single-quoted string after its closing quote. That is a
+   * second quote right after it, or a quote after whitespace and {@code --} comments with at
+   * least one newline, see {@code xqdouble} and {@code quotecontinue} in scan.l.
+   *
+   * @param query  query
+   * @param offset position after the closing quote
+   * @return position of the quote that continues the string, or -1 if the string ends
+   */
+  private static int findQuoteContinuation(final char[] query, int offset) {
+    if (offset < query.length && query[offset] == '\'') {
+      return offset;
+    }
+    boolean newline = false;
+    for (; offset < query.length; offset++) {
+      char c = query[offset];
+      if (c == '-') {
+        offset = parseLineComment(query, offset);
+        c = query[offset];
+        if (c != '\n' && c != '\r') {
+          return -1;
+        }
+      }
+      if (c == '\n' || c == '\r') {
+        newline = true;
+      } else if (c == '\'') {
+        return newline ? offset : -1;
+      } else if (!isSpace(c)) {
+        return -1;
+      }
+    }
+    return -1;
   }
 
   /**
@@ -892,7 +935,8 @@ public class Parser {
    * @return true if the character is a whitespace character as defined in the backend's parser
    */
   public static boolean isSpace(char c) {
-    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f';
+    // The backend counts a vertical tab as whitespace since PostgreSQL 17.
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == 0x0B;
   }
 
   /**
