@@ -166,14 +166,7 @@ public class BatchDeadlockTest extends BaseTest4 {
       }
       driverLogger.setLevel(previousDriverLogLevel);
     }
-    try {
-      super.tearDown();
-    } finally {
-      if (socketCounters != null) {
-        CountingSocketFactory.unregister(socketCounters);
-        socketCounters = null;
-      }
-    }
+    super.tearDown();
   }
 
   /**

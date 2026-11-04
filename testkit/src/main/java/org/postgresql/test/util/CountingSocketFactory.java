@@ -11,6 +11,9 @@ import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.ref.Reference;
+import java.lang.ref.ReferenceQueue;
+import java.lang.ref.WeakReference;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.UUID;
@@ -31,6 +34,11 @@ import javax.net.SocketFactory;
  * instance via {@link #register()}, passes its {@link Counters#key()} via
  * {@code PGProperty.SOCKET_FACTORY_ARG}, and reads cumulative values back through that
  * instance. Two tests running in parallel each get their own {@code Counters}.
+ *
+ * <p>The registry holds each {@code Counters} weakly: a test must keep it reachable, for instance
+ * in a field, until it has opened its last connection. Once the {@code Counters} is
+ * garbage-collected, the factory no longer finds its key, and a later {@link #register()} call
+ * removes the entry. A test needs no cleanup call.
  *
  * <p>All counters are cumulative. Tests read deltas: snapshot values before an operation,
  * run it, snapshot after, and assert on the difference.
@@ -62,32 +70,62 @@ public class CountingSocketFactory extends SocketFactory {
     }
   }
 
-  private static final ConcurrentMap<String, Counters> REGISTRY = new ConcurrentHashMap<>();
+  /**
+   * Registry entry that does not keep its {@link Counters} reachable, and remembers the key so
+   * the entry can be removed once the {@code Counters} is collected.
+   */
+  private static final class CountersRef extends WeakReference<Counters> {
+    final String key;
+
+    CountersRef(Counters counters, ReferenceQueue<Counters> queue) {
+      super(counters, queue);
+      this.key = counters.key;
+    }
+  }
+
+  private static final ConcurrentMap<String, CountersRef> REGISTRY = new ConcurrentHashMap<>();
+  private static final ReferenceQueue<Counters> COLLECTED = new ReferenceQueue<>();
 
   /**
    * Allocates a fresh {@link Counters} and registers it so a factory instantiated with its
-   * key can find it. The caller should {@link #unregister(Counters)} at the end of the test
-   * to release the registry slot.
+   * key can find it. The registry holds the {@code Counters} weakly: the caller keeps it
+   * reachable while connections are being opened, and needs no cleanup afterwards.
    */
   public static Counters register() {
+    removeCollected();
     String key = UUID.randomUUID().toString();
     Counters c = new Counters(key);
-    REGISTRY.put(key, c);
+    REGISTRY.put(key, new CountersRef(c, COLLECTED));
     return c;
   }
 
+  /**
+   * Removes the registry entry for {@code counters}, so the factory no longer finds its key.
+   * Calling it is optional: once the {@code Counters} is garbage-collected, a later
+   * {@link #register()} call removes the entry.
+   */
   public static void unregister(Counters counters) {
     REGISTRY.remove(counters.key);
+  }
+
+  private static void removeCollected() {
+    Reference<? extends Counters> ref;
+    while ((ref = COLLECTED.poll()) != null) {
+      CountersRef countersRef = (CountersRef) ref;
+      REGISTRY.remove(countersRef.key, countersRef);
+    }
   }
 
   private final Counters counters;
 
   public CountingSocketFactory(String key) {
-    Counters c = key == null ? null : REGISTRY.get(key);
+    CountersRef ref = key == null ? null : REGISTRY.get(key);
+    Counters c = ref == null ? null : ref.get();
     if (c == null) {
       throw new IllegalArgumentException(
           "No CountingSocketFactory.Counters registered for key=" + key
-              + ". Call CountingSocketFactory.register() and pass its key() via "
+              + ". Call CountingSocketFactory.register(), keep the returned Counters reachable "
+              + "(for instance, in a field of the test), and pass its key() via "
               + "PGProperty.SOCKET_FACTORY_ARG.");
     }
     this.counters = c;
