@@ -68,6 +68,12 @@ public class LargeObject
   private final int mode; // read/write mode of this object
   private final int fd; // the descriptor of the open large object
 
+  /**
+   * Current offset of {@link #fd}, or -1 if it is not tracked; see {@link #knownPosition()}.
+   * {@code lo_open} starts every descriptor at offset 0.
+   */
+  private long knownPosition;
+
   private @Nullable BlobOutputStream os; // The current output stream
 
   private boolean closed; // true when we are closed
@@ -118,6 +124,7 @@ public class LargeObject
     args[0] = Fastpath.createOIDArg(oid);
     args[1] = new FastpathArg(mode);
     this.fd = fp.getInteger("lo_open", args);
+    this.knownPosition = 0;
   }
 
   /**
@@ -135,6 +142,13 @@ public class LargeObject
     this(fp, oid, mode, null, false);
   }
 
+  /**
+   * Opens another descriptor on the same large object, in the same mode. The copy has a position
+   * of its own, which starts at offset 0 whatever the position of this object.
+   *
+   * @return a new LargeObject positioned at offset 0
+   * @throws SQLException if a database-access error occurs.
+   */
   public LargeObject copy() throws SQLException {
     checkClosed();
     return new LargeObject(fp, oid, mode);
@@ -221,6 +235,7 @@ public class LargeObject
     FastpathArg[] args = new FastpathArg[2];
     args[0] = new FastpathArg(fd);
     args[1] = new FastpathArg(len);
+    knownPosition = -1;
     byte[] bytes = fp.getData("loread", args);
     if (bytes == null) {
       return EMPTY_BYTE_ARRAY;
@@ -259,6 +274,7 @@ public class LargeObject
     FastpathArg[] args = new FastpathArg[2];
     args[0] = new FastpathArg(fd);
     args[1] = new FastpathArg(buf);
+    knownPosition = -1;
     fp.fastpath("lowrite", args);
   }
 
@@ -275,6 +291,7 @@ public class LargeObject
     FastpathArg[] args = new FastpathArg[2];
     args[0] = new FastpathArg(fd);
     args[1] = new FastpathArg(buf, off, len);
+    knownPosition = -1;
     fp.fastpath("lowrite", args);
   }
 
@@ -289,6 +306,7 @@ public class LargeObject
     FastpathArg[] args = new FastpathArg[2];
     args[0] = new FastpathArg(fd);
     args[1] = FastpathArg.of(writer);
+    knownPosition = -1;
     fp.fastpath("lowrite", args);
   }
 
@@ -308,7 +326,11 @@ public class LargeObject
     args[0] = new FastpathArg(fd);
     args[1] = new FastpathArg(pos);
     args[2] = new FastpathArg(ref);
+    knownPosition = -1;
     fp.fastpath("lo_lseek", args);
+    if (ref == SEEK_SET) {
+      knownPosition = pos;
+    }
   }
 
   /**
@@ -324,7 +346,11 @@ public class LargeObject
     args[0] = new FastpathArg(fd);
     args[1] = new FastpathArg(pos);
     args[2] = new FastpathArg(ref);
+    knownPosition = -1;
     fp.fastpath("lo_lseek64", args);
+    if (ref == SEEK_SET) {
+      knownPosition = pos;
+    }
   }
 
   /**
@@ -361,6 +387,17 @@ public class LargeObject
     FastpathArg[] args = new FastpathArg[1];
     args[0] = new FastpathArg(fd);
     return fp.getLong("lo_tell64", args);
+  }
+
+  /**
+   * Returns the current offset of this descriptor as tracked on the client, so reading it costs no
+   * round trip. A read, a write, or a seek other than {@link #SEEK_SET} through this object leaves
+   * the offset untracked until the next {@link #SEEK_SET} seek.
+   *
+   * @return the current offset, or -1 if it is not tracked
+   */
+  long knownPosition() {
+    return knownPosition;
   }
 
   /**

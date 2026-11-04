@@ -25,9 +25,10 @@ public class PgBlob extends AbstractBlobClob implements Blob {
       checkFreed();
       LargeObject subLO = getLo(false).copy();
       addSubLO(subLO);
+      // The copy starts at offset 0, so position 1 needs no seek
       if (pos > Integer.MAX_VALUE) {
         subLO.seek64(pos - 1, LargeObject.SEEK_SET);
-      } else {
+      } else if (pos != 1) {
         subLO.seek((int) pos - 1, LargeObject.SEEK_SET);
       }
       return subLO.getInputStream(length);
