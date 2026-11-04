@@ -6,6 +6,7 @@
 package org.postgresql.jdbcurlresolver;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -13,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.postgresql.PGEnvironment;
 import org.postgresql.test.annotations.DisableLogger;
 import org.postgresql.util.StubEnvironmentAndProperties;
+import org.postgresql.util.TestLogHandler;
 
 import org.junit.jupiter.api.Test;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
@@ -20,7 +22,13 @@ import uk.org.webcompere.systemstubs.properties.SystemProperties;
 import uk.org.webcompere.systemstubs.resource.Resources;
 
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.text.MessageFormat;
 import java.util.Properties;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 /**
  * Service resource location used is decided based on availability of different environment
@@ -336,4 +344,32 @@ class PgServiceConfParserTest {
     });
   }
 
+  @Test
+  void invalidLinesAreLoggedWithoutTheirValue() throws Exception {
+    Path file = Files.createTempFile("pg_service", ".conf");
+    Logger logger = Logger.getLogger(PgServiceConfParser.class.getName());
+    TestLogHandler handler = new TestLogHandler();
+    boolean useParentHandlers = logger.getUseParentHandlers();
+    logger.addHandler(handler);
+    logger.setUseParentHandlers(false);
+    try {
+      Files.write(file, ("[spaces]\npassword = secret-with-spaces\n"
+          + "[colon]\npassword: secret-with-colon\n").getBytes(StandardCharsets.UTF_8));
+      Resources.with(
+          new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), file.toString())
+      ).execute(() -> {
+        assertNull(PgServiceConfParser.getServiceProperties("spaces"));
+        assertNull(PgServiceConfParser.getServiceProperties("colon"));
+      });
+      assertEquals(2, handler.records.size());
+      for (LogRecord record : handler.records) {
+        String message = MessageFormat.format(record.getMessage(), record.getParameters());
+        assertFalse(message.contains("secret"), message);
+      }
+    } finally {
+      logger.removeHandler(handler);
+      logger.setUseParentHandlers(useParentHandlers);
+      Files.delete(file);
+    }
+  }
 }
