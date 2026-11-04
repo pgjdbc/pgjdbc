@@ -47,6 +47,10 @@ import java.util.Map;
 import java.util.StringTokenizer;
 
 public class PgDatabaseMetaData implements DatabaseMetaData {
+  // The backend prefers an operator or function whose argument types match exactly, in any schema of
+  // the search_path, over one in pg_catalog that needs an implicit cast. Where pg_catalog has no
+  // exact match, such as for name LIKE varchar or oid = int4, the queries below use
+  // OPERATOR(pg_catalog.op) or pg_catalog.fn().
 
   public PgDatabaseMetaData(PgConnection conn) {
     this.connection = conn;
@@ -1214,7 +1218,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + " n.nspname AS \"PROCEDURE_SCHEM\", p.proname AS \"PROCEDURE_NAME\", "
           + "NULL, NULL, NULL, d.description AS \"REMARKS\", "
           + DatabaseMetaData.procedureReturnsResult + " AS \"PROCEDURE_TYPE\", "
-          + " p.proname || '_' || p.oid AS \"SPECIFIC_NAME\" "
+          + " p.proname OPERATOR(pg_catalog.||) '_' OPERATOR(pg_catalog.||) p.oid AS \"SPECIFIC_NAME\" "
           + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_proc p "
           + " LEFT JOIN pg_catalog.pg_description d ON (p.oid=d.objoid) "
           + " LEFT JOIN pg_catalog.pg_class c ON (d.classoid=c.oid AND c.relname='pg_proc') "
@@ -1226,15 +1230,15 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       sql.append(" AND p.prokind='p'");
     }
     if (schemaPattern != null) {
-      sql.append(" AND n.nspname LIKE ?");
+      sql.append(" AND n.nspname OPERATOR(pg_catalog.~~) ?");
       args.add(schemaPattern);
     }
     if (procedureNamePattern != null) {
-      sql.append(" AND p.proname LIKE ?");
+      sql.append(" AND p.proname OPERATOR(pg_catalog.~~) ?");
       args.add(procedureNamePattern);
     }
     if (connection.getHideUnprivilegedObjects()) {
-      sql.append(" AND has_function_privilege(p.oid,'EXECUTE')");
+      sql.append(" AND pg_catalog.has_function_privilege(p.oid,'EXECUTE')");
     }
     sql.append(" ORDER BY \"PROCEDURE_SCHEM\", \"PROCEDURE_NAME\", p.oid::text ");
 
@@ -1283,11 +1287,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ");
     List<String> args = new ArrayList<>();
     if (schemaPattern != null) {
-      sql.append(" AND n.nspname LIKE ?");
+      sql.append(" AND n.nspname OPERATOR(pg_catalog.~~) ?");
       args.add(schemaPattern);
     }
     if (procedureNamePattern != null) {
-      sql.append(" AND p.proname LIKE ?");
+      sql.append(" AND p.proname OPERATOR(pg_catalog.~~) ?");
       args.add(procedureNamePattern);
     }
     sql.append(" ORDER BY n.nspname, p.proname, p.oid::text ");
@@ -1414,7 +1418,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       if ("c".equals(returnTypeType) || ("p".equals(returnTypeType) && argModesArray != null)) {
         PreparedStatement columnstmt = connection.prepareStatement(
             "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a "
-                + " WHERE a.attrelid = ?"
+                + " WHERE a.attrelid OPERATOR(pg_catalog.=) ?"
                 + " AND NOT a.attisdropped AND a.attnum > 0 ORDER BY a.attnum ");
         columnstmt.setInt(1, returnTypeRelid);
         ResultSet columnrs = columnstmt.executeQuery();
@@ -1477,7 +1481,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     StringBuilder select = new StringBuilder(
         "SELECT current_database() AS \"TABLE_CAT\", n.nspname AS \"TABLE_SCHEM\", c.relname AS \"TABLE_NAME\", "
-             + " CASE n.nspname ~ '^pg_' OR n.nspname = 'information_schema' "
+             + " CASE n.nspname OPERATOR(pg_catalog.~) '^pg_' OR n.nspname = 'information_schema' "
              + " WHEN true THEN CASE "
              + " WHEN n.nspname = 'pg_catalog' OR n.nspname = 'information_schema' THEN CASE c.relkind "
              + "  WHEN 'r' THEN 'SYSTEM TABLE' "
@@ -1517,17 +1521,17 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
              + " '' as \"TYPE_CAT\", '' as \"TYPE_SCHEM\", '' as \"TYPE_NAME\", "
              + "'' AS \"SELF_REFERENCING_COL_NAME\", '' AS \"REF_GENERATION\" "
              + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c "
-             + " LEFT JOIN pg_catalog.pg_description d ON (c.oid = d.objoid AND d.objsubid = 0  and d.classoid = 'pg_class'::regclass) "
+             + " LEFT JOIN pg_catalog.pg_description d ON (c.oid = d.objoid AND d.objsubid = 0  and d.classoid OPERATOR(pg_catalog.=) 'pg_class'::regclass) "
              + " WHERE c.relnamespace = n.oid ");
 
     List<String> args = new ArrayList<>();
     if (schemaPattern != null) {
-      select.append(" AND n.nspname LIKE ?");
+      select.append(" AND n.nspname OPERATOR(pg_catalog.~~) ?");
       args.add(schemaPattern);
     }
 
     if (connection.getHideUnprivilegedObjects()) {
-      select.append(" AND has_table_privilege(c.oid, ?)");
+      select.append(" AND pg_catalog.has_table_privilege(c.oid, ?)");
       // as of https://git.postgresql.org/gitweb/?p=postgresql.git;a=commit;h=fefa76f70fdc75c91f80bddce2df7a8825205962
       // The RULE privilege has been removed
       if (connection.getServerMajorVersion() < ServerVersion.v18.getMajorVersionNumber()) {
@@ -1540,7 +1544,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     orderby = " ORDER BY \"TABLE_TYPE\",\"TABLE_SCHEM\",\"TABLE_NAME\" ";
 
     if (tableNamePattern != null) {
-      select.append(" AND c.relname LIKE ?");
+      select.append(" AND c.relname OPERATOR(pg_catalog.~~) ?");
       args.add(tableNamePattern);
     }
 
@@ -1566,11 +1570,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     tableTypeClauses = new HashMap<>();
     Map<String, String> ht = new HashMap<>();
     tableTypeClauses.put("TABLE", ht);
-    ht.put("SCHEMAS", "c.relkind = 'r' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+    ht.put("SCHEMAS", "c.relkind = 'r' AND n.nspname OPERATOR(pg_catalog.!~) '^pg_' AND n.nspname <> 'information_schema'");
     ht.put("NOSCHEMAS", "c.relkind = 'r' AND c.relname !~ '^pg_'");
     ht = new HashMap<>();
     tableTypeClauses.put("PARTITIONED TABLE", ht);
-    ht.put("SCHEMAS", "c.relkind = 'p' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+    ht.put("SCHEMAS", "c.relkind = 'p' AND n.nspname OPERATOR(pg_catalog.!~) '^pg_' AND n.nspname <> 'information_schema'");
     ht.put("NOSCHEMAS", "c.relkind = 'p' AND c.relname !~ '^pg_'");
     ht = new HashMap<>();
     tableTypeClauses.put("VIEW", ht);
@@ -1580,11 +1584,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     ht = new HashMap<>();
     tableTypeClauses.put("INDEX", ht);
     ht.put("SCHEMAS",
-        "c.relkind = 'i' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+        "c.relkind = 'i' AND n.nspname OPERATOR(pg_catalog.!~) '^pg_' AND n.nspname <> 'information_schema'");
     ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname !~ '^pg_'");
     ht = new HashMap<>();
     tableTypeClauses.put("PARTITIONED INDEX", ht);
-    ht.put("SCHEMAS", "c.relkind = 'I' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+    ht.put("SCHEMAS", "c.relkind = 'I' AND n.nspname OPERATOR(pg_catalog.!~) '^pg_' AND n.nspname <> 'information_schema'");
     ht.put("NOSCHEMAS", "c.relkind = 'I' AND c.relname !~ '^pg_'");
     ht = new HashMap<>();
     tableTypeClauses.put("SEQUENCE", ht);
@@ -1593,7 +1597,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     ht = new HashMap<>();
     tableTypeClauses.put("TYPE", ht);
     ht.put("SCHEMAS",
-        "c.relkind = 'c' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+        "c.relkind = 'c' AND n.nspname OPERATOR(pg_catalog.!~) '^pg_' AND n.nspname <> 'information_schema'");
     ht.put("NOSCHEMAS", "c.relkind = 'c' AND c.relname !~ '^pg_'");
     ht = new HashMap<>();
     tableTypeClauses.put("SYSTEM TABLE", ht);
@@ -1622,19 +1626,19 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         "c.relkind = 'v' AND c.relname ~ '^pg_' AND c.relname !~ '^pg_toast_' AND c.relname !~ '^pg_temp_'");
     ht = new HashMap<>();
     tableTypeClauses.put("TEMPORARY TABLE", ht);
-    ht.put("SCHEMAS", "c.relkind IN ('r','p') AND n.nspname ~ '^pg_temp_' ");
+    ht.put("SCHEMAS", "c.relkind IN ('r','p') AND n.nspname OPERATOR(pg_catalog.~) '^pg_temp_' ");
     ht.put("NOSCHEMAS", "c.relkind IN ('r','p') AND c.relname ~ '^pg_temp_' ");
     ht = new HashMap<>();
     tableTypeClauses.put("TEMPORARY INDEX", ht);
-    ht.put("SCHEMAS", "c.relkind = 'i' AND n.nspname ~ '^pg_temp_' ");
+    ht.put("SCHEMAS", "c.relkind = 'i' AND n.nspname OPERATOR(pg_catalog.~) '^pg_temp_' ");
     ht.put("NOSCHEMAS", "c.relkind = 'i' AND c.relname ~ '^pg_temp_' ");
     ht = new HashMap<>();
     tableTypeClauses.put("TEMPORARY VIEW", ht);
-    ht.put("SCHEMAS", "c.relkind = 'v' AND n.nspname ~ '^pg_temp_' ");
+    ht.put("SCHEMAS", "c.relkind = 'v' AND n.nspname OPERATOR(pg_catalog.~) '^pg_temp_' ");
     ht.put("NOSCHEMAS", "c.relkind = 'v' AND c.relname ~ '^pg_temp_' ");
     ht = new HashMap<>();
     tableTypeClauses.put("TEMPORARY SEQUENCE", ht);
-    ht.put("SCHEMAS", "c.relkind = 'S' AND n.nspname ~ '^pg_temp_' ");
+    ht.put("SCHEMAS", "c.relkind = 'S' AND n.nspname OPERATOR(pg_catalog.~) '^pg_temp_' ");
     ht.put("NOSCHEMAS", "c.relkind = 'S' AND c.relname ~ '^pg_temp_' ");
     ht = new HashMap<>();
     tableTypeClauses.put("FOREIGN TABLE", ht);
@@ -1665,16 +1669,16 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     StringBuilder sql = new StringBuilder(
         // langauge=sql
         "SELECT nspname AS \"TABLE_SCHEM\", current_database() AS \"TABLE_CATALOG\" FROM pg_catalog.pg_namespace "
-          + " WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_' "
-          + " OR nspname = (pg_catalog.current_schemas(true))[1]) AND (nspname !~ '^pg_toast_temp_' "
-          + " OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_')) ");
+          + " WHERE nspname <> 'pg_toast' AND (nspname OPERATOR(pg_catalog.!~) '^pg_temp_' "
+          + " OR nspname = (pg_catalog.current_schemas(true))[1]) AND (nspname OPERATOR(pg_catalog.!~) '^pg_toast_temp_' "
+          + " OR nspname OPERATOR(pg_catalog.=) pg_catalog.replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_')) ");
     List<String> args = new ArrayList<>(1);
     if (schemaPattern != null) {
-      sql.append(" AND nspname LIKE ?");
+      sql.append(" AND nspname OPERATOR(pg_catalog.~~) ?");
       args.add(schemaPattern);
     }
     if (connection.getHideUnprivilegedObjects()) {
-      sql.append(" AND has_schema_privilege(nspname, 'USAGE, CREATE')");
+      sql.append(" AND pg_catalog.has_schema_privilege(nspname, 'USAGE, CREATE')");
     }
     sql.append(" ORDER BY \"TABLE_SCHEM\"");
 
@@ -1795,18 +1799,18 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
            + " WHERE c.relkind in ('r','p','v','f','m') and a.attnum > 0 AND NOT a.attisdropped ");
 
     if (schemaPattern != null) {
-      sql.append(" AND n.nspname LIKE ?");
+      sql.append(" AND n.nspname OPERATOR(pg_catalog.~~) ?");
       args.add(schemaPattern);
     }
     if (tableNamePattern != null) {
-      sql.append(" AND c.relname LIKE ?");
+      sql.append(" AND c.relname OPERATOR(pg_catalog.~~) ?");
       args.add(tableNamePattern);
     }
     if (connection.haveMinimumServerVersion(ServerVersion.v8_4)) {
       sql.append(") c WHERE true ");
     }
     if (columnNamePattern != null) {
-      sql.append(" AND attname LIKE ?");
+      sql.append(" AND attname OPERATOR(pg_catalog.~~) ?");
       args.add(columnNamePattern);
     }
     sql.append(" ORDER BY nspname,c.relname,attnum ");
@@ -1996,15 +2000,15 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     List<String> args = new ArrayList<>();
     if (schema != null) {
-      sql.append(" AND n.nspname = ?");
+      sql.append(" AND n.nspname OPERATOR(pg_catalog.=) ?");
       args.add(schema);
     }
     if (table != null) {
-      sql.append(" AND c.relname = ?");
+      sql.append(" AND c.relname OPERATOR(pg_catalog.=) ?");
       args.add(table);
     }
     if (columnNamePattern != null) {
-      sql.append(" AND a.attname LIKE ?");
+      sql.append(" AND a.attname OPERATOR(pg_catalog.~~) ?");
       args.add(columnNamePattern);
     }
     sql.append(" ORDER BY attname ");
@@ -2084,12 +2088,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     List<String> args = new ArrayList<>();
     if (schemaPattern != null) {
-      sql.append(" AND n.nspname LIKE ?");
+      sql.append(" AND n.nspname OPERATOR(pg_catalog.~~) ?");
       args.add(schemaPattern);
     }
 
     if (tableNamePattern != null) {
-      sql.append(" AND c.relname LIKE ?");
+      sql.append(" AND c.relname OPERATOR(pg_catalog.~~) ?");
       args.add(tableNamePattern);
     }
     sql.append(" ORDER BY nspname, relname ");
@@ -2337,11 +2341,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + "WHERE true ");
     List<String> args = new ArrayList<>(2);
     if (schema != null) {
-      sql.append(" AND n.nspname = ?");
+      sql.append(" AND n.nspname OPERATOR(pg_catalog.=) ?");
       args.add(schema);
     }
 
-    sql.append(" AND ct.relname = ?"
+    sql.append(" AND ct.relname OPERATOR(pg_catalog.=) ?"
         + " AND i.indisprimary "
         + " ORDER BY a.attnum ");
     args.add(table);
@@ -2471,12 +2475,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     List<String> args = new ArrayList<>(2);
     if (schema != null) {
-      sql.append(" AND n.nspname = ?");
+      sql.append(" AND n.nspname OPERATOR(pg_catalog.=) ?");
       args.add(schema);
     }
 
     if (table != null) {
-      sql.append(" AND ct.relname = ?");
+      sql.append(" AND ct.relname OPERATOR(pg_catalog.=) ?");
       args.add(table);
     }
 
@@ -2533,7 +2537,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     List<String> args = new ArrayList<>(2);
     if (schema != null && !schema.isEmpty()) {
-      sql.append(" AND n.nspname = ?");
+      sql.append(" AND n.nspname OPERATOR(pg_catalog.=) ?");
       args.add(schema);
     } else {
       // The table name carries no schema qualifier, so it resolves through the session's
@@ -2546,7 +2550,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
 
     if (table != null && !table.isEmpty()) {
-      sql.append(" AND ct.relname = ?");
+      sql.append(" AND ct.relname OPERATOR(pg_catalog.=) ?");
       args.add(table);
     }
 
@@ -2668,19 +2672,19 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
 
     if (primarySchema != null) {
-      sql.append(" AND pkn.nspname = ?");
+      sql.append(" AND pkn.nspname OPERATOR(pg_catalog.=) ?");
       args.add(primarySchema);
     }
     if (foreignSchema != null) {
-      sql.append(" AND fkn.nspname = ?");
+      sql.append(" AND fkn.nspname OPERATOR(pg_catalog.=) ?");
       args.add(foreignSchema);
     }
     if (primaryTable != null) {
-      sql.append(" AND pkc.relname = ?");
+      sql.append(" AND pkc.relname OPERATOR(pg_catalog.=) ?");
       args.add(primaryTable);
     }
     if (foreignTable != null) {
-      sql.append(" AND fkc.relname = ?");
+      sql.append(" AND fkc.relname OPERATOR(pg_catalog.=) ?");
       args.add(foreignTable);
     }
 
@@ -2742,10 +2746,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + " JOIN pg_catalog.pg_namespace n ON (t.typnamespace = n.oid) "
           + " WHERE n.nspname  != 'pg_toast'"
           + " AND "
-          + " (t.typrelid = 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid))";
+          + " (t.typrelid OPERATOR(pg_catalog.=) 0 OR (SELECT c.relkind = 'c' FROM pg_catalog.pg_class c WHERE c.oid = t.typrelid))";
 
     if (connection.getHideUnprivilegedObjects() && connection.haveMinimumServerVersion(ServerVersion.v9_2)) {
-      sql += " AND has_type_privilege(t.oid, 'USAGE')";
+      sql += " AND pg_catalog.has_type_privilege(t.oid, 'USAGE')";
     }
 
     Statement stmt = connection.createStatement();
@@ -2943,11 +2947,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + "WHERE true ");
 
       if (schema != null) {
-        sql.append(" AND n.nspname = ?");
+        sql.append(" AND n.nspname OPERATOR(pg_catalog.=) ?");
         args.add(schema);
       }
 
-      sql.append(" AND ct.relname = ?");
+      sql.append(" AND ct.relname OPERATOR(pg_catalog.=) ?");
       args.add(tableName);
 
       if (unique) {
@@ -2982,11 +2986,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + " AND n.oid = ct.relnamespace ");
 
       if (schema != null) {
-        sql.append(" AND n.nspname = ?");
+        sql.append(" AND n.nspname OPERATOR(pg_catalog.=) ?");
         args.add(schema);
       }
 
-      sql.append(" AND ct.relname = ?");
+      sql.append(" AND ct.relname OPERATOR(pg_catalog.=) ?");
       args.add(tableName);
       if (unique) {
         sql.append(" AND i.indisunique ");
@@ -3111,7 +3115,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       long longTypOid = typeInfo.intOidToLong(typOid);
       int sqlType = typeInfo.getSQLType(typOid);
 
-      sqlwhen.append(" when base_type.oid = ").append(longTypOid).append(" then ").append(sqlType);
+      sqlwhen.append(" when base_type.oid OPERATOR(pg_catalog.=) ").append(longTypOid).append(" then ").append(sqlType);
     }
     sql += sqlwhen.toString();
 
@@ -3153,18 +3157,18 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         // strip out just the typeName
         typeNamePattern = typeNamePattern.substring(secondQualifier + 1);
       }
-      toAdd.append(" and t.typname like ").append(escapeQuotes(typeNamePattern));
+      toAdd.append(" and t.typname OPERATOR(pg_catalog.~~) ").append(escapeQuotes(typeNamePattern));
     }
 
     // schemaPattern may have been modified above
     if (schemaPattern != null) {
-      toAdd.append(" and n.nspname like ").append(escapeQuotes(schemaPattern));
+      toAdd.append(" and n.nspname OPERATOR(pg_catalog.~~) ").append(escapeQuotes(schemaPattern));
     }
     sql += toAdd.toString();
 
     if (connection.getHideUnprivilegedObjects()
         && connection.haveMinimumServerVersion(ServerVersion.v9_2)) {
-      sql += " AND has_type_privilege(t.oid, 'USAGE')";
+      sql += " AND pg_catalog.has_type_privilege(t.oid, 'USAGE')";
     }
 
     sql += " order by \"DATA_TYPE\", \"TYPE_SCHEM\", \"TYPE_NAME\" ";
@@ -3289,7 +3293,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     String funcTypeSql = DatabaseMetaData.functionResultUnknown + " ";
     if (pgFuncResultExists) {
       funcTypeSql = " CASE "
-              + "   WHEN (format_type(p.prorettype, null) = 'unknown') THEN " + DatabaseMetaData.functionResultUnknown
+              + "   WHEN (pg_catalog.format_type(p.prorettype, null) = 'unknown') THEN " + DatabaseMetaData.functionResultUnknown
               + "   WHEN "
               + "     (substring(pg_get_function_result(p.oid) from 0 for 6) = 'TABLE') OR "
               + "     (substring(pg_get_function_result(p.oid) from 0 for 6) = 'SETOF') THEN " + DatabaseMetaData.functionReturnsTable
@@ -3304,7 +3308,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + " n.nspname AS \"FUNCTION_SCHEM\", p.proname AS \"FUNCTION_NAME\", "
             + " d.description AS \"REMARKS\", "
             + funcTypeSql + " AS \"FUNCTION_TYPE\", "
-            + " p.proname || '_' || p.oid AS \"SPECIFIC_NAME\" "
+            + " p.proname OPERATOR(pg_catalog.||) '_' OPERATOR(pg_catalog.||) p.oid AS \"SPECIFIC_NAME\" "
             + "FROM pg_catalog.pg_proc p "
             + "INNER JOIN pg_catalog.pg_namespace n ON p.pronamespace=n.oid "
             + "LEFT JOIN pg_catalog.pg_description d ON p.oid=d.objoid "
@@ -3318,15 +3322,15 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if the user provides a schema then search inside the schema for it
      */
     if (schemaPattern != null) {
-      sql.append(" AND n.nspname LIKE ?");
+      sql.append(" AND n.nspname OPERATOR(pg_catalog.~~) ?");
       args.add(schemaPattern);
     }
     if (functionNamePattern != null) {
-      sql.append(" AND p.proname LIKE ?");
+      sql.append(" AND p.proname OPERATOR(pg_catalog.~~) ?");
       args.add(functionNamePattern);
     }
     if (connection.getHideUnprivilegedObjects()) {
-      sql.append(" AND has_function_privilege(p.oid,'EXECUTE')");
+      sql.append(" AND pg_catalog.has_function_privilege(p.oid,'EXECUTE')");
     }
     sql.append(" ORDER BY \"FUNCTION_SCHEM\", \"FUNCTION_NAME\", p.oid::text ");
 
@@ -3372,11 +3376,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ");
     List<String> args = new ArrayList<>();
     if (schemaPattern != null) {
-      sql.append(" AND n.nspname LIKE ?");
+      sql.append(" AND n.nspname OPERATOR(pg_catalog.~~) ?");
       args.add(schemaPattern);
     }
     if (functionNamePattern != null) {
-      sql.append(" AND p.proname LIKE ?");
+      sql.append(" AND p.proname OPERATOR(pg_catalog.~~) ?");
       args.add(functionNamePattern);
     }
     sql.append(" ORDER BY n.nspname, p.proname, p.oid::text ");
@@ -3504,7 +3508,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       if ("c".equals(returnTypeType) || ("p".equals(returnTypeType) && argModesArray != null)) {
         PreparedStatement columnstmt = connection.prepareStatement(
             "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a "
-                + " WHERE a.attrelid = ?"
+                + " WHERE a.attrelid OPERATOR(pg_catalog.=) ?"
                 + " AND NOT a.attisdropped AND a.attnum > 0 ORDER BY a.attnum ");
         columnstmt.setInt(1, returnTypeRelid);
         ResultSet columnrs = columnstmt.executeQuery();
