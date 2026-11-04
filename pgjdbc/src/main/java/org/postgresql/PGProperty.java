@@ -71,7 +71,7 @@ public enum PGProperty {
    */
   APPLICATION_NAME(
       "ApplicationName",
-      DriverInfo.DRIVER_NAME,
+      DriverInfo.DRIVER_FULL_NAME,
       "Name of the Application (backend >= 9.0)"),
 
   /**
