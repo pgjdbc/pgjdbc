@@ -334,19 +334,19 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   @Override
   public final CachedQuery borrowQuery(String sql) throws SQLException {
-    return statementCache.borrow(sql);
+    return statementCache.borrow(createQueryKey(sql, true, true));
   }
 
   @Override
   public final CachedQuery borrowCallableQuery(String sql) throws SQLException {
-    return statementCache.borrow(new CallableQueryKey(sql));
+    return statementCache.borrow(new CallableQueryKey(sql, standardConformingStrings));
   }
 
   @Override
   public final CachedQuery borrowReturningQuery(String sql, String @Nullable [] columnNames)
       throws SQLException {
     return statementCache.borrow(new QueryWithReturningColumnsKey(sql, true, true,
-        columnNames
+        standardConformingStrings, columnNames
     ));
   }
 
@@ -366,12 +366,16 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     Object key;
     if (columnNames == null || columnNames.length != 0) {
       // Null means "return whatever sensible columns are" (e.g. primary key, or serial, or something like that)
-      key = new QueryWithReturningColumnsKey(sql, isParameterized, escapeProcessing, columnNames);
-    } else if (isParameterized) {
+      key = new QueryWithReturningColumnsKey(sql, isParameterized, escapeProcessing,
+          standardConformingStrings, columnNames);
+    } else if (isParameterized && standardConformingStrings) {
       // If no generated columns requested, just use the SQL as a cache key
       key = sql;
+    } else if (isParameterized) {
+      // This matches the String key, which always has escape processing.
+      key = new BaseQueryKey(sql, true, true, false);
     } else {
-      key = new BaseQueryKey(sql, false, escapeProcessing);
+      key = new BaseQueryKey(sql, false, escapeProcessing, standardConformingStrings);
     }
     return key;
   }

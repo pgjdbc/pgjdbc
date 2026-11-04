@@ -22,6 +22,7 @@ public class NativeQuery {
   public final int[] bindPositions;
   public final SqlCommand command;
   public final boolean multiStatement;
+  private final boolean standardConformingStrings;
 
   static {
     for (int i = 1; i < BIND_NAMES.length; i++) {
@@ -34,11 +35,31 @@ public class NativeQuery {
   }
 
   public NativeQuery(String nativeSql, int @Nullable [] bindPositions, boolean multiStatement, SqlCommand dml) {
+    this(nativeSql, bindPositions, multiStatement, dml, true);
+  }
+
+  public NativeQuery(String nativeSql, int @Nullable [] bindPositions, boolean multiStatement, SqlCommand dml,
+      boolean standardConformingStrings) {
     this.nativeSql = nativeSql;
     this.bindPositions =
         bindPositions == null || bindPositions.length == 0 ? NO_BINDS : bindPositions;
     this.multiStatement = multiStatement;
     this.command = dml;
+    this.standardConformingStrings = standardConformingStrings;
+  }
+
+  /**
+   * Returns true if a parse with the given value of {@code standard_conforming_strings} gives the
+   * same string literals, and so the same placeholders, as the parse of this query.
+   * The setting only changes the meaning of a backslash.
+   *
+   * @param standardConformingStrings the current value of {@code standard_conforming_strings}
+   * @return true if parameter values can be put in place of the placeholders
+   */
+  public boolean isParsedFor(boolean standardConformingStrings) {
+    return this.standardConformingStrings == standardConformingStrings
+        || bindPositions.length == 0
+        || nativeSql.indexOf('\\') == -1;
   }
 
   /**
