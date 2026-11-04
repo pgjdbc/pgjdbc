@@ -38,6 +38,7 @@ import java.sql.BatchUpdateException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -226,6 +227,24 @@ public class XADataSourceTest {
     conn.createStatement().executeQuery("SELECT * FROM testxa1");
     xaRes.end(xid, XAResource.TMSUCCESS);
     xaRes.commit(xid, true);
+  }
+
+  @Test
+  void startDoesNotWarnWhenLocalTransactionAlreadyOpen() throws Exception {
+    conn.setAutoCommit(false);
+    conn.createStatement().execute("SELECT 1");
+    assertEquals(TransactionState.OPEN,
+        conn.unwrap(BaseConnection.class).getTransactionState());
+
+    Xid xid = new CustomXid(1);
+    xaRes.start(xid, XAResource.TMNOFLAGS);
+
+    for (SQLWarning warning = conn.getWarnings(); warning != null; warning = warning.getNextWarning()) {
+      assertNotEquals("25001", warning.getSQLState(), warning.getMessage());
+    }
+
+    xaRes.end(xid, XAResource.TMSUCCESS);
+    xaRes.rollback(xid);
   }
 
   @Test
