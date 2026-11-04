@@ -260,6 +260,14 @@ class ParserTest {
   }
 
   @Test
+  void escapedFunctionSubtractsArgumentInParentheses() throws Exception {
+    assertEquals("substring(c from (length(c)+1-(-1)))",
+        Parser.replaceProcessing("{fn right(c,-1)}", true, true));
+    assertEquals("extract( day from ((d)-(-1)))",
+        Parser.replaceProcessing("{fn timestampdiff(SQL_TSI_DAY,-1,d)}", true, true));
+  }
+
+  @Test
   void timestampAddDiffFracSecondIsRejected() throws Exception {
     // SQL_TSI_FRAC_SECOND has no portable size across databases (nanoseconds in ODBC/SQL Server,
     // microseconds in MySQL), so pgjdbc rejects it with an explicit error rather than risk

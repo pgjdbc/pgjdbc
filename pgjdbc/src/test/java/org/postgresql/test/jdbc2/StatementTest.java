@@ -357,6 +357,17 @@ class StatementTest {
   }
 
   @Test
+  void rightWithNegativeOrCompoundLength() throws SQLException {
+    Statement stmt = con.createStatement();
+    ResultSet rs = stmt.executeQuery(
+        "select {fn right('abcde',-1)}, {fn right('abcde',1+1)}, 'x\n-1 --'");
+    assertTrue(rs.next());
+    assertEquals("", rs.getString(1));
+    assertEquals("de", rs.getString(2));
+    assertEquals("x\n-1 --", rs.getString(3));
+  }
+
+  @Test
   void dateFuncWithParam() throws SQLException {
     // Prior to 8.0 there is not an interval + timestamp operator,
     // so timestampadd does not work.
