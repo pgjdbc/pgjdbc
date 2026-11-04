@@ -10,12 +10,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.core.BaseConnection;
+import org.postgresql.core.Oid;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.test.TestUtil;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
@@ -121,6 +123,43 @@ class SearchPathLookupTest {
       assertFalse(rs.next());
       TestUtil.dropSchema(con, "first_schema");
       TestUtil.dropSchema(con, "second_schema");
+    } finally {
+      TestUtil.closeDB(con);
+    }
+  }
+
+  @Test
+  void searchPathBuiltInTypeLookup() throws Exception {
+    Statement stmt = con.createStatement();
+    try {
+      stmt.execute("DROP TABLE IF EXISTS public.search_path_interval");
+      stmt.execute("DROP DOMAIN IF EXISTS public.interval");
+      stmt.execute("CREATE DOMAIN public.interval AS pg_catalog.interval");
+      stmt.execute("CREATE TABLE public.search_path_interval (c public.interval)");
+      ResultSet rs = stmt.executeQuery("SELECT 'public.interval'::regtype::oid");
+      assertTrue(rs.next());
+      int domainOid = rs.getInt(1);
+      TypeInfo typeInfo = con.getTypeInfo();
+      assertEquals("\"public\".\"interval\"", typeInfo.getPGType(domainOid));
+      assertEquals(Oid.INTERVAL, typeInfo.getPGType("interval"));
+      assertEquals(Oid.INTERVAL, typeInfo.getPGType("\"interval\""));
+      assertEquals(Oid.INTERVAL_ARRAY, typeInfo.getPGType("interval[]"));
+    } finally {
+      stmt.execute("DROP TABLE IF EXISTS public.search_path_interval");
+      stmt.execute("DROP DOMAIN IF EXISTS public.interval");
+      TestUtil.closeDB(con);
+    }
+  }
+
+  @Test
+  void otherSessionTemporaryTypeLookup() throws Exception {
+    try (Connection other = TestUtil.openDB();
+         Statement otherStmt = other.createStatement()) {
+      otherStmt.execute("CREATE DOMAIN pg_temp.interval AS pg_catalog.interval");
+      otherStmt.execute("CREATE DOMAIN pg_temp.search_path_temp_only AS int4");
+      TypeInfo typeInfo = con.getTypeInfo();
+      assertEquals(Oid.INTERVAL, typeInfo.getPGType("interval"));
+      assertEquals(Oid.UNSPECIFIED, typeInfo.getPGType("search_path_temp_only"));
     } finally {
       TestUtil.closeDB(con);
     }
