@@ -1040,6 +1040,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
               case AUTH_REQ_SASL:
                 AuthMethod.checkAuth(authMethods, AuthMethod.SCRAM_SHA_256);
+                // Each new exchange derives the salted password again, so refuse a repeat as libpq does.
+                if (scramAuthenticator != null) {
+                  throw new PSQLException(
+                      GT.tr("Backend sent a duplicate SASL authentication request."),
+                      PSQLState.PROTOCOL_VIOLATION);
+                }
                 int scramMaxIterations = PGProperty.SCRAM_MAX_ITERATIONS.getInt(info);
                 if (scramMaxIterations < 0) {
                   throw new PSQLException(
