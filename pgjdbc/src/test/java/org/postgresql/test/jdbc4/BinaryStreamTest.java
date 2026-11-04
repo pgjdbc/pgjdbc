@@ -6,12 +6,14 @@
 package org.postgresql.test.jdbc4;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
+import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -23,6 +25,7 @@ import java.nio.ByteBuffer;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Properties;
 import java.util.Random;
 
@@ -168,6 +171,18 @@ public class BinaryStreamTest extends BaseTest4 {
   public void testUnknownLength200Kb() throws Exception {
     byte[] data = getTestData(200 * 1024);
     insertStreamUnknownLength(data);
+    validateContent(data);
+  }
+
+  @Test
+  public void testUnknownLengthSpooledStreamSentTwice() throws Exception {
+    byte[] data = getTestData(100 * 1024);
+    try (PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("images", "img", "?"))) {
+      ps.setBinaryStream(1, new ByteArrayInputStream(data));
+      ps.executeUpdate();
+      SQLException e = assertThrows(SQLException.class, ps::executeUpdate);
+      assertEquals(PSQLState.INVALID_PARAMETER_VALUE.getState(), e.getSQLState());
+    }
     validateContent(data);
   }
 
