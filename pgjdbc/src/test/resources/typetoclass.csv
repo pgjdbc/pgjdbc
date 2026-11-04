@@ -1,0 +1,23 @@
+bool, true, java.lang.Boolean
+bytea,'\x123456'::bytea, [B
+char,'a'::char,java.lang.String
+int8,1::int8,java.lang.Long
+int4,1::int4,java.lang.Integer
+int2,1::int2,java.lang.Integer
+text,'abc',java.lang.String
+json,'{"foo":"abc"}'::json, org.postgresql.util.PGobject
+jsonb,'{"foo":"bar"}'::jsonb, org.postgresql.util.PGobject
+xml,'<abc>',java.lang.String
+float4,1::float4,java.lang.Float
+float8,1::float8, java.lang.Double
+varchar,'abc', java.lang.String
+date,now()::date,java.sql.Date
+time,now()::time,java.sql.Time
+timetz,now()::timetz, java.sql.Time
+timestamp,now()::timestamp,java.sql.Timestamp
+timestamptz,now()::timestamptz,java.sql.Timestamp
+interval,interval '1 day', org.postgresql.util.PGInterval
+bit,1::bit, java.lang.Boolean
+varbit,'1'::varbit, org.postgresql.util.PGobject
+numeric,1::numeric, java.math.BigDecimal
+uuid, 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'::uuid,java.util.UUID
