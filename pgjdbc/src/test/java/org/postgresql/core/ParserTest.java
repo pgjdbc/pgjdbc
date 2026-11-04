@@ -220,6 +220,32 @@ class ParserTest {
     assertEquals(PSQLState.SYNTAX_ERROR.getState(), e.getSQLState());
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "SELECT E'a''b\\' ?? {fn ucase(x)} ; \\'c'",
+      "SELECT E'a'\n'b\\' ?? {fn ucase(x)} ; \\'c'",
+      "SELECT E'a' -- comment\n  'b\\' ?? {fn ucase(x)} ; \\'c'",
+      "SELECT 'a''b'' ?? {fn ucase(x)} ; '",
+  })
+  void quoteContinuationKeepsStringMode(String sql) throws SQLException {
+    assertEquals(sql, Parser.replaceProcessing(sql, true, true));
+    List<NativeQuery> queries = Parser.parseJdbcSql(sql, true, true, true, true, true);
+    assertEquals(1, queries.size());
+    assertEquals(0, queries.get(0).bindPositions.length);
+    assertEquals(sql, queries.get(0).nativeSql);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "SELECT 'a' 'b', ?",
+      "SELECT 'a' -- 'b'\n, ?",
+      "SELECT 'a'\n- 'b', ?",
+  })
+  void quoteWithoutContinuationEndsString(String sql) throws SQLException {
+    List<NativeQuery> queries = Parser.parseJdbcSql(sql, true, true, true, true, true);
+    assertEquals(1, queries.get(0).bindPositions.length);
+  }
+
   @Test
   void timestampAddDiffFracSecondIsRejected() throws Exception {
     // SQL_TSI_FRAC_SECOND has no portable size across databases (nanoseconds in ODBC/SQL Server,
