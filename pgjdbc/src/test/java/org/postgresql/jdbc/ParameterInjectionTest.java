@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Properties;
 
 public class ParameterInjectionTest {
   private interface ParameterBinder {
@@ -67,6 +69,26 @@ public class ParameterInjectionTest {
         }
 
       }
+    }
+  }
+
+  @Test
+  public void simpleModeStringAfterStandardConformingStringsOff() throws SQLException {
+    Properties props = new Properties();
+    PGProperty.PREFER_QUERY_MODE.set(props, "simple");
+    String value = "\\'), (SELECT $$injected$$) --";
+    try (Connection conn = TestUtil.openDB(props)) {
+      conn.setAutoCommit(false);
+      PreparedStatement stmt = conn.prepareStatement("SET LOCAL standard_conforming_strings = off; SELECT ?");
+      stmt.setString(1, value);
+      stmt.execute();
+      assertTrue(stmt.getMoreResults());
+      try (ResultSet rs = stmt.getResultSet()) {
+        assertTrue(rs.next());
+        assertEquals(1, rs.getMetaData().getColumnCount(), "number of result columns must match");
+        assertEquals(value, rs.getString(1));
+      }
+      conn.rollback();
     }
   }
 
