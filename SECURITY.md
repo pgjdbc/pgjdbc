@@ -1,17 +1,26 @@
 # Security Policy
 
-1) We value backward compatibility, so we expect that upgrading pgjdbc versions should not involve code changes nor it should it require configuration changes.
-2) In the event that you are unable to upgrade, you might expect or ask for security fixes for the past versions as well. However, please raise the reason you unable to upgrade in the mailing list or in the issues
+## Supported versions
 
-| Version  | Supported          |
-| -------- | ------------------ |
-| latest 42.x | security fixes, features, bug fixes |
-| 42.2.x   | (the latest branch that supports Java 6, and 7): security fixes, critical bug fixes only. |
-| all the other versions | security fixes (upon request) |
+| Version | Status | What we release |
+| ------- | ------ | --------------- |
+| Newest 42.x line | Full support | Features, bug fixes, and security fixes |
+| Older 42.x lines, for five years after the `.0` release of the next minor line | Security support | Security fixes; other fixes at the maintainers' discretion |
+| All other versions | End of life | Backports on request, case by case |
 
-The intention is to separate «we are eager fixing bugs» from «we can roll security releases».
-It would not be impossible for us to roll security fixes even for 9.4 versions if necessary.
+Security support for a line ends five years after the `.0` release of the next minor line. For example, security
+support for 42.6.x ends five years after the release of 42.7.0. The newest line has no end date: its five years start
+only when the next minor line is released.
 
-## Reporting a Vulnerability
+While a line has security support, we publish a patch release on that line for every vulnerability that affects it,
+including a vulnerability in a library the driver bundles, without waiting for anyone to ask. A fix for 42.6.x ships as
+a 42.6.x patch release, so applying it does not require upgrading to 42.7.x. We may also backport a fix for a bug we
+judge too serious to leave on such a line.
 
-Please send reports of security issues to pgsql-jdbc-security@lists.postgresql.org
+Upgrading to a newer minor line should not require code or configuration changes. If you cannot upgrade and need a fix
+backported to an older line, open an issue or write to the mailing list and explain what keeps you on that line. We
+consider each request case by case, and a backport is not guaranteed.
+
+## Reporting a vulnerability
+
+Please send reports of security issues to pgsql-jdbc-security@lists.postgresql.org.
