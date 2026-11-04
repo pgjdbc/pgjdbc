@@ -1225,6 +1225,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
                 e.setNextException(error);
               }
               error = se;
+              // A backend answers CopyFail with one ErrorResponse and ReadyForQuery, which one call
+              // reads. After a second failure the stream cannot be trusted to reach ReadyForQuery.
+              if (errors > 1) {
+                abort();
+                break;
+              }
             }
           } while (hasLock(op));
         }
