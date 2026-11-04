@@ -1662,12 +1662,19 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR);
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
+    // Identify the session's own temporary namespace via pg_my_temp_schema() rather than
+    // current_schemas()/current_schema(). current_schemas() calls the backend's
+    // fetch_search_path(), which forces creation of the temp namespace when pg_temp is first in
+    // search_path and none exists yet. On a hot standby that fails with "cannot create temporary
+    // tables during recovery" (see issue #4274). pg_my_temp_schema() returns the temp namespace
+    // OID, or 0 (InvalidOid) when none exists, without ever creating it.
     StringBuilder sql = new StringBuilder(
-        // langauge=sql
+        // language=sql
         "SELECT nspname AS \"TABLE_SCHEM\", current_database() AS \"TABLE_CATALOG\" FROM pg_catalog.pg_namespace "
           + " WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_' "
-          + " OR nspname = (pg_catalog.current_schemas(true))[1]) AND (nspname !~ '^pg_toast_temp_' "
-          + " OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_')) ");
+          + " OR oid = pg_catalog.pg_my_temp_schema()) AND (nspname !~ '^pg_toast_temp_' "
+          + " OR nspname = replace((SELECT nspname FROM pg_catalog.pg_namespace "
+          + " WHERE oid = pg_catalog.pg_my_temp_schema()), 'pg_temp_', 'pg_toast_temp_')) ");
     List<String> args = new ArrayList<>(1);
     if (schemaPattern != null) {
       sql.append(" AND nspname LIKE ?");
