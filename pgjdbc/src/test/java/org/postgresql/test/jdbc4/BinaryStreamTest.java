@@ -6,7 +6,10 @@
 package org.postgresql.test.jdbc4;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
@@ -15,10 +18,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.Properties;
 import java.util.Random;
 
 public class BinaryStreamTest extends BaseTest4 {
@@ -164,5 +169,28 @@ public class BinaryStreamTest extends BaseTest4 {
     byte[] data = getTestData(200 * 1024);
     insertStreamUnknownLength(data);
     validateContent(data);
+  }
+
+  @Test
+  public void runtimeExceptionFromStreamClosesConnection() throws Exception {
+    Properties props = new Properties();
+    PGProperty.PREFER_QUERY_MODE.set(props, "extended");
+    InputStream failing = new InputStream() {
+      private int count;
+
+      @Override
+      public int read() {
+        if (++count > 1000) {
+          throw new IllegalStateException("stream failed");
+        }
+        return 0;
+      }
+    };
+    try (Connection conn = TestUtil.openDB(props);
+         PreparedStatement ps = conn.prepareStatement(TestUtil.insertSQL("images", "img", "?"))) {
+      ps.setBinaryStream(1, failing, 2000);
+      assertThrows(IllegalStateException.class, ps::executeUpdate);
+      assertTrue(conn.isClosed(), "connection must be closed after a partly sent Bind");
+    }
   }
 }
