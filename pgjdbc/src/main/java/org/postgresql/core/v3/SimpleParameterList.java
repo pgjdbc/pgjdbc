@@ -20,6 +20,7 @@ import org.postgresql.util.PGbytea;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.StreamWrapper;
+import org.postgresql.util.internal.SourceStreamIOException;
 
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.index.qual.Positive;
@@ -444,7 +445,14 @@ class SimpleParameterList implements V3ParameterList {
       return;
     }
 
-    pgStream.sendStream(wrapper.getStream(), wrapper.getLength());
+    InputStream stream;
+    try {
+      stream = wrapper.getStream();
+    } catch (IOException e) {
+      // Nothing of the value is written yet, so the whole length has to be padded.
+      throw new SourceStreamIOException(wrapper.getLength(), e);
+    }
+    pgStream.sendStream(stream, wrapper.getLength());
   }
 
   //
