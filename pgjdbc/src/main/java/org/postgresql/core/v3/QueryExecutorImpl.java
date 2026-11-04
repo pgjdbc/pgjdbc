@@ -3098,6 +3098,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     handler.handleCommandStatus(status, count, oid);
   }
 
+  @Override
+  public @Nullable SQLException getTransactionFailCause() {
+    try (ResourceLock ignore = lock.obtain()) {
+      return transactionFailCause;
+    }
+  }
+
   private void receiveRFQ() throws IOException {
     pgStream.receiveMessageLength("ReadyForQuery", 5, 5);
 

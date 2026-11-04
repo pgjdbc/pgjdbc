@@ -233,10 +233,24 @@ URL parameter has been added. It captures a stacktrace at each `Connection` open
 Specifies what the driver should do if a query fails. In `autosave=always` mode, JDBC driver sets a savepoint before each query, and rolls back to that savepoint in case of failure. 
 In `autosave=never` mode (default), no savepoint dance is made ever.
 In `autosave=conservative` mode, savepoint is set for each query, however the rollback is done only for rare cases like 'cached statement cannot change return type' 
-or 'statement XXX is not valid' so JDBC driver rolls back and retries
+or 'statement XXX is not valid' so JDBC driver rolls back and retries.
+`autosave=always` keeps a transaction committable after any failed statement, and `autosave=conservative` only after the errors it retries; see `raiseExceptionOnSilentRollback` for what `commit()` does when the transaction has failed.
 
 * **`cleanupSavepoints (`*boolean*`)`** *Default `false`*\
 Determines if the SAVEPOINT created in autosave mode is released prior to the statement. This is done to avoid running out of shared buffers on the server in the case where 1000's of queries are performed.
+
+* **`raiseExceptionOnSilentRollback (`*boolean*`)`** *Default `false`*\
+Makes `Connection.commit()` throw when the server rolls the transaction back instead of committing it.
+PostgreSQL does that when a statement in the transaction has failed: it completes `COMMIT` with the `ROLLBACK` tag and reports no error.
+With the default `false`, `commit()` returns normally and none of the changes made in the transaction are saved.
+With `true`, `commit()` throws `PSQLException` with SQLState `25P02` and the message `The server rolled back the transaction instead of committing it, because an earlier statement in the transaction failed.`, and the first error of the transaction is its cause.
+The connection is left with no open transaction and stays usable, so a `rollback()` after the exception does nothing.
+`setAutoCommit(true)` on a failed transaction throws the same exception and leaves auto-commit off, as it does when `COMMIT` fails; calling it again succeeds, because no transaction is left to commit.
+The check applies to the `COMMIT` that `commit()` and `setAutoCommit(true)` send; a `COMMIT` or `END` executed as a statement is not checked.
+With `autosave=always`, a failed statement is rolled back to its savepoint and the transaction stays committable, so the exception does not occur. `autosave=conservative` does that only for the errors it retries, and `autosave=never` leaves the transaction failed.
+Enable it when the application continues a transaction after catching an `SQLException` and has to learn that the commit did not happen.
+The default is likely to become `true` in a future minor release.
+  Since: 42.7.15
 
 * **`convertBooleanToNumeric (`*boolean*`)`** *Default `false`*\
 Enable automatic conversion of PostgreSQL boolean values ('t'/'f') to numeric types (1/0) when using numeric getters (`getByte`, `getShort`, `getInt`, `getLong`, `getFloat`, `getDouble`, `getBigDecimal`) on ResultSet.

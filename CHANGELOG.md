@@ -4,6 +4,9 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
+### Added
+* feat: add the `raiseExceptionOnSilentRollback` connection property, default `false`. With `true`, `Connection.commit()` throws `PSQLException` with SQLState `25P02` and the message `The server rolled back the transaction instead of committing it, because an earlier statement in the transaction failed.` when the transaction had failed and the server rolled it back. The first error of the transaction is the cause. With the default, `commit()` of a failed transaction returns normally and none of its changes are saved, as before. `setAutoCommit(true)` throws the same exception and leaves auto-commit off, as it does when `COMMIT` fails. A `COMMIT` executed as a SQL statement is not checked [Issue #4494](https://github.com/pgjdbc/pgjdbc/issues/4494)
+
 ### Fixed
 * fix: `GSSInputStream.available()` now returns the number of decrypted bytes the stream holds and has not returned yet, instead of 0. Under GSS encryption, `PGConnection.getNotifications()` and non-blocking `COPY` reads no longer set a 1 ms socket timeout to probe for data while the stream still holds decrypted bytes [PR #4383](https://github.com/pgjdbc/pgjdbc/pull/4383)
 * fix: `PGStream.skip` no longer loops forever when the connection ends while the driver is discarding bytes, and no longer mistakes a stream that skips nothing for one that has ended. `InputStream.skip` may return zero with more data still coming, which a stream supplied through the `socketFactory` property is free to do; the driver now reads a byte in that case and treats only `-1` as the end [PR #4358](https://github.com/pgjdbc/pgjdbc/pull/4358)

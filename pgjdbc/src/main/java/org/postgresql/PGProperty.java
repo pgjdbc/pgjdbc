@@ -603,6 +603,16 @@ public enum PGProperty {
     "Quote identifiers provided in returning array",
       false),
   /**
+   * Makes {@link java.sql.Connection#commit()} throw when the server rolls the transaction back
+   * instead of committing it. PostgreSQL does that when the transaction has failed: it completes
+   * {@code COMMIT} with the {@code ROLLBACK} tag and sends no error.
+   */
+  RAISE_EXCEPTION_ON_SILENT_ROLLBACK(
+      "raiseExceptionOnSilentRollback",
+      "false",
+      "Throw an exception from commit() when the server rolls back a failed transaction instead of committing it"),
+
+  /**
    * Puts this connection in read-only mode.
    */
   READ_ONLY(
