@@ -6,15 +6,20 @@
 package org.postgresql.test.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Version;
 
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 
 public class ServerVersionParseTest {
   public static Iterable<Object[]> data() {
@@ -87,4 +92,27 @@ public class ServerVersionParseTest {
     }
   }
 
+  @Test
+  void longSuffixIsIgnored() {
+    String suffix = String.join("", Collections.nCopies(1000, "x"));
+    assertEquals(170002, ServerVersion.from("17.2 (" + suffix + ")").getVersionNum());
+    assertEquals(90401, ServerVersion.from("9.4.1-" + suffix).getVersionNum());
+    assertThrows(NumberFormatException.class, () -> ServerVersion.from("90401" + suffix));
+  }
+
+  @Test
+  void partsOfTenDigitsAreParsed() {
+    assertEquals(1234567890, ServerVersion.from("1234567890").getVersionNum());
+    // The third part ends at the 32nd character.
+    assertEquals(10101,
+        ServerVersion.from("0000000001.0000000001.0000000001 (x)").getVersionNum());
+  }
+
+  @Test
+  @Timeout(value = 10, unit = TimeUnit.SECONDS)
+  void millionDigitsAreRefusedAtOnce() {
+    String digits = String.join("", Collections.nCopies(1000000, "1"));
+    assertThrows(NumberFormatException.class, () -> ServerVersion.from(digits));
+    assertThrows(NumberFormatException.class, () -> ServerVersion.from("9." + digits));
+  }
 }
