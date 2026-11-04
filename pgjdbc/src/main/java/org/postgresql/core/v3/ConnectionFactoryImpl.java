@@ -599,7 +599,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     int beresp = pgStream.receiveChar();
     pgStream.setNetworkTimeout(currentTimeout);
     switch (beresp) {
-      case 'E':
+      case PgMessageType.ERROR_RESPONSE:
         LOGGER.log(Level.FINEST, " <=BE GSSEncrypted Error");
 
         // Server doesn't even know about the SSL handshake protocol
@@ -614,7 +614,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         return new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), connectTimeout,
             maxSendBufferSize);
 
-      case 'N':
+      case PgMessageType.ENCRYPTION_REFUSED:
         LOGGER.log(Level.FINEST, " <=BE GSSEncrypted Refused");
 
         // Server does not support gss encryption
@@ -625,7 +625,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         return pgStream;
 
-      case 'G':
+      case PgMessageType.GSS_ENC_OK:
         LOGGER.log(Level.FINEST, " <=BE GSSEncryptedOk");
         try {
           AuthenticationPluginManager.withPassword(AuthenticationRequestType.GSS, info, password -> {
@@ -694,7 +694,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.setNetworkTimeout(currentTimeout);
 
     switch (beresp) {
-      case 'E':
+      case PgMessageType.ERROR_RESPONSE:
         LOGGER.log(Level.FINEST, " <=BE SSLError");
 
         // Server doesn't even know about the SSL handshake protocol
@@ -706,7 +706,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         // We have to reconnect to continue.
         return new PGStream(pgStream, connectTimeout);
 
-      case 'N':
+      case PgMessageType.ENCRYPTION_REFUSED:
         LOGGER.log(Level.FINEST, " <=BE SSLRefused");
 
         // Server does not support ssl
@@ -717,7 +717,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         return pgStream;
 
-      case 'S':
+      case PgMessageType.SSL_OK:
         LOGGER.log(Level.FINEST, " <=BE SSLOk");
 
         // Server supports ssl
