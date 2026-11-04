@@ -48,6 +48,8 @@ public class PEMKeyManagerTest {
 
   private static final Logger LOGGER = Logger.getLogger(PEMKeyManagerTest.class.getName());
 
+  private static final int ROOT_UID = 0;
+
   private Set<PosixFilePermission> originalPosixPermissions;
   private List<AclEntry> originalAclPermissions;
   private Path keyFilePath;
@@ -222,6 +224,11 @@ public class PEMKeyManagerTest {
 
     Path keyFile = tempDir.resolve("test.key");
     Files.createFile(keyFile);
+    // A root-owned key file may be group readable, so when the tests run as root this
+    // file is root-owned and validation accepts it.
+    Assumptions.assumeFalse(
+        Integer.valueOf(ROOT_UID).equals(Files.getAttribute(keyFile, "unix:uid")),
+        "Key file is root-owned, which permits GROUP_READ");
     Set<PosixFilePermission> perms = EnumSet.of(
         PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE,
         PosixFilePermission.GROUP_READ);

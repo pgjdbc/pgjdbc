@@ -186,8 +186,11 @@ public abstract class BaseX509KeyManager implements X509KeyManager {
    * Determines whether the given POSIX permissions are insecure for a private key file.
    * Matches libpq behavior: root-owned files allow GROUP_READ (0640),
    * while non-root-owned files reject all group and other permissions (0600).
+   *
+   * <p>Package-private so the tests can check both values of {@code isOwnedByRoot} without
+   * creating a root-owned file.</p>
    */
-  private static boolean hasInsecurePosixPermissions(
+  static boolean hasInsecurePosixPermissions(
       Set<PosixFilePermission> permissions, boolean isOwnedByRoot) {
     boolean hasOtherPerms = permissions.contains(PosixFilePermission.OTHERS_READ)
                             || permissions.contains(PosixFilePermission.OTHERS_WRITE)
