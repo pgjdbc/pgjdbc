@@ -353,58 +353,7 @@ class SimpleParameterList implements V3ParameterList {
       }
     } else {
       textValue = paramValue.toString();
-      switch (paramTypes[index]) {
-        case Oid.INT2:
-          type = "int2";
-          break;
-        case Oid.INT4:
-          type = "int4";
-          break;
-        case Oid.INT8:
-          type = "int8";
-          break;
-        case Oid.FLOAT4:
-          type = "real";
-          break;
-        case Oid.FLOAT8:
-          type = "double precision";
-          break;
-        case Oid.TIMESTAMP:
-          type = "timestamp";
-          break;
-        case Oid.TIMESTAMPTZ:
-          type = "timestamp with time zone";
-          break;
-        case Oid.TIME:
-          type = "time";
-          break;
-        case Oid.TIMETZ:
-          type = "time with time zone";
-          break;
-        case Oid.DATE:
-          type = "date";
-          break;
-        case Oid.INTERVAL:
-          type = "interval";
-          break;
-        case Oid.NUMERIC:
-          type = "numeric";
-          break;
-        case Oid.UUID:
-          type = "uuid";
-          break;
-        case Oid.BOOL:
-          type = "boolean";
-          break;
-        case Oid.BOX:
-          type = "box";
-          break;
-        case Oid.POINT:
-          type = "point";
-          break;
-        default:
-          type = null;
-      }
+      type = textCastType(paramTypes[index]);
     }
     return quoteAndCast(textValue, type, context.getStandardConformingStrings());
   }
@@ -493,6 +442,152 @@ class SimpleParameterList implements V3ParameterList {
 
   private byte direction(@Positive int index) {
     return (byte) (flags[index] & INOUT);
+  }
+
+  /**
+   * Returns the length of {@link #toString(int, boolean)} for a parameter without building the
+   * string. Counting stops once the length exceeds {@code limit}; the result is then some value
+   * greater than {@code limit}. Returns {@code -1} when the value type is not one the driver
+   * stores, so its rendered length is not known without calling {@code toString}.
+   *
+   * <p>A {@code bytea} stream renders as {@code ?}, as in {@code toString}, so its length is 1. A
+   * text stream renders as a quoted {@code <stream of N bytes>} literal.</p>
+   *
+   * @param index parameter index, 1-based
+   * @param standardConformingStrings whether standard_conforming_strings is on
+   * @param limit length above which counting stops
+   * @return length in characters, a value above {@code limit}, or {@code -1}
+   */
+  long logLiteralLength(@Positive int index, boolean standardConformingStrings, long limit) {
+    Object value = paramValues[index - 1];
+    if (value == null) {
+      return 1; // "?"
+    }
+    if (value == NULL_OBJECT) {
+      return 6; // "(NULL)"
+    }
+    int oid = paramTypes[index - 1];
+    if (oid == Oid.BYTEA) {
+      if (value instanceof String) {
+        String str = (String) value;
+        if (!str.startsWith("\\x")) {
+          return quotedLiteralLength(str, "bytea", standardConformingStrings, limit);
+        }
+        return str.length() + 9L; // "'" + str + "'::bytea"
+      }
+      if (value instanceof byte[]) {
+        return 2L * ((byte[]) value).length + 11; // "'\\x" + hex + "'::bytea"
+      }
+      if (value instanceof StreamWrapper) {
+        StreamWrapper sw = (StreamWrapper) value;
+        return sw.getBytes() == null ? 1 : 2L * sw.getLength() + 11;
+      }
+      if (value instanceof ByteStreamWriter) {
+        return 2L * ((ByteStreamWriter) value).getLength() + 11;
+      }
+      return -1;
+    }
+    if ((flags[index - 1] & BINARY) == BINARY) {
+      // Fixed-size binary values; rendering them is cheap.
+      return toString(index, standardConformingStrings).length();
+    }
+    if (value instanceof String) {
+      return quotedLiteralLength((String) value, textCastType(oid), standardConformingStrings,
+          limit);
+    }
+    if (value instanceof StreamWrapper) {
+      return quotedLiteralLength(value.toString(), textCastType(oid), standardConformingStrings,
+          limit);
+    }
+    return -1;
+  }
+
+  /**
+   * Returns the number of payload bytes of a {@code bytea} parameter whose content can be
+   * rendered, or {@code -1} for any other parameter. A {@code bytea} stream always renders as
+   * {@code ?}, so it returns {@code -1} too.
+   */
+  int byteaLengthForLog(@Positive int index) {
+    if (paramTypes[index - 1] != Oid.BYTEA) {
+      return -1;
+    }
+    Object value = paramValues[index - 1];
+    if (value instanceof byte[]) {
+      return ((byte[]) value).length;
+    }
+    if (value instanceof StreamWrapper && ((StreamWrapper) value).getBytes() != null) {
+      return ((StreamWrapper) value).getLength();
+    }
+    if (value instanceof ByteStreamWriter) {
+      return ((ByteStreamWriter) value).getLength();
+    }
+    return -1;
+  }
+
+  /**
+   * Returns the {@link String} value of a text parameter, so a Bind trace can show a prefix of
+   * it, or {@code null} when the stored value is not a String.
+   */
+  @Nullable String stringValueForLog(@Positive int index) {
+    Object value = paramValues[index - 1];
+    if (value instanceof String && (flags[index - 1] & BINARY) != BINARY) {
+      return (String) value;
+    }
+    return null;
+  }
+
+  private static long quotedLiteralLength(String text, @Nullable String type,
+      boolean standardConformingStrings, long limit) {
+    // "('" + escaped + "'" + ["::" + type] + ")"
+    long length = 4L + (type == null ? 0 : 2 + type.length());
+    for (int i = 0; i < text.length() && length <= limit; i++) {
+      char ch = text.charAt(i);
+      if (ch == '\0') {
+        // toString stops escaping at a zero byte and appends it.
+        return length + 1;
+      }
+      length += (ch == '\'' || (!standardConformingStrings && ch == '\\')) ? 2 : 1;
+    }
+    return length;
+  }
+
+  private static @Nullable String textCastType(int oid) {
+    switch (oid) {
+      case Oid.INT2:
+        return "int2";
+      case Oid.INT4:
+        return "int4";
+      case Oid.INT8:
+        return "int8";
+      case Oid.FLOAT4:
+        return "real";
+      case Oid.FLOAT8:
+        return "double precision";
+      case Oid.TIMESTAMP:
+        return "timestamp";
+      case Oid.TIMESTAMPTZ:
+        return "timestamp with time zone";
+      case Oid.TIME:
+        return "time";
+      case Oid.TIMETZ:
+        return "time with time zone";
+      case Oid.DATE:
+        return "date";
+      case Oid.INTERVAL:
+        return "interval";
+      case Oid.NUMERIC:
+        return "numeric";
+      case Oid.UUID:
+        return "uuid";
+      case Oid.BOOL:
+        return "boolean";
+      case Oid.BOX:
+        return "box";
+      case Oid.POINT:
+        return "point";
+      default:
+        return null;
+    }
   }
 
   int getV3Length(@Positive int index) {

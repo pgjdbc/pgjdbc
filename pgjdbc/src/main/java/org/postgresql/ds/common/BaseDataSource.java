@@ -1850,6 +1850,23 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.FLUSH_CACHE_ON_DDL.set(properties, flushCacheOnDdl);
   }
 
+  /**
+   * @return maximum length in characters of the FINEST Bind, Parse and SimpleQuery traces
+   * @see PGProperty#MAX_LOG_MESSAGE_LENGTH
+   */
+  public int getMaxLogMessageLength() {
+    return PGProperty.MAX_LOG_MESSAGE_LENGTH.getIntNoCheck(properties);
+  }
+
+  /**
+   * @param maxLogMessageLength maximum length in characters of the FINEST Bind, Parse and
+   *     SimpleQuery traces; {@code 0} means no limit
+   * @see PGProperty#MAX_LOG_MESSAGE_LENGTH
+   */
+  public void setMaxLogMessageLength(int maxLogMessageLength) {
+    PGProperty.MAX_LOG_MESSAGE_LENGTH.set(properties, maxLogMessageLength);
+  }
+
   public @Nullable String getMaxResultBuffer() {
     return PGProperty.MAX_RESULT_BUFFER.getOrDefault(properties);
   }
