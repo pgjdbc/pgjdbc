@@ -40,3 +40,10 @@ Use the word the code uses. Wrap user-facing exception text in `GT.tr`, which al
 English is the source. `./gradlew :postgresql:generateGettextSources` updates the files under `translation/`
 from it. Refreshing the translations is a separate i18n change, so do not run the task for a change that only
 adds or reworks an English message. Never edit `messages_*.java` by hand.
+
+## Commit messages
+
+Write all commit messages in Conventional Commits format: `type(scope): summary`, where the scope is optional and the
+summary is imperative and lower case. The types in use are `feat`, `fix`, `docs`, `test`, `refactor`, `perf`, `style`,
+`chore`, `ci`, and `build`. A scope names the component the change touches, as in
+`fix(core): make PGStream.skip finish when stream skip returns 0`.
