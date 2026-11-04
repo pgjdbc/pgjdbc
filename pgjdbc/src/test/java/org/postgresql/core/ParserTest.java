@@ -160,6 +160,36 @@ class ParserTest {
     assertEquals(PSQLState.SYNTAX_ERROR.getState(), e.getSQLState());
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "q",
+      "\u00e9", // e with acute accent
+      "\u00a7", // section sign
+      "\u00a0", // no-break space
+      "\u2003", // em space
+      "\ud840\udc00", // CJK letter outside the BMP
+      "q\u00d7", // q and multiplication sign
+  })
+  void dollarQuoteTagWithNonAsciiCharacter(String tag) throws SQLException {
+    String sql = "SELECT $" + tag + "${oj x$" + tag + "}$ || ? ; --$" + tag + "$";
+    assertEquals(sql, Parser.replaceProcessing(sql, true, true));
+    List<NativeQuery> queries = Parser.parseJdbcSql(sql, true, true, true, true, true);
+    assertEquals(1, queries.size());
+    assertEquals(0, queries.get(0).bindPositions.length);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "\u00a7", // section sign
+      "\u00e9", // e with acute accent
+      "\ud840\udc00", // CJK letter outside the BMP
+  })
+  void dollarsAfterNonAsciiCharacterDoNotStartString(String c) throws SQLException {
+    String sql = "SELECT 1 AS a" + c + "$$, ? AS b, 2 AS c$$";
+    List<NativeQuery> queries = Parser.parseJdbcSql(sql, true, true, true, true, true);
+    assertEquals(1, queries.get(0).bindPositions.length);
+  }
+
   @Test
   void functionEscapeEndsAtBraceOutsideOfLiterals() throws Exception {
     assertEquals("SELECT lower(name) || '}{fn ucase(x)} --' AS v",
