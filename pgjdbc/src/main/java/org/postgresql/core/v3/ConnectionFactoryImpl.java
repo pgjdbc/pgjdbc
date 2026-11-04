@@ -188,7 +188,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
    * Uses {@link System#nanoTime()} for monotonic elapsed-time measurement.
    *
    * @param connectTimeoutMs the original connect timeout in milliseconds, or 0 for no timeout
-   * @param startNanos the {@link System#nanoTime()} value when the connection attempt began
+   * @param startNanos the {@link System#nanoTime()} value when the attempt on the current host began
    * @return remaining time in millis, or 0 if no timeout was set. If the deadline has passed,
    *         returns 1 (minimum positive timeout) so the attempt fails quickly.
    */
@@ -331,8 +331,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     SslMode sslMode = SslMode.of(info);
     GSSEncMode gssEncMode = GSSEncMode.of(info);
 
-    int connectTimeoutMs = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
-    long startNanos = System.nanoTime();
+    final int connectTimeoutMs = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
 
     HostRequirement targetServerType;
     String targetServerTypeStr = castNonNull(PGProperty.TARGET_SERVER_TYPE.getOrDefault(info));
@@ -372,6 +371,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       // Establish a connection.
       //
 
+      final long startNanos = System.nanoTime();
       PGStream newStream = null;
       try {
         try {
