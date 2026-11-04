@@ -8,6 +8,7 @@ package org.postgresql.gss;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.GT;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.ietf.jgss.GSSContext;
@@ -145,11 +146,22 @@ public class GSSInputStream extends InputStream {
         return 0;
       }
     }
+    byte[] unencrypted;
     try {
-      this.unencrypted = gssContext.unwrap(encrypted, 0, encryptedLength, messageProp);
+      unencrypted = gssContext.unwrap(encrypted, 0, encryptedLength, messageProp);
     } catch (GSSException e) {
       throw new IOException(e);
     }
+    // unwrap does not throw for a replayed, reordered or missing token, or one that is only
+    // signed. It reports them in the MessageProp.
+    if (messageProp.isDuplicateToken() || messageProp.isOldToken()
+        || messageProp.isUnseqToken() || messageProp.isGapToken()) {
+      throw new IOException(GT.tr("Backend sent a GSS packet out of sequence."));
+    }
+    if (!messageProp.getPrivacy()) {
+      throw new IOException(GT.tr("Backend sent a GSS packet that is not encrypted."));
+    }
+    this.unencrypted = unencrypted;
     unencryptedPos = 0;
     return 1;
   }

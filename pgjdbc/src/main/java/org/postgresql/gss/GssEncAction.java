@@ -123,6 +123,8 @@ public class GssEncAction implements PrivilegedAction<@Nullable Exception>, Call
       secContext.requestMutualAuth(true);
       secContext.requestConf(true);
       secContext.requestInteg(true);
+      secContext.requestReplayDet(true);
+      secContext.requestSequenceDet(true);
 
       byte[] inToken = new byte[0];
       byte[] outToken = null;
