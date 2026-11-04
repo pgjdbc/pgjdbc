@@ -133,6 +133,25 @@ public class ParameterInjectionTest {
   }
 
   @Test
+  public void simpleModeYenSignInEucJp() throws SQLException {
+    Properties props = new Properties();
+    PGProperty.PREFER_QUERY_MODE.set(props, "simple");
+    PGProperty.ALLOW_ENCODING_CHANGES.set(props, true);
+    String value = "\u00a5'), (SELECT $$injected$$) --"; // yen sign
+    try (Connection conn = TestUtil.openDB(props);
+         Statement setStmt = conn.createStatement()) {
+      setStmt.execute("SET standard_conforming_strings = off");
+      setStmt.execute("SET client_encoding = 'EUC_JP'");
+      PreparedStatement stmt = conn.prepareStatement("SELECT ?");
+      stmt.setString(1, value);
+      try (ResultSet rs = stmt.executeQuery()) {
+        assertTrue(rs.next());
+        assertEquals(1, rs.getMetaData().getColumnCount(), "number of result columns must match");
+      }
+    }
+  }
+
+  @Test
   public void handleInt2() throws SQLException {
     testParamInjection(
         stmt -> {
