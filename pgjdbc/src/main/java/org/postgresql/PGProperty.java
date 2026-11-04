@@ -465,6 +465,26 @@ public enum PGProperty {
       "When connections that are not explicitly closed are garbage collected, log the stacktrace from the opening of the connection to trace the leak source"),
 
   /**
+   * Largest ErrorResponse message delivered whole, in bytes. A longer one is truncated to this
+   * length and the rest of it discarded, so the connection stays usable. The default of -1 is no
+   * limit beyond the protocol maximum.
+   */
+  MAX_ERROR_RESPONSE_LENGTH(
+      "maxErrorResponseLength",
+      "-1",
+      "Largest ErrorResponse message delivered whole, in bytes. A longer one is truncated to this length. -1 is no limit beyond the protocol maximum."),
+
+  /**
+   * Largest NoticeResponse message delivered whole, in bytes. A longer one is truncated to this
+   * length and the rest of it discarded, so the connection stays usable. The default of -1 is no
+   * limit beyond the protocol maximum.
+   */
+  MAX_NOTICE_RESPONSE_LENGTH(
+      "maxNoticeResponseLength",
+      "-1",
+      "Largest NoticeResponse message delivered whole, in bytes. A longer one is truncated to this length. -1 is no limit beyond the protocol maximum."),
+
+  /**
    * Specifies size of buffer during fetching result set. Can be specified as specified size or
    * percent of heap memory.
    */

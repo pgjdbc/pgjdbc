@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyOperation;
 import org.postgresql.copy.CopyOut;
 import org.postgresql.core.CachedQuery;
@@ -25,6 +26,7 @@ import org.postgresql.core.Tuple;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.ServerErrorMessage;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -149,7 +151,15 @@ class BackendMessageEnvelopeTest {
   }
 
   private static QueryExecutor executorOf(Script script) throws SQLException, IOException {
-    return new QueryExecutorImpl(streamOf(script), 0, new Properties());
+    return executorOf(script, -1, -1);
+  }
+
+  private static QueryExecutor executorOf(Script script, int maxErrorResponseLength,
+      int maxNoticeResponseLength) throws SQLException, IOException {
+    PGStream stream = streamOf(script);
+    stream.setMaxErrorResponseLength(maxErrorResponseLength);
+    stream.setMaxNoticeResponseLength(maxNoticeResponseLength);
+    return new QueryExecutorImpl(stream, 0, new Properties());
   }
 
   private static class CollectingHandler extends ResultHandlerBase {
@@ -332,23 +342,88 @@ class BackendMessageEnvelopeTest {
     assertTrue(e.getMessage().contains("ReadyForQuery"), e.getMessage());
   }
 
+  /** A truncation limit small enough that the tests need no large messages. */
+  private static final int SMALL_LIMIT = 64;
+
+  /** The fixed fields of a test error, followed by the tag of the query field. */
+  private static byte[] errorFieldsHead() {
+    return bytes(cstring("SERROR"), cstring("C42601"), cstring("Mboom"), new byte[]{'q'});
+  }
+
   /**
-   * Error fields for a message one byte longer than the buffer maximum. The query field comes
-   * last, so it is the field that is truncated.
+   * Error fields for a message of the given length. The query field comes last and is padded to
+   * fill the length, so it is the field that is truncated.
    */
-  private static byte[] oversizedErrorFields() {
-    byte[] head = bytes(cstring("SERROR"), cstring("C42601"), cstring("Mboom"), new byte[]{'q'});
-    byte[] body = new byte[PGStream.MAX_BUFFERED_MESSAGE_LENGTH + 1 - 4];
+  private static byte[] errorFieldsOfLength(int messageLength) {
+    byte[] head = errorFieldsHead();
+    byte[] body = new byte[messageLength - 4];
     System.arraycopy(head, 0, body, 0, head.length);
     // The last two bytes stay zero, the string terminator and the field list terminator.
     Arrays.fill(body, head.length, body.length - 2, (byte) 'x');
     return body;
   }
 
+  /** Length of the query text in a message from {@link #errorFieldsOfLength}, before truncation. */
+  private static int fullQueryLength(byte[] body) {
+    return body.length - errorFieldsHead().length - 2;
+  }
+
+  private static ServerErrorMessage serverErrorOf(@Nullable SQLException e) {
+    assertNotNull(e);
+    ServerErrorMessage message = ((PSQLException) e).getServerErrorMessage();
+    assertNotNull(message);
+    return message;
+  }
+
+  private static ServerErrorMessage serverErrorOf(@Nullable SQLWarning warning) {
+    assertNotNull(warning);
+    ServerErrorMessage message = ((PSQLWarning) warning).getServerErrorMessage();
+    assertNotNull(message);
+    return message;
+  }
+
   /** The fields before the truncation point are kept and the connection stays usable. */
   @Test
-  void truncatesAnErrorResponsePastTheBufferMaximum() throws Exception {
-    byte[] body = oversizedErrorFields();
+  void truncatesAnErrorResponsePastMaxErrorResponseLength() throws Exception {
+    byte[] body = errorFieldsOfLength(SMALL_LIMIT + 16);
+    Script script = new Script().startup()
+        .message('E', body)
+        .readyForQuery()
+        .message('C', cstring("SELECT 0"))
+        .readyForQuery();
+
+    QueryExecutor executor = executorOf(script, SMALL_LIMIT, -1);
+    ServerErrorMessage message = serverErrorOf(runQuery(executor, new CollectingHandler()));
+    assertEquals("42601", message.getSQLState());
+    assertEquals("boom", message.getMessage());
+    String query = message.getInternalQuery();
+    assertNotNull(query);
+    assertTrue(query.startsWith("xxx") && query.length() < fullQueryLength(body),
+        "truncated query field");
+
+    assertNull(runQuery(executor, new CollectingHandler()));
+  }
+
+  /** A message of exactly the limit is delivered whole. */
+  @Test
+  void deliversAnErrorResponseAtMaxErrorResponseLengthWhole() throws Exception {
+    byte[] body = errorFieldsOfLength(SMALL_LIMIT);
+    Script script = new Script().startup().message('E', body).readyForQuery();
+
+    QueryExecutor executor = executorOf(script, SMALL_LIMIT, -1);
+    ServerErrorMessage message = serverErrorOf(runQuery(executor, new CollectingHandler()));
+    String query = message.getInternalQuery();
+    assertNotNull(query);
+    assertEquals(fullQueryLength(body), query.length());
+  }
+
+  /**
+   * Without a limit, a message whose body does not fit the read buffer is delivered whole, and
+   * the message after it is read from where it ends.
+   */
+  @Test
+  void deliversAnErrorResponsePastTheBufferMaximumWhole() throws Exception {
+    byte[] body = errorFieldsOfLength(PGStream.MAX_BUFFERED_MESSAGE_LENGTH + 8);
     Script script = new Script(body.length + 64).startup()
         .message('E', body)
         .readyForQuery()
@@ -356,31 +431,63 @@ class BackendMessageEnvelopeTest {
         .readyForQuery();
 
     QueryExecutor executor = executorOf(script);
-    SQLException e = runQuery(executor, new CollectingHandler());
-    assertNotNull(e);
-    ServerErrorMessage message = ((PSQLException) e).getServerErrorMessage();
-    assertNotNull(message);
-    assertEquals("42601", message.getSQLState());
+    ServerErrorMessage message = serverErrorOf(runQuery(executor, new CollectingHandler()));
     assertEquals("boom", message.getMessage());
     String query = message.getInternalQuery();
     assertNotNull(query);
-    assertTrue(query.startsWith("xxx") && query.length() < body.length, "truncated query field");
+    assertEquals(fullQueryLength(body), query.length());
 
     assertNull(runQuery(executor, new CollectingHandler()));
   }
 
   @Test
-  void truncatesANoticeResponsePastTheBufferMaximum() throws Exception {
-    byte[] body = oversizedErrorFields();
+  void truncatesANoticeResponsePastMaxNoticeResponseLength() throws Exception {
+    byte[] body = errorFieldsOfLength(SMALL_LIMIT + 16);
+    Script script = new Script().startup()
+        .message('N', body)
+        .message('C', cstring("SELECT 0"))
+        .readyForQuery();
+
+    CollectingHandler handler = new CollectingHandler();
+    assertNull(runQuery(executorOf(script, -1, SMALL_LIMIT), handler));
+    ServerErrorMessage message = serverErrorOf(handler.warning);
+    assertEquals("42601", message.getSQLState());
+    String query = message.getInternalQuery();
+    assertNotNull(query);
+    assertTrue(query.length() < fullQueryLength(body), "truncated query field");
+  }
+
+  /** The error limit does not apply to notices. */
+  @Test
+  void deliversANoticeResponsePastMaxErrorResponseLengthWhole() throws Exception {
+    byte[] body = errorFieldsOfLength(SMALL_LIMIT + 16);
+    Script script = new Script().startup()
+        .message('N', body)
+        .message('C', cstring("SELECT 0"))
+        .readyForQuery();
+
+    CollectingHandler handler = new CollectingHandler();
+    assertNull(runQuery(executorOf(script, SMALL_LIMIT, -1), handler));
+    String query = serverErrorOf(handler.warning).getInternalQuery();
+    assertNotNull(query);
+    assertEquals(fullQueryLength(body), query.length());
+  }
+
+  /** A limit of exactly the protocol maximum is the same as no limit. */
+  @Test
+  void deliversANoticeResponsePastTheBufferMaximumWithALimitAtTheProtocolMaximum()
+      throws Exception {
+    byte[] body = errorFieldsOfLength(PGStream.MAX_BUFFERED_MESSAGE_LENGTH + 8);
     Script script = new Script(body.length + 64).startup()
         .message('N', body)
         .message('C', cstring("SELECT 0"))
         .readyForQuery();
 
     CollectingHandler handler = new CollectingHandler();
-    assertNull(runQuery(executorOf(script), handler));
-    assertNotNull(handler.warning);
-    assertEquals("42601", handler.warning.getSQLState());
+    assertNull(runQuery(executorOf(script, -1, PGStream.MAX_MESSAGE_LENGTH), handler));
+    String query = serverErrorOf(handler.warning).getInternalQuery();
+    assertNotNull(query);
+    assertEquals(fullQueryLength(body), query.length());
   }
 
   /**
@@ -389,7 +496,7 @@ class BackendMessageEnvelopeTest {
    */
   @Test
   void truncatesANoticeResponseThroughAMultibyteCharacter() throws Exception {
-    int buffered = PGStream.MAX_BUFFERED_MESSAGE_LENGTH - 4;
+    int buffered = SMALL_LIMIT - 4;
     byte[] body = new byte[buffered + 8];
     body[0] = 'M';
     Arrays.fill(body, 1, buffered - 1, (byte) 'x');
@@ -398,17 +505,46 @@ class BackendMessageEnvelopeTest {
     body[buffered] = (byte) 0xA9;
     Arrays.fill(body, buffered + 1, body.length - 1, (byte) 'x');
 
-    Script script = new Script(body.length + 64).startup()
+    Script script = new Script().startup()
         .message('N', body)
         .message('C', cstring("SELECT 0"))
         .readyForQuery();
 
     CollectingHandler handler = new CollectingHandler();
-    assertNull(runQuery(executorOf(script), handler));
+    assertNull(runQuery(executorOf(script, -1, SMALL_LIMIT), handler));
     assertNotNull(handler.warning);
     String message = handler.warning.getMessage();
     assertNotNull(message);
     assertTrue(message.startsWith("xxx"), message);
+  }
+
+  /**
+   * A limit must be -1, or at least 5 for the length field and one byte of body, and at most the
+   * protocol maximum.
+   */
+  @Test
+  void rejectsAnInvalidMessageLengthLimit() throws Exception {
+    PGStream stream = streamOf(new Script());
+    for (int value : new int[]{-1, 5, PGStream.MAX_MESSAGE_LENGTH}) {
+      stream.setMaxErrorResponseLength(value);
+      stream.setMaxNoticeResponseLength(value);
+    }
+    assertEquals(PGStream.MAX_MESSAGE_LENGTH, stream.getMaxErrorResponseLength());
+    assertEquals(PGStream.MAX_MESSAGE_LENGTH, stream.getMaxNoticeResponseLength());
+    int[] rejected = {0, 4, -2, Integer.MIN_VALUE, PGStream.MAX_MESSAGE_LENGTH + 1,
+        Integer.MAX_VALUE};
+    for (int value : rejected) {
+      PSQLException e = assertThrows(PSQLException.class,
+          () -> stream.setMaxErrorResponseLength(value), String.valueOf(value));
+      assertEquals(PSQLState.INVALID_PARAMETER_VALUE.getState(), e.getSQLState());
+      assertTrue(e.getMessage().contains(PGProperty.MAX_ERROR_RESPONSE_LENGTH.getName()),
+          e.getMessage());
+      e = assertThrows(PSQLException.class,
+          () -> stream.setMaxNoticeResponseLength(value), String.valueOf(value));
+      assertTrue(e.getMessage().contains(PGProperty.MAX_NOTICE_RESPONSE_LENGTH.getName()),
+          e.getMessage());
+    }
+    assertEquals(PGStream.MAX_MESSAGE_LENGTH, stream.getMaxErrorResponseLength());
   }
 
   /** A DataRow past maxResultBuffer reports the limit and drops the connection. */
