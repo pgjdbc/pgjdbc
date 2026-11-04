@@ -201,6 +201,43 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>jdkge17</id>
+            <activation>
+                <jdk>[17,)</jdk>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <executions>
+                            <!--
+                              On Java 17+ additionally compile the UnixDomainSocketAddress-based
+                              implementation from src/main/java17 into META-INF/versions/17, so the
+                              resulting jar supports Unix domain sockets. multiReleaseOutput places
+                              the classes under META-INF/versions/17; the Multi-Release: true manifest
+                              entry comes from src/main/resources/META-INF/MANIFEST.MF.
+                              -->
+                            <execution>
+                                <id>compile-java17</id>
+                                <phase>compile</phase>
+                                <goals>
+                                    <goal>compile</goal>
+                                </goals>
+                                <configuration>
+                                    <release>17</release>
+                                    <compileSourceRoots>
+                                        <compileSourceRoot>${project.basedir}/src/main/java17</compileSourceRoot>
+                                    </compileSourceRoots>
+                                    <multiReleaseOutput>true</multiReleaseOutput>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <!--
           By default, source distribution does not build javadocs, however it can be activated with
           -Pjavadoc
