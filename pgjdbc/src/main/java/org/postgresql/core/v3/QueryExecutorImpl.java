@@ -907,17 +907,25 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // + 2 (result format)
 
     int paramCount = params.getParameterCount();
-    int encodedSize = 0;
+    long encodedSize = 0;
     for (int i = 1; i <= paramCount; i++) {
       if (params.isNull(i)) {
         encodedSize += 4;
       } else {
-        encodedSize += 4 + params.getV3Length(i);
+        encodedSize += 4L + params.getV3Length(i);
       }
+    }
+    encodedSize += 4 + 4 + 2 + 2L * paramCount + 2 + 2;
+
+    // The backend does not accept a message larger than MaxAllocSize, see sendBind.
+    if (encodedSize > 0x3fffffff) {
+      throw new PSQLException(GT.tr(
+          "FunctionCall message length {0} too long.  This can be caused by very large or incorrect length specifications on fastpath arguments.",
+          encodedSize), PSQLState.INVALID_PARAMETER_VALUE);
     }
 
     pgStream.sendChar(PgMessageType.FUNCTION_CALL_REQ);
-    pgStream.sendInteger4(4 + 4 + 2 + 2 * paramCount + 2 + encodedSize + 2);
+    pgStream.sendInteger4((int) encodedSize);
     pgStream.sendInteger4(fnid);
     pgStream.sendInteger2(paramCount);
     for (int i = 1; i <= paramCount; i++) {
