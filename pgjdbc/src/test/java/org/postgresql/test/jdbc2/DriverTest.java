@@ -142,6 +142,35 @@ class DriverTest {
   }
 
   @Test
+  @DisableLogger(Driver.class)
+  void serviceInProperties() throws Exception {
+    URL urlFileProps = getClass().getResource("/pg_service/pgservicefileProps.conf");
+    assertNotNull(urlFileProps);
+    Resources.with(
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), urlFileProps.getFile())
+    ).execute(() -> {
+      Properties info = new Properties();
+      PGProperty.SERVICE.set(info, "driverTestService1");
+      Properties parsed = Driver.parseURL("jdbc:postgresql://", info);
+      assertNotNull(parsed);
+      assertEquals("test-host1", PGProperty.PG_HOST.getOrDefault(parsed));
+      assertEquals("5444", PGProperty.PG_PORT.getOrDefault(parsed));
+      assertEquals("testdb1", PGProperty.PG_DBNAME.getOrDefault(parsed));
+
+      Properties withDefaults = new Properties(info);
+      parsed = Driver.parseURL("jdbc:postgresql://", withDefaults);
+      assertNotNull(parsed);
+      assertEquals("test-host1", PGProperty.PG_HOST.getOrDefault(parsed));
+
+      PGProperty.SERVICE.set(info, "noSuchService");
+      parsed = Driver.parseURL("jdbc:postgresql:///?service=driverTestService1", info);
+      assertNotNull(parsed);
+      assertEquals("test-host1", PGProperty.PG_HOST.getOrDefault(parsed));
+      assertNull(Driver.parseURL("jdbc:postgresql://", info));
+    });
+  }
+
+  @Test
   @DisableLogger(PGPropertyUtil.class)
   void badUrlsTest() throws Exception {
     TestUtil.initDriver(); // Set up log levels, etc.
