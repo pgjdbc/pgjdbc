@@ -11,7 +11,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * This class is used as a cache key for simple statements that have no "returning columns".
- * Prepared statements that have no returning columns use just {@code String sql} as a key.
+ * Prepared statements that have no returning columns use just {@code String sql} as a key
+ * when {@code standard_conforming_strings} is on.
  * Simple and Prepared statements that have returning columns use {@link QueryWithReturningColumnsKey}
  * as a cache key.
  */
@@ -19,11 +20,14 @@ class BaseQueryKey implements CanEstimateSize {
   public final String sql;
   public final boolean isParameterized;
   public final boolean escapeProcessing;
+  public final boolean standardConformingStrings;
 
-  BaseQueryKey(String sql, boolean isParameterized, boolean escapeProcessing) {
+  BaseQueryKey(String sql, boolean isParameterized, boolean escapeProcessing,
+      boolean standardConformingStrings) {
     this.sql = sql;
     this.isParameterized = isParameterized;
     this.escapeProcessing = escapeProcessing;
+    this.standardConformingStrings = standardConformingStrings;
   }
 
   @Override
@@ -32,6 +36,7 @@ class BaseQueryKey implements CanEstimateSize {
         + "sql='" + sql + '\''
         + ", isParameterized=" + isParameterized
         + ", escapeProcessing=" + escapeProcessing
+        + ", standardConformingStrings=" + standardConformingStrings
         + '}';
   }
 
@@ -60,6 +65,9 @@ class BaseQueryKey implements CanEstimateSize {
     if (escapeProcessing != that.escapeProcessing) {
       return false;
     }
+    if (standardConformingStrings != that.standardConformingStrings) {
+      return false;
+    }
     return sql != null ? sql.equals(that.sql) : that.sql == null;
 
   }
@@ -69,6 +77,7 @@ class BaseQueryKey implements CanEstimateSize {
     int result = sql != null ? sql.hashCode() : 0;
     result = 31 * result + (isParameterized ? 1 : 0);
     result = 31 * result + (escapeProcessing ? 1 : 0);
+    result = 31 * result + (standardConformingStrings ? 1 : 0);
     return result;
   }
 }

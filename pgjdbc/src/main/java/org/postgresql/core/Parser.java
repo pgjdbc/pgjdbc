@@ -175,7 +175,8 @@ public class Parser {
                     SqlCommand.createStatementTypeInfo(
                         currentCommandType, isBatchedReWriteConfigured, valuesParenthesisOpenPosition,
                         valuesParenthesisClosePosition,
-                        isReturningPresent, nativeQueries.size())));
+                        isReturningPresent, nativeQueries.size()),
+                    standardConformingStrings));
               }
             }
             prevCommandType = currentCommandType;
@@ -318,7 +319,8 @@ public class Parser {
         toIntArray(bindPositions), !splitStatements,
         SqlCommand.createStatementTypeInfo(currentCommandType,
             isBatchedReWriteConfigured, valuesParenthesisOpenPosition, valuesParenthesisClosePosition,
-            isReturningPresent, (nativeQueries == null ? 0 : nativeQueries.size())));
+            isReturningPresent, (nativeQueries == null ? 0 : nativeQueries.size())),
+        standardConformingStrings);
 
     if (nativeQueries == null) {
       return Collections.singletonList(lastQuery);

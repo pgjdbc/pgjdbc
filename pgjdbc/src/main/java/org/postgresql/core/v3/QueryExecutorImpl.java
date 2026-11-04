@@ -416,6 +416,26 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
+  /**
+   * Simple query mode puts parameter values into the SQL text, so the string literals must end at
+   * the same positions for the backend as for the parser.
+   */
+  private void checkStandardConformingStrings(Query query, int flags) throws SQLException {
+    if ((flags & QUERY_EXECUTE_AS_SIMPLE) == 0) {
+      return;
+    }
+    Query[] subqueries = query.getSubqueries();
+    if (subqueries != null) {
+      for (Query subquery : subqueries) {
+        checkStandardConformingStrings(subquery, flags);
+      }
+    } else if (!((SimpleQuery) query).getNativeQuery().isParsedFor(getStandardConformingStrings())) {
+      throw new PSQLException(
+          GT.tr("standard_conforming_strings has changed since the statement was prepared. Prepare the statement again."),
+          PSQLState.OBJECT_NOT_IN_STATE);
+    }
+  }
+
   @Override
   public void execute(Query query, @Nullable ParameterList parameters,
       ResultHandler handler,
@@ -439,6 +459,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
 
       flags = updateQueryMode(flags);
+      checkStandardConformingStrings(query, flags);
 
       boolean describeOnly = (QUERY_DESCRIBE_ONLY & flags) != 0;
 
@@ -674,6 +695,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
 
       flags = updateQueryMode(flags);
+      for (Query query : queries) {
+        checkStandardConformingStrings(query, flags);
+      }
 
       boolean describeOnly = (QUERY_DESCRIBE_ONLY & flags) != 0;
       // Check parameters and resolve OIDs.
