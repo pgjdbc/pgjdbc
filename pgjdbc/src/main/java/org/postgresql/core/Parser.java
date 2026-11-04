@@ -1352,6 +1352,13 @@ public class Parser {
       state_switch:
       switch (state) {
         case IN_SQLCODE:
+        case ESC_DATE:
+        case ESC_TIME:
+        case ESC_TIMESTAMP:
+        case ESC_FUNCTION_END:
+        case ESC_OUTERJOIN:
+        case ESC_ESCAPECHAR:
+          // A brace inside a literal, quoted identifier or comment does not end an escape.
           if (c == '$') {
             int i0 = i;
             i = parseDollarQuotes(sql, i);
@@ -1387,6 +1394,11 @@ public class Parser {
             i = parseLineComment(sql, i);
             newsql.append(sql, i0, i - i0 + 1);
             break;
+          } else if (state != SqlParseState.IN_SQLCODE) {
+            if (c == '}') {
+              state = SqlParseState.IN_SQLCODE; // end of escape code.
+              break;
+            }
           } else if (c == '(') { // begin nested sql
             nestedParenthesis++;
           } else if (c == ')') { // end of nested sql
@@ -1423,18 +1435,7 @@ public class Parser {
         case ESC_FUNCTION:
           // extract function name
           i = escapeFunction(sql, i, newsql, stdStrings);
-          state = SqlParseState.IN_SQLCODE; // end of escaped function (or query)
-          break;
-        case ESC_DATE:
-        case ESC_TIME:
-        case ESC_TIMESTAMP:
-        case ESC_OUTERJOIN:
-        case ESC_ESCAPECHAR:
-          if (c == '}') {
-            state = SqlParseState.IN_SQLCODE; // end of escape code.
-          } else {
-            newsql.append(c);
-          }
+          state = SqlParseState.ESC_FUNCTION_END;
           break;
       } // end switch
     }
@@ -1468,11 +1469,6 @@ public class Parser {
       // extract arguments
       i = argPos + 1;// we start the scan after the first (
       i = escapeFunctionArguments(newsql, functionName, sql, i, stdStrings);
-    }
-    // go to the end of the function copying anything found
-    i++;
-    while (i < sql.length && sql[i] != '}') {
-      newsql.append(sql[i++]);
     }
     return i;
   }
@@ -1541,6 +1537,8 @@ public class Parser {
 
     ESC_TIMESTAMP("ts", SINGLE_QUOTE, "TIMESTAMP "),
     ESC_FUNCTION("fn", QUOTE_OR_ALPHABETIC_MARKER, null),
+    // The text after the arguments of {fn ...}, up to the closing brace.
+    ESC_FUNCTION_END,
     ESC_OUTERJOIN("oj", QUOTE_OR_ALPHABETIC_MARKER_OR_PARENTHESIS, null),
     ESC_ESCAPECHAR("escape", SINGLE_QUOTE, "ESCAPE ");
 
@@ -1576,6 +1574,10 @@ public class Parser {
     }
 
     private int getMatchedPosition(char[] sql, int pos) {
+      // IN_SQLCODE and ESC_FUNCTION_END have no keyword, so a brace never enters them.
+      if (escapeKeyword.length == 0) {
+        return 0;
+      }
       // check for the keyword
       if (!startMatches(sql, pos)) {
         return 0;
