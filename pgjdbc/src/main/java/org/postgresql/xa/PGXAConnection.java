@@ -78,6 +78,15 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     }
   }
 
+  private void execSQLUpdate(String sql) throws SQLException {
+    try {
+      conn.execSQLUpdate(sql);
+    } catch (SQLException ex) {
+      fireConnectionError(ex);
+      throw ex;
+    }
+  }
+
   public PGXAConnection(BaseConnection conn) throws SQLException {
     super(conn, true, true);
     this.conn = conn;
@@ -241,7 +250,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     // issued here.
     if (flags == TMNOFLAGS) {
       try {
-        conn.execSQLUpdate("BEGIN");
+        execSQLUpdate("BEGIN");
       } catch (SQLException ex) {
         throw new PGXAException(GT.tr("Error opening transaction. start xid={0}", xid), ex,
             XAException.XAER_RMERR);
@@ -359,7 +368,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
     try {
       String s = RecoveredXid.xidToString(xid);
-      conn.execSQLUpdate("PREPARE TRANSACTION '" + s + "'");
+      execSQLUpdate("PREPARE TRANSACTION '" + s + "'");
     } catch (SQLException ex) {
       // Mutate XA state only after PREPARE TRANSACTION succeeds. On failure state stays ENDED with
       // currentXid set, so the transaction manager can recover by calling rollback(xid) — which
@@ -379,6 +388,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         return XA_OK;
       }
     } catch (SQLException ex) {
+      fireConnectionError(ex);
       throw new PGXAException(GT.tr("Error preparing transaction. prepare xid={0}", xid), ex, mapSQLStateToXAErrorCode(ex));
     }
   }
@@ -438,6 +448,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       }
       return l.toArray(new Xid[0]);
     } catch (SQLException ex) {
+      fireConnectionError(ex);
       throw new PGXAException(GT.tr("Error during recover. flag={0}", flag), ex, XAException.XAER_RMERR);
     }
   }
@@ -471,7 +482,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         // Active branch: ROLLBACK closes the server transaction that start() opened. Use the
         // QUERY_SUPPRESS_BEGIN path so it works regardless of the caller's autoCommit, and so it
         // accepts a connection that is in TransactionState.FAILED (PG accepts ROLLBACK there).
-        conn.execSQLUpdate("ROLLBACK");
+        execSQLUpdate("ROLLBACK");
         state = State.IDLE;
         currentXid = null;
       } else {
@@ -490,7 +501,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
               XAException.XAER_RMFAIL);
         }
         String s = RecoveredXid.xidToString(xid);
-        conn.execSQLUpdate("ROLLBACK PREPARED '" + s + "'");
+        execSQLUpdate("ROLLBACK PREPARED '" + s + "'");
       }
       committedOrRolledBack = true;
     } catch (SQLException ex) {
@@ -574,7 +585,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     // Cannot use conn.commit() because PgConnection.commit() throws when autoCommit=true, and the
     // new contract leaves autoCommit at whatever the caller set.
     try {
-      conn.execSQLUpdate("COMMIT");
+      execSQLUpdate("COMMIT");
     } catch (SQLException ex) {
       // Mutate XA state only after COMMIT succeeds. On failure state stays ENDED with currentXid
       // set, so the transaction manager can recover by calling rollback(xid).
@@ -632,7 +643,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
     try {
       String s = RecoveredXid.xidToString(xid);
-      conn.execSQLUpdate("COMMIT PREPARED '" + s + "'");
+      execSQLUpdate("COMMIT PREPARED '" + s + "'");
       committedOrRolledBack = true;
     } catch (SQLException ex) {
       int errorCode = XAException.XAER_RMERR;
