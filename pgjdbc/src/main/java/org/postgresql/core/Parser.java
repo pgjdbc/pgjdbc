@@ -491,16 +491,18 @@ public class Parser {
    */
   public static int parseDollarQuotes(final char[] query, int offset) {
     if (offset + 1 < query.length
-        && (offset == 0 || !isIdentifierContChar(query[offset - 1]))) {
+        && (offset == 0 || !isIdentifierContChar(query[offset - 1])
+            || isUnpairedSurrogate(query, offset - 1))) {
       int endIdx = -1;
       if (query[offset + 1] == '$') {
         endIdx = offset + 1;
-      } else if (isDollarQuoteStartChar(query[offset + 1])) {
+      } else if (isDollarQuoteStartChar(query[offset + 1])
+          && !isUnpairedSurrogate(query, offset + 1)) {
         for (int d = offset + 2; d < query.length; d++) {
           if (query[d] == '$') {
             endIdx = d;
             break;
-          } else if (!isDollarQuoteContChar(query[d])) {
+          } else if (!isDollarQuoteContChar(query[d]) || isUnpairedSurrogate(query, d)) {
             break;
           }
         }
@@ -927,8 +929,7 @@ public class Parser {
 
   /**
    * Checks if a character is valid as the start of an identifier.
-   * PostgreSQL 9.4 allows column names like _, ‿, ⁀, ⁔, ︳, ︴, ﹍, ﹎, ﹏, ＿, so
-   * it is assumed isJavaIdentifierPart is good enough for PostgreSQL.
+   * The backend treats every non-ASCII character as an identifier character.
    *
    * @param c the character to check
    * @return true if valid as first character of an identifier; false if not
@@ -940,9 +941,8 @@ public class Parser {
      * pgsql/src/backend/parser/scan.l:
      * ident_start    [A-Za-z\200-\377_]
      * ident_cont     [A-Za-z\200-\377_0-9\$]
-     * however it is not clear how that interacts with unicode, so we just use Java's implementation.
      */
-    return Character.isJavaIdentifierStart(c);
+    return c >= 0x80 || c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
   }
 
   /**
@@ -952,7 +952,7 @@ public class Parser {
    * @return true if valid as second or later character of an identifier; false if not
    */
   public static boolean isIdentifierContChar(char c) {
-    return Character.isJavaIdentifierPart(c);
+    return isIdentifierStartChar(c) || c == '$' || (c >= '0' && c <= '9');
   }
 
   /**
@@ -962,6 +962,21 @@ public class Parser {
    */
   public static boolean charTerminatesIdentifier(char c) {
     return c == '"' || isSpace(c) || isOperatorChar(c);
+  }
+
+  /**
+   * Returns true if the character at the given index is a surrogate without its other half. The
+   * driver encodes such a character as {@code ?}, which the backend reads as an operator character.
+   */
+  private static boolean isUnpairedSurrogate(char[] query, int index) {
+    char c = query[index];
+    if (Character.isHighSurrogate(c)) {
+      return index + 1 >= query.length || !Character.isLowSurrogate(query[index + 1]);
+    }
+    if (Character.isLowSurrogate(c)) {
+      return index == 0 || !Character.isHighSurrogate(query[index - 1]);
+    }
+    return false;
   }
 
   /**
