@@ -10,14 +10,18 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLException;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
 import java.sql.Array;
@@ -164,6 +168,19 @@ public class CallableStmtTest extends BaseTest4 {
     assertEquals(42, call.getInt(1));
   }
 
+  @ParameterizedTest
+  @ValueSource(ints = {-1, 0, 2})
+  public void testGetInWithInvalidIndexThrowsSqlException(int columnIndex) throws Throwable {
+    try (CallableStatement call = con.prepareCall(func + pkgName + "getInt (?) }")) {
+
+      call.setInt(2, 4);
+      call.registerOutParameter(1, Types.INTEGER);
+      call.execute();
+
+      assertThrows(PSQLException.class, () -> call.getInt(columnIndex));
+    }
+  }
+
   @Test
   public void testGetShort() throws Throwable {
     CallableStatement call = con.prepareCall(func + pkgName + "getShort (?) }");
@@ -171,6 +188,19 @@ public class CallableStmtTest extends BaseTest4 {
     call.registerOutParameter(1, Types.SMALLINT);
     call.execute();
     assertEquals(42, call.getShort(1));
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {-1, 0, 2})
+  public void testGetShortWithInvalidIndexThrowsSqlException(int columnIndex) throws Throwable {
+    try (CallableStatement call = con.prepareCall(func + pkgName + "getShort (?) }")) {
+
+      call.setShort(2, (short) 4);
+      call.registerOutParameter(1, Types.SMALLINT);
+      call.execute();
+
+      assertThrows(PSQLException.class, () -> call.getString(columnIndex));
+    }
   }
 
   @Test
@@ -253,6 +283,19 @@ public class CallableStmtTest extends BaseTest4 {
       fail("expected exception");
     } catch (Exception e) {
       assertInstanceOf(SQLException.class, e);
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {-1, 0, 2})
+  public void testGetStringWithInvalidIndexThrowsSqlException(int columnIndex) throws Throwable {
+    try (CallableStatement cs = con.prepareCall("{? = call lower(?)}")) {
+
+      cs.registerOutParameter(1, Types.VARCHAR);
+      cs.setString(2, "Hi");
+      cs.execute();
+
+      assertThrows(PSQLException.class, () -> cs.getString(columnIndex));
     }
   }
 
