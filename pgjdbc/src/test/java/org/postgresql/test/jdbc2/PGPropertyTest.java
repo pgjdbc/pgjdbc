@@ -175,6 +175,31 @@ class PGPropertyTest {
     assertSame(AutoSave.CONSERVATIVE, dataSource.getAutosave());
   }
 
+  @Test
+  void secondUrlOverwritesFirstUrl() throws Exception {
+    PGSimpleDataSource dataSource = new PGSimpleDataSource();
+    dataSource.setURL("jdbc:postgresql://dev/db?sslmode=disable");
+    dataSource.setURL("jdbc:postgresql://prod/db?sslmode=verify-full");
+    assertEquals("prod", dataSource.getServerNames()[0]);
+    assertEquals("verify-full", dataSource.getSslMode());
+  }
+
+  @Test
+  void urlOverwritesSetter() throws Exception {
+    PGSimpleDataSource dataSource = new PGSimpleDataSource();
+    dataSource.setSslMode("disable");
+    dataSource.setURL("jdbc:postgresql://prod/db?sslmode=verify-full");
+    assertEquals("verify-full", dataSource.getSslMode());
+  }
+
+  @Test
+  void urlDoesNotStoreDefaults() throws Exception {
+    PGSimpleDataSource dataSource = new PGSimpleDataSource();
+    dataSource.setURL("jdbc:postgresql://prod/db");
+    dataSource.setURL("jdbc:postgresql://prod/db?channelBinding=require");
+    assertEquals("require", dataSource.getChannelBinding());
+  }
+
   /**
    * Test that {@link PGProperty#isPresent(Properties)} returns a correct result in all cases.
    */
