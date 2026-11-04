@@ -86,6 +86,22 @@ main () {
         echo "local   replication         postgres                          trust" >>"${pg_hba}"
     fi
 
+    if is_option_enabled "${GSS}"; then
+        # hostgssenc and hostnogssenc appeared in PostgreSQL 12
+        is_pg_version_at_least "12" || err "GSS testing requires a minimum of 12 but PG_MAJOR=${PG_MAJOR}. Disable with GSS=no"
+        # One database per scenario of pgjdbc-gss-test. The keytab comes from
+        # the kdc service of the gss profile.
+        cat >>"${pg_hba}" <<EOF
+hostgssenc    gss_enc       gss_test1    all    gss include_realm=0
+hostnogssenc  gss_auth      gss_test1    all    gss include_realm=0
+host          gss_mapped    gss_test2    all    gss map=gss_test1_as_test2
+host          gss_unmapped  gss_test2    all    gss
+EOF
+        echo "gss_test1_as_test2  gss_test1@EXAMPLE.COM  gss_test2" >/home/certdir/pg_ident.conf
+        add_pg_opt "-c ident_file=/home/certdir/pg_ident.conf"
+        add_pg_opt "-c krb_server_keyfile=FILE:/custom/gss/postgres.keytab"
+    fi
+
     cp /custom/scripts/post-startup.sh /docker-entrypoint-initdb.d/
     chmod +x /docker-entrypoint-initdb.d/post-startup.sh
 

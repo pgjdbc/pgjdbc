@@ -108,6 +108,18 @@ main () {
         fi
     done
 
+    if is_option_enabled "${GSS}"; then
+        # Roles and databases for the GSS rules that entrypoint.sh adds to pg_hba.conf
+        psql_super "${POSTGRES_DB}" "
+          CREATE ROLE gss_test1 LOGIN;
+          CREATE ROLE gss_test2 LOGIN;
+        "
+        for database_name in gss_enc gss_auth gss_mapped gss_unmapped
+        do
+            psql_super "${POSTGRES_DB}" "CREATE DATABASE ${database_name}"
+        done
+    fi
+
     if is_option_enabled "${CREATE_REPLICAS}"; then
         create_replica one 5433
         create_replica two 5434
