@@ -2,6 +2,7 @@
 
 * [ ] Have you followed the guidelines in our [Contributing](https://github.com/pgjdbc/pgjdbc/blob/master/CONTRIBUTING.md) document?
 * [ ] Have you checked to ensure there aren't other open [Pull Requests](../../pulls) for the same update/change?
+* [ ] Have you added an entry to the CHANGELOG to reflect your changes?
 
 <!-- You can erase any parts of this template not applicable to your Pull Request. -->
 
