@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc4.jdbc41;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.core.BaseConnection;
@@ -23,6 +24,7 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGInterval;
 import org.postgresql.util.PGmoney;
 import org.postgresql.util.PGobject;
+import org.postgresql.util.PSQLException;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -987,6 +989,27 @@ class GetObjectTest {
       assertEquals(UUID.fromString(expected), rs.getObject(1, UUID.class));
     } finally {
       rs.close();
+    }
+  }
+
+  /**
+   * Test the behavior getObject for uuid arguments.
+   */
+  @Test
+  void getUuidChecksType() throws SQLException {
+    if (!TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3)) {
+      // UUID requires PostgreSQL 8.3+
+      return;
+    }
+
+    try (Statement stmt = conn.createStatement()) {
+      stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "varchar_column", "'varchar_value'"));
+
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "varchar_column"));) {
+        assertTrue(rs.next());
+        assertThrows(PSQLException.class, () -> rs.getObject("varchar_column", UUID.class));
+        assertThrows(PSQLException.class, () -> rs.getObject(1, UUID.class));
+      }
     }
   }
 
