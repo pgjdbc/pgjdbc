@@ -6,10 +6,13 @@
 package org.postgresql.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.Test;
 
@@ -18,6 +21,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
 
 public class ParameterInjectionTest {
@@ -89,6 +93,42 @@ public class ParameterInjectionTest {
         assertEquals(value, rs.getString(1));
       }
       conn.rollback();
+    }
+  }
+
+  @Test
+  public void simpleModeQueryParsedBeforeStandardConformingStringsOff() throws SQLException {
+    Properties props = new Properties();
+    PGProperty.PREFER_QUERY_MODE.set(props, "simple");
+    String sql = "SELECT ?, '\\', ?";
+    String value = ", (SELECT $$injected$$) --";
+    try (Connection conn = TestUtil.openDB(props);
+         Statement setStmt = conn.createStatement();
+         PreparedStatement open = conn.prepareStatement(sql);
+         PreparedStatement noBackslash = conn.prepareStatement("SELECT ?, ''")) {
+      open.setString(1, "a");
+      open.setString(2, "b");
+      open.executeQuery().close();
+      try (PreparedStatement cached = conn.prepareStatement(sql)) {
+        cached.setString(1, "a");
+        cached.setString(2, "b");
+        cached.executeQuery().close();
+      }
+      setStmt.execute("SET standard_conforming_strings = off");
+
+      PSQLException e = assertThrows(PSQLException.class, () -> conn.prepareStatement(sql));
+      assertEquals(PSQLState.SYNTAX_ERROR.getState(), e.getSQLState());
+
+      open.setString(2, value);
+      e = assertThrows(PSQLException.class, open::executeQuery);
+      assertEquals(PSQLState.OBJECT_NOT_IN_STATE.getState(), e.getSQLState());
+
+      noBackslash.setString(1, value);
+      try (ResultSet rs = noBackslash.executeQuery()) {
+        assertTrue(rs.next());
+        assertEquals(2, rs.getMetaData().getColumnCount(), "number of result columns must match");
+        assertEquals(value, rs.getString(1));
+      }
     }
   }
 
