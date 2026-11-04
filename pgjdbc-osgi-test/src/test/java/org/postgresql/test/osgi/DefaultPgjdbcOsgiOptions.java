@@ -13,21 +13,13 @@ import static org.ops4j.pax.exam.CoreOptions.systemProperty;
 import org.ops4j.pax.exam.options.ModifiableCompositeOption;
 
 /**
- * Pulls repository URLs from system properties and passes them to pax-exam test container.
+ * Bundles every test installs into the pax-exam test container. The container resolves them from the
+ * offline Maven repository that build.gradle.kts lays out and configures through the
+ * {@code org.ops4j.pax.url.mvn.*} system properties.
  */
 public class DefaultPgjdbcOsgiOptions {
   public static ModifiableCompositeOption defaultPgjdbcOsgiOptions() {
     return composite(
-        // This declares "remote" repositories where the container would fetch artifacts from.
-        // It is pgjdbc built in the current build + central for other dependencies
-        systemProperty("org.ops4j.pax.url.mvn.repositories")
-            .value(System.getProperty("pgjdbc.org.ops4j.pax.url.mvn.repositories")),
-        systemProperty("org.ops4j.pax.url.mvn.timeout").value("15000"),
-        systemProperty("org.ops4j.pax.url.mvn.socket.connectionTimeout").value("15000"),
-        systemProperty("org.ops4j.pax.url.mvn.socket.readTimeout").value("60000"),
-        // This is a repository where osgi container would cache resolved maven artifacts
-        systemProperty("org.ops4j.pax.url.mvn.localRepository")
-            .value(System.getProperty("pgjdbc.org.ops4j.pax.url.mvn.localRepository")),
         // asm is used by org.apache.aries.spifly
         mavenBundle("org.ow2.asm", "asm").versionAsInProject(),
         mavenBundle("org.ow2.asm", "asm-analysis").versionAsInProject(),
