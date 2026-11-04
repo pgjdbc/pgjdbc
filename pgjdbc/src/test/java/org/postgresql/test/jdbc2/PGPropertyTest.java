@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.Driver;
@@ -173,6 +174,21 @@ class PGPropertyTest {
     dataSource.setAutosave(AutoSave.CONSERVATIVE);
     dataSource.setURL("jdbc:postgresql://localhost:5432/postgres");
     assertSame(AutoSave.CONSERVATIVE, dataSource.getAutosave());
+  }
+
+  @Test
+  void serverNameCannotAddUrlProperties() {
+    PGSimpleDataSource dataSource = new PGSimpleDataSource();
+    dataSource.setSslMode("verify-full");
+    dataSource.setServerNames(
+        new String[]{"host:5432/?sslfactory=org.postgresql.ssl.NonValidatingFactory&x="});
+    assertThrows(IllegalArgumentException.class, dataSource::getUrl);
+    dataSource.setServerNames(new String[]{"host?sslmode=disable"});
+    assertThrows(IllegalArgumentException.class, dataSource::getUrl);
+    dataSource.setServerNames(new String[]{"[::1]", "localhost"});
+    dataSource.setPortNumbers(new int[]{5432, 5433});
+    assertTrue(dataSource.getUrl().startsWith("jdbc:postgresql://[::1]:5432,localhost:5433/"),
+        dataSource.getUrl());
   }
 
   @Test
