@@ -271,9 +271,9 @@ public final class EscapedFunctions2 {
     buf.append(parsedArgs.get(0))
         .append(" from (length(")
         .append(parsedArgs.get(0))
-        .append(")+1-")
+        .append(")+1-(")
         .append(parsedArgs.get(1));
-    buf.append("))");
+    buf.append(")))");
   }
 
   /**
@@ -600,11 +600,11 @@ public final class EscapedFunctions2 {
     }
     buf.append("extract( ")
         .append(constantToDatePart(parsedArgs.get(0).toString()))
-        .append(" from (")
+        .append(" from ((")
         .append(parsedArgs.get(2))
-        .append("-")
+        .append(")-(")
         .append(parsedArgs.get(1))
-        .append("))");
+        .append(")))");
   }
 
   private static String constantToDatePart(String type) throws SQLException {
