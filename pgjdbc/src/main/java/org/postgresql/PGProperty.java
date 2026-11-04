@@ -760,7 +760,7 @@ public enum PGProperty {
   SSL(
       "ssl",
       null,
-      "Control use of SSL (any non-null value causes SSL to be required)"),
+      "Control use of SSL (an empty value or true causes SSL to be required)"),
 
   /**
    * File containing the SSL Certificate. Default will be the file {@code postgresql.crt} in {@code

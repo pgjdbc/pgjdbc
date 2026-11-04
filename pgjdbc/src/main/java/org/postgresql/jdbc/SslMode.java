@@ -64,10 +64,15 @@ public enum SslMode {
     String sslmode = PGProperty.SSL_MODE.getOrDefault(info);
     // If sslmode is not set, fallback to ssl parameter
     if (sslmode == null) {
-      if (PGProperty.SSL.getBoolean(info) || "".equals(PGProperty.SSL.getOrDefault(info))) {
+      String ssl = PGProperty.SSL.getOrDefault(info);
+      if (ssl == null || "false".equalsIgnoreCase(ssl)) {
+        return PREFER;
+      }
+      if (ssl.isEmpty() || "true".equalsIgnoreCase(ssl)) {
         return VERIFY_FULL;
       }
-      return PREFER;
+      throw new PSQLException(GT.tr("Invalid ssl value: {0}", ssl),
+          PSQLState.CONNECTION_UNABLE_TO_CONNECT);
     }
 
     for (SslMode sslMode : VALUES) {
