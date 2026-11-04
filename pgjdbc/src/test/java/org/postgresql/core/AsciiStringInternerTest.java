@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -19,6 +20,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
 
 /**
@@ -126,5 +128,27 @@ class AsciiStringInternerTest {
     }
     //this is really just done to make sure java cannot tell that nothing is really being done
     assertTrue(length.sum() > 0);
+  }
+
+  /**
+   * "Aa" and "BB" have the same hash, so all 2^15 strings of 15 such blocks share one hash.
+   */
+  @Test
+  @Timeout(value = 30, unit = TimeUnit.SECONDS)
+  void collidingValues() throws Exception {
+    AsciiStringInterner interner = new AsciiStringInterner();
+    int blocks = 15;
+    for (int round = 0; round < 2; round++) {
+      for (int n = 0; n < 1 << blocks; n++) {
+        byte[] bytes = new byte[2 * blocks];
+        for (int i = 0; i < blocks; i++) {
+          boolean aa = (n & (1 << i)) == 0;
+          bytes[2 * i] = (byte) (aa ? 'A' : 'B');
+          bytes[2 * i + 1] = (byte) (aa ? 'a' : 'B');
+        }
+        assertEquals(new String(bytes, StandardCharsets.US_ASCII),
+            interner.getString(bytes, 0, bytes.length, null));
+      }
+    }
   }
 }
