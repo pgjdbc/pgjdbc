@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGConnection;
+import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
@@ -45,6 +46,12 @@ import java.util.concurrent.TimeoutException;
 @EnabledForServerVersionRange(gte = "9.4")
 class LogicalReplicationTest {
   private static final String SLOT_NAME = "pgjdbc_logical_replication_slot";
+  private static final int STATUS_INTERVAL_MS = 200;
+  /**
+   * Slot for {@link #idleStreamSurvivesSocketReadTimeout()}, which streams over a second connection
+   * of its own. Sharing {@link #SLOT_NAME} would put two consumers on one slot.
+   */
+  private static final String IDLE_SLOT_NAME = SLOT_NAME + "_idle";
 
   private Connection replConnection;
   private Connection sqlConnection;
@@ -630,6 +637,70 @@ class LogicalReplicationTest {
         "ReplicationStream should periodically send keep alive message to postgresql to avoid disconnect from server",
         done, CoreMatchers.equalTo(false)
     );
+  }
+
+  /**
+   * A replication stream sets the socket timeout to the status interval and uses the resulting read
+   * timeout as its wake-up to send a standby status update. The blocking read has to survive that
+   * timeout, however many times it fires while the source is idle.
+   *
+   * <p>The connection sets {@code socketTimeout} on purpose: without it
+   * {@link org.postgresql.core.VisibleBufferedInputStream#setTimeoutRequested(boolean)} leaves the
+   * driver retrying the read instead of reporting the timeout, so the wake-up path is never
+   * exercised.</p>
+   *
+   * @see <a href="https://github.com/pgjdbc/pgjdbc/issues/4328">Issue 4328</a>
+   */
+  @Test
+  @Timeout(30)
+  void idleStreamSurvivesSocketReadTimeout() throws Exception {
+    // The blocking read times out after min(socketTimeout, statusInterval), so it wakes up every
+    // status interval and socketTimeout stays the connection-level guard
+    TestUtil.recreateLogicalReplicationSlot(sqlConnection, IDLE_SLOT_NAME, "test_decoding");
+    try (Connection connection = TestUtil.openReplicationConnection(
+        props -> PGProperty.SOCKET_TIMEOUT.set(props, 10))) {
+      PGReplicationStream stream =
+          ((PGConnection) connection)
+              .getReplicationAPI()
+              .replicationStream()
+              .logical()
+              .withSlotName(IDLE_SLOT_NAME)
+              .withStartPosition(getCurrentLSN())
+              .withSlotOption("include-xids", false)
+              .withSlotOption("skip-empty-xacts", true)
+              .withStatusInterval(STATUS_INTERVAL_MS, TimeUnit.MILLISECONDS)
+              .start();
+
+      ExecutorService executor = Executors.newSingleThreadExecutor();
+      try {
+        // Nothing happens on the source for several status intervals, so the read spends that
+        // time waking up on socket timeouts and sending status updates
+        Future<?> insert = executor.submit(() -> {
+          TimeUnit.MILLISECONDS.sleep(STATUS_INTERVAL_MS * 10);
+          try (Statement st = sqlConnection.createStatement()) {
+            st.execute("insert into test_logic_table(name) values('after idle')");
+          }
+          return null;
+        });
+
+        String result = group(receiveMessage(stream, 3));
+        insert.get(10, TimeUnit.SECONDS);
+
+        String wait = group(Arrays.asList(
+            "BEGIN",
+            "table public.test_logic_table: INSERT: pk[integer]:1 name[character varying]:'after idle'",
+            "COMMIT"
+        ));
+
+        assertThat("The stream should keep streaming after idling through several socket timeouts",
+            result, equalTo(wait)
+        );
+      } finally {
+        executor.shutdownNow();
+      }
+    } finally {
+      TestUtil.dropReplicationSlot(sqlConnection, IDLE_SLOT_NAME);
+    }
   }
 
   @Test

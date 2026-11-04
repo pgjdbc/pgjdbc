@@ -328,6 +328,11 @@ public class TestUtil {
   }
 
   public static Connection openReplicationConnection() throws Exception {
+    return openReplicationConnection(x -> { });
+  }
+
+  public static Connection openReplicationConnection(Consumer<? super Properties> props)
+      throws Exception {
     Properties properties = new Properties();
     PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, "9.4");
     PGProperty.PROTOCOL_VERSION.set(properties, "3");
@@ -337,6 +342,7 @@ public class TestUtil {
     PGProperty.USER.set(properties, TestUtil.getPrivilegedUser());
     PGProperty.PASSWORD.set(properties, TestUtil.getPrivilegedPassword());
     PGProperty.OPTIONS.set(properties, "-c synchronous_commit=on");
+    props.accept(properties);
     return TestUtil.openDB(properties);
   }
 
