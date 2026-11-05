@@ -143,6 +143,9 @@ class TimestampUtilsTest {
     assertToStringOfOffsetTime("23:59:59.999999+01", "23:59:59.999999499+01:00"); // 499 NanoSeconds
     assertToStringOfOffsetTime("24:00:00+01", "23:59:59.999999500+01:00"); // 500 NanoSeconds
     assertToStringOfOffsetTime("24:00:00+01", "23:59:59.999999999+01:00"); // 999 NanoSeconds
+
+    // 500 NanoSeconds round up, also when not after MAX_TIME
+    assertToStringOfOffsetTime("10:10:10.123457+01", "10:10:10.1234565+01:00");
   }
 
   private void assertToStringOfOffsetTime(String expectedOutput, String inputTime) {

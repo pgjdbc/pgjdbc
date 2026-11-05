@@ -1103,7 +1103,7 @@ public class TimestampUtils {
     try (ResourceLock ignore = lock.obtain()) {
       sbuf.setLength(0);
 
-      final LocalTime localTime = offsetTime.toLocalTime();
+      LocalTime localTime = offsetTime.toLocalTime();
       if (localTime.isAfter(MAX_TIME)) {
         sbuf.append("24:00:00");
         appendTimeZone(sbuf, offsetTime.getOffset());
@@ -1114,7 +1114,7 @@ public class TimestampUtils {
       if (nanosExceed499(nano)) {
         // Technically speaking this is not a proper rounding, however
         // it relies on the fact that appendTime just truncates 000..999 nanosecond part
-        offsetTime = offsetTime.plus(ONE_MICROSECOND);
+        localTime = localTime.plus(ONE_MICROSECOND);
       }
       appendTime(sbuf, localTime);
       appendTimeZone(sbuf, offsetTime.getOffset());
