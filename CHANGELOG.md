@@ -29,6 +29,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Security
 * fix: the values of `password` and `sslpassword` in a JDBC URL are replaced with `***` where the driver logs the URL or puts it in an exception message. Before, the full URL was logged at `FINE` on every connection and at `WARNING` for some malformed URLs, and was put in the exception for a URL the driver could not parse [PR #4512](https://github.com/pgjdbc/pgjdbc/pull/4512)
+* fix: a JDBC URL with `user:password@` before the host, such as `jdbc:postgresql://user:password@host/db`, is refused, and the user and password are replaced with `***` in the exception message. Before, the driver read the password as a part of the host, the port, or the database name, and logged it. As in libpq, an `@` between `//` and the first `/` ends the user and password, even after a `?`. A parameter name with `@` or `/` is refused too. An `@` after the first `/`, in a URL without `//`, or in a parameter value, such as `user=name@server`, is accepted as before. As in libpq, a password with a raw `/`, as in `user:1234/word@host`, is read as a port and a database name; pass such a password in the `password` parameter [PR #4512](https://github.com/pgjdbc/pgjdbc/pull/4512)
 
 ## [42.7.14] (2026-10-07)
 

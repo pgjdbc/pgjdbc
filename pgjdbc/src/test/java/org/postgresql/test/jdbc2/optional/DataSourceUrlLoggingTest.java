@@ -18,6 +18,8 @@ import org.postgresql.util.TestLogHandler;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -88,5 +90,20 @@ class DataSourceUrlLoggingTest {
     assertEquals(1, messages.size(), () -> "Expected one record, but got " + messages);
     assertTrue(messages.get(0).startsWith(expectedPrefix),
         () -> "Expected the record to start with " + expectedPrefix + ", but got " + messages.get(0));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "jdbc:postgresql://alice:secret@db:5432/app",
+      "jdbc:postgresql://alice:sec/ret@db:5432/app",
+      "jdbc:postgresql://alice:sec?ret@db:5432/app",
+  })
+  void setUrlMasksUserInfoInItsError(String url) {
+    // parseURL logs why it refuses the URL; keep the WARNING off the console
+    TestLogHandler.recordFineMessages(Driver.class, () -> {
+      IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+          () -> new PGSimpleDataSource().setURL(url));
+      assertEquals("URL invalid jdbc:postgresql://***@db:5432/app", e.getMessage());
+    });
   }
 }
