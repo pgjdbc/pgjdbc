@@ -5,11 +5,13 @@
 
 package org.postgresql.core;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.util.PSQLException;
@@ -18,10 +20,14 @@ import org.postgresql.util.PSQLState;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Test cases for the Parser.
@@ -268,6 +274,62 @@ class ParserTest {
     JdbcCallParseInfo parseInfo = Parser.modifyJdbcCall(sql, true, ServerVersion.v14.getVersionNum(),
         EscapeSyntaxCallMode.CALL);
     assertFalse(parseInfo.isFunction(), () -> "isFunction() should be false for: " + sql);
+  }
+
+  @ParameterizedTest
+  @MethodSource("keywordMatchers")
+  void matcherAcceptsAKeywordThatEndsTheInput(String keyword, KeywordMatcher matcher) {
+    String shortByOne = keyword.substring(0, keyword.length() - 1);
+    assertAll(
+        () -> assertTrue(matcher.matches(keyword.toCharArray(), 0),
+            () -> "\"" + keyword + "\" at offset 0"),
+        () -> assertTrue(matcher.matches(("x " + keyword).toCharArray(), 2),
+            () -> "\"x " + keyword + "\" at offset 2"),
+        () -> assertTrue(matcher.matches((keyword + " x").toCharArray(), 0),
+            () -> "\"" + keyword + " x\" at offset 0"),
+        () -> assertFalse(matcher.matches(shortByOne.toCharArray(), 0),
+            () -> "\"" + shortByOne + "\" at offset 0"));
+  }
+
+  @FunctionalInterface
+  interface KeywordMatcher {
+    boolean matches(char[] query, int offset);
+  }
+
+  private static Arguments matcher(String name, String keyword, KeywordMatcher matcher) {
+    return argumentSet(name, keyword, matcher);
+  }
+
+  static Stream<Arguments> keywordMatchers() {
+    return Stream.of(
+        matcher("parseDeleteKeyword", "delete", Parser::parseDeleteKeyword),
+        matcher("parseInsertKeyword", "insert", Parser::parseInsertKeyword),
+        matcher("parseBeginKeyword", "begin", Parser::parseBeginKeyword),
+        matcher("parseAtomicKeyword", "atomic", Parser::parseAtomicKeyword),
+        matcher("parseMoveKeyword", "move", Parser::parseMoveKeyword),
+        matcher("parseReturningKeyword", "returning", Parser::parseReturningKeyword),
+        matcher("parseSelectKeyword", "select", Parser::parseSelectKeyword),
+        matcher("parseAlterKeyword", "alter", Parser::parseAlterKeyword),
+        matcher("parseCreateKeyword", "create", Parser::parseCreateKeyword),
+        matcher("parseUpdateKeyword", "update", Parser::parseUpdateKeyword),
+        matcher("parseValuesKeyword", "values", Parser::parseValuesKeyword),
+        matcher("parseWithKeyword", "with", Parser::parseWithKeyword),
+        matcher("parseAsKeyword", "as", Parser::parseAsKeyword));
+  }
+
+  @ParameterizedTest
+  @CsvSource(delimiter = '|', value = {
+      "INSERT | insert",
+      "INSERT | insert into t",
+      "SELECT | select",
+      "INSERT | with x as (select 1) insert",
+      "INSERT | with x as (select 1) insert into t",
+      "SELECT | with x as (select 1) select",
+  })
+  void commandTypeComesFromAKeywordThatEndsTheInput(SqlCommandType expected, String sql)
+      throws SQLException {
+    assertEquals(expected,
+        Parser.parseJdbcSql(sql, true, true, true, true, true).get(0).command.getType());
   }
 
   @Test
