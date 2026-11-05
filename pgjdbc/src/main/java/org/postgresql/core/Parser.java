@@ -419,14 +419,13 @@ public class Parser {
   /**
    * Find the end of the single-quoted string starting at the given offset.
    *
-   * <p>Note: for {@code 'single '' quote in string'}, this method currently returns the offset of
-   * first {@code '} character after the initial one. The caller must call the method a second time
-   * for the second part of the quoted string.</p>
+   * <p>A doubled quote, as in {@code 'single '' quote in string'}, is part of the string, so an
+   * {@code E'...'} string keeps its backslash escapes up to the quote that ends it.</p>
    *
    * @param query                     query
    * @param offset                    start offset
    * @param standardConformingStrings standard conforming strings
-   * @return position of the end of the single-quoted string
+   * @return position of the quote that ends the string, or {@code query.length} if no quote ends it
    */
   public static int parseSingleQuotes(final char[] query, int offset,
       boolean standardConformingStrings) {
@@ -442,7 +441,11 @@ public class Parser {
       // do NOT treat backslashes as escape characters
       while (++offset < query.length) {
         if (query[offset] == '\'') {
-          return offset;
+          if (offset + 1 < query.length && query[offset + 1] == '\'') {
+            ++offset;
+          } else {
+            return offset;
+          }
         }
       }
     } else {
@@ -453,6 +456,10 @@ public class Parser {
             ++offset;
             break;
           case '\'':
+            if (offset + 1 < query.length && query[offset + 1] == '\'') {
+              ++offset;
+              break;
+            }
             return offset;
           default:
             break;
@@ -1073,7 +1080,6 @@ public class Parser {
     char[] jdbcSqlChars = jdbcSql.toCharArray();
     int len = jdbcSql.length();
     int state = 1;
-    boolean inQuotes = false;
     boolean inEscape = false;
     int startIndex = -1;
     int endIndex = -1;
@@ -1162,16 +1168,23 @@ public class Parser {
           break;
 
         case 7:  // In "body" of the query (after "{ [? =] call ")
+          // A literal, a quoted identifier, or a comment is skipped as a whole, so a quote or a
+          // brace inside it does not count. One left open runs to the end of the text, which then
+          // fails for the missing closing brace.
           if (ch == '\'') {
-            inQuotes = !inQuotes;
-            ++i;
-          } else if (inQuotes && ch == '\\' && !stdStrings) {
-            // Backslash in string constant, skip next character.
-            i += 2;
-          } else if (!inQuotes && ch == '{') {
+            i = Math.min(parseSingleQuotes(jdbcSqlChars, i, stdStrings) + 1, len);
+          } else if (ch == '"') {
+            i = Math.min(parseDoubleQuotes(jdbcSqlChars, i) + 1, len);
+          } else if (ch == '$') {
+            i = Math.min(parseDollarQuotes(jdbcSqlChars, i) + 1, len);
+          } else if (ch == '-') {
+            i = Math.min(parseLineComment(jdbcSqlChars, i) + 1, len);
+          } else if (ch == '/') {
+            i = Math.min(parseBlockComment(jdbcSqlChars, i) + 1, len);
+          } else if (ch == '{') {
             inEscape = !inEscape;
             ++i;
-          } else if (!inQuotes && ch == '}') {
+          } else if (ch == '}') {
             if (!inEscape) {
               // Should be end of string.
               endIndex = i;
@@ -1180,7 +1193,7 @@ public class Parser {
             } else {
               inEscape = false;
             }
-          } else if (!inQuotes && ch == ';') {
+          } else if (ch == ';') {
             syntaxError = true;
           } else {
             // Everything else is ok.

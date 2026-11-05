@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.util.PSQLException;
@@ -18,10 +19,13 @@ import org.postgresql.util.PSQLState;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Test cases for the Parser.
@@ -228,6 +232,114 @@ class ParserTest {
     // A trailing token that is not a comment is still a syntax error.
     assertThrows(PSQLException.class, () -> Parser.modifyJdbcCall("{call lower(?,?)} garbage", true,
         ServerVersion.v11.getVersionNum(), EscapeSyntaxCallMode.CALL));
+  }
+
+  static Stream<Arguments> callBodiesWithQuotesAndBracesInsideTokens() {
+    return Stream.of(
+        arguments("{call f() /* it's */}", true, "call f() /* it's */"),
+        arguments("{call f() /* it's */}", false, "call f() /* it's */"),
+        arguments("{call f() -- it's\n}", true, "call f() -- it's\n"),
+        arguments("{call f() -- it's\n}", false, "call f() -- it's\n"),
+        arguments("{call f(/* } */)}", true, "call f(/* } */)"),
+        arguments("{call f(/* } */)}", false, "call f(/* } */)"),
+        arguments("{call \"it's\"()}", true, "call \"it's\"()"),
+        arguments("{call \"it's\"()}", false, "call \"it's\"()"),
+        arguments("{call f($$it's$$)}", true, "call f($$it's$$)"),
+        arguments("{call f($$it's$$)}", false, "call f($$it's$$)"),
+        arguments("{call f(E'\\'')}", true, "call f(E'\\'')"),
+        arguments("{call f(E'\\'')}", false, "call f(E'\\'')"),
+        arguments("{call f(E'\\'a''b\\'c')}", true, "call f(E'\\'a''b\\'c')"),
+        arguments("{call f(E'\\'a''b\\'c')}", false, "call f(E'\\'a''b\\'c')"),
+        arguments("{call f('it''s /* -- }')}", true, "call f('it''s /* -- }')"),
+        arguments("{call f('it''s /* -- }')}", false, "call f('it''s /* -- }')"),
+        arguments("{call f('a' '}')}", true, "call f('a' '}')"),
+        arguments("{call f('a' '}')}", false, "call f('a' '}')"),
+        arguments("{call f('a\\')}", true, "call f('a\\')"),
+        arguments("{call f('\\'')}", false, "call f('\\'')"),
+        arguments("{call f(1-2, 4/2, $1, a$b)}", true, "call f(1-2, 4/2, $1, a$b)"),
+        arguments("{call f(1-2, 4/2, $1, a$b)}", false, "call f(1-2, 4/2, $1, a$b)"),
+        arguments("{? = call f(/* it's */ ?)}", true, "call f(?,/* it's */ ?)"),
+        arguments("{? = call f(/* it's */ ?)}", false, "call f(?,/* it's */ ?)")
+    );
+  }
+
+  @ParameterizedTest
+  @MethodSource("callBodiesWithQuotesAndBracesInsideTokens")
+  void callBodyIgnoresQuotesAndBracesInsideCommentsAndQuotedText(String sql, boolean stdStrings,
+      String expected) throws SQLException {
+    assertEquals(expected, Parser.modifyJdbcCall(sql, stdStrings, ServerVersion.v11.getVersionNum(),
+        EscapeSyntaxCallMode.CALL).getSql());
+  }
+
+  static Stream<Arguments> callBodiesWithoutClosingBrace() {
+    return Stream.of(
+        arguments("{call f() /* }", true),
+        arguments("{call f() /* }", false),
+        arguments("{call f() -- }", true),
+        arguments("{call f() -- }", false),
+        arguments("{call f() -- '\\", true),
+        arguments("{call f() -- '\\", false),
+        arguments("{call f('it''s}", true),
+        arguments("{call f('it''s}", false),
+        arguments("{call f('a\\", true),
+        arguments("{call f('a\\", false),
+        arguments("{?=call f('a\\", true),
+        arguments("{?=call f('a\\", false),
+        arguments("{call f('\\", true),
+        arguments("{call f('\\", false),
+        arguments("{call f('a\\')}", false),
+        arguments("{call \"it's}", true),
+        arguments("{call \"it's}", false),
+        arguments("{call \"it's\"() \\", true),
+        arguments("{call \"it's\"() \\", false),
+        arguments("{call f($$it's})", true),
+        arguments("{call f($$it's})", false),
+        arguments("{call f($$it's$$) \\", true),
+        arguments("{call f($$it's$$) \\", false)
+    );
+  }
+
+  /**
+   * A call escape is rejected at the offset of the end of the text when no closing brace stands
+   * outside a comment, string constant, quoted identifier, or dollar quote. A {@code --} comment runs
+   * to the end of the line, so a closing brace on that line belongs to the comment.
+   */
+  @ParameterizedTest
+  @MethodSource("callBodiesWithoutClosingBrace")
+  void callBodyWithoutClosingBraceIsRejected(String sql, boolean stdStrings) {
+    PSQLException e = assertThrows(PSQLException.class, () -> Parser.modifyJdbcCall(sql, stdStrings,
+        ServerVersion.v11.getVersionNum(), EscapeSyntaxCallMode.CALL));
+    assertEquals(PSQLState.STATEMENT_NOT_ALLOWED_IN_FUNCTION_CALL.getState(), e.getSQLState());
+    assertTrue(e.getMessage().contains(Integer.toString(sql.length())),
+        () -> "the message should report offset " + sql.length() + ": " + e.getMessage());
+  }
+
+  static Stream<Arguments> placeholdersAroundEscapeStrings() {
+    return Stream.of(
+        arguments("select E'a''b\\'?'", 0),
+        arguments("select 'a''b', ?", 1)
+    );
+  }
+
+  @ParameterizedTest
+  @MethodSource("placeholdersAroundEscapeStrings")
+  void questionMarkInsideAnEscapeStringIsNotAPlaceholder(String sql, int bindCount)
+      throws SQLException {
+    List<NativeQuery> queries = Parser.parseJdbcSql(sql, true, true, true, false, true);
+    assertEquals(bindCount, queries.get(0).bindPositions.length);
+  }
+
+  static Stream<Arguments> escapesAroundEscapeStrings() {
+    return Stream.of(
+        arguments("select E'a''b\\' {fn now()} '", "select E'a''b\\' {fn now()} '"),
+        arguments("select 'a''b' || {fn now()}", "select 'a''b' || now()")
+    );
+  }
+
+  @ParameterizedTest
+  @MethodSource("escapesAroundEscapeStrings")
+  void escapeInsideAnEscapeStringIsNotReplaced(String sql, String expected) throws SQLException {
+    assertEquals(expected, Parser.replaceProcessing(sql, true, true));
   }
 
   /**
