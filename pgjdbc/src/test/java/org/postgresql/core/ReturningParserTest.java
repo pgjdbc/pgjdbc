@@ -7,8 +7,10 @@ package org.postgresql.core;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -131,19 +133,17 @@ public class ReturningParserTest {
         argumentSet("prepare with parameter types", "prepare p (int, text) as update t set a = $1",
             SqlCommandType.UPDATE, "prepare p (int, text) as update t set a = $1\nRETURNING *"),
         argumentSet("explain", "explain insert into t values (1)",
-            SqlCommandType.INSERT, "explain insert into t values (1)\nRETURNING *"),
+            SqlCommandType.BLANK, "explain insert into t values (1)"),
         argumentSet("explain with bare options", "explain analyze verbose delete from t",
-            SqlCommandType.DELETE, "explain analyze verbose delete from t\nRETURNING *"),
+            SqlCommandType.BLANK, "explain analyze verbose delete from t"),
         argumentSet("explain with an option list", "explain (format json) insert into t values (1)",
-            SqlCommandType.INSERT, "explain (format json) insert into t values (1)\nRETURNING *"),
+            SqlCommandType.BLANK, "explain (format json) insert into t values (1)"),
         argumentSet("explain, then with", "explain with x as (select 1) insert into t select * from x",
-            SqlCommandType.INSERT,
-            "explain with x as (select 1) insert into t select * from x\nRETURNING *"),
+            SqlCommandType.BLANK, "explain with x as (select 1) insert into t select * from x"),
         argumentSet("explain, then merge",
             "explain merge into t using s on t.id = s.id when matched then update set a = 1",
-            SqlCommandType.MERGE,
-            "explain merge into t using s on t.id = s.id when matched then update set a = 1"
-                + "\nRETURNING *"),
+            SqlCommandType.BLANK,
+            "explain merge into t using s on t.id = s.id when matched then update set a = 1"),
         argumentSet("create function with begin atomic",
             "create function f() returns int language sql begin atomic select 1; end",
             SqlCommandType.CREATE,
@@ -178,5 +178,17 @@ public class ReturningParserTest {
             Arrays.asList("BLANK: listen update", "DELETE:  delete from t\nRETURNING *")),
         argumentSet("a keyword before the semicolon, then select", "notify update; select 1",
             Arrays.asList("BLANK: notify update", "SELECT:  select 1")));
+  }
+
+  @Test
+  void explainWithItsOwnReturningIsMarkedAsReturningRows() throws SQLException {
+    String sql = "explain insert into t values (1) returning a";
+    NativeQuery query = Parser.parseJdbcSql(sql, true, true, true, true, true, "*").get(0);
+    assertAll(
+        () -> assertEquals(SqlCommandType.BLANK, query.command.getType(), "command type"),
+        () -> assertEquals(sql, query.nativeSql),
+        () -> assertTrue(query.command.isReturningKeywordPresent(),
+            "isReturningKeywordPresent(); pgjdbc 42.7.14 returns true as well, and PgStatement then"
+                + " returns the plan as generated keys"));
   }
 }
