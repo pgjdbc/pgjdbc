@@ -65,6 +65,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 * fix: when `sslmode` is not set, the `ssl` connection property now accepts only `true`, `false` or the empty value, ignoring case. Any other value now makes the connection attempt fail with "Invalid ssl value" and SQLState `08001`, before a connection is opened. Before, values such as `1`, `on`, `yes`, `require`, `verify-full` or `true` with a trailing space were accepted and silently gave `sslmode=prefer`, which neither requires TLS nor checks the server certificate. Unchanged: `true` and the empty value (as in `?ssl` in a URL) still mean `sslmode=verify-full`, `false` and no `ssl` property still mean `sslmode=prefer`, and `ssl` is still ignored when `sslmode` is set. An application that now fails should set `sslmode` to the mode it wants, or use `ssl=true` to require TLS and verify the certificate. This affects 9.4.1208 through 42.7.14 [GHSA-3mrw-838h-x9j9](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-3mrw-838h-x9j9) [CVE-2026-134845](https://nvd.nist.gov/vuln/detail/CVE-2026-134845)
+### Security
+* fix: the values of `password` and `sslpassword` in a JDBC URL are replaced with `***` where the driver logs the URL or puts it in an exception message. Before, the full URL was logged at `FINE` on every connection and at `WARNING` for some malformed URLs, and was put in the exception for a URL the driver could not parse [PR #4512](https://github.com/pgjdbc/pgjdbc/pull/4512)
 
 ## [42.7.14] (2026-10-07)
 
