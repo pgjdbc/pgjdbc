@@ -78,7 +78,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     private final String key;
     private final String value;
 
-    StartupParam(String key, String value) {
+    StartupParam(String key, String value) throws PSQLException {
+      // A NUL would end the value early and turn the rest into further parameters. The server
+      // keeps the last assignment of a name, so an injected one overrides what came before.
+      if (key.indexOf(0) >= 0 || value.indexOf(0) >= 0) {
+        throw new PSQLException(
+            GT.tr("The startup parameter {0} must not contain a NUL character.", key),
+            PSQLState.INVALID_PARAMETER_VALUE);
+      }
       this.key = key;
       this.value = value;
     }
@@ -466,7 +473,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         PSQLState.CONNECTION_UNABLE_TO_CONNECT);
   }
 
-  private static List<StartupParam> getParametersForStartup(String user, String database, Properties info) {
+  private static List<StartupParam> getParametersForStartup(String user, String database,
+      Properties info) throws PSQLException {
     List<StartupParam> paramList = new ArrayList<>();
     paramList.add(new StartupParam("user", user));
     paramList.add(new StartupParam("database", database));
