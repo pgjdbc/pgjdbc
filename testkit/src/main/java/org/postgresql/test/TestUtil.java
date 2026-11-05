@@ -27,6 +27,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -152,6 +154,15 @@ public class TestUtil {
   public static int getPort() {
     return Integer.parseInt(
         castNonNull(getTestUrlProperty(System.getProperties(), PGProperty.PG_PORT)));
+  }
+
+  /**
+   * Returns a loopback port nothing listens on, so a connection attempt to it fails at once.
+   */
+  public static int getClosedLoopbackPort() throws IOException {
+    try (ServerSocket socket = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
+      return socket.getLocalPort();
+    }
   }
 
   /*
