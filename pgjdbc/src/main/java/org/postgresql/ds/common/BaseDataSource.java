@@ -1540,7 +1540,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     Properties p = Driver.parseURL(url, null);
 
     if (p == null) {
-      throw new IllegalArgumentException("URL invalid " + JdbcUrlMasker.maskSensitiveValues(url));
+      throw new IllegalArgumentException("URL invalid " + JdbcUrlMasker.maskUserSuppliedUrl(url));
     }
     // setProperty ignores null, so a property that the URL does not set keeps its value.
     for (PGProperty property : PGProperty.values()) {

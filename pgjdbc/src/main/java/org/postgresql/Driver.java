@@ -287,13 +287,13 @@ public class Driver implements java.sql.Driver {
     // parse URL and add more properties
     if ((props = parseURL(url, props)) == null) {
       throw new PSQLException(
-          GT.tr("Unable to parse URL {0}", JdbcUrlMasker.maskSensitiveValues(url)),
+          GT.tr("Unable to parse URL {0}", JdbcUrlMasker.maskUserSuppliedUrl(url)),
           PSQLState.UNEXPECTED_ERROR);
     }
     try {
 
       if (LOGGER.isLoggable(Level.FINE)) {
-        LOGGER.log(Level.FINE, "Connecting with URL: {0}", JdbcUrlMasker.maskSensitiveValues(url));
+        LOGGER.log(Level.FINE, "Connecting with URL: {0}", JdbcUrlMasker.maskUserSuppliedUrl(url));
       }
 
       // Enforce login timeout, if specified, by handing the connection
@@ -551,6 +551,28 @@ public class Driver implements java.sql.Driver {
     }
     urlServer = urlServer.substring("jdbc:postgresql:".length());
 
+    // libpq accepts a user:password@ part before the host, the driver does not
+    if (JdbcUrlMasker.findUserInfoEnd(url) != -1) {
+      LOGGER.log(Level.WARNING,
+          "JDBC URL must not contain user:password@ before the host: use the user and password"
+              + " parameters instead");
+      return null;
+    }
+
+    // A password with a raw "/" and then "?" puts its "@" into a parameter name, which no real name
+    // holds. Refuse such a URL rather than connect to the host and port the password starts with
+    String[] args = urlArgs.split("&");
+    for (String token : args) {
+      int pos = token.indexOf('=');
+      String name = pos == -1 ? token : token.substring(0, pos);
+      if (name.indexOf('@') != -1 || name.indexOf('/') != -1) {
+        LOGGER.log(Level.WARNING,
+            "JDBC URL must not contain @ or / in a parameter name: use the user and password"
+                + " parameters instead of user:password@");
+        return null;
+      }
+    }
+
     if ("//".equals(urlServer) || "///".equals(urlServer)) {
       urlServer = "";
     } else if (urlServer.startsWith("//")) {
@@ -558,13 +580,13 @@ public class Driver implements java.sql.Driver {
       long slashCount = urlServer.chars().filter(ch -> ch == '/').count();
       if (slashCount > 1) {
         LOGGER.log(Level.WARNING, "JDBC URL contains too many / characters: {0}",
-            JdbcUrlMasker.maskSensitiveValues(url));
+            JdbcUrlMasker.maskUserSuppliedUrl(url));
         return null;
       }
       int slash = urlServer.indexOf('/');
       if (slash == -1) {
         LOGGER.log(Level.WARNING, "JDBC URL must contain a / at the end of the host or port: {0}",
-            JdbcUrlMasker.maskSensitiveValues(url));
+            JdbcUrlMasker.maskUserSuppliedUrl(url));
         return null;
       }
       if (!urlServer.endsWith("/")) {
@@ -612,7 +634,6 @@ public class Driver implements java.sql.Driver {
     }
 
     // parse the args part of the url
-    String[] args = urlArgs.split("&");
     String serviceName = null;
     for (String token : args) {
       if (token.isEmpty()) {
