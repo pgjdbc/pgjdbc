@@ -19,12 +19,15 @@ import org.postgresql.PGEnvironment;
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.annotations.DisableLogger;
+import org.postgresql.util.GT;
 import org.postgresql.util.PGPropertyUtil;
 import org.postgresql.util.StubEnvironmentAndProperties;
+import org.postgresql.util.TestLogHandler;
 import org.postgresql.util.URLCoder;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 import uk.org.webcompere.systemstubs.properties.SystemProperties;
 import uk.org.webcompere.systemstubs.resource.Resources;
@@ -44,7 +47,9 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 
 /*
@@ -52,6 +57,7 @@ import java.util.Properties;
  *
  */
 @StubEnvironmentAndProperties
+@Isolated("Records org.postgresql logs, so it needs to work in isolation from the other tests")
 class DriverTest {
 
   @Test
@@ -633,5 +639,51 @@ class DriverTest {
     } else {
       System.setProperty(key, value);
     }
+  }
+
+  private static final String URL_CREDENTIALS = "password=secret&sslpassword=passphrase";
+
+  private static final String MASKED_URL_CREDENTIALS = "password=***&sslpassword=***";
+
+  @Test
+  void malformedUrlWarningsMaskCredentials() {
+    List<String> messages = TestLogHandler.recordFineMessages(Driver.class, () -> {
+      assertNull(Driver.parseURL("jdbc:postgresql://localhost/a/b?" + URL_CREDENTIALS, null));
+      assertNull(Driver.parseURL("jdbc:postgresql://localhost?" + URL_CREDENTIALS, null));
+    });
+
+    assertEquals(
+        Arrays.asList(
+            "JDBC URL contains too many / characters: jdbc:postgresql://localhost/a/b?"
+                + MASKED_URL_CREDENTIALS,
+            "JDBC URL must contain a / at the end of the host or port: jdbc:postgresql://localhost?"
+                + MASKED_URL_CREDENTIALS),
+        messages);
+  }
+
+  @Test
+  void unableToParseUrlMasksCredentials() {
+    // The URL has too many / characters, so parseURL logs a WARNING; keep it off the console
+    TestLogHandler.recordFineMessages(Driver.class, () -> {
+      SQLException e = assertThrows(SQLException.class,
+          () -> new Driver().connect("jdbc:postgresql://localhost/a/b?" + URL_CREDENTIALS,
+              new Properties()));
+      assertEquals(
+          GT.tr("Unable to parse URL {0}", "jdbc:postgresql://localhost/a/b?" + MASKED_URL_CREDENTIALS),
+          e.getMessage());
+    });
+  }
+
+  @Test
+  void connectingWithUrlMasksCredentials() throws Exception {
+    String server = "jdbc:postgresql://127.0.0.1:" + TestUtil.getClosedLoopbackPort() + "/test?";
+
+    List<String> messages = TestLogHandler.recordFineMessages(Driver.class,
+        () -> assertThrows(SQLException.class,
+            () -> new Driver().connect(server + URL_CREDENTIALS, new Properties())));
+
+    String expected = "Connecting with URL: " + server + MASKED_URL_CREDENTIALS;
+    assertTrue(messages.contains(expected),
+        () -> "Expected the record " + expected + ", but got " + messages);
   }
 }

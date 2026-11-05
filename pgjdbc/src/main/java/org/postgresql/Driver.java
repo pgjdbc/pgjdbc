@@ -20,6 +20,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
 import org.postgresql.util.URLCoder;
+import org.postgresql.util.internal.JdbcUrlMasker;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -286,12 +287,14 @@ public class Driver implements java.sql.Driver {
     // parse URL and add more properties
     if ((props = parseURL(url, props)) == null) {
       throw new PSQLException(
-          GT.tr("Unable to parse URL {0}", url),
+          GT.tr("Unable to parse URL {0}", JdbcUrlMasker.maskSensitiveValues(url)),
           PSQLState.UNEXPECTED_ERROR);
     }
     try {
 
-      LOGGER.log(Level.FINE, "Connecting with URL: {0}", url);
+      if (LOGGER.isLoggable(Level.FINE)) {
+        LOGGER.log(Level.FINE, "Connecting with URL: {0}", JdbcUrlMasker.maskSensitiveValues(url));
+      }
 
       // Enforce login timeout, if specified, by handing the connection
       // attempt to an Executor, which must run it on a thread other than
@@ -554,12 +557,14 @@ public class Driver implements java.sql.Driver {
       urlServer = urlServer.substring(2);
       long slashCount = urlServer.chars().filter(ch -> ch == '/').count();
       if (slashCount > 1) {
-        LOGGER.log(Level.WARNING, "JDBC URL contains too many / characters: {0}", url);
+        LOGGER.log(Level.WARNING, "JDBC URL contains too many / characters: {0}",
+            JdbcUrlMasker.maskSensitiveValues(url));
         return null;
       }
       int slash = urlServer.indexOf('/');
       if (slash == -1) {
-        LOGGER.log(Level.WARNING, "JDBC URL must contain a / at the end of the host or port: {0}", url);
+        LOGGER.log(Level.WARNING, "JDBC URL must contain a / at the end of the host or port: {0}",
+            JdbcUrlMasker.maskSensitiveValues(url));
         return null;
       }
       if (!urlServer.endsWith("/")) {
