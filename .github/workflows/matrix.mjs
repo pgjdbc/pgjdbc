@@ -339,8 +339,10 @@ matrix.exclude({query_mode: {value: 'simple'}, pg_version: lessThan('9.1')});
 //matrix.exclude({query_mode: {value: 'simple'}, pg_version: '8.4'});
 // Microsoft ships Java 11+
 matrix.imply({java_distribution: {value: 'microsoft'}}, {java_version: v => v >= 11});
-// Oracle JDK is only supported for JDK 21 and later
-matrix.imply({java_distribution: {value: 'oracle'}}, {java_version: v => v === eaJava || v >= 21});
+// download.oracle.com serves Oracle JDK 17 and later. When the free updates for a release end, Oracle removes it from
+// /latest/, and actions/setup-java falls back to /archive/jdk-<major>, the first GA build of the release (17.0.0,
+// 21.0.0), so this line needs no update.
+matrix.imply({java_distribution: {value: 'oracle'}}, {java_version: v => v === eaJava || v >= 17});
 // TODO: Semeru does not ship Java 21 builds yet
 matrix.exclude({java_distribution: {value: 'semeru'}, java_version: '21'})
 matrix.imply({gss: {value: 'yes'}}, {os: {value: 'ubuntu-latest'}})
@@ -463,8 +465,11 @@ include.forEach(v => {
   const {value: javaDistribution, vendor: javaVendor} = v.java_distribution;
   v.java_distribution = javaDistribution;
   v.java_vendor = javaVendor;
-  if (v.java_distribution === 'oracle') {
-      v.oracle_java_website = v.java_version === eaJava ? 'jdk.java.net' : 'oracle.com';
+  // oracle-actions/setup-java is used for the EA build only. With the default version: latest it downloads a GA
+  // release from /latest/ alone and fails once Oracle removes the release from there, so GA Oracle JDK comes from
+  // actions/setup-java instead.
+  if (v.java_version === eaJava) {
+      v.oracle_java_website = 'jdk.java.net';
   }
   v.non_ea_java_version = v.java_version === eaJava ? '' : v.java_version;
   v.replication = v.replication.value;
