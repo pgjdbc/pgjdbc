@@ -677,6 +677,21 @@ class DriverTest {
         e.getMessage());
   }
 
+  /**
+   * DriverManager asks every driver whether it accepts a URL, so the driver sees the URLs of other
+   * drivers, whose credentials it cannot mask.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "jdbc:sqlserver://h;user=u;password=secret",
+      "jdbc:oracle:thin:u/secret@h:1521/x",
+  })
+  void otherDriverUrlIsNotLogged(String url) {
+    List<String> messages = TestLogHandler.recordFineMessages(Driver.class,
+        () -> assertFalse(new Driver().acceptsURL(url), url));
+    assertEquals(Arrays.asList("JDBC URL does not start with \"jdbc:postgresql:\""), messages);
+  }
+
   private static final String USER_INFO_WARNING =
       "JDBC URL must not contain user:password@ before the host: use the user and password"
           + " parameters instead";
@@ -718,6 +733,53 @@ class DriverTest {
             () -> assertNull(Driver.parseURL(url, null), url))));
     assertEquals(Arrays.asList(expectedWarning), driverMessages);
     assertEquals(Collections.emptyList(), propertyUtilMessages);
+  }
+
+  static Stream<Arguments> urlsWithSlashInPassword() {
+    return Stream.of(
+        arguments("jdbc:postgresql://alice:sec/ret@db/app",
+            Arrays.asList("JDBC URL contains too many / characters: jdbc:postgresql://***@db/app"),
+            Collections.emptyList()),
+        // Host "alice", port "sec", and database "ret@db"
+        arguments("jdbc:postgresql://alice:sec/ret@db",
+            Collections.emptyList(),
+            Arrays.asList("Invalid port number: port 1 of 1 is not a number")),
+        arguments("jdbc:postgresql://alice:sec/ret%zz@db",
+            Arrays.asList("JDBC URL database name could not be decoded"),
+            Collections.emptyList()));
+  }
+
+  /**
+   * As in libpq, a raw "/" in the password ends the search for user info, so the "@" after it is
+   * a part of the database name. Such a URL is refused for another reason, and the parts of the
+   * password that end up as the port or the database name must not be logged.
+   */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("urlsWithSlashInPassword")
+  void slashInPasswordIsNotDisclosed(String url, List<String> expectedDriverMessages,
+      List<String> expectedPropertyUtilMessages) {
+    List<String> driverMessages = new ArrayList<>();
+    List<String> propertyUtilMessages = TestLogHandler.recordFineMessages(PGPropertyUtil.class,
+        () -> driverMessages.addAll(TestLogHandler.recordFineMessages(Driver.class,
+            () -> assertNull(Driver.parseURL(url, null), url))));
+    assertEquals(expectedDriverMessages, driverMessages);
+    assertEquals(expectedPropertyUtilMessages, propertyUtilMessages);
+  }
+
+  static Stream<Arguments> invalidPorts() {
+    return Stream.of(
+        arguments("jdbc:postgresql://db1:5432,db2:54x2,db3:5432/app",
+            "Invalid port number: port 2 of 3 is not a number"),
+        arguments("jdbc:postgresql://db:99999/app",
+            "Invalid port number: port 1 of 1 is not in 1..65535"));
+  }
+
+  @ParameterizedTest
+  @MethodSource("invalidPorts")
+  void invalidPortWarningDoesNotEchoThePort(String url, String expectedWarning) {
+    List<String> messages = TestLogHandler.recordFineMessages(PGPropertyUtil.class,
+        () -> assertNull(Driver.parseURL(url, null), url));
+    assertEquals(Arrays.asList(expectedWarning), messages);
   }
 
   static Stream<Arguments> refusedUrlMessages() {
@@ -793,5 +855,26 @@ class DriverTest {
     String expected = "Connecting with URL: " + maskedUrl;
     assertTrue(messages.contains(expected),
         () -> "Expected the record " + expected + ", but got " + messages);
+  }
+
+  /**
+   * A parameter value that fails to URL-decode may be a credential, so only its name is logged.
+   */
+  @Test
+  void malformedCredentialValueIsNotLogged() {
+    List<String> messages = TestLogHandler.recordFineMessages(Driver.class,
+        // "%zz" is not a valid percent-escape, so decoding the value fails
+        () -> assertNull(Driver.parseURL(
+            "jdbc:postgresql://localhost:5432/test?sslpassword=secret%zz", null)));
+    assertEquals(Arrays.asList("URL parameter [sslpassword] could not be decoded"), messages);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"jdbc:postgresql:db%zz", "jdbc:postgresql://localhost/db%zz"})
+  void malformedDatabaseNameIsRejected(String url) {
+    List<String> messages = TestLogHandler.recordFineMessages(Driver.class,
+        // "%zz" is not a valid percent-escape, so decoding the database name fails
+        () -> assertNull(Driver.parseURL(url, null), url));
+    assertEquals(Arrays.asList("JDBC URL database name could not be decoded"), messages);
   }
 }

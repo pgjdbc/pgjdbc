@@ -88,6 +88,13 @@ class DataSourceUrlLoggingTest {
         () -> "Expected the record to start with " + expectedPrefix + ", but got " + messages.get(0));
   }
 
+  @Test
+  void setUrlDoesNotDiscloseOtherDriverUrl() {
+    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+        () -> new PGSimpleDataSource().setURL("jdbc:sqlserver://h;user=u;password=secret"));
+    assertEquals("URL invalid: it does not start with jdbc:postgresql:", e.getMessage());
+  }
+
   @ParameterizedTest
   @ValueSource(strings = {
       "jdbc:postgresql://alice:secret@db:5432/app",
