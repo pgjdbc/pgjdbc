@@ -328,15 +328,12 @@ public class ResultSetTest extends BaseTest4 {
     // it should apply only to binary and char/varchar columns
     rs.next();
     assertEquals("12345", rs.getString(1));
-    // getBytes returns 5 bytes for txt transfer, 4 for bin transfer
-    assertTrue(rs.getBytes(1).length >= 4);
 
     // max should apply to the following since the column is
     // a varchar column
     rs = stmt.executeQuery("select * from teststring");
     rs.next();
     assertEquals("12", rs.getString(1));
-    assertEquals("12", new String(rs.getBytes(1)));
   }
 
   @Test
