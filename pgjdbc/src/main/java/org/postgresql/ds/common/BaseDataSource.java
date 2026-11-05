@@ -1540,6 +1540,9 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     Properties p = Driver.parseURL(url, null);
 
     if (p == null) {
+      if (!url.startsWith("jdbc:postgresql:")) {
+        throw new IllegalArgumentException("URL invalid: it does not start with jdbc:postgresql:");
+      }
       throw new IllegalArgumentException("URL invalid " + JdbcUrlMasker.maskUserSuppliedUrl(url));
     }
     // setProperty ignores null, so a property that the URL does not set keeps its value.
