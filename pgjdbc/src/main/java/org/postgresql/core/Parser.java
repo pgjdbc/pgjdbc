@@ -40,7 +40,7 @@ public class Parser {
    * @param splitStatements           whether to split statements by semicolon
    * @param isBatchedReWriteConfigured whether re-write optimization is enabled
    * @param quoteReturningIdentifiers whether to quote identifiers returned using returning clause
-   * @param returningColumnNames      for simple insert, update, delete add returning with given column names
+   * @param returningColumnNames      for an insert, update, delete, merge, or with statement, add returning with given column names
    * @return list of native queries
    * @throws SQLException if unable to add returning clause (invalid column names)
    */
@@ -81,6 +81,12 @@ public class Parser {
     int keyWordCount = 0;
     int keywordStart = -1;
     int keywordEnd = -1;
+    // The first word of a statement names its command; only WITH takes its command from the
+    // statement after its queries. EXPLAIN and PREPARE name AS precede the statement they wrap,
+    // so the first word of that statement follows them.
+    boolean commandWordExpected = true;
+    boolean afterExplain = false;
+    boolean inPrepareHeader = false;
     /*
     loop through looking for keywords, single quotes, double quotes, comments, dollar quotes,
     parenthesis, ? and ;
@@ -181,7 +187,13 @@ public class Parser {
             prevCommandType = currentCommandType;
             isReturningPresentPrev = isReturningPresent;
             currentCommandType = SqlCommandType.BLANK;
+            commandWordExpected = true;
+            afterExplain = false;
+            inPrepareHeader = false;
             isReturningPresent = false;
+            // A word that ends at this semicolon is the last word of the statement that ends here,
+            // so it must not count as the first word of the next one
+            keywordStart = -1;
             if (splitStatements) {
               // Prepare for next query
               if (bindPositions != null) {
@@ -219,8 +231,13 @@ public class Parser {
       }
       if (keywordStart >= 0 && (i == aChars.length - 1 || !isKeyWordChar)) {
         int wordLength = (isKeyWordChar ? i + 1 : keywordEnd) - keywordStart;
-        if (currentCommandType == SqlCommandType.BLANK) {
-          if (wordLength == 6 && parseCreateKeyword(aChars, keywordStart)) {
+        if (currentCommandType == SqlCommandType.BLANK && commandWordExpected) {
+          if (inPrepareHeader) {
+            // PREPARE name [ ( data_type [, ...] ) ] AS statement
+            if (inParen == 0 && wordLength == 2 && parseAsKeyword(aChars, keywordStart)) {
+              inPrepareHeader = false;
+            }
+          } else if (wordLength == 6 && parseCreateKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.CREATE;
           } else if (wordLength == 5 && parseAlterKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.ALTER;
@@ -243,7 +260,16 @@ public class Parser {
               currentCommandType = SqlCommandType.INSERT;
             } else {
               isCurrentReWriteCompatible = false;
+              commandWordExpected = false;
             }
+          } else if (wordLength == 5 && parseKeyword(aChars, keywordStart, "merge")) {
+            currentCommandType = SqlCommandType.MERGE;
+          } else if (wordLength == 7 && parseKeyword(aChars, keywordStart, "prepare")) {
+            inPrepareHeader = true;
+          } else if (wordLength == 7 && parseKeyword(aChars, keywordStart, "explain")) {
+            afterExplain = true;
+          } else if (!(afterExplain && isExplainOption(aChars, keywordStart, wordLength, inParen, aChar))) {
+            commandWordExpected = false;
           }
 
         } else if (currentCommandType == SqlCommandType.WITH
@@ -368,6 +394,38 @@ public class Parser {
     return null;
   }
 
+  /**
+   * Checks whether a word that follows EXPLAIN is one of its options rather than the start of the
+   * explained statement: a word inside the parenthesized option list, or one of the bare options
+   * ANALYZE, ANALYSE, and VERBOSE.
+   */
+  private static boolean isExplainOption(char[] aChars, int keywordStart, int wordLength,
+      int inParen, char nextChar) {
+    // ')' has already decreased inParen when the last word of the list ends on it
+    return inParen != 0 || nextChar == ')'
+        || wordLength == 7 && (parseKeyword(aChars, keywordStart, "analyze")
+        || parseKeyword(aChars, keywordStart, "analyse")
+        || parseKeyword(aChars, keywordStart, "verbose"));
+  }
+
+  /**
+   * Checks for a keyword at {@code offset}, ignoring case. The caller checks that the word there is
+   * as long as the keyword.
+   *
+   * @param keyword the keyword in lower case
+   */
+  private static boolean parseKeyword(char[] query, int offset, String keyword) {
+    if (query.length < offset + keyword.length()) {
+      return false;
+    }
+    for (int i = 0; i < keyword.length(); i++) {
+      if ((query[offset + i] | 32) != keyword.charAt(i)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   private static boolean addReturning(StringBuilder nativeSql, SqlCommandType currentCommandType,
       String[] returningColumnNames, boolean isReturningPresent, boolean quoteReturningIdentifiers) throws SQLException {
     if (isReturningPresent || returningColumnNames.length == 0) {
@@ -376,7 +434,8 @@ public class Parser {
     if (currentCommandType != SqlCommandType.INSERT
         && currentCommandType != SqlCommandType.UPDATE
         && currentCommandType != SqlCommandType.DELETE
-        && currentCommandType != SqlCommandType.WITH) {
+        && currentCommandType != SqlCommandType.WITH
+        && currentCommandType != SqlCommandType.MERGE) {
       return false;
     }
 

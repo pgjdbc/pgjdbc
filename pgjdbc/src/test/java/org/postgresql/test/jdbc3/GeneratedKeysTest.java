@@ -5,6 +5,7 @@
 
 package org.postgresql.test.jdbc3;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -221,6 +222,24 @@ public class GeneratedKeysTest extends BaseTest4 {
     assertTrue(rs.next());
     assertCB1(rs);
     assertFalse(rs.next());
+  }
+
+  @Test
+  public void mergeReturnsTheMergedRowsAsGeneratedKeys() throws SQLException {
+    assumeMinimumServerVersion(ServerVersion.v17);
+    try (Statement stmt = con.createStatement()) {
+      stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 3), (2, 'b', 4)");
+      stmt.executeUpdate("MERGE INTO genkeys g USING (VALUES (1, 2)) v(id, new_c) ON g.a = v.id"
+              + " WHEN MATCHED THEN UPDATE SET c = v.new_c",
+          new String[]{"c", "b"});
+      try (ResultSet rs = stmt.getGeneratedKeys()) {
+        assertTrue(rs.next(), "getGeneratedKeys().next()");
+        assertAll(
+            () -> assertEquals(2, rs.getInt("c"), "c"),
+            () -> assertEquals("a", rs.getString("b"), "b"),
+            () -> assertFalse(rs.next(), "getGeneratedKeys() has a second row"));
+      }
+    }
   }
 
   @Test
@@ -507,4 +526,18 @@ public class GeneratedKeysTest extends BaseTest4 {
     ps.executeUpdate();
   }
 
+  /**
+   * LISTEN takes no RETURNING, so the driver has to send it unchanged even though the channel name
+   * is the keyword {@code insert}.
+   */
+  @Test
+  public void listenOnAChannelNamedInsertRunsWithGeneratedKeysRequested() throws SQLException {
+    try (Statement stmt = con.createStatement()) {
+      stmt.execute("listen insert /* channel */", Statement.RETURN_GENERATED_KEYS);
+      try (ResultSet rs = stmt.executeQuery("select string_agg(c, ',') from pg_listening_channels() c")) {
+        rs.next();
+        assertEquals("insert", rs.getString(1), "listening channels");
+      }
+    }
+  }
 }
