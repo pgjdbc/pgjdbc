@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import org.postgresql.Driver;
 import org.postgresql.PGEnvironment;
@@ -28,6 +29,10 @@ import org.postgresql.util.URLCoder;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 import uk.org.webcompere.systemstubs.properties.SystemProperties;
 import uk.org.webcompere.systemstubs.resource.Resources;
@@ -51,6 +56,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Stream;
 
 /*
  * Tests the dynamically created class org.postgresql.Driver
@@ -671,15 +677,120 @@ class DriverTest {
         e.getMessage());
   }
 
+  private static final String USER_INFO_WARNING =
+      "JDBC URL must not contain user:password@ before the host: use the user and password"
+          + " parameters instead";
+  private static final String PARAMETER_NAME_WARNING =
+      "JDBC URL must not contain @ or / in a parameter name: use the user and password"
+          + " parameters instead of user:password@";
+
+  static Stream<Arguments> urlsWithUserInfo() {
+    return Stream.of(
+        arguments("jdbc:postgresql://alice:secret@db/app", USER_INFO_WARNING),
+        arguments("jdbc:postgresql://alice:secret@db:5432/app", USER_INFO_WARNING),
+        arguments("jdbc:postgresql://db1,alice:secret@db2/app", USER_INFO_WARNING),
+        arguments("jdbc:postgresql://alice@db/app", USER_INFO_WARNING),
+        // As in libpq, a raw "?" in the password does not end the search for user info, even when
+        // the text after it looks like a known parameter
+        arguments("jdbc:postgresql://alice:sec?ret@db/app", USER_INFO_WARNING),
+        arguments("jdbc:postgresql://alice:sec?user=ret@db/app", USER_INFO_WARNING),
+        // A raw "/" and then "?" in the password ends the search at the "/" and moves the "@" into a
+        // parameter name. The port "pa" would reach the port warning
+        arguments("jdbc:postgresql://alice:pa/x?y@db/app", PARAMETER_NAME_WARNING),
+        // The port "1234" is valid, so the URL would be accepted and logged when connecting
+        arguments("jdbc:postgresql://alice:1234/x?y@db/app", PARAMETER_NAME_WARNING),
+        // "x%zz" would otherwise be decoded as the database name
+        arguments("jdbc:postgresql://alice:pa/x%zz?y@db/app", PARAMETER_NAME_WARNING),
+        arguments("jdbc:postgresql://alice:pa/x?y&z@db/app", PARAMETER_NAME_WARNING));
+  }
+
+  /**
+   * libpq accepts postgresql://user:password@host, the driver does not, and must not disclose the
+   * password while it refuses the URL: the parts of the password that end up as the host, the port,
+   * or the database name must not be logged, or used to connect.
+   */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("urlsWithUserInfo")
+  void userInfoIsRejectedWithoutDisclosingIt(String url, String expectedWarning) {
+    List<String> driverMessages = new ArrayList<>();
+    List<String> propertyUtilMessages = TestLogHandler.recordFineMessages(PGPropertyUtil.class,
+        () -> driverMessages.addAll(TestLogHandler.recordFineMessages(Driver.class,
+            () -> assertNull(Driver.parseURL(url, null), url))));
+    assertEquals(Arrays.asList(expectedWarning), driverMessages);
+    assertEquals(Collections.emptyList(), propertyUtilMessages);
+  }
+
+  static Stream<Arguments> refusedUrlMessages() {
+    return Stream.of(
+        arguments("jdbc:postgresql://alice:secret@db/app", "jdbc:postgresql://***@db/app"),
+        arguments("jdbc:postgresql://alice:sec/ret@db/app", "jdbc:postgresql://***@db/app"),
+        arguments("jdbc:postgresql://alice:sec/ret@db", "jdbc:postgresql://***@db"),
+        arguments("jdbc:postgresql://alice:sec?ret@db/app", "jdbc:postgresql://***@db/app"),
+        arguments("jdbc:postgresql://alice:sec?user=ret@db/app", "jdbc:postgresql://***@db/app"),
+        arguments("jdbc:postgresql://alice:pa/x?y@db/app", "jdbc:postgresql://***@db/app"),
+        arguments("jdbc:postgresql://alice:1234/x?y@db/app", "jdbc:postgresql://***@db/app"),
+        arguments("jdbc:postgresql://alice:pa/x?a=b@db/app", "jdbc:postgresql://***@db/app"),
+        // A URL refused for another reason keeps an "@" in the value of a known parameter, such as
+        // Azure's user@server, so the message still shows the host and the database
+        arguments("jdbc:postgresql://db:99999/app?user=alice@example.com",
+            "jdbc:postgresql://db:99999/app?user=alice@example.com"));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("refusedUrlMessages")
+  void unableToParseUrlMasksUserInfo(String url, String maskedUrl) {
+    SQLException e = assertThrows(SQLException.class,
+        () -> new Driver().connect(url, new Properties()));
+    assertEquals(GT.tr("Unable to parse URL {0}", maskedUrl), e.getMessage());
+  }
+
+  /** Azure Database for PostgreSQL single server needs a user of the form user@server. */
+  @Test
+  void atSignInQueryStringIsAccepted() {
+    Properties props = Driver.parseURL("jdbc:postgresql://db/app?user=alice@example.com", null);
+    assertNotNull(props);
+    assertEquals("alice@example.com", PGProperty.USER.getOrDefault(props));
+  }
+
+  @Test
+  void encodedAtSignInDatabaseNameIsAccepted() {
+    Properties props = Driver.parseURL("jdbc:postgresql://db/my%40app", null);
+    assertNotNull(props);
+    assertEquals("my@app", PGProperty.PG_DBNAME.getOrDefault(props));
+  }
+
+  /** As in libpq, an "@" after the first "/" is a part of the database name. */
+  @ParameterizedTest
+  @ValueSource(strings = {"jdbc:postgresql://db/my@app", "jdbc:postgresql:my@app"})
+  void atSignInDatabaseNameIsAccepted(String url) {
+    Properties props = Driver.parseURL(url, null);
+    assertNotNull(props, url);
+    assertEquals("my@app", PGProperty.PG_DBNAME.getOrDefault(props));
+  }
+
   @Test
   void connectingWithUrlMasksCredentials() throws Exception {
     String server = "jdbc:postgresql://127.0.0.1:" + TestUtil.getClosedLoopbackPort() + "/test?";
+    assertConnectingRecord(server + URL_CREDENTIALS, server + MASKED_URL_CREDENTIALS);
+  }
 
+  /**
+   * A raw "@" in the database name cannot be told apart from user info, as in user:1234/word@host,
+   * which is accepted as libpq accepts it, so masking runs up to that "@".
+   */
+  @Test
+  void connectingWithAtSignInDatabaseNameMasksUpToIt() throws Exception {
+    String url = "jdbc:postgresql://127.0.0.1:" + TestUtil.getClosedLoopbackPort() + "/my@app?";
+    assertConnectingRecord(url + URL_CREDENTIALS,
+        "jdbc:postgresql://***@app?" + MASKED_URL_CREDENTIALS);
+  }
+
+  private static void assertConnectingRecord(String url, String maskedUrl) {
     List<String> messages = TestLogHandler.recordFineMessages(Driver.class,
         () -> assertThrows(SQLException.class,
-            () -> new Driver().connect(server + URL_CREDENTIALS, new Properties())));
+            () -> new Driver().connect(url, new Properties())));
 
-    String expected = "Connecting with URL: " + server + MASKED_URL_CREDENTIALS;
+    String expected = "Connecting with URL: " + maskedUrl;
     assertTrue(messages.contains(expected),
         () -> "Expected the record " + expected + ", but got " + messages);
   }
