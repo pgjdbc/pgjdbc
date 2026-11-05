@@ -185,6 +185,16 @@ public class PgSQLXML implements SQLXML {
   }
 
   @Override
+  @SuppressWarnings("nullness")
+  public String toString() {
+    try {
+      return getString();
+    } catch (SQLException e) {
+      return super.toString();
+    }
+  }
+
+  @Override
   public OutputStream setBinaryStream() throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
