@@ -624,24 +624,14 @@ public class Parser {
   }
 
   /**
-   * Parse string to check presence of DELETE keyword regardless of case. The initial character is
-   * assumed to have been matched.
+   * Parse string to check presence of DELETE keyword regardless of case.
    *
    * @param query char[] of the query statement
    * @param offset position of query to start checking
    * @return boolean indicates presence of word
    */
   public static boolean parseDeleteKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 6)) {
-      return false;
-    }
-
-    return (query[offset] | 32) == 'd'
-        && (query[offset + 1] | 32) == 'e'
-        && (query[offset + 2] | 32) == 'l'
-        && (query[offset + 3] | 32) == 'e'
-        && (query[offset + 4] | 32) == 't'
-        && (query[offset + 5] | 32) == 'e';
+    return parseKeyword(query, offset, "delete");
   }
 
   /**
@@ -652,54 +642,29 @@ public class Parser {
    * @return boolean indicates presence of word
    */
   public static boolean parseInsertKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 7)) {
-      return false;
-    }
-
-    return (query[offset] | 32) == 'i'
-        && (query[offset + 1] | 32) == 'n'
-        && (query[offset + 2] | 32) == 's'
-        && (query[offset + 3] | 32) == 'e'
-        && (query[offset + 4] | 32) == 'r'
-        && (query[offset + 5] | 32) == 't';
+    return parseKeyword(query, offset, "insert");
   }
 
   /**
-   Parse string to check presence of BEGIN keyword regardless of case.
+   * Parse string to check presence of BEGIN keyword regardless of case.
    *
    * @param query char[] of the query statement
    * @param offset position of query to start checking
    * @return boolean indicates presence of word
    */
-
   public static boolean parseBeginKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 6)) {
-      return false;
-    }
-    return (query[offset] | 32) == 'b'
-        && (query[offset + 1] | 32) == 'e'
-        && (query[offset + 2] | 32) == 'g'
-        && (query[offset + 3] | 32) == 'i'
-        && (query[offset + 4] | 32) == 'n';
+    return parseKeyword(query, offset, "begin");
   }
 
   /**
-   Parse string to check presence of ATOMIC keyword regardless of case.
+   * Parse string to check presence of ATOMIC keyword regardless of case.
    *
    * @param query char[] of the query statement
    * @param offset position of query to start checking
    * @return boolean indicates presence of word
    */
   public static boolean parseAtomicKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 7)) {
-      return false;
-    }
-    return (query[offset] | 32) == 'a'
-        && (query[offset + 1] | 32) == 't'
-        && (query[offset + 2] | 32) == 'o'
-        && (query[offset + 3] | 32) == 'm'
-        && (query[offset + 4] | 32) == 'i'
-        && (query[offset + 5] | 32) == 'c';
+    return parseKeyword(query, offset, "atomic");
   }
 
   /**
@@ -710,14 +675,7 @@ public class Parser {
    * @return boolean indicates presence of word
    */
   public static boolean parseMoveKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 4)) {
-      return false;
-    }
-
-    return (query[offset] | 32) == 'm'
-        && (query[offset + 1] | 32) == 'o'
-        && (query[offset + 2] | 32) == 'v'
-        && (query[offset + 3] | 32) == 'e';
+    return parseKeyword(query, offset, "move");
   }
 
   /**
@@ -728,19 +686,7 @@ public class Parser {
    * @return boolean indicates presence of word
    */
   public static boolean parseReturningKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 9)) {
-      return false;
-    }
-
-    return (query[offset] | 32) == 'r'
-        && (query[offset + 1] | 32) == 'e'
-        && (query[offset + 2] | 32) == 't'
-        && (query[offset + 3] | 32) == 'u'
-        && (query[offset + 4] | 32) == 'r'
-        && (query[offset + 5] | 32) == 'n'
-        && (query[offset + 6] | 32) == 'i'
-        && (query[offset + 7] | 32) == 'n'
-        && (query[offset + 8] | 32) == 'g';
+    return parseKeyword(query, offset, "returning");
   }
 
   /**
@@ -751,35 +697,18 @@ public class Parser {
    * @return boolean indicates presence of word
    */
   public static boolean parseSelectKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 6)) {
-      return false;
-    }
-
-    return (query[offset] | 32) == 's'
-        && (query[offset + 1] | 32) == 'e'
-        && (query[offset + 2] | 32) == 'l'
-        && (query[offset + 3] | 32) == 'e'
-        && (query[offset + 4] | 32) == 'c'
-        && (query[offset + 5] | 32) == 't';
+    return parseKeyword(query, offset, "select");
   }
 
   /**
-   * Parse string to check presence of CREATE keyword regardless of case.
+   * Parse string to check presence of ALTER keyword regardless of case.
    *
    * @param query char[] of the query statement
    * @param offset position of query to start checking
    * @return boolean indicates presence of word
    */
   public static boolean parseAlterKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 5)) {
-      return false;
-    }
-
-    return (query[offset] | 32) == 'a'
-        && (query[offset + 1] | 32) == 'l'
-        && (query[offset + 2] | 32) == 't'
-        && (query[offset + 3] | 32) == 'e'
-        && (query[offset + 4] | 32) == 'r';
+    return parseKeyword(query, offset, "alter");
   }
 
   /**
@@ -790,16 +719,7 @@ public class Parser {
    * @return boolean indicates presence of word
    */
   public static boolean parseCreateKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 6)) {
-      return false;
-    }
-
-    return (query[offset] | 32) == 'c'
-        && (query[offset + 1] | 32) == 'r'
-        && (query[offset + 2] | 32) == 'e'
-        && (query[offset + 3] | 32) == 'a'
-        && (query[offset + 4] | 32) == 't'
-        && (query[offset + 5] | 32) == 'e';
+    return parseKeyword(query, offset, "create");
   }
 
   /**
@@ -810,16 +730,7 @@ public class Parser {
    * @return boolean indicates presence of word
    */
   public static boolean parseUpdateKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 6)) {
-      return false;
-    }
-
-    return (query[offset] | 32) == 'u'
-        && (query[offset + 1] | 32) == 'p'
-        && (query[offset + 2] | 32) == 'd'
-        && (query[offset + 3] | 32) == 'a'
-        && (query[offset + 4] | 32) == 't'
-        && (query[offset + 5] | 32) == 'e';
+    return parseKeyword(query, offset, "update");
   }
 
   /**
@@ -830,16 +741,7 @@ public class Parser {
    * @return boolean indicates presence of word
    */
   public static boolean parseValuesKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 6)) {
-      return false;
-    }
-
-    return (query[offset] | 32) == 'v'
-        && (query[offset + 1] | 32) == 'a'
-        && (query[offset + 2] | 32) == 'l'
-        && (query[offset + 3] | 32) == 'u'
-        && (query[offset + 4] | 32) == 'e'
-        && (query[offset + 5] | 32) == 's';
+    return parseKeyword(query, offset, "values");
   }
 
   /**
@@ -870,14 +772,7 @@ public class Parser {
    * @return boolean indicates presence of word
    */
   public static boolean parseWithKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 4)) {
-      return false;
-    }
-
-    return (query[offset] | 32) == 'w'
-        && (query[offset + 1] | 32) == 'i'
-        && (query[offset + 2] | 32) == 't'
-        && (query[offset + 3] | 32) == 'h';
+    return parseKeyword(query, offset, "with");
   }
 
   /**
@@ -888,12 +783,7 @@ public class Parser {
    * @return boolean indicates presence of word
    */
   public static boolean parseAsKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 2)) {
-      return false;
-    }
-
-    return (query[offset] | 32) == 'a'
-        && (query[offset + 1] | 32) == 's';
+    return parseKeyword(query, offset, "as");
   }
 
   /**
