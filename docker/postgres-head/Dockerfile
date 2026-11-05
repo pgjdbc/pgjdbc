@@ -3,7 +3,7 @@
 # Drop-in compatible with the official `postgres:*` image, so the shared
 # docker/postgres-server compose runs it via PG_IMAGE.
 
-FROM debian:trixie-slim@sha256:d7e12182ce18b85b93007c1dedf31f2d29e01ccf3182cc4017c709b6259bc132
+FROM debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2
 
 # Empty default => pick the highest postgresql-N available in pgdg-snapshot
 # at build time, so the image follows new major releases without a Dockerfile
