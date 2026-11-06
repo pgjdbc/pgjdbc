@@ -323,7 +323,18 @@ Cancel command is sent out of band over its own connection, so cancel message ca
 The timeout is specified in seconds.
 
 * **`tcpKeepAlive (`*boolean*`)`** *Default `false`*\
-Enable or disable TCP keep-alive probe.
+Enable or disable TCP keep-alive probe. With the operating system's defaults, the first probe goes out only after the connection has been idle for about two hours; `tcpKeepAliveIdle`, `tcpKeepAliveInterval` and `tcpKeepAliveCount` detect a broken connection sooner. They have no effect unless `tcpKeepAlive` is `true`.
+They take effect on Linux and macOS from JDK 11, on AIX from JDK 21 and on Windows from JDK 22. Where the JDK, the operating system or the socket from `socketFactory` does not support one, the driver connects without it and logs the warning `Ignoring <property>: <socket class> does not support it on Java <version> on <operating system>` the first time for each property and socket class.
+A value that is not a positive integer fails the connection with `<property> parameter value must be a positive integer but was: <value>`, and a value the operating system rejects with `The operating system rejected <property>=<value>: <reason>`.
+
+* **`tcpKeepAliveCount (`*int*`)`** *Default `null`*\
+The number of unanswered keep-alive probes after which the connection is considered broken. When unset, the operating system's value applies. Requires `tcpKeepAlive=true`; see `tcpKeepAlive` for platform support and invalid values.
+
+* **`tcpKeepAliveIdle (`*int*`)`** *Default `null`*\
+The idle time in seconds before the first keep-alive probe. When unset, the operating system's value applies. Requires `tcpKeepAlive=true`; see `tcpKeepAlive` for platform support and invalid values.
+
+* **`tcpKeepAliveInterval (`*int*`)`** *Default `null`*\
+The time in seconds between keep-alive probes. When unset, the operating system's value applies. Requires `tcpKeepAlive=true`; see `tcpKeepAlive` for platform support and invalid values.
 
 * **`tcpNoDelay (`*boolean*`)`** *Default `true`*\
 Enable or disable TCP nodelay.

@@ -48,6 +48,7 @@ import javax.sql.CommonDataSource;
 
 public abstract class BaseDataSource implements CommonDataSource, Referenceable {
   private static final Logger LOGGER = Logger.getLogger(BaseDataSource.class.getName());
+  private static final int UNSET_INT = -1;
 
   // Standard properties, defined in the JDBC 2.0 Optional Package spec
   private String[] serverNames = new String[]{"localhost"};
@@ -895,6 +896,97 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public boolean getTcpKeepAlive() {
     return PGProperty.TCP_KEEP_ALIVE.getBoolean(properties);
+  }
+
+  /**
+   * Sets the number of unanswered keep-alive probes after which the connection is considered
+   * broken.
+   * A value of {@code -1} removes the setting, so the operating system's value applies. Has no
+   * effect unless {@link #setTcpKeepAlive(boolean)} is enabled. Only takes effect on Linux and macOS
+   * from JDK 11, on AIX from JDK 21 and on Windows from JDK 22; where the JDK, the operating system
+   * or the socket from {@code socketFactory} does not support it, the driver logs a warning and
+   * connects without it. A value the operating system rejects fails the connection.
+   *
+   * @param value the number of unanswered keep-alive probes after which the connection is
+   *     considered broken, or {@code -1} to remove the setting
+   * @see PGProperty#TCP_KEEP_ALIVE_COUNT
+   */
+  public void setTcpKeepAliveCount(int value) {
+    setIntOrRemove(PGProperty.TCP_KEEP_ALIVE_COUNT, value);
+  }
+
+  /**
+   * @return the maximum number of keep-alive probes to be sent, or {@code -1} when unset
+   * @see PGProperty#TCP_KEEP_ALIVE_COUNT
+   */
+  public int getTcpKeepAliveCount() {
+    return getIntNoCheckOrUnset(PGProperty.TCP_KEEP_ALIVE_COUNT);
+  }
+
+  /**
+   * Sets the idle time in seconds before the first keep-alive probe.
+   * A value of {@code -1} removes the setting, so the operating system's value applies. Has no
+   * effect unless {@link #setTcpKeepAlive(boolean)} is enabled. Only takes effect on Linux and macOS
+   * from JDK 11, on AIX from JDK 21 and on Windows from JDK 22; where the JDK, the operating system
+   * or the socket from {@code socketFactory} does not support it, the driver logs a warning and
+   * connects without it. A value the operating system rejects fails the connection.
+   *
+   * @param value the idle time in seconds before the first keep-alive probe, or {@code -1} to
+   *     remove the setting
+   * @see PGProperty#TCP_KEEP_ALIVE_IDLE
+   */
+  public void setTcpKeepAliveIdle(int value) {
+    setIntOrRemove(PGProperty.TCP_KEEP_ALIVE_IDLE, value);
+  }
+
+  /**
+   * @return the number of seconds of idle time before keep-alive initiates a probe, or
+   *     {@code -1} when unset
+   * @see PGProperty#TCP_KEEP_ALIVE_IDLE
+   */
+  public int getTcpKeepAliveIdle() {
+    return getIntNoCheckOrUnset(PGProperty.TCP_KEEP_ALIVE_IDLE);
+  }
+
+  /**
+   * Sets the time in seconds between keep-alive probes.
+   * A value of {@code -1} removes the setting, so the operating system's value applies. Has no
+   * effect unless {@link #setTcpKeepAlive(boolean)} is enabled. Only takes effect on Linux and macOS
+   * from JDK 11, on AIX from JDK 21 and on Windows from JDK 22; where the JDK, the operating system
+   * or the socket from {@code socketFactory} does not support it, the driver logs a warning and
+   * connects without it. A value the operating system rejects fails the connection.
+   *
+   * @param value the time in seconds between keep-alive probes, or {@code -1} to remove the
+   *     setting
+   * @see PGProperty#TCP_KEEP_ALIVE_INTERVAL
+   */
+  public void setTcpKeepAliveInterval(int value) {
+    setIntOrRemove(PGProperty.TCP_KEEP_ALIVE_INTERVAL, value);
+  }
+
+  /**
+   * @return the number of seconds to wait before retransmitting a keep-alive probe, or
+   *     {@code -1} when unset
+   * @see PGProperty#TCP_KEEP_ALIVE_INTERVAL
+   */
+  public int getTcpKeepAliveInterval() {
+    return getIntNoCheckOrUnset(PGProperty.TCP_KEEP_ALIVE_INTERVAL);
+  }
+
+  private void setIntOrRemove(PGProperty property, int value) {
+    if (value == UNSET_INT) {
+      properties.remove(property.getName());
+      return;
+    }
+    property.set(properties, value);
+  }
+
+  private int getIntNoCheckOrUnset(PGProperty property) {
+    String value = property.getOrDefault(properties);
+    if (value == null) {
+      return UNSET_INT;
+    }
+    return Integer.parseInt(value);
   }
 
   /**

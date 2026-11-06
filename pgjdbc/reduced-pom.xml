@@ -198,6 +198,20 @@
                             </execution>
                         </executions>
                     </plugin>
+                    <plugin>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <!--
+                              Tests run from the classes directory, not from the jar, so the JVM ignores
+                              META-INF/versions/11 there. Put those classes first on the classpath, ahead
+                              of the Java 8 classes they replace.
+                              -->
+                            <classesDirectory>${project.build.outputDirectory}/META-INF/versions/11</classesDirectory>
+                            <additionalClasspathElements>
+                                <additionalClasspathElement>${project.build.outputDirectory}</additionalClasspathElement>
+                            </additionalClasspathElements>
+                        </configuration>
+                    </plugin>
                 </plugins>
             </build>
         </profile>
