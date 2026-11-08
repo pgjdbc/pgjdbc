@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Fixed
+* fix: `GSSInputStream.available()` now returns the number of decrypted bytes the stream holds and has not returned yet, instead of 0. Under GSS encryption, `PGConnection.getNotifications()` and non-blocking `COPY` reads no longer set a 1 ms socket timeout to probe for data while the stream still holds decrypted bytes [PR #4383](https://github.com/pgjdbc/pgjdbc/pull/4383)
 * fix: `PGStream.skip` no longer loops forever when the connection ends while the driver is discarding bytes, and no longer mistakes a stream that skips nothing for one that has ended. `InputStream.skip` may return zero with more data still coming, which a stream supplied through the `socketFactory` property is free to do; the driver now reads a byte in that case and treats only `-1` as the end [PR #4358](https://github.com/pgjdbc/pgjdbc/pull/4358)
 * fix: `LargeObjectManager` operations now work inside an active XA transaction. Since 42.7.13 an XA branch keeps the caller's `autoCommit=true`, and the guard rejected large objects as if the connection were idle. It now checks the server transaction state (`getTransactionState()`) instead of `autoCommit`, so a genuine auto-commit connection with no open transaction is still refused [Issue #4309](https://github.com/pgjdbc/pgjdbc/issues/4309) [PR #4310](https://github.com/pgjdbc/pgjdbc/pull/4310)
 * fix: batch update counts are no longer secured as committed inside an XA transaction. `BatchResultHandler` treated per-statement progress as durable whenever `autoCommit=true`, but an XA branch keeps `autoCommit=true` while the transaction is open, so a batch that flushed mid-way and then failed could report rolled-back statements as succeeded. Progress is now secured only when no server transaction is open [Issue #4309](https://github.com/pgjdbc/pgjdbc/issues/4309) [PR #4311](https://github.com/pgjdbc/pgjdbc/pull/4311)
@@ -24,9 +25,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * fix: the read buffer returns to its initial size once the message that grew it is drained, so a connection no longer retains 32 MiB after one large error [Issue #4015](https://github.com/pgjdbc/pgjdbc/issues/4015)
 * fix: exceeding `maxResultBuffer` closes the connection. The row is not read past the limit, so the connection cannot continue, and it is now dropped where the limit is exceeded rather than refused as a protocol violation at the next message. The error reported is the limit alone, with SQLState `08S01` as before [Issue #4015](https://github.com/pgjdbc/pgjdbc/issues/4015)
 
+## [42.7.14] (2026-10-07)
+
 ### Security
 * fix: a `requireAuth` value that excludes every authentication method, such as `!password,!md5,!gss,!sspi,!scram-sha-256,!none`, now refuses every method. A connection with such a value now fails with SQLState `08004`. Before, the driver treated the value as if `requireAuth` were not set, and used any method the server asked for, even a cleartext password. This affects 42.7.11 through 42.7.13 [GHSA-rhp9-mr79-r74h](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-rhp9-mr79-r74h)
 * fix: a `requireAuth` value without a method in it, such as `,` or `,,`, now fails with SQLState `22023`. Before, the driver treated it as if `requireAuth` were not set. Commas at the very end of a value are still ignored, as in `password,`. This affects 42.7.11 through 42.7.13 [GHSA-rhp9-mr79-r74h](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-rhp9-mr79-r74h)
+* fix: a value shorter than its declared length, such as one from a `ByteStreamWriter` whose `getLength()` is larger than what `writeTo()` writes, is now padded with zeros. Before, the driver padded it with bytes of messages sent earlier on the same connection, so the stored value could contain SQL text and parameter values of earlier statements. This affects 42.7.4 through 42.7.13 [GHSA-f64h-wr5q-3qf3](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-f64h-wr5q-3qf3)
 
 ## [42.7.13] (2026-07-06)
 
