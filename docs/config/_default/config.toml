@@ -3,6 +3,7 @@
 baseURL = "https://jdbc.postgresql.org/"
 languageCode = "en-us"
 title = "pgJDBC"
+buildFuture = true
 [permalinks]
 page = "/:slug/"
 posts = "/:year/:month/:slug/"
@@ -17,3 +18,6 @@ mediaType = "application/json"
 home = ["HTML", "RSS", "SearchIndex"]
 # section = ["HTML", "RSS", "SearchIndex"]
 page = ["HTML"]
+
+[params]
+downloadBaseURL = "https://jdbc.postgresql.org/download/"

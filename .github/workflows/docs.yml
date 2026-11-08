@@ -1,51 +1,135 @@
-name: Deploy Hugo Docs
+name: docs
 
 on:
-  release:
-    types: [published]
-  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - '.github/workflows/docs.yml'
+      - '.github/workflows/docs-deploy.yml'
+  workflow_call:
+    inputs:
+      include_javadoc:
+        description: Add the Javadoc of the current release from Maven Central
+        type: boolean
+        default: false
+    outputs:
+      version:
+        description: The version of the current release
+        value: ${{ jobs.build.outputs.version }}
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -euo pipefail {0}
 
 concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  group: docs-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.release.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
 
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@2752ce1d29631191ea3f27c23495fa06139a5b78 # v3.2.1
         with:
-          hugo-version: 'latest'
+          hugo-version: '0.168.0'
           extended: true
 
-      - name: Setup Pages
-        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: Lint the workflows
+        if: github.event_name == 'pull_request'
+        run: >-
+          docker run --rm -v "${PWD}:/repo" -w /repo
+          rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+          .github/workflows/docs.yml .github/workflows/docs-deploy.yml
 
       - name: Build
-        run: hugo --minify
+        env:
+          BASE_URL: ${{ vars.SITE_BASE_URL || 'https://jdbc.postgresql.org/' }}
+        run: hugo --minify --baseURL "${BASE_URL}"
         working-directory: ./docs
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
-        with:
-          path: ./docs/public
+      # The newest version in the changelogs that are not drafts is the one
+      # that the home page and the download page list as the current release.
+      - name: Find the current release
+        id: release
+        run: |
+          # yq extracts the front matter of the first file only, so it reads
+          # one file at a time. errexit does not apply in the command
+          # substitution, so exit 1 is needed for an error from yq to fail
+          # the step.
+          version=$(
+            for file in docs/content/changelogs/*-release.md; do
+              yq --front-matter=extract 'select(.draft != true) | .version' "${file}" || exit 1
+            done | sort -V | tail -n 1
+          )
+          echo "The current release is ${version}"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
 
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
+      - name: Add the Javadoc of the current release
+        if: inputs.include_javadoc
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          echo "Adding the Javadoc of ${VERSION}"
+          url="https://repo1.maven.org/maven2/org/postgresql/postgresql/${VERSION}/postgresql-${VERSION}-javadoc.jar"
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --location \
+            --retry 3 \
+            --retry-max-time 120 \
+            --output "${RUNNER_TEMP}/javadoc.jar" \
+            "${url}"
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --location \
+            --retry 3 \
+            --retry-max-time 120 \
+            --output "${RUNNER_TEMP}/javadoc.jar.asc" \
+            "${url}.asc"
+          # The keyring holds only the keys in KEYS, so a good signature means
+          # that one of those keys signed the jar.
+          export GNUPGHOME="${RUNNER_TEMP}/gnupg"
+          mkdir -m 700 "${GNUPGHOME}"
+          gpg \
+            --batch \
+            --quiet \
+            --import \
+            KEYS
+          gpgv \
+            --keyring "${GNUPGHOME}/pubring.kbx" \
+            "${RUNNER_TEMP}/javadoc.jar.asc" \
+            "${RUNNER_TEMP}/javadoc.jar"
+          mkdir -p ./docs/public/documentation/publicapi
+          unzip \
+            -q \
+            -DD \
+            "${RUNNER_TEMP}/javadoc.jar" \
+            -x 'META-INF/*' \
+            -d ./docs/public/documentation/publicapi
+          # The JDK 21 stylesheet imports resources/fonts/dejavu.css, but the JDK
+          # ships no fonts. An empty file avoids the 404, and the stylesheet falls
+          # back to Arial, Georgia and monospace as before.
+          mkdir -p ./docs/public/documentation/publicapi/resources/fonts
+          touch ./docs/public/documentation/publicapi/resources/fonts/dejavu.css
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: site
+          path: ./docs/public
+          retention-days: 7
