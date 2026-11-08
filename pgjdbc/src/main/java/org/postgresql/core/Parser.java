@@ -1430,6 +1430,7 @@ public class Parser {
         case ESC_TIMESTAMP:
         case ESC_OUTERJOIN:
         case ESC_ESCAPECHAR:
+        case ESC_LIMIT:
           if (c == '}') {
             state = SqlParseState.IN_SQLCODE; // end of escape code.
           } else {
@@ -1531,6 +1532,7 @@ public class Parser {
   private static final char[] QUOTE_OR_ALPHABETIC_MARKER = {'\"', '0'};
   private static final char[] QUOTE_OR_ALPHABETIC_MARKER_OR_PARENTHESIS = {'\"', '0', '('};
   private static final char[] SINGLE_QUOTE = {'\''};
+  private static final char[] DIGIT_OR_PARAMETER_MARKER = {'#', '?'};
 
   // Static variables for parsing SQL when replaceProcessing is true.
   @SuppressWarnings("ImmutableEnumChecker")
@@ -1542,7 +1544,8 @@ public class Parser {
     ESC_TIMESTAMP("ts", SINGLE_QUOTE, "TIMESTAMP "),
     ESC_FUNCTION("fn", QUOTE_OR_ALPHABETIC_MARKER, null),
     ESC_OUTERJOIN("oj", QUOTE_OR_ALPHABETIC_MARKER_OR_PARENTHESIS, null),
-    ESC_ESCAPECHAR("escape", SINGLE_QUOTE, "ESCAPE ");
+    ESC_ESCAPECHAR("escape", SINGLE_QUOTE, "ESCAPE "),
+    ESC_LIMIT("limit", DIGIT_OR_PARAMETER_MARKER, "LIMIT ");
 
     private static final SqlParseState[] VALUES = values();
 
@@ -1594,7 +1597,8 @@ public class Parser {
         curr = sql[newPos];
       }
       for (char c : allowedValues) {
-        if (curr == c || (c == '0' && Character.isLetter(curr))) {
+        if (curr == c || (c == '0' && Character.isLetter(curr))
+            || (c == '#' && curr >= '0' && curr <= '9')) {
           return newPos - pos;
         }
       }
