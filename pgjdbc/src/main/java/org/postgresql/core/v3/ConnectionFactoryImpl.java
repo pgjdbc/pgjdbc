@@ -134,6 +134,19 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   }
 
   /**
+   * A {@link SocketTimeoutException} from {@code Socket.connect} rather than from waiting for a
+   * response after the TCP connection is already open. {@code sslmode=prefer} retries only the
+   * latter, so a connect timeout must be distinguishable from an SSLRequest read timeout.
+   */
+  @SuppressWarnings("serial")
+  static final class TcpConnectTimeoutException extends SocketTimeoutException {
+    TcpConnectTimeoutException(SocketTimeoutException cause) {
+      super(cause.getMessage());
+      initCause(cause);
+    }
+  }
+
+  /**
    * Attempts a non-SSL connection after an SSL connection attempt failed.
    * Used when sslMode is PREFER: SSL is preferred but not required,
    * so an SSL failure (e.g. timeout during SSL negotiation) should fall back to plaintext.
@@ -218,7 +231,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
 
     int maxSendBufferSize = PGProperty.MAX_SEND_BUFFER_SIZE.getInt(info);
-    PGStream newStream = new PGStream(socketFactory, hostSpec, connectTimeout, maxSendBufferSize);
+    PGStream newStream;
+    try {
+      newStream = new PGStream(socketFactory, hostSpec, connectTimeout, maxSendBufferSize);
+    } catch (SocketTimeoutException e) {
+      // Socket.connect timed out before any protocol bytes were exchanged. This is not the
+      // SSLRequest read timeout that sslmode=prefer should downgrade to plaintext for.
+      throw new TcpConnectTimeoutException(e);
+    }
     try {
       // Set the socket timeout if the "socketTimeout" property has been set.
       int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info);
@@ -387,9 +407,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             throw e;
           }
         } catch (IOException e) {
-          if (sslMode == SslMode.PREFER && e instanceof SocketTimeoutException) {
+          if (sslMode == SslMode.PREFER
+              && e instanceof SocketTimeoutException
+              && !(e instanceof TcpConnectTimeoutException)) {
             // SSL negotiation timed out (server didn't respond to SSLRequest).
             // Since sslMode is PREFER, fall back to a non-encrypted connection.
+            // A TCP connect timeout is excluded: retrying the same unreachable host
+            // without SSL only repeats Socket.connect with whatever timeout is left.
             newStream = tryConnectWithoutSsl(info, socketFactory, hostSpec, gssEncMode, connectTimeoutMs, startNanos, e);
           } else if (sslMode == SslMode.ALLOW) {
             // Plaintext connection failed (e.g. server reset the connection
