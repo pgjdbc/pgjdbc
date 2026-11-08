@@ -205,7 +205,7 @@ Class name of the SSL password provider.
 If provided will be used by ConsoleCallbackHandler
 
 * **`sslResponseTimeout (`*Integer*`)`** *Default `5000`*\
-Time in milliseconds to wait for a response after requesting an SSL encrypted connection from the server. If this is greater than the current connectTimeout then connectTimeout will be used.
+Time in milliseconds to wait for a response after requesting an SSL encrypted connection from the server. If `socketTimeout` (in seconds) is set and is shorter, `socketTimeout` is used instead.
 
 * **`protocolVersion (`*int*`)`** *Default `null`*\
 The driver supports the V3 frontend/backend protocols. The V3 protocol was introduced in 7.4 and the driver will by default try to connect using the V3 protocol.
@@ -390,7 +390,7 @@ Otherwise Kerberos/GSSAPI via JSSE is used.
   | &ge; 42.7.1 | &ge; 1.0.0 |
 
 * **`gssResponseTimeout (`*Integer*`)`** *Default `5000`*\
-Time in milliseconds to wait for a response after requesting a GSS encrypted connection from the server. If this is greater than the current connectTimeout then connectTimeout will be used.
+Time in milliseconds to wait for a response after requesting a GSS encrypted connection from the server. If `socketTimeout` (in seconds) is set and is shorter, `socketTimeout` is used instead.
   Since: 9.4
 
 * **`sspiServiceClass (`*String*`)`** *Default `POSTGRES`*\
