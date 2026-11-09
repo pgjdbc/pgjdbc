@@ -19,6 +19,14 @@ Environment variables
    See the [list of available tags](https://github.com/docker-library/docs/blob/master/postgres/README.md#supported-tags-and-respective-dockerfile-links) at the official page.
 * `SCRAM=yes|no` (default: `yes`). Configures `password_encryption=scram-sha-256`
 * `SSL=yes|no` (default: `yes`). Configures SSL
+* `OAUTH=no|smoke|all` (default: `no`). `smoke` creates the `testoauth` role and an OAuth
+  rule for it; `all` also switches the `test` role to OAuth. Both need Keycloak (compose
+  profile `oauth`) and an amd64 server, since `pg_oidc_validator` is published for amd64 only:
+
+      COMPOSE_PROFILES=oauth PG_PLATFORM=linux/amd64 OAUTH=smoke docker compose up
+
+  Keycloak binds `127.0.0.1:8080`; on arm64 the server runs under emulation.
+  `docker/bin/postgres-server` sets both variables for you.
 
 Example usages
 ==============

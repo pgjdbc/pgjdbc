@@ -16,6 +16,7 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.URLCoder;
+import org.postgresql.util.internal.JdbcUrlMasker;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -99,14 +100,23 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       Connection con = DriverManager.getConnection(getUrl(), user, password);
       if (LOGGER.isLoggable(Level.FINE)) {
         LOGGER.log(Level.FINE, "Created a {0} for {1} at {2}",
-            new Object[]{getDescription(), user, getUrl()});
+            new Object[]{getDescription(), user, getMaskedUrl()});
       }
       return con;
     } catch (SQLException e) {
-      LOGGER.log(Level.FINE, "Failed to create a {0} for {1} at {2}: {3}",
-          new Object[]{getDescription(), user, getUrl(), e});
+      if (LOGGER.isLoggable(Level.FINE)) {
+        LOGGER.log(Level.FINE, "Failed to create a {0} for {1} at {2}: {3}",
+            new Object[]{getDescription(), user, getMaskedUrl(), e});
+      }
       throw e;
     }
+  }
+
+  /**
+   * Returns {@link #getUrl()} with the value of every credential masked, for logging.
+   */
+  private String getMaskedUrl() {
+    return JdbcUrlMasker.maskSensitiveValues(getUrl());
   }
 
   /**
@@ -1523,7 +1533,10 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     Properties p = Driver.parseURL(url, null);
 
     if (p == null) {
-      throw new IllegalArgumentException("URL invalid " + url);
+      if (!url.startsWith("jdbc:postgresql:")) {
+        throw new IllegalArgumentException("URL invalid: it does not start with jdbc:postgresql:");
+      }
+      throw new IllegalArgumentException("URL invalid " + JdbcUrlMasker.maskUserSuppliedUrl(url));
     }
     for (PGProperty property : PGProperty.values()) {
       if (!this.properties.containsKey(property.getName())) {
@@ -1560,6 +1573,51 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public void setAuthenticationPluginClassName(String className) {
     PGProperty.AUTHENTICATION_PLUGIN_CLASS_NAME.set(properties, className);
+  }
+
+  /**
+   * @return OAuth 2.0 bearer token, or null if unset
+   */
+  public @Nullable String getOauthToken() {
+    return PGProperty.OAUTH_TOKEN.getOrDefault(properties);
+  }
+
+  /**
+   * @param token OAuth 2.0 bearer token for authentication
+   */
+  public void setOauthToken(String token) {
+    PGProperty.OAUTH_TOKEN.set(properties, token);
+  }
+
+  /**
+   * @return the fully-qualified OauthTokenProvider class name, or null if unset
+   */
+  public @Nullable String getOauthTokenProviderClassName() {
+    return PGProperty.OAUTH_TOKEN_PROVIDER_CLASS_NAME.getOrDefault(properties);
+  }
+
+  /**
+   * @param className fully-qualified name of a class implementing
+   *     {@link org.postgresql.plugin.OauthTokenProvider}, which supplies the OAuth 2.0 bearer token
+   */
+  public void setOauthTokenProviderClassName(String className) {
+    PGProperty.OAUTH_TOKEN_PROVIDER_CLASS_NAME.set(properties, className);
+  }
+
+  /**
+   * @return true if OAUTHBEARER is allowed over an unencrypted connection or to an unverified
+   *     server
+   */
+  public boolean getOauthAllowInsecureConnection() {
+    return PGProperty.OAUTH_ALLOW_INSECURE_CONNECTION.getBoolean(properties);
+  }
+
+  /**
+   * @param allow permits OAUTHBEARER authentication over an insecure connection or to
+   *     an unverified server. For testing only.
+   */
+  public void setOauthAllowInsecureConnection(boolean allow) {
+    PGProperty.OAUTH_ALLOW_INSECURE_CONNECTION.set(properties, allow);
   }
 
   public @Nullable String getProperty(String name) throws SQLException {

@@ -120,18 +120,8 @@ public class PGStream implements Closeable, Flushable {
     };
   }
 
-  private boolean finishedAuthenticationRequests = false;
-
   public boolean isGssEncrypted() {
     return gssEncrypted;
-  }
-
-  public boolean isFinishedAuthenticationRequests() {
-    return finishedAuthenticationRequests;
-  }
-
-  public void setFinishedAuthenticationRequests() {
-    this.finishedAuthenticationRequests = true;
   }
 
   boolean gssEncrypted;

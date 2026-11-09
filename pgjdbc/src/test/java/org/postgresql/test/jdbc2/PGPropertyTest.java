@@ -26,8 +26,11 @@ import org.junit.jupiter.api.Test;
 import java.beans.BeanInfo;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
+import java.lang.reflect.Method;
 import java.sql.DriverPropertyInfo;
 import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
@@ -161,6 +164,39 @@ class PGPropertyTest {
             propertyValue);
       }
     }
+  }
+
+  /**
+   * HikariCP and other pools set {@code dataSource.<name>} by calling {@code "set"} plus the
+   * property name with its first letter in upper case, matching the method name exactly. The
+   * case-insensitive lookup in {@link #dataSourceProperties()} does not catch a setter spelled
+   * {@code setOAuthToken} for the property {@code oauthToken}.
+   */
+  @Test
+  void dataSourceSetterNamesMatchPropertyNames() {
+    // Released setters spelled differently from the property; renaming them would break callers.
+    EnumSet<PGProperty> released =
+        EnumSet.of(PGProperty.GSS_LIB, PGProperty.STRING_TYPE, PGProperty.USE_SPNEGO);
+    List<String> missing = new ArrayList<>();
+    for (PGProperty property : PGProperty.values()) {
+      String name = property.getName();
+      if (name.startsWith("PG") || property == PGProperty.SERVICE || released.contains(property)) {
+        continue;
+      }
+      String setterName = "set" + name.substring(0, 1).toUpperCase(Locale.ROOT) + name.substring(1);
+      boolean found = false;
+      for (Method method : PGSimpleDataSource.class.getMethods()) {
+        if (method.getName().equals(setterName) && method.getParameterCount() == 1) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        missing.add(name + " -> " + setterName);
+      }
+    }
+    assertEquals(new ArrayList<String>(), missing,
+        "Properties without a setter whose name matches the property name exactly");
   }
 
   /**

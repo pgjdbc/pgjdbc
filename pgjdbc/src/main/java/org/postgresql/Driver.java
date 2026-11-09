@@ -20,6 +20,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
 import org.postgresql.util.URLCoder;
+import org.postgresql.util.internal.JdbcUrlMasker;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -286,12 +287,14 @@ public class Driver implements java.sql.Driver {
     // parse URL and add more properties
     if ((props = parseURL(url, props)) == null) {
       throw new PSQLException(
-          GT.tr("Unable to parse URL {0}", url),
+          GT.tr("Unable to parse URL {0}", JdbcUrlMasker.maskUserSuppliedUrl(url)),
           PSQLState.UNEXPECTED_ERROR);
     }
     try {
 
-      LOGGER.log(Level.FINE, "Connecting with URL: {0}", url);
+      if (LOGGER.isLoggable(Level.FINE)) {
+        LOGGER.log(Level.FINE, "Connecting with URL: {0}", JdbcUrlMasker.maskUserSuppliedUrl(url));
+      }
 
       // Enforce login timeout, if specified, by handing the connection
       // attempt to an Executor, which must run it on a thread other than
@@ -543,10 +546,32 @@ public class Driver implements java.sql.Driver {
     }
 
     if (!urlServer.startsWith("jdbc:postgresql:")) {
-      LOGGER.log(Level.FINE, "JDBC URL must start with \"jdbc:postgresql:\" but was: {0}", url);
+      LOGGER.log(Level.FINE, "JDBC URL does not start with \"jdbc:postgresql:\"");
       return null;
     }
     urlServer = urlServer.substring("jdbc:postgresql:".length());
+
+    // libpq accepts a user:password@ part before the host, the driver does not
+    if (JdbcUrlMasker.findUserInfoEnd(url) != -1) {
+      LOGGER.log(Level.WARNING,
+          "JDBC URL must not contain user:password@ before the host: use the user and password"
+              + " parameters instead");
+      return null;
+    }
+
+    // A password with a raw "/" and then "?" puts its "@" into a parameter name, which no real name
+    // holds. Refuse such a URL rather than connect to the host and port the password starts with
+    String[] args = urlArgs.split("&");
+    for (String token : args) {
+      int pos = token.indexOf('=');
+      String name = pos == -1 ? token : token.substring(0, pos);
+      if (name.indexOf('@') != -1 || name.indexOf('/') != -1) {
+        LOGGER.log(Level.WARNING,
+            "JDBC URL must not contain @ or / in a parameter name: use the user and password"
+                + " parameters instead of user:password@");
+        return null;
+      }
+    }
 
     if ("//".equals(urlServer) || "///".equals(urlServer)) {
       urlServer = "";
@@ -554,20 +579,22 @@ public class Driver implements java.sql.Driver {
       urlServer = urlServer.substring(2);
       long slashCount = urlServer.chars().filter(ch -> ch == '/').count();
       if (slashCount > 1) {
-        LOGGER.log(Level.WARNING, "JDBC URL contains too many / characters: {0}", url);
+        LOGGER.log(Level.WARNING, "JDBC URL contains too many / characters: {0}",
+            JdbcUrlMasker.maskUserSuppliedUrl(url));
         return null;
       }
       int slash = urlServer.indexOf('/');
       if (slash == -1) {
-        LOGGER.log(Level.WARNING, "JDBC URL must contain a / at the end of the host or port: {0}", url);
+        LOGGER.log(Level.WARNING, "JDBC URL must contain a / at the end of the host or port: {0}",
+            JdbcUrlMasker.maskUserSuppliedUrl(url));
         return null;
       }
       if (!urlServer.endsWith("/")) {
-        String value = urlDecode(urlServer.substring(slash + 1));
-        if (value == null) {
+        String dbName = decodeDatabaseName(urlServer.substring(slash + 1));
+        if (dbName == null) {
           return null;
         }
-        PGProperty.PG_DBNAME.set(priority1Url, value);
+        PGProperty.PG_DBNAME.set(priority1Url, dbName);
       }
       urlServer = urlServer.substring(0, slash);
 
@@ -599,15 +626,14 @@ public class Driver implements java.sql.Driver {
     } else if (urlServer.startsWith("/")) {
       return null;
     } else {
-      String value = urlDecode(urlServer);
-      if (value == null) {
+      String dbName = decodeDatabaseName(urlServer);
+      if (dbName == null) {
         return null;
       }
-      priority1Url.setProperty(PGProperty.PG_DBNAME.getName(), value);
+      PGProperty.PG_DBNAME.set(priority1Url, dbName);
     }
 
     // parse the args part of the url
-    String[] args = urlArgs.split("&");
     String serviceName = null;
     for (String token : args) {
       if (token.isEmpty()) {
@@ -618,8 +644,12 @@ public class Driver implements java.sql.Driver {
         priority1Url.setProperty(token, "");
       } else {
         String pName = PGPropertyUtil.translatePGServiceToPGProperty(token.substring(0, pos));
-        String pValue = urlDecode(token.substring(pos + 1));
-        if (pValue == null) {
+        String pValue;
+        try {
+          pValue = URLCoder.decode(token.substring(pos + 1));
+        } catch (IllegalArgumentException e) {
+          // The value may be a credential, so only the parameter name is logged
+          LOGGER.log(Level.FINE, "URL parameter [{0}] could not be decoded", pName);
           return null;
         }
         if (PGProperty.SERVICE.getName().equals(pName)) {
@@ -678,14 +708,18 @@ public class Driver implements java.sql.Driver {
     return result;
   }
 
-  // decode url, on failure log and return null
-  private static @Nullable String urlDecode(String url) {
+  /**
+   * Decodes the database name of a JDBC URL, or logs the failure and returns {@code null}. Neither
+   * the name nor the decoding error, which quotes the invalid escape, is logged: the name may be a
+   * part of a password, as in {@code jdbc:postgresql://user:pass/wo%zz@host}.
+   */
+  private static @Nullable String decodeDatabaseName(String encoded) {
     try {
-      return URLCoder.decode(url);
+      return URLCoder.decode(encoded);
     } catch (IllegalArgumentException e) {
-      LOGGER.log(Level.FINE, "Url [{0}] parsing failed with error [{1}]", new Object[]{url, e.getMessage()});
+      LOGGER.log(Level.FINE, "JDBC URL database name could not be decoded");
+      return null;
     }
-    return null;
   }
 
   /**

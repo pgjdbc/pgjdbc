@@ -8,6 +8,7 @@ package org.postgresql.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
@@ -17,6 +18,7 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TransactionState;
 import org.postgresql.core.Version;
+import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.ResourceLock;
 import org.postgresql.util.PSQLException;
@@ -27,6 +29,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -42,6 +46,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 /**
  * Utility class for JDBC tests.
@@ -53,10 +58,40 @@ public class TestUtil {
    */
   public static final String TEST_URL_PROPERTY_PREFIX = "test.url.";
 
+  public static final String TOKEN_PROVIDER_CLASS = "org.postgresql.test.OauthTestTokenProvider";
+  /**
+   * OIDC issuer of the test realm. It differs from the {@code issuer=} the server is configured
+   * with in {@code pg_hba.conf} only by hostname: the tests reach Keycloak through the port mapped
+   * onto the host, the server reaches it through the compose network.
+   */
+  public static final String OAUTH_ISSUER = "http://localhost:8080/realms/pgjdbc";
+  public static final String OAUTH_CLIENT_ID = "pgjdbc-test";
+  public static final String OAUTH_CLIENT_SECRET = "pgjdbc-test-client-secret";
+  public static final String OAUTH_SCOPE = "pgjdbc";
+  /** Database role the OAuth integration tests connect as. */
+  public static final String OAUTH_ROLE = "testoauth";
+
   private static final ResourceLock lock = new ResourceLock();
+
+  /**
+   * In OAuth mode the suite sets oauthAllowInsecureConnection on purpose, so the driver's
+   * insecure-connection messages say nothing new. A filter drops only those, so the rest of the
+   * OauthAuthenticator log still reaches the handlers when an oauth=all job needs debugging.
+   */
+  private static final Logger OAUTH_LOGGER =
+      Logger.getLogger("org.postgresql.core.v3.OauthAuthenticator");
 
   static {
     initDriver();
+    if (isOauthMode()) {
+      // Configured here, before any test runs, so a test that saves and restores the logger's
+      // settings, such as OauthTest, restores this one.
+      OAUTH_LOGGER.setFilter(record -> {
+        String message = record.getMessage();
+        return message == null
+            || !message.endsWith("because oauthAllowInsecureConnection=true");
+      });
+    }
   }
 
   private static boolean isTestUrlProperty(String propertyName, PGProperty property) {
@@ -154,6 +189,15 @@ public class TestUtil {
         castNonNull(getTestUrlProperty(System.getProperties(), PGProperty.PG_PORT)));
   }
 
+  /**
+   * Returns a loopback port nothing listens on, so a connection attempt to it fails at once.
+   */
+  public static int getClosedLoopbackPort() throws IOException {
+    try (ServerSocket socket = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
+      return socket.getLocalPort();
+    }
+  }
+
   /*
    * Returns the server side prepared statement threshold.
    */
@@ -209,6 +253,31 @@ public class TestUtil {
 
   public static @Nullable String getPrivilegedPassword() {
     return System.getProperty("privilegedPassword");
+  }
+
+  public static String getTokenProviderClassName() {
+    return System.getProperty(
+        PGProperty.OAUTH_TOKEN_PROVIDER_CLASS_NAME.getName(), TOKEN_PROVIDER_CLASS);
+  }
+
+  public static String getOauthIssuer() {
+    return System.getProperty(OauthTestTokenProvider.ISSUER, OAUTH_ISSUER);
+  }
+
+  public static String getOauthClientId() {
+    return System.getProperty(OauthTestTokenProvider.CLIENT_ID, OAUTH_CLIENT_ID);
+  }
+
+  public static String getOauthClientSecret() {
+    return System.getProperty(OauthTestTokenProvider.CLIENT_SECRET, OAUTH_CLIENT_SECRET);
+  }
+
+  public static String getOauthScope() {
+    return System.getProperty(OauthTestTokenProvider.SCOPE, OAUTH_SCOPE);
+  }
+
+  public static String getOauthRole() {
+    return System.getProperty("oauthRole", OAUTH_ROLE);
   }
 
   static {
@@ -273,6 +342,18 @@ public class TestUtil {
     }
     File certdir = TestUtil.getFile(certdirProp);
     return new File(certdir, name).getAbsolutePath();
+  }
+
+  public static void assumeOauthTestsEnabled() {
+    assumeTrue(Boolean.parseBoolean(System.getProperty("enable_oauth_tests")));
+  }
+
+  public static boolean isOauthMode() {
+    return System.getProperty("authMode", "default").equals("oauth");
+  }
+
+  public static void assumeNotOauthMode() {
+    assumeFalse(isOauthMode(), "Test is incompatible with OAuth");
   }
 
   public static void initDriver() {
@@ -355,7 +436,61 @@ public class TestUtil {
    */
   public static Connection openDB(Properties props) throws SQLException {
     Properties propsWithDefaults = mergeDefaultProperties(props);
-    return DriverManager.getConnection(getURL(propsWithDefaults), propsWithDefaults);
+    // Build the URL before adding the OAuth properties, which travel as connection properties,
+    // so getURL() still matches PgConnection.getURL().
+    String url = getURL(propsWithDefaults);
+
+    if (isOauthMode()) {
+      propsWithDefaults = addOauthProperties(propsWithDefaults);
+    }
+    return DriverManager.getConnection(url, propsWithDefaults);
+  }
+
+  /**
+   * Helper - configures a DataSource to use OAuth authentication.
+   */
+  public static void configureOauthIfNeeded(BaseDataSource bds) {
+    if (!isOauthMode()) {
+      return;
+    }
+    // If datasource already has OAuth configured leave it as is.
+    if (bds.getOauthToken() != null || bds.getOauthTokenProviderClassName() != null) {
+      return;
+    }
+    // If datasource uses a non-default user leave it as is.
+    String defaultUser = getUser();
+    if (defaultUser == null || !defaultUser.equals(bds.getUser())) {
+      return;
+    }
+    bds.setOauthTokenProviderClassName(getTokenProviderClassName());
+    // Most tests connect without TLS or over TLS that does not verify the server, so allow both.
+    bds.setOauthAllowInsecureConnection(true);
+  }
+
+  /**
+   * Helper - adds OAuth properties.
+   */
+  private static Properties addOauthProperties(Properties props) {
+    // If the caller already has configured OAuth leave it as is.
+    if (PGProperty.OAUTH_TOKEN.getOrDefault(props) != null
+        || PGProperty.OAUTH_TOKEN_PROVIDER_CLASS_NAME.getOrDefault(props) != null) {
+      return props;
+    }
+    // If the caller uses a non-default user leave it as is.
+    String defaultUser = getUser();
+    String user = PGProperty.USER.getOrDefault(props);
+    if (defaultUser == null || !defaultUser.equals(user)) {
+      return props;
+    }
+    Properties resultProps = new Properties();
+    for (String name : props.stringPropertyNames()) {
+      resultProps.setProperty(name, castNonNull(props.getProperty(name)));
+    }
+    resultProps.setProperty(
+        PGProperty.OAUTH_TOKEN_PROVIDER_CLASS_NAME.getName(), getTokenProviderClassName());
+    // Most tests connect without TLS or over TLS that does not verify the server, so allow both.
+    resultProps.setProperty(PGProperty.OAUTH_ALLOW_INSECURE_CONNECTION.getName(), "true");
+    return resultProps;
   }
 
   /**

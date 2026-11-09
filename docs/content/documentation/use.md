@@ -143,13 +143,15 @@ Setting up the certificates and keys for ssl connection can be tricky see [The t
 
 * **`sslfactory(`*String*`)`** *Default `org.postgresql.ssl.LibPQFactory`*\
 The provided value is a class name to use as the `SSLSocketFactory` when establishing an SSL connection. 
-For more information see the section called [Custom SSLSocketFactory](/documentation/ssl/#custom-sslsocketfactory) defaults to LibPQFactory
+For more information see the section called [Custom SSLSocketFactory](/documentation/ssl/#custom-sslsocketfactory) defaults to LibPQFactory.
+For OAuth authentication the driver refuses `org.postgresql.ssl.NonValidatingFactory`, but trusts `sslmode` for any other custom factory, so a factory that skips validation sends the token to an unverified server; see [Transport requirement](#transport-requirement).
 
 * **`sslfactoryarg (`*String*`)`** : (deprecated)\
 This value is an optional argument to the constructor of the sslfactory class provided above. For more information see the section called [Custom SSLSocketFactory](/documentation/ssl/#custom-sslsocketfactory).
 
 * **`sslmode (`*String*`)`** *Default `prefer`*\
 possible values include `disable` , `allow` , `prefer` , `require` , `verify-ca` and `verify-full` . `require` , `allow` and `prefer` all default to a non-validating SSL factory and do not check the validity of the certificate or the host name. `verify-ca` validates the certificate, but does not verify the hostname. `verify-full` will validate that the certificate is correct and verify the host connected to has the same hostname as the certificate. Default is `prefer` Setting these will necessitate storing the server certificate on the client machine see [Configuring the client](/documentation/ssl/#configuring-the-client) for details.
+OAuth authentication needs `verify-ca` or `verify-full`, unless the connection is GSS-encrypted; see [OAuth authentication](#oauth-authentication).
 
 * **`sslNegotiation (`*String*`)`** *Default `postgres`*\
 possible values include `postgres` and `direct`. `postgres` is the default and traditional SSL negotiation is performed where GSS is requested, then SSL is requested. If set to `direct` then SSL is assumed and an SSL packed is sent without requesting if the server supports it. This avoids one round trip to the server and is only available for server version 17 or higher.
@@ -247,6 +249,8 @@ This option controls the client's use of channel binding. A setting of `require`
 
 Channel binding is a method for the server to authenticate itself to the client. It is only supported over SSL connections with PostgreSQL 11 or later servers using the SCRAM authentication method.
 
+`require` rules out OAUTHBEARER, since the driver has no channel binding to offer for that mechanism. When the server offers OAUTHBEARER alongside SCRAM, the driver answers with SCRAM so the channel binding still happens; when OAUTHBEARER is all the server offers, the connection is rejected with `Channel binding is not supported for OAuth authentication.` rather than proceeding without a channel binding. If neither `oauthToken` nor `oauthTokenProviderClassName` is set, the error is the one listed under [Errors](#errors).
+
 * **`binaryTransfer (`*boolean*`)`** *Default `true`*\
 Enable binary transfer for supported built-in types if possible.
 Setting this to false disables any binary transfer unless it's individually activated for each type with `binaryTransferEnable`.
@@ -300,6 +304,7 @@ The timeout value in seconds that the driver will wait for a query to execute if
 
 * **`loginTimeout (`*int*`)`** *Default `0`*\
 Specify how long to wait for establishment of a database connection. The timeout is specified in seconds max(2147484).
+The call to an `oauthTokenProviderClassName` implementation counts against it; see [Token provider](#token-provider).
 
 * **`connectExecutor (`*String*`)`** *Default `null`*\
 The fully qualified name of a class implementing `java.util.concurrent.Executor`. When `loginTimeout` is in effect, `Driver.connect(...)` hands the worker task that runs the connection attempt to the configured `Executor`.
@@ -367,6 +372,8 @@ PostgreSQL® 12 and later now allow GSSAPI encrypted connections. This parameter
   * `allow` will connect in plain text then if the server requests it will switch to encrypted mode
   * `prefer` will attempt to connect in encrypted mode and fall back to plain text if it fails to acquire an encrypted connection
   * `require` attempts to connect in encrypted mode and will fail to connect if that is not possible.
+
+  A GSS-encrypted connection meets the transport requirement of [OAuth authentication](#oauth-authentication).
 
 * **`gsslib (`*String*`)`** *Default `auto`*\
 Force either SSPI (Windows transparent single-sign-on) or GSSAPI (Kerberos, via JSSE) to be used when the server requests Kerberos or SSPI authentication. 
@@ -532,14 +539,201 @@ value in the connection properties will be used.
 
 * **`requireAuth (`*String*`)`** *Default `null`*\
 Comma-separated list of acceptable authentication methods. Use '!' prefix to reject methods (e.g., '!password' to reject cleartext). 
-Supported methods: `password`, `md5`, `gss`, `sspi`, `scram-sha-256`, `none`. Cannot mix positive and negative options.
+Supported methods: `password`, `md5`, `gss`, `sspi`, `scram-sha-256`, `oauth`, `none`. Cannot mix positive and negative options.
 Examples: `requireAuth=md5,scram-sha-256` (allow only MD5 or SCRAM-SHA-256), `requireAuth=!password,!none` (reject cleartext and trust authentication).
+If the server lets the client in without asking it to authenticate, as with a `trust` rule in `pg_hba.conf`, the
+connection fails unless `requireAuth` allows `none`. A list of `!` options allows `none` unless it includes `!none`.
+One exception: on a GSS-encrypted connection (see `gssEncMode`), allowing `gss` is enough when the server sends no
+authentication request, as with a `gss` rule, because setting up the encryption already authenticated the client with
+Kerberos. The driver cannot see which `pg_hba.conf` rule matched, so, as in libpq, this also accepts a `trust` rule
+over GSS encryption.
+  Since: 42.7.11
 
 * **`scramMaxIterations (`*int*`)`** *Default `100000`*\
 Maximum PBKDF2 iteration count that pgjdbc will accept from the server during SCRAM authentication.
 During SCRAM-SHA-256 authentication, the server sends the iteration count used to derive the salted password. If the server advertises a value higher than `scramMaxIterations`, the driver rejects authentication before starting the PBKDF2 computation.
 This limits client CPU exposure if a malicious or compromised server sends an excessively large iteration count.
 A value of zero disables this check.
+
+* **`oauthToken (`*String*`)`** *Default `null`*\
+OAuth 2.0 bearer token to send when the server requests OAUTHBEARER. Takes precedence over
+`oauthTokenProviderClassName`. The token is a fixed value: once it expires, every new connection fails, so a connection
+pool should use `oauthTokenProviderClassName` instead. See [OAuth authentication](#oauth-authentication) for the
+requirements and the limits.
+
+* **`oauthTokenProviderClassName (`*String*`)`** *Default `null`*\
+Fully qualified name of a class implementing
+[`org.postgresql.plugin.OauthTokenProvider`](https://javadoc.io/doc/org.postgresql/postgresql/latest/org/postgresql/plugin/OauthTokenProvider.html),
+which the driver asks for a bearer token when the server requests OAUTHBEARER. Ignored when `oauthToken` is set. See
+[Token provider](#token-provider) for the contract.
+
+* **`oauthAllowInsecureConnection (`*boolean*`)`** *Default `false`*\
+Allow OAUTHBEARER when the connection is neither GSS-encrypted nor TLS-encrypted with a verified server certificate
+(`sslmode=verify-ca` or `verify-full`). For testing only. The driver logs a WARNING the first time in the JVM it sends a
+token over TLS without a verified certificate, and again the first time it sends one without encryption; it logs FINE
+afterwards. With `sslmode=prefer`, a token the server rejects over TLS is sent again in plaintext when the driver retries
+without TLS. See [Transport requirement](#transport-requirement).
+
+### OAuth authentication
+
+OAuth authentication needs a verified server. Set `sslmode=verify-full` (or `verify-ca`), or use a GSS-encrypted
+connection. With the default `sslmode=prefer`, and with `require`, the driver refuses to send the token even when the
+connection uses TLS.
+
+The server side of OAUTHBEARER ([RFC 7628](https://www.rfc-editor.org/rfc/rfc7628)) needs PostgreSQL 18 or later, an
+`oauth` rule in `pg_hba.conf`, and a validator module in `oauth_validator_libraries`. The server's `pg_hba.conf` entry
+selects the method. When it selects `oauth`, the driver sends the token from `oauthToken` or
+`oauthTokenProviderClassName`; for any other method these properties are ignored, and a password rule still uses
+`password`.
+
+The driver does not run an OAuth flow itself and does not contact the issuer. The application supplies the token, either
+as `oauthToken` or through a token provider.
+
+```
+jdbc:postgresql://db.example.com/app?user=alice&sslmode=verify-full&oauthTokenProviderClassName=com.example.MyTokenProvider
+```
+
+#### Transport requirement
+
+[RFC 7628, section 3](https://www.rfc-editor.org/rfc/rfc7628#section-3) requires TLS for OAUTHBEARER, and
+[RFC 6750, section 5.3](https://www.rfc-editor.org/rfc/rfc6750#section-5.3) requires the client to validate the server
+certificate, so an unverified server could collect the token. The driver therefore sends the token only over TLS with
+`sslmode=verify-ca` or `verify-full`, or over GSS encryption, and otherwise fails with one of:
+
+* `OAUTHBEARER sends the bearer token only to a verified server, and sslmode=require does not verify the server
+  certificate. Set sslmode=verify-full or verify-ca (RFC 6750 section 5.3).`
+* `OAUTHBEARER sends the bearer token only over an encrypted connection to a verified server, and this connection is
+  not encrypted (sslmode=prefer). Set sslmode=verify-full or verify-ca, or use GSS encryption (RFC 7628 section 3,
+  RFC 6750 section 5.3).`
+
+The second one usually means that `sslmode=prefer` fell back to plaintext. libpq applies no such check, so a connection
+string copied from `psql` with `sslmode=prefer` fails here.
+
+The driver checks encryption on the connection itself, GSS encryption or a TLS socket, but takes certificate
+verification from `sslmode` without inspecting the TLS handshake. That has these limits:
+
+* `sslfactory=org.postgresql.ssl.NonValidatingFactory` counts as unverified whatever `sslmode` says, and fails with
+  `OAUTHBEARER sends the bearer token only to a verified server, and sslfactory=org.postgresql.ssl.NonValidatingFactory
+  does not verify the server certificate. ...`. The driver trusts `sslmode` for any other custom `sslfactory` and does
+  not inspect it, so a third-party factory that skips validation sends the token to an unverified server without a
+  warning.
+* `verify-ca` passes, although it does not check the host name.
+* A `socketFactory` that does TLS itself with `sslmode=disable`, as the Cloud SQL and AlloyDB Java connectors require, is
+  refused, because `sslmode=disable` does not verify anything.
+* Over a Unix domain socket, OAUTHBEARER works only with `oauthAllowInsecureConnection=true`.
+
+`oauthAllowInsecureConnection=true` lifts the requirement. It is meant for testing; the remedy for a refused connection
+is to raise `sslmode`.
+
+#### Static token
+
+`oauthToken` suits a one-off connection, such as a desktop tool where the user pastes a token. Before relying on it:
+
+* The token is a fixed value. A pool that opens a connection after it expires gets
+  `FATAL: OAuth bearer authentication failed for user "..."` on every new connection and never recovers, while open
+  sessions stay up, because the server checks the token only at connect. Use `oauthTokenProviderClassName` for pools.
+* The token must match the RFC 6750 `b64token` syntax, or the connection fails with
+  `The OAuth bearer token contains a character that RFC 6750 section 2.1 does not allow. Check oauthToken, where a +
+  in a URL must be written as %2B, or the value the OauthTokenProvider returned.` In a JDBC URL, write `+` as `%2B`,
+  because the driver decodes `+` to a space.
+* The driver masks the value in the URLs it logs, but `Connection.getMetaData().getURL()` and `PgConnection.getURL()`
+  return the URL as given, token included, and HikariCP logs `dataSourceProperties` unmasked at DEBUG. Prefer a token
+  provider over a token in the URL.
+
+#### Token provider
+
+A token provider implements
+[`org.postgresql.plugin.OauthTokenProvider`](https://javadoc.io/doc/org.postgresql/postgresql/latest/org/postgresql/plugin/OauthTokenProvider.html):
+
+* The class needs a public constructor taking `java.util.Properties`, which receives the connection properties, or a
+  public no-argument constructor.
+* The driver creates a new instance and calls `getToken` on every connection attempt, once per host tried with a
+  multi-host URL, so any cache must be static. An implementation should be a lightweight bridge to a layer that caches
+  the token, such as a cloud SDK credential or a token file that an agent keeps up to date.
+* `getToken` runs only after the server asks for OAuth and the transport check passes. It counts against `loginTimeout`
+  and must return within the server's `authentication_timeout`.
+* The request carries the host and port being tried, the user and the database.
+* The driver has no properties for the provider's own settings, such as the issuer, client id or scope. The
+  `Properties` constructor receives every connection property, including names the driver does not know, so the
+  provider reads its settings under names of its own, such as `com.example.oauth.clientId`. A `PGSimpleDataSource`
+  accepts only the driver's own properties, so with a DataSource the provider reads its settings from elsewhere, such
+  as system properties, the environment or a file.
+* The driver masks only its own credentials, such as `password` and `oauthToken`, when it logs a URL. Read a client
+  secret from the environment or a file rather than from a connection property.
+* `getToken` must return a new array every time, because the driver zeroes it after use. Returning the same array again
+  fails with the token format error above.
+* A `PSQLException` reaches the caller unchanged, and anything else is wrapped as
+  `OAuth token provider {0} failed to return a token`. A null or empty token fails with
+  `OAuth token provider {0} returned a null or empty token`. The message and cause reach the caller and the log, so they
+  must not contain the token or the client secret.
+
+```java
+public class FileTokenProvider implements OauthTokenProvider {
+  private final Path path;
+
+  public FileTokenProvider(Properties info) {
+    this.path = Paths.get(info.getProperty("com.example.oauth.tokenFile",
+        "/var/run/secrets/tokens/db-token"));
+  }
+
+  @Override
+  public char[] getToken(OauthTokenRequest request) throws PSQLException {
+    byte[] bytes;
+    try {
+      // Read on every call: the agent that writes the file keeps the token fresh.
+      bytes = Files.readAllBytes(path);
+    } catch (IOException e) {
+      throw new PSQLException("Cannot read the OAuth token file " + path,
+          PSQLState.CONNECTION_REJECTED, e);
+    }
+    try {
+      // Drop the trailing newline without going through a String, which would keep a copy
+      // of the token on the heap until garbage collection.
+      int end = bytes.length;
+      while (end > 0 && bytes[end - 1] <= ' ') {
+        end--;
+      }
+      // A token is ASCII, so each byte is one char.
+      char[] token = new char[end];
+      for (int i = 0; i < end; i++) {
+        token[i] = (char) bytes[i];
+      }
+      return token;
+    } finally {
+      Arrays.fill(bytes, (byte) 0);
+    }
+  }
+}
+```
+
+With HikariCP, configure the provider on the DataSource, so every connection the pool opens gets a fresh token:
+
+```properties
+dataSourceClassName=org.postgresql.ds.PGSimpleDataSource
+dataSource.serverName=db.example.com
+dataSource.databaseName=app
+dataSource.user=alice
+dataSource.sslMode=verify-full
+dataSource.oauthTokenProviderClassName=com.example.FileTokenProvider
+```
+
+#### Errors
+
+* `The server requested OAuth authentication, but neither oauthToken nor oauthTokenProviderClassName is configured.`
+  The `pg_hba.conf` entry selects `oauth`, and the driver has no token.
+* `FATAL: OAuth bearer authentication failed for user "..."` (SQLState 28000): the server rejected the token. The cause
+  of the exception, `The server rejected the OAuth bearer token with this error result: {...}`, carries the error result
+  the server sent, with its `status` and `scope`.
+* `Channel binding is not supported for OAuth authentication.`: `channelBinding=require` is set, a token is configured,
+  and the server offers no SCRAM mechanism that `requireAuth` allows. See `channelBinding`.
+* `The server requested SASL authentication with mechanisms [...], but the driver supports none of them.`: the server
+  offers neither OAUTHBEARER nor SCRAM.
+* `Server started a second SASL exchange.` or `The server continued the OAUTHBEARER exchange after it reported an
+  error.` (SQLState 08P01): the server broke the protocol. Neither comes from a valid server.
+* `The server requested password-based authentication, but no password was provided ...` or
+  `The server requested SCRAM-based authentication, but no password was provided.`, followed by a hint about
+  `oauthToken`: the server asked for a password. Cloud IAM and Microsoft Entra tokens for RDS, Aurora, Azure and Cloud
+  SQL are passwords, not OAUTHBEARER tokens; set them with `password` or `authenticationPluginClassName`.
 
 ### Unix sockets
 
