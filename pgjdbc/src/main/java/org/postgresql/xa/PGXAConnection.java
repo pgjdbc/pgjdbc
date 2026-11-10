@@ -438,7 +438,8 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
       }
       return l.toArray(new Xid[0]);
     } catch (SQLException ex) {
-      throw new PGXAException(GT.tr("Error during recover. flag={0}", flag), ex, XAException.XAER_RMERR);
+      throw new PGXAException(GT.tr("Error during recover. flag={0}", flag), ex,
+          connectionIsGone(ex) ? XAException.XAER_RMFAIL : XAException.XAER_RMERR);
     }
   }
 
@@ -504,9 +505,10 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
           errorCode = XAException.XAER_NOTA;
         }
       }
-      if (PSQLState.isConnectionError(ex.getSQLState())) {
+      if (connectionIsGone(ex)) {
         if (LOGGER.isLoggable(Level.FINEST)) {
-          debug("rollback connection failure (sql error code " + ex.getSQLState() + "), reconnection could be expected");
+          debug("rollback connection failure (sql error code " + ex.getSQLState()
+              + ", connection closed " + connectionIsClosed() + "), reconnection could be expected");
         }
         errorCode = XAException.XAER_RMFAIL;
       }
@@ -645,9 +647,10 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
           errorCode = XAException.XAER_NOTA;
         }
       }
-      if (PSQLState.isConnectionError(ex.getSQLState())) {
+      if (connectionIsGone(ex)) {
         if (LOGGER.isLoggable(Level.FINEST)) {
-          debug("commit connection failure (sql error code " + ex.getSQLState() + "), reconnection could be expected");
+          debug("commit connection failure (sql error code " + ex.getSQLState()
+              + ", connection closed " + connectionIsClosed() + "), reconnection could be expected");
         }
         errorCode = XAException.XAER_RMFAIL;
       }
@@ -686,6 +689,35 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   @Override
   public boolean setTransactionTimeout(int seconds) {
     return false;
+  }
+
+  /**
+   * Reports whether the physical connection can no longer carry XA protocol SQL.
+   *
+   * <p>A backend that terminates the session answers with a FATAL error such as {@code 57P01}
+   * ({@code admin_shutdown}) or {@code 57P05} ({@code idle_session_timeout}) and then closes the
+   * socket, so the driver marks the connection closed. Asking the connection covers every such
+   * SQLSTATE, including the ones PostgreSQL has yet to define. The SQLSTATE check stays for a
+   * connection pooler that reports a connection error and leaves its own socket open.</p>
+   */
+  private boolean connectionIsGone(SQLException ex) {
+    if (PSQLState.isConnectionError(ex.getSQLState())) {
+      return true;
+    }
+    return connectionIsClosed();
+  }
+
+  /**
+   * Reports whether the physical connection is closed, treating a connection that cannot answer
+   * as closed. The method is different from {@link #connectionIsGone} so the debug logging can
+   * record which of the two reasons applied.
+   */
+  private boolean connectionIsClosed() {
+    try {
+      return conn.isClosed();
+    } catch (SQLException ignore) {
+      return true;
+    }
   }
 
   private static int mapSQLStateToXAErrorCode(SQLException sqlException) {
