@@ -15,13 +15,17 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.index.qual.Positive;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -976,6 +980,7 @@ final class ArrayEncoding {
     @Override
     public void appendArray(StringBuilder sb, char delim, Object[] array) {
       sb.append('{');
+      @Nullable GregorianCalendar calendar = null;
       for (int i = 0; i < array.length; i++) {
         if (i > 0) {
           sb.append(delim);
@@ -993,7 +998,18 @@ final class ArrayEncoding {
             throw new IllegalStateException(e);
           }
         } else {
-          PgArray.escapeArrayElement(sb, array[i].toString());
+          String element = array[i].toString();
+          if (array[i] instanceof java.sql.Date || array[i] instanceof java.sql.Timestamp) {
+            if (calendar == null) {
+              // Match the JVM default time zone used by the element's toString().
+              calendar = new GregorianCalendar(Locale.ROOT);
+            }
+            calendar.setTime((java.util.Date) array[i]);
+            if (calendar.get(Calendar.ERA) == GregorianCalendar.BC && !element.endsWith(" BC")) {
+              element += " BC";
+            }
+          }
+          PgArray.escapeArrayElement(sb, element);
         }
       }
       sb.append('}');
