@@ -2436,6 +2436,13 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
           return ts.toString(ts.toLocalDateTimeBin(value));
         case Oid.TIMESTAMPTZ:
           return ts.toStringOffsetDateTime(value);
+        case Oid.JSON:
+        case Oid.JSONB:
+        case Oid.XML:
+          // Decode directly: for xml, internalGetObject() calls getSQLXML(), which calls
+          // getString()
+          return trimString(columnIndex, castNonNull(
+              TextualBinaryDecoding.decode(field.getOID(), value, connection.getEncoding())));
       }
       // internalGetObject requires thisRow to be non-null
       castNonNull(thisRow, "thisRow");
