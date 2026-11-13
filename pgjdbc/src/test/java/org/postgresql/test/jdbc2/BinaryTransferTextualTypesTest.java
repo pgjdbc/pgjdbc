@@ -9,8 +9,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
@@ -98,6 +100,50 @@ public class BinaryTransferTextualTypesTest extends BaseTest4 {
         assertEquals("127.0.0.1", assertInstanceOf(PGobject.class, rs.getObject(1)).getValue());
       }
     }
+  }
+
+  /**
+   * A registered {@link PGobject} subclass without {@link org.postgresql.util.PGBinaryObject}
+   * gets the decoded text, too.
+   */
+  @Test
+  public void registeredDataType() throws SQLException {
+    con.unwrap(PGConnection.class).addDataType("jsonb", JsonbObject.class);
+
+    try (PreparedStatement ps = con.prepareStatement("select cast('{\"a\":  1}' as jsonb)");
+         ResultSet rs = ps.executeQuery()) {
+      rs.next();
+
+      JsonbObject object = assertInstanceOf(JsonbObject.class, rs.getObject(1));
+      assertEquals("jsonb", object.getType());
+      assertEquals("{\"a\": 1}", object.getValue());
+      assertEquals("{\"a\": 1}", rs.getObject(1, JsonbObject.class).getValue());
+      assertEquals("{\"a\": 1}", rs.getString(1));
+    }
+  }
+
+  @Test
+  public void registeredDataTypeWithoutBinaryDecoder() throws SQLException {
+    con.unwrap(PGConnection.class).addDataType("inet", InetObject.class);
+
+    try (PreparedStatement ps = con.prepareStatement("select cast('127.0.0.1' as inet)");
+         ResultSet rs = ps.executeQuery()) {
+      rs.next();
+
+      if (binaryMode == BinaryMode.FORCE) {
+        PSQLException e = assertThrows(PSQLException.class, () -> rs.getObject(1));
+        assertTrue(e.getMessage().contains("inet"), e.getMessage());
+        assertThrows(PSQLException.class, () -> rs.getObject(1, InetObject.class));
+      } else {
+        assertEquals("127.0.0.1", assertInstanceOf(InetObject.class, rs.getObject(1)).getValue());
+      }
+    }
+  }
+
+  public static class JsonbObject extends PGobject {
+  }
+
+  public static class InetObject extends PGobject {
   }
 
   private void assertTextValue(String type, String input, String expected) throws SQLException {
