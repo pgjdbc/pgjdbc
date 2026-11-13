@@ -21,6 +21,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -140,6 +141,36 @@ class ParserTest {
 
     // nothing should be changed in that case, no valid escape code
     assertEquals("{obj : 1}", Parser.replaceProcessing("{obj : 1}", true, false));
+  }
+
+  @Test
+  void timestampDiffPreservesParameterOrder() throws SQLException {
+    // Escape processing runs before parameter numbering. Different casts let the test
+    // distinguish the two timestamp arguments.
+    String sql = "SELECT ?, {fn timestampdiff(SQL_TSI_DAY,CAST(? AS timestamp),?::timestamp)}, ?";
+    String rewritten = Parser.replaceProcessing(sql, true, true);
+    NativeQuery query = Parser.parseJdbcSql(rewritten, true, true, true, false, false).get(0);
+
+    assertEquals("SELECT $1, extract( day from (-((CAST($2 AS timestamp))-($3::timestamp)))), $4",
+        query.nativeSql);
+  }
+
+  @Test
+  @SuppressWarnings("deprecation")
+  void legacyTimestampDiffPreservesArgumentOrder() throws SQLException {
+    // The deprecated public helper must keep the same behavior as the parser's implementation.
+    assertEquals("extract( day from (-((start_ts)-(end_ts))))",
+        org.postgresql.jdbc.EscapedFunctions.sqltimestampdiff(
+            Arrays.asList("SQL_TSI_DAY", "start_ts", "end_ts")));
+    assertEquals("extract( hour from (-((start_ts)-(end_ts))))",
+        org.postgresql.jdbc.EscapedFunctions.sqltimestampdiff(
+            Arrays.asList("SQL_TSI_HOUR", "start_ts", "end_ts")));
+    assertEquals("extract( minute from (-((start_ts)-(end_ts))))",
+        org.postgresql.jdbc.EscapedFunctions.sqltimestampdiff(
+            Arrays.asList("SQL_TSI_MINUTE", "start_ts", "end_ts")));
+    assertEquals("extract( second from (-((start_ts)-(end_ts))))",
+        org.postgresql.jdbc.EscapedFunctions.sqltimestampdiff(
+            Arrays.asList("SQL_TSI_SECOND", "start_ts", "end_ts")));
   }
 
   @Test

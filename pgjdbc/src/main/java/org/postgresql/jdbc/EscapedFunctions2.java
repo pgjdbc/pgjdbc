@@ -598,13 +598,14 @@ public final class EscapedFunctions2 {
           GT.tr("{0} function takes three and only three arguments.", "timestampdiff"),
           PSQLState.SYNTAX_ERROR);
     }
+    // Keep the argument order so parameter indexes remain unchanged.
     buf.append("extract( ")
         .append(constantToDatePart(parsedArgs.get(0).toString()))
-        .append(" from (")
-        .append(parsedArgs.get(2))
-        .append("-")
+        .append(" from (-((")
         .append(parsedArgs.get(1))
-        .append("))");
+        .append(")-(")
+        .append(parsedArgs.get(2))
+        .append("))))");
   }
 
   private static String constantToDatePart(String type) throws SQLException {
