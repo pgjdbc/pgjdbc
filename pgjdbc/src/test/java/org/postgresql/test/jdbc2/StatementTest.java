@@ -37,6 +37,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -369,6 +370,85 @@ class StatementTest {
     ResultSet rs = ps.executeQuery();
     assertTrue(rs.next());
     assertEquals(rs.getTimestamp(1), rs.getTimestamp(2));
+  }
+
+  @Test
+  void timestampDiffWithDayParameters() throws SQLException {
+    // 2024 is a leap year; reversing the dates must change only the sign.
+    assertTimestampDiff("SQL_TSI_DAY", "2024-01-01 00:00:00", "2025-01-01 00:00:00", 366);
+    assertTimestampDiff("SQL_TSI_DAY", "2025-01-01 00:00:00", "2024-01-01 00:00:00", -366);
+    assertTimestampDiff("SQL_TSI_DAY", "2024-01-01 00:00:00", "2024-01-01 00:00:00", 0);
+  }
+
+  @Test
+  void timestampDiffWithHourParameters() throws SQLException {
+    assertTimestampDiff("SQL_TSI_HOUR", "2024-01-01 01:00:00", "2024-01-01 04:00:00", 3);
+    assertTimestampDiff("SQL_TSI_HOUR", "2024-01-01 04:00:00", "2024-01-01 01:00:00", -3);
+  }
+
+  @Test
+  void timestampDiffWithMinuteParameters() throws SQLException {
+    assertTimestampDiff("SQL_TSI_MINUTE", "2024-01-01 00:01:00", "2024-01-01 00:04:00", 3);
+    assertTimestampDiff("SQL_TSI_MINUTE", "2024-01-01 00:04:00", "2024-01-01 00:01:00", -3);
+  }
+
+  @Test
+  void timestampDiffWithSecondParameters() throws SQLException {
+    assertTimestampDiff("SQL_TSI_SECOND", "2024-01-01 00:00:01", "2024-01-01 00:00:04", 3);
+    assertTimestampDiff("SQL_TSI_SECOND", "2024-01-01 00:00:04", "2024-01-01 00:00:01", -3);
+  }
+
+  private void assertTimestampDiff(String unit, String start, String end, int expected)
+      throws SQLException {
+    try (Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT {fn timestampdiff(" + unit
+            + ",{ts '" + start + "'},{ts '" + end + "'})}")) {
+      assertTrue(rs.next());
+      assertEquals(expected, rs.getInt(1), "Timestamp literals");
+    }
+
+    try (PreparedStatement ps = con.prepareStatement("SELECT {fn timestampdiff(" + unit
+        + ",CAST(? AS timestamp),CAST(? AS timestamp))}")) {
+      ps.setTimestamp(1, Timestamp.valueOf(start));
+      ps.setTimestamp(2, Timestamp.valueOf(end));
+      try (ResultSet rs = ps.executeQuery()) {
+        assertTrue(rs.next());
+        assertEquals(expected, rs.getInt(1), "Timestamp parameters");
+      }
+    }
+  }
+
+  @Test
+  void timestampDiffWithExpressionsAndSurroundingParameters() throws SQLException {
+    try (PreparedStatement ps = con.prepareStatement("SELECT ?, {fn timestampdiff(SQL_TSI_HOUR,"
+        + "CAST(? AS timestamp) + INTERVAL '1 hour',"
+        + "{fn timestampadd(SQL_TSI_HOUR,?,CAST(? AS timestamp))})}, ?")) {
+      ps.setInt(1, 11);
+      ps.setTimestamp(2, Timestamp.valueOf("2024-01-01 00:00:00"));
+      ps.setInt(3, 3);
+      ps.setTimestamp(4, Timestamp.valueOf("2024-01-01 04:00:00"));
+      ps.setInt(5, 22);
+      try (ResultSet rs = ps.executeQuery()) {
+        assertTrue(rs.next());
+        assertEquals(11, rs.getInt(1));
+        // (04:00 + 3 hours) - (00:00 + 1 hour) = 6 hours.
+        assertEquals(6, rs.getInt(2));
+        assertEquals(22, rs.getInt(3));
+      }
+    }
+  }
+
+  @Test
+  void timestampDiffWithNullParameter() throws SQLException {
+    try (PreparedStatement ps = con.prepareStatement(
+        "SELECT {fn timestampdiff(SQL_TSI_DAY,CAST(? AS timestamp),CAST(? AS timestamp))}")) {
+      ps.setTimestamp(1, null);
+      ps.setTimestamp(2, Timestamp.valueOf("2024-01-01 00:00:00"));
+      try (ResultSet rs = ps.executeQuery()) {
+        assertTrue(rs.next());
+        assertNull(rs.getObject(1));
+      }
+    }
   }
 
   @Test

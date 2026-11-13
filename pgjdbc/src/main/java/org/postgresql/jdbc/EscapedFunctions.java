@@ -642,13 +642,14 @@ public class EscapedFunctions {
     }
     String datePart = EscapedFunctions.constantToDatePart(parsedArgs.get(0).toString());
     StringBuilder buf = new StringBuilder();
+    // Keep the argument order so parameter indexes remain unchanged.
     buf.append("extract( ")
         .append(datePart)
-        .append(" from (")
-        .append(parsedArgs.get(2))
-        .append("-")
+        .append(" from (-((")
         .append(parsedArgs.get(1))
-        .append("))");
+        .append(")-(")
+        .append(parsedArgs.get(2))
+        .append("))))");
     return buf.toString();
   }
 
