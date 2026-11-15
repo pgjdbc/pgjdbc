@@ -8,9 +8,11 @@ package org.postgresql.test.jdbc2;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.test.TestUtil;
 
@@ -160,6 +162,47 @@ class SearchPathLookupTest {
       TypeInfo typeInfo = con.getTypeInfo();
       assertEquals(Oid.INTERVAL, typeInfo.getPGType("interval"));
       assertEquals(Oid.UNSPECIFIED, typeInfo.getPGType("search_path_temp_only"));
+    } finally {
+      TestUtil.closeDB(con);
+    }
+  }
+
+  @Test
+  void arrayElementInOtherSchemaLookup() throws Exception {
+    // A type with SUBSCRIPT can have its element in another schema since PostgreSQL 14.
+    // Creating such a base type needs a superuser.
+    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v14));
+    try (Connection priv = TestUtil.openPrivilegedDB();
+         Statement stmt = priv.createStatement()) {
+      try {
+        stmt.execute("DROP SCHEMA IF EXISTS search_path_vec CASCADE");
+        stmt.execute("DROP SCHEMA IF EXISTS search_path_elem CASCADE");
+        stmt.execute("CREATE SCHEMA search_path_vec");
+        stmt.execute("CREATE SCHEMA search_path_elem");
+        stmt.execute("CREATE TYPE search_path_elem.elem AS ENUM ('a')");
+        stmt.execute("CREATE TYPE search_path_vec.vec");
+        stmt.execute("CREATE FUNCTION search_path_vec.vec_in(cstring) RETURNS search_path_vec.vec"
+            + " AS 'int8in' LANGUAGE internal IMMUTABLE STRICT");
+        stmt.execute("CREATE FUNCTION search_path_vec.vec_out(search_path_vec.vec) RETURNS cstring"
+            + " AS 'int8out' LANGUAGE internal IMMUTABLE STRICT");
+        stmt.execute("CREATE TYPE search_path_vec.vec (INPUT = search_path_vec.vec_in,"
+            + " OUTPUT = search_path_vec.vec_out, INTERNALLENGTH = 8, PASSEDBYVALUE,"
+            + " ALIGNMENT = double, SUBSCRIPT = raw_array_subscript_handler,"
+            + " ELEMENT = search_path_elem.elem)");
+        ResultSet rs = stmt.executeQuery(
+            "SELECT 'search_path_vec.vec'::regtype::oid, 'search_path_elem.elem'::regtype::oid");
+        assertTrue(rs.next());
+        int vecOid = rs.getInt(1);
+        int elemOid = rs.getInt(2);
+        TypeInfo typeInfo = con.getTypeInfo();
+        assertEquals(elemOid, typeInfo.getPGArrayElement(vecOid));
+        assertEquals("\"search_path_elem\".\"elem\"", typeInfo.getPGType(elemOid));
+        assertEquals(elemOid, typeInfo.getPGType("search_path_elem.elem"));
+        assertEquals(Oid.UNSPECIFIED, typeInfo.getPGType("search_path_vec.elem"));
+      } finally {
+        stmt.execute("DROP SCHEMA IF EXISTS search_path_vec CASCADE");
+        stmt.execute("DROP SCHEMA IF EXISTS search_path_elem CASCADE");
+      }
     } finally {
       TestUtil.closeDB(con);
     }
