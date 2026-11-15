@@ -161,6 +161,19 @@ class ParserTest {
   }
 
   @Test
+  void functionEscapeEndsAtBraceOutsideOfLiterals() throws Exception {
+    assertEquals("SELECT lower(name) || '}{fn ucase(x)} --' AS v",
+        Parser.replaceProcessing("SELECT {fn lcase(name) || '}{fn ucase(x)} --'} AS v", true, true));
+    assertEquals("lower(a) || \"}\" /* } */ || $$}$$ || $q$}$q$ -- }\n",
+        Parser.replaceProcessing("{fn lcase(a) || \"}\" /* } */ || $$}$$ || $q$}$q$ -- }\n}", true, true));
+    assertEquals("SELECT lower(a) || 'x', 1",
+        Parser.replaceProcessing("SELECT {fn lcase(a) || 'x'}, 1", true, true));
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> Parser.replaceProcessing("{fn lcase(a) || '}", true, true));
+    assertEquals(PSQLState.SYNTAX_ERROR.getState(), e.getSQLState());
+  }
+
+  @Test
   void timestampAddDiffFracSecondIsRejected() throws Exception {
     // SQL_TSI_FRAC_SECOND has no portable size across databases (nanoseconds in ODBC/SQL Server,
     // microseconds in MySQL), so pgjdbc rejects it with an explicit error rather than risk
