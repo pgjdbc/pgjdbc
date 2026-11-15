@@ -190,6 +190,23 @@ class ParserTest {
     assertEquals(1, queries.get(0).bindPositions.length);
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "\ud800", // high surrogate without a low surrogate
+      "\udc00", // low surrogate without a high surrogate
+  })
+  void unpairedSurrogateIsNotAnIdentifierCharacter(String c) throws SQLException {
+    // The driver sends an unpaired surrogate as ?, an operator character for the backend.
+    String sql = "SELECT x" + c + "$$k{oj b$}$ AS a, ? AS b --$$";
+    assertEquals(sql, Parser.replaceProcessing(sql, true, true));
+    assertEquals(0, Parser.parseJdbcSql(sql, true, true, true, true, true).get(0).bindPositions.length);
+    for (String tag : new String[]{"$" + c + "$", "$q" + c + "$"}) {
+      sql = "SELECT " + tag + " ? " + tag;
+      assertEquals(1, Parser.parseJdbcSql(sql, true, true, true, true, true).get(0).bindPositions.length,
+          sql);
+    }
+  }
+
   @Test
   void functionEscapeEndsAtBraceOutsideOfLiterals() throws Exception {
     assertEquals("SELECT lower(name) || '}{fn ucase(x)} --' AS v",
