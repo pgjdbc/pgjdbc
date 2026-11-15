@@ -246,6 +246,19 @@ class ParserTest {
     assertEquals(1, queries.get(0).bindPositions.length);
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {
+      " ",
+      "\u000b", // vertical tab, whitespace for the backend since PostgreSQL 17
+      "x\ud800", // unpaired surrogate, sent as ?
+  })
+  void escapeStringAfterSeparator(String separator) throws SQLException {
+    String sql = "SELECT" + separator + "E'\\' ? --' AS note WHERE 'a' = ?";
+    NativeQuery query = Parser.parseJdbcSql(sql, true, true, true, true, true).get(0);
+    assertEquals(1, query.bindPositions.length);
+    assertEquals(sql.substring(0, sql.length() - 1) + "$1", query.nativeSql);
+  }
+
   @Test
   void timestampAddDiffFracSecondIsRejected() throws Exception {
     // SQL_TSI_FRAC_SECOND has no portable size across databases (nanoseconds in ODBC/SQL Server,
