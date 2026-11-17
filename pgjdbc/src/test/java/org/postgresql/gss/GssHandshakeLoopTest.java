@@ -103,7 +103,7 @@ class GssHandshakeLoopTest {
 
   @Test
   @Timeout(value = 30, unit = TimeUnit.SECONDS)
-  void stopsTheAuthenticationHandshakeAtTheRoundCap() throws Exception {
+  void stopsTheAuthenticationHandshakeAtTheRoundLimit() throws Exception {
     CannedSocketFactory[] factory = new CannedSocketFactory[1];
     PGStream stream = streamOf(continueMessages(MAX_ROUNDS + 10), factory);
     GssAction action = new GssAction(stream, null, "localhost", "test", "postgres", false, false,
@@ -117,12 +117,12 @@ class GssHandshakeLoopTest {
     assertTrue(stream.isBroken());
     // Each round sends a GSSResponse, the type byte and length followed by a one byte token.
     assertEquals(MAX_ROUNDS * 6, factory[0].getWritten().length,
-        "the driver must send exactly the capped number of tokens");
+        "the driver must send exactly the number of tokens the limit allows");
   }
 
   @Test
   @Timeout(value = 30, unit = TimeUnit.SECONDS)
-  void stopsTheEncryptionHandshakeAtTheRoundCap() throws Exception {
+  void stopsTheEncryptionHandshakeAtTheRoundLimit() throws Exception {
     CannedSocketFactory[] factory = new CannedSocketFactory[1];
     PGStream stream = streamOf(rawTokens(MAX_ROUNDS + 10), factory);
     GssEncAction action = new GssEncAction(stream, null, "localhost", "test", "postgres", false,
@@ -136,7 +136,7 @@ class GssHandshakeLoopTest {
     assertTrue(stream.isBroken());
     // Each round sends a four byte length followed by a one byte token.
     assertEquals(MAX_ROUNDS * 5, factory[0].getWritten().length,
-        "the driver must send exactly the capped number of tokens");
+        "the driver must send exactly the number of tokens the limit allows");
   }
 
   /** The encryption handshake reads a raw length, so its limit is checked there. */
