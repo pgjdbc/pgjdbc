@@ -6,6 +6,7 @@
 package org.postgresql.core.v3.replication;
 
 import org.postgresql.copy.CopyDual;
+import org.postgresql.core.PgMessageType;
 import org.postgresql.replication.LogSequenceNumber;
 import org.postgresql.replication.PGReplicationStream;
 import org.postgresql.replication.ReplicationType;
@@ -141,12 +142,12 @@ public class V3PGReplicationStream implements PGReplicationStream {
 
       switch (code) {
 
-        case 'k': //KeepAlive message
+        case PgMessageType.REPL_KEEPALIVE: //KeepAlive message
           updateStatusRequired = processKeepAliveMessage(buffer);
           updateStatusRequired |= updateInterval == 0;
           break;
 
-        case 'w': //XLogData
+        case PgMessageType.REPL_XLOG_DATA: //XLogData
           return processXLogData(buffer);
 
         default:
@@ -218,7 +219,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
           new Object[]{received.asString(), flushed.asString(), applied.asString(), clock});
     }
 
-    byteBuffer.put((byte) 'r');
+    byteBuffer.put(PgMessageType.REPL_STANDBY_STATUS_UPDATE);
     byteBuffer.putLong(received.asLong());
     byteBuffer.putLong(flushed.asLong());
     byteBuffer.putLong(applied.asLong());
