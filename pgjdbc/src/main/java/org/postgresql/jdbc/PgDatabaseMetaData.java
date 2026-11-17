@@ -2492,6 +2492,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   /*
   This is for internal use only to see if a resultset is updateable.
   Unique keys can also be used so we add them to the query.
+  A null or empty schema matches only the table that the unqualified table name resolves to through
+  search_path, as pg_table_is_visible() decides. A null schema in getPrimaryKeys() matches every
+  schema instead.
    */
   protected ResultSet getPrimaryUniqueKeys(@Nullable String catalog, @Nullable String schema, String table)
       throws SQLException {
@@ -2536,12 +2539,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       sql.append(" AND n.nspname = ?");
       args.add(schema);
     } else {
-      // The table name carries no schema qualifier, so it resolves through the session's
-      // search_path. pg_table_is_visible() applies the same visibility rules the server uses,
-      // so only the relation the query actually references is matched. Without it, identically
-      // named tables in other schemas are matched too, which can mis-classify a result set as
-      // updatable when those tables share a constraint name but differ in their key columns.
-      // pg_table_is_visible() has existed since PostgreSQL 7.3.
       sql.append(" AND pg_catalog.pg_table_is_visible(ct.oid)");
     }
 
