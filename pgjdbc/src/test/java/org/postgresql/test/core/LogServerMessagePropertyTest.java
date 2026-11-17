@@ -84,6 +84,7 @@ class LogServerMessagePropertyTest {
   @Test
   void withDefaults() throws SQLException {
     Properties props = new Properties();
+    props.setProperty(PGProperty.LOG_SERVER_ERROR_DETAIL.getName(), "true");
     String message = testViolatePrimaryKey(props);
     assertMessageContains(message, PRIMARY_KEY_NAME);
     // TODO: Detail is locale-specific assertMessageContains(message, "Detail:");
@@ -116,6 +117,7 @@ class LogServerMessagePropertyTest {
   @Test
   void batchWithDefaults() throws SQLException {
     Properties props = new Properties();
+    props.setProperty(PGProperty.LOG_SERVER_ERROR_DETAIL.getName(), "true");
     String message = testViolatePrimaryKey(props, true);
     assertMessageContains(message, PRIMARY_KEY_NAME);
     // TODO: Detail is locale-specific assertMessageContains(message, "Detail:");
