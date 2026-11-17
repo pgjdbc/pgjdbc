@@ -97,6 +97,28 @@ class PGCopyInputStreamTest {
     }
   }
 
+  @Test
+  void connectionIsUsableAfterPartialRead() throws SQLException, IOException {
+    // Regression test for https://github.com/pgjdbc/pgjdbc/issues/1290:
+    // closing a PGCopyInputStream before EOF must drain remaining server messages
+    // so the connection can be reused for a subsequent COPY operation.
+    PGConnection pgConn = conn.unwrap(PGConnection.class);
+
+    // Partial read: consume fewer bytes than the full COPY output, then close.
+    try (PGCopyInputStream in = new PGCopyInputStream(pgConn, COPY_SQL)) {
+      byte[] partial = new byte[COPY_ROW_SIZE];
+      assertEquals(COPY_ROW_SIZE, in.read(partial), "Should read one row");
+      // close() calls cancelCopy() which must drain remaining CopyData + ReadyForQuery
+    }
+
+    // The connection must be usable for a fresh COPY after the partial read + close.
+    try (PGCopyInputStream in2 = new PGCopyInputStream(pgConn, COPY_SQL)) {
+      List<byte[]> chunks = readFully(in2, COPY_ROW_SIZE);
+      assertEquals(NUM_TEST_ROWS, chunks.size(), "Second COPY must return all rows");
+      assertEquals("0\n1\n2\n3\n", chunksToString(chunks), "Second COPY must return correct data");
+    }
+  }
+
   private static List<byte[]> readFully(PGCopyInputStream in, int size) throws SQLException, IOException {
     List<byte[]> chunks = new ArrayList<>();
     do {
