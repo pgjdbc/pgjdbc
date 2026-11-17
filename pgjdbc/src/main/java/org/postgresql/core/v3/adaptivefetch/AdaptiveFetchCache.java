@@ -12,6 +12,8 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * The main purpose of this class is to handle adaptive fetching process. Adaptive fetching is used
@@ -24,6 +26,8 @@ import java.util.Properties;
  * size. Property adaptiveFetch need properties defaultRowFetchSize and maxResultBuffer to work.
  */
 public class AdaptiveFetchCache {
+
+  private static final Logger LOGGER = Logger.getLogger(AdaptiveFetchCache.class.getName());
 
   private final Map<String, AdaptiveFetchCacheEntry> adaptiveFetchInfoMap;
   private boolean adaptiveFetch;
@@ -79,6 +83,17 @@ public class AdaptiveFetchCache {
         if (adaptiveMaximumRowSize < maximumRowSizeBytes && maximumRowSizeBytes > 0) {
           int newFetchSize = (int) (maximumResultBufferSize / maximumRowSizeBytes);
           newFetchSize = adjustFetchSize(newFetchSize);
+
+          int previousFetchSize = adaptiveFetchCacheEntry.getSize();
+          if (newFetchSize != previousFetchSize && LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE,
+                "Updating adaptiveFetch fetch size from {0} to {1} for query hash {2}. "
+                    + "maximumResultBufferSizeBytes={3} maximumRowSizeBytes={4} "
+                    + "minimumAdaptiveFetchSize={5} maximumAdaptiveFetchSize={6}",
+                new Object[]{previousFetchSize, newFetchSize, query.hashCode(),
+                    maximumResultBufferSize, maximumRowSizeBytes,
+                    minimumAdaptiveFetchSize, maximumAdaptiveFetchSize});
+          }
 
           adaptiveFetchCacheEntry.setMaximumRowSizeBytes(maximumRowSizeBytes);
           adaptiveFetchCacheEntry.setSize(newFetchSize);
