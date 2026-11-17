@@ -248,6 +248,7 @@ class PGPropertyTest {
     excluded.add("SSL_ROOT_CERT"); // ssl[r]oot[c]ert
     excluded.add("SSL_PASSWORD"); // ssl[p]assword
     excluded.add("SSL_PASSWORD_CALLBACK"); // ssl[p]assword[c]allback
+    excluded.add("SSL_SUBJECT"); // ssl[s]ubject
     excluded.add("APPLICATION_NAME"); // [A]pplicationName
     excluded.add("GSS_LIB"); // gss[l]ib
     excluded.add("REWRITE_BATCHED_INSERTS"); // re[W]riteBatchedInserts
