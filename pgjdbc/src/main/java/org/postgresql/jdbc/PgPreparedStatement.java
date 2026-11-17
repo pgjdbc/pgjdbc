@@ -1325,27 +1325,33 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   @Override
-  public void setCharacterStream(@Positive int i, @Nullable Reader x,
+  public void setCharacterStream(@Positive int parameterIndex, @Nullable Reader value,
       @NonNegative int length) throws SQLException {
+    setCharacterStream(parameterIndex, value, (long) length);
+  }
+
+  @Override
+  public void setCharacterStream(@Positive int parameterIndex, @Nullable Reader value,
+      @NonNegative long length) throws SQLException {
     checkClosed();
 
-    if (x == null) {
-      setNull(i, Types.VARCHAR);
+    if (value == null) {
+      setNull(parameterIndex, Types.VARCHAR);
       return;
     }
 
-    if (length < 0) {
-      throw new PSQLException(GT.tr("Invalid stream length {0}.", length),
+    if (length > Integer.MAX_VALUE) {
+      throw new PSQLException(GT.tr("Object is too large to send over the protocol."),
+          PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE);
+    } else if (length < 0) {
+      throw new PSQLException(GT.tr("Invalid stream length {0}.", Long.toString(length)),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
 
-    // Version 7.2 supports CharacterStream for the PG text types
-    // As the spec/javadoc for this method indicate this is to be used for
-    // large text values (i.e. LONGVARCHAR) PG doesn't have a separate
-    // long varchar datatype, but with toast all the text datatypes are capable of
-    // handling very large values. Thus the implementation ends up calling
-    // setString() since there is no current way to stream the value to the server
-    setString(i, readerToString(x, length));
+    // Bind through setString, as the int overload always has, so the parameter type follows the
+    // stringtype connection property. Outside simple query mode, setCharacterStream(int, Reader)
+    // streams the value instead and binds it as text.
+    setString(parameterIndex, readerToString(value, (int) length));
   }
 
   @Override
@@ -1610,14 +1616,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   @Override
   public void setCharacterStream(@Positive int parameterIndex,
-      @Nullable Reader value, @NonNegative long length)
-      throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setCharacterStream(int, Reader, long)");
-  }
-
-  @Override
-  public void setCharacterStream(@Positive int parameterIndex,
       @Nullable Reader value) throws SQLException {
+    checkClosed();
     if (connection.getPreferQueryMode() == PreferQueryMode.SIMPLE) {
       String s = value != null ? readerToString(value, Integer.MAX_VALUE) : null;
       setString(parameterIndex, s);
