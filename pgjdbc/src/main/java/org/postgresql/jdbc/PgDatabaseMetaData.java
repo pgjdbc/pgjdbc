@@ -1216,9 +1216,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + DatabaseMetaData.procedureReturnsResult + " AS \"PROCEDURE_TYPE\", "
           + " p.proname || '_' || p.oid AS \"SPECIFIC_NAME\" "
           + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_proc p "
-          + " LEFT JOIN pg_catalog.pg_description d ON (p.oid=d.objoid) "
-          + " LEFT JOIN pg_catalog.pg_class c ON (d.classoid=c.oid AND c.relname='pg_proc') "
-          + " LEFT JOIN pg_catalog.pg_namespace pn ON (c.relnamespace=pn.oid AND pn.nspname='pg_catalog') "
+          + " LEFT JOIN pg_catalog.pg_description d ON (p.oid=d.objoid "
+          + "   AND d.classoid='pg_catalog.pg_proc'::pg_catalog.regclass AND d.objsubid=0) "
           + " WHERE p.pronamespace=n.oid ");
 
     List<String> args = new ArrayList<>();
@@ -2939,7 +2938,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + "  JOIN pg_catalog.pg_index i ON (ct.oid = i.indrelid) "
             + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
             + "  JOIN pg_catalog.pg_am am ON (ci.relam = am.oid) "
-            + "  LEFT JOIN pg_catalog.pg_description d ON (ci.oid = d.objoid) "
+            + "  LEFT JOIN pg_catalog.pg_description d ON (ci.oid = d.objoid "
+            + "    AND d.classoid = 'pg_catalog.pg_class'::pg_catalog.regclass AND d.objsubid = 0) "
             + "WHERE true ");
 
       if (schema != null) {
@@ -3307,7 +3307,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + " p.proname || '_' || p.oid AS \"SPECIFIC_NAME\" "
             + "FROM pg_catalog.pg_proc p "
             + "INNER JOIN pg_catalog.pg_namespace n ON p.pronamespace=n.oid "
-            + "LEFT JOIN pg_catalog.pg_description d ON p.oid=d.objoid "
+            + "LEFT JOIN pg_catalog.pg_description d ON (p.oid=d.objoid "
+            + "  AND d.classoid='pg_catalog.pg_proc'::pg_catalog.regclass AND d.objsubid=0) "
             + "WHERE true  ");
 
     List<String> args = new ArrayList<>();
