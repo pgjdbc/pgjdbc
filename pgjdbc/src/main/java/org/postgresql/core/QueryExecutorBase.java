@@ -47,7 +47,8 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private byte @Nullable[] cancelKey;
   protected final QueryExecutorCloseAction closeAction;
   private @MonotonicNonNull String serverVersion;
-  private int serverVersionNum;
+  // null until it is parsed, since 0 is also the result for a version the parser does not know
+  private @Nullable Integer serverVersionNum;
   private volatile TransactionState transactionState = TransactionState.IDLE;
   private final boolean reWriteBatchedInserts;
   private final int reWriteBatchedInsertsSize;
@@ -272,10 +273,11 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   @Override
   public int getServerVersionNum() {
-    if (serverVersionNum != 0) {
-      return serverVersionNum;
+    Integer serverVersionNum = this.serverVersionNum;
+    if (serverVersionNum == null) {
+      serverVersionNum = Utils.parseServerVersionStr(getServerVersion());
+      this.serverVersionNum = serverVersionNum;
     }
-    serverVersionNum = Utils.parseServerVersionStr(getServerVersion());
     return serverVersionNum;
   }
 
