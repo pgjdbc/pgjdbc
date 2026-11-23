@@ -11,6 +11,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -822,6 +823,52 @@ class DatabaseMetaDataTest {
           stmt.execute("drop function public.array_in(anyarray, oid, integer)");
         }
       }
+    }
+  }
+
+  /**
+   * OIDs are unique only within one system catalog. After pg_upgrade, for example, a function keeps
+   * no OID of its own and can get the OID of an existing table. The comments of that table must not
+   * show up in the metadata of the function, and the reverse.
+   */
+  @Test
+  void commentsOfObjectsWithTheSameOidInOtherCatalogsAreIgnored() throws SQLException {
+    boolean procedures = TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11);
+    TestUtil.createTable(conn, "oid_collision_idx", "a int");
+    TestUtil.execute(conn, "create index oid_collision_idx_a on oid_collision_idx (a)");
+    try (Connection privileged = TestUtil.openPrivilegedDB()) {
+      // Comments of objects in another catalog that have the OID of the procedure, the function
+      // and the index. A superuser can add them directly; pg_upgrade creates this state for real.
+      TestUtil.execute(privileged, "insert into pg_catalog.pg_description (objoid, classoid, objsubid, description) "
+          + "select o, c::pg_catalog.regclass, s, 'comment of another object' from (values "
+          + (procedures ? "('hasprocedures.addprocedure()'::pg_catalog.regprocedure::oid, 'pg_catalog.pg_class'), " : "")
+          + "('hasfunctions.addfunction(integer, integer)'::pg_catalog.regprocedure::oid, 'pg_catalog.pg_class'), "
+          + "('oid_collision_idx_a'::pg_catalog.regclass::oid, 'pg_catalog.pg_proc')) v(o, c), "
+          + "generate_series(0, 1) s "
+          + "where s = 0 or c = 'pg_catalog.pg_class'");
+      try {
+        DatabaseMetaData dbmd = conn.getMetaData();
+        if (procedures) {
+          assertOneRowWithoutRemarks("getProcedures",
+              dbmd.getProcedures(null, "hasprocedures", "addprocedure"));
+        }
+        assertOneRowWithoutRemarks("getFunctions",
+            dbmd.getFunctions(null, "hasfunctions", "addfunction"));
+        assertOneRowWithoutRemarks("getIndexInfo",
+            dbmd.getIndexInfo(null, null, "oid_collision_idx", false, false));
+      } finally {
+        TestUtil.execute(privileged, "delete from pg_catalog.pg_description "
+            + "where description = 'comment of another object'");
+        TestUtil.dropTable(conn, "oid_collision_idx");
+      }
+    }
+  }
+
+  private static void assertOneRowWithoutRemarks(String method, ResultSet rs) throws SQLException {
+    try (ResultSet r = rs) {
+      assertTrue(r.next(), () -> method + " should return a row");
+      assertNull(r.getString("REMARKS"), () -> method + " REMARKS");
+      assertFalse(r.next(), () -> method + " should return exactly one row");
     }
   }
 }
