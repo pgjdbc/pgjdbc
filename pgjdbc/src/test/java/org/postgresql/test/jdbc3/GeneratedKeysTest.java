@@ -5,10 +5,12 @@
 
 package org.postgresql.test.jdbc3;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -17,6 +19,7 @@ import org.postgresql.PGStatement;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
+import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.Test;
@@ -221,6 +224,24 @@ public class GeneratedKeysTest extends BaseTest4 {
     assertTrue(rs.next());
     assertCB1(rs);
     assertFalse(rs.next());
+  }
+
+  @Test
+  public void mergeReturnsTheMergedRowsAsGeneratedKeys() throws SQLException {
+    assumeMinimumServerVersion(ServerVersion.v17);
+    try (Statement stmt = con.createStatement()) {
+      stmt.executeUpdate("INSERT INTO genkeys VALUES (1, 'a', 3), (2, 'b', 4)");
+      stmt.executeUpdate("MERGE INTO genkeys g USING (VALUES (1, 2)) v(id, new_c) ON g.a = v.id"
+              + " WHEN MATCHED THEN UPDATE SET c = v.new_c",
+          new String[]{"c", "b"});
+      try (ResultSet rs = stmt.getGeneratedKeys()) {
+        assertTrue(rs.next(), "getGeneratedKeys().next()");
+        assertAll(
+            () -> assertEquals(2, rs.getInt("c"), "c"),
+            () -> assertEquals("a", rs.getString("b"), "b"),
+            () -> assertFalse(rs.next(), "getGeneratedKeys() has a second row"));
+      }
+    }
   }
 
   @Test
@@ -507,4 +528,58 @@ public class GeneratedKeysTest extends BaseTest4 {
     ps.executeUpdate();
   }
 
+  /**
+   * LISTEN takes no RETURNING, so the driver has to send it unchanged even though the channel name
+   * is the keyword {@code insert}.
+   */
+  @Test
+  public void listenOnAChannelNamedInsertRunsWithGeneratedKeysRequested() throws SQLException {
+    try (Statement stmt = con.createStatement()) {
+      stmt.execute("listen insert /* channel */", Statement.RETURN_GENERATED_KEYS);
+      try (ResultSet rs = stmt.executeQuery("select string_agg(c, ',') from pg_listening_channels() c")) {
+        rs.next();
+        assertEquals("insert", rs.getString(1), "listening channels");
+      }
+    }
+  }
+
+  @Test
+  public void explainReturnsThePlanAsTheResultSetWithGeneratedKeysRequested() throws SQLException {
+    try (Statement stmt = con.createStatement()) {
+      stmt.execute("explain insert into genkeys values (1, 'a', 2)",
+          Statement.RETURN_GENERATED_KEYS);
+      try (ResultSet plan = stmt.getResultSet();
+           ResultSet keys = stmt.getGeneratedKeys()) {
+        assertAll(
+            () -> assertNotNull(plan, "getResultSet()"),
+            () -> assertEquals("QUERY PLAN", plan.getMetaData().getColumnName(1),
+                "getResultSet() column name"),
+            () -> assertFalse(keys.next(), "getGeneratedKeys().next()"));
+      }
+    }
+  }
+
+  @Test
+  public void executeUpdateOfExplainReportsNoGeneratedKeys() throws SQLException {
+    try (Statement stmt = con.createStatement()) {
+      int count = stmt.executeUpdate("explain insert into genkeys values (1, 'a', 2)",
+          Statement.RETURN_GENERATED_KEYS);
+      try (ResultSet keys = stmt.getGeneratedKeys()) {
+        assertAll(
+            () -> assertEquals(-1, count,
+                "executeUpdate count; pgjdbc 42.7.14 returns -1 for any statement that returns rows,"
+                    + " such as select 1, where JDBC asks for an SQLException"),
+            () -> assertFalse(keys.next(), "getGeneratedKeys().next()"));
+      }
+    }
+  }
+
+  @Test
+  public void preparedExecuteUpdateOfExplainFailsWithGeneratedKeysRequested() throws SQLException {
+    try (PreparedStatement ps = con.prepareStatement(
+        "explain insert into genkeys values (1, 'a', 2)", Statement.RETURN_GENERATED_KEYS)) {
+      PSQLException e = assertThrows(PSQLException.class, ps::executeUpdate);
+      assertEquals(PSQLState.TOO_MANY_RESULTS.getState(), e.getSQLState());
+    }
+  }
 }
