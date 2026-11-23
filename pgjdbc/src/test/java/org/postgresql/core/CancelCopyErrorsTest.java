@@ -5,11 +5,13 @@
 
 package org.postgresql.core;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.copy.CopyIn;
 import org.postgresql.core.v3.QueryExecutorImpl;
+import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 
@@ -39,7 +41,8 @@ class CancelCopyErrorsTest {
 
     PSQLException e = assertThrows(PSQLException.class, copyIn::cancelCopy);
 
-    assertTrue(e.getMessage().contains("Got 2 error responses"), e.getMessage());
+    assertEquals(GT.tr("Got {0} error responses to single copy cancel request", "2"),
+        e.getMessage());
     assertTrue(executor.isClosed(), "the connection must not look reusable");
   }
 
