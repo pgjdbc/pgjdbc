@@ -4,9 +4,12 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
+## [42.7.14] (2026-10-07)
+
 ### Security
 * fix: a `requireAuth` value that excludes every authentication method, such as `!password,!md5,!gss,!sspi,!scram-sha-256,!none`, now refuses every method. A connection with such a value now fails with SQLState `08004`. Before, the driver treated the value as if `requireAuth` were not set, and used any method the server asked for, even a cleartext password. This affects 42.7.11 through 42.7.13 [GHSA-rhp9-mr79-r74h](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-rhp9-mr79-r74h)
 * fix: a `requireAuth` value without a method in it, such as `,` or `,,`, now fails with SQLState `22023`. Before, the driver treated it as if `requireAuth` were not set. Commas at the very end of a value are still ignored, as in `password,`. This affects 42.7.11 through 42.7.13 [GHSA-rhp9-mr79-r74h](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-rhp9-mr79-r74h)
+* fix: a value shorter than its declared length, such as one from a `ByteStreamWriter` whose `getLength()` is larger than what `writeTo()` writes, is now padded with zeros. Before, the driver padded it with bytes of messages sent earlier on the same connection, so the stored value could contain SQL text and parameter values of earlier statements. This affects 42.7.4 through 42.7.13 [GHSA-f64h-wr5q-3qf3](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-f64h-wr5q-3qf3)
 
 ## [42.7.13] (2026-07-06)
 
