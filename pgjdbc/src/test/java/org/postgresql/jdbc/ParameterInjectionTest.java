@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.annotations.EnabledForServerVersionRange;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -76,6 +77,7 @@ public class ParameterInjectionTest {
     }
   }
 
+  @EnabledForServerVersionRange(lt = "19")
   @Test
   public void simpleModeStringAfterStandardConformingStringsOff() throws SQLException {
     Properties props = new Properties();
@@ -96,6 +98,7 @@ public class ParameterInjectionTest {
     }
   }
 
+  @EnabledForServerVersionRange(lt = "19")
   @Test
   public void simpleModeQueryParsedBeforeStandardConformingStringsOff() throws SQLException {
     Properties props = new Properties();
@@ -132,6 +135,7 @@ public class ParameterInjectionTest {
     }
   }
 
+  @EnabledForServerVersionRange(lt = "19")
   @Test
   public void simpleModeYenSignInEucJp() throws SQLException {
     Properties props = new Properties();
