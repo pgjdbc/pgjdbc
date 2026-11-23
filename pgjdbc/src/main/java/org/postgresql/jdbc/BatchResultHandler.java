@@ -138,7 +138,12 @@ public class BatchResultHandler extends ResultHandlerBase {
   @Override
   public void secureProgress() {
     if (isProgressDurable()) {
-      committedRows = resultIndex;
+      // Each statement that returns rows advances resultIndex, so a multi-statement entry can take
+      // it past the last entry, where it no longer counts entries. Keep the last count that is
+      // within the batch, so that a later failure marks the entries after it EXECUTE_FAILED.
+      if (resultIndex <= longUpdateCounts.length) {
+        committedRows = resultIndex;
+      }
       updateGeneratedKeys();
     }
   }

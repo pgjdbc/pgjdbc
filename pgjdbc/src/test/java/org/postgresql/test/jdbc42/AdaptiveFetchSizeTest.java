@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc42;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGConnection;
@@ -21,6 +22,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Collections;
 import java.util.Properties;
 
 /**
@@ -251,6 +254,41 @@ class AdaptiveFetchSizeTest {
     }
 
     assertEquals(expectedCounter, resultCounter);
+  }
+
+  /**
+   * The first fetch of a result set that a forced Sync reads sets the adaptive fetch size for the
+   * fetches after it, as any other first fetch does.
+   *
+   * <p>The first of 256 statements returns 50 rows of 35 bytes, and each of the rest returns one
+   * row. 256 undescribed statements fill the driver's receive-buffer estimate, so the driver forces
+   * a Sync before the last one and reads the first statement's first fetch of 4 rows there. A
+   * buffer of 100000 bytes would allow 2857 rows of 35 bytes, so the fetch size from the fifth row
+   * on is the maximum of 10. A forced Sync used to read its results without recording adaptive
+   * fetch, and the fifth row then arrived in a fetch of 4.</p>
+   */
+  @Test
+  void adaptiveFetchingLearnsFromRowsReadByAForcedSync() throws SQLException {
+    Properties properties = new Properties();
+    PGProperty.DEFAULT_ROW_FETCH_SIZE.set(properties, 4);
+    PGProperty.MAX_RESULT_BUFFER.set(properties, "100000");
+    PGProperty.ADAPTIVE_FETCH_MAXIMUM.set(properties, 10);
+    PGProperty.ADAPTIVE_FETCH.set(properties, true);
+    PGProperty.PREFER_QUERY_MODE.set(properties, PreferQueryMode.EXTENDED.value());
+
+    String sql = "SELECT repeat('H', 35) FROM generate_series(1, 50); "
+        + String.join("; ", Collections.nCopies(255, "SELECT 1"));
+    try (Connection con = TestUtil.openDB(properties);
+         Statement stmt = con.createStatement()) {
+      con.setAutoCommit(false);
+      stmt.execute(sql);
+      try (ResultSet rs = stmt.getResultSet()) {
+        for (int row = 1; row <= 5; row++) {
+          assertTrue(rs.next(), "the first statement returns 50 rows");
+        }
+        assertEquals(10, rs.getFetchSize(), "getFetchSize() at the fifth row");
+      }
+    }
   }
 
   /**
