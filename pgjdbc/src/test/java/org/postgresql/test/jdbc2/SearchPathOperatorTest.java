@@ -62,8 +62,10 @@ class SearchPathOperatorTest {
 
   @BeforeEach
   void setUp() throws Exception {
-    con = openDB(new Properties());
+    con = TestUtil.openDB();
     TestUtil.createSchema(con, SCHEMA);
+    // Before 9.2 the server refuses a search_path with a schema that does not exist.
+    setSearchPath(con);
     for (String[] op : OPERATORS) {
       String signature = "fail(" + op[1] + ", " + op[2] + ")";
       createFailingFunction(signature);
@@ -76,8 +78,9 @@ class SearchPathOperatorTest {
     TestUtil.createTable(con, SCHEMA + ".parent", "id serial primary key, val text not null");
     TestUtil.createTable(con, SCHEMA + ".child",
         "id int4 primary key, parent_id int4 references " + SCHEMA + ".parent");
+    // SQL functions can refer to a parameter by name only from 9.2.
     TestUtil.execute(con, "CREATE FUNCTION " + SCHEMA + ".func(a int4) RETURNS int4"
-        + " LANGUAGE sql AS 'SELECT a'");
+        + " LANGUAGE sql AS 'SELECT $1'");
     TestUtil.execute(con, "INSERT INTO " + SCHEMA + ".parent (val) VALUES ('a')");
   }
 
@@ -89,8 +92,12 @@ class SearchPathOperatorTest {
 
   private static Connection openDB(Properties props) throws SQLException {
     Connection con = TestUtil.openDB(props);
-    TestUtil.execute(con, "SET search_path TO " + SCHEMA + ", public");
+    setSearchPath(con);
     return con;
+  }
+
+  private static void setSearchPath(Connection con) throws SQLException {
+    TestUtil.execute(con, "SET search_path TO " + SCHEMA + ", public");
   }
 
   private void createFailingFunction(String signature) throws SQLException {
