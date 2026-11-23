@@ -10,13 +10,16 @@ import static javax.transaction.xa.XAResource.XA_OK;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TransactionState;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
@@ -40,8 +43,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
+import java.util.List;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import javax.sql.XAConnection;
 import javax.sql.XADataSource;
@@ -303,6 +310,23 @@ public class XADataSourceTest {
 
       assertFalse(recoveredXid, "Recovered rolled back xid");
     }
+  }
+
+  /**
+   * Terminating the backend and calling {@code xaRes.recover(XAResource.TMSTARTRSCAN)} should give
+   * {@code XAER_RMFAIL}.
+   */
+  @Test
+  void recoverAfterBackendTerminationMustReportRmfail() throws Exception {
+    Xid xid = new CustomXid(5);
+    int pid = prepareBranch(xid);
+
+    terminateBackendAndWait(pid);
+
+    XAException xae = assertThrows(XAException.class, () -> xaRes.recover(XAResource.TMSTARTRSCAN));
+    assertEquals(XAException.XAER_RMFAIL, xae.errorCode,
+        "recover() could not read pg_prepared_xacts because the connection is gone, so the"
+            + " transaction manager must be told to retry");
   }
 
   @Test
@@ -633,7 +657,8 @@ public class XADataSourceTest {
       xaRes.commit(xid, false);
       fail("Commit is expected to fail with XAER_RMERR as somebody else already committed");
     } catch (XAException xae) {
-      assertEquals(XAException.XAER_RMERR, xae.errorCode, "Commit call on already committed xid " + xid + " expects XAER_RMERR");
+      assertEquals(XAException.XAER_RMERR, xae.errorCode,
+          "Commit call on already committed xid " + xid + " expects XAER_RMERR");
     }
   }
 
@@ -1280,6 +1305,214 @@ public class XADataSourceTest {
     } finally {
       xaRes.end(xid, XAResource.TMSUCCESS);
       xaRes.rollback(xid);
+    }
+  }
+
+  /**
+   * Returns the global ids of the transactions prepared in the current database by a role the
+   * current user is a member of, which should match the set {@code PGXAConnection.recover()} reports.
+   */
+  private static List<String> preparedGids(Connection c) throws SQLException {
+    List<String> gids = new ArrayList<>();
+    try (Statement stmt = c.createStatement();
+         ResultSet rs = stmt.executeQuery(
+             "SELECT gid FROM pg_prepared_xacts where database = current_database() and pg_has_role(current_user, owner, 'member')")) {
+      while (rs.next()) {
+        gids.add(rs.getString(1));
+      }
+    }
+    return gids;
+  }
+
+  /**
+   * Returns the gid component of {@code xid} as it is stored in the {@code pg_prepared_xacts} table.
+   */
+  private static String gidOf(Xid xid) {
+    Base64.Encoder encoder = Base64.getEncoder();
+    return xid.getFormatId()
+        + "_" + encoder.encodeToString(xid.getGlobalTransactionId())
+        + "_" + encoder.encodeToString(xid.getBranchQualifier());
+  }
+
+  /**
+   * Reports whether {@code xid} is prepared on the server.
+   */
+  private boolean isPrepared(Xid xid) throws SQLException {
+    return preparedGids(dbConn).contains(gidOf(xid));
+  }
+
+  /**
+   * Returns the pid of the server process attached to the current session.
+   */
+  private int backendPid() throws SQLException {
+    try (Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT pg_backend_pid()")) {
+      rs.next();
+      return rs.getInt(1);
+    }
+  }
+
+  /**
+   * Prepares a branch that inserts one row, and returns the pid of the backend that owns the
+   * XA connection.
+   */
+  private int prepareBranch(Xid xid) throws Exception {
+    int pid = backendPid();
+    xaRes.start(xid, XAResource.TMNOFLAGS);
+    try (Statement stmt = conn.createStatement()) {
+      stmt.executeUpdate("INSERT INTO testxa1 VALUES (1)");
+    }
+    xaRes.end(xid, XAResource.TMSUCCESS);
+    assertEquals(XAResource.XA_OK, xaRes.prepare(xid));
+    assertTrue(isPrepared(xid), "prepare() returned XA_OK but the server reports that it is not prepared");
+
+    return pid;
+  }
+
+  /**
+   * Terminates {@code pid} and blocks until the backend has really gone, so the {@code 57P01}
+   * error response has been written to the socket before the caller continues.
+   */
+  private void terminateBackendAndWait(int pid) throws Exception {
+    try (Statement stmt = dbConn.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT pg_terminate_backend(" + pid + ")")) {
+      rs.next();
+      boolean signalSent = rs.getBoolean(1);
+      assertTrue(signalSent, "pg_terminate_backend(" + pid + ") returned false");
+    }
+
+    waitForBackendExit(pid);
+  }
+
+  /**
+   * Blocks until no backend with {@code pid} is left in {@code pg_stat_activity}, however the
+   * session ended.
+   */
+  private void waitForBackendExit(int pid) throws Exception {
+    String lastState = "";
+    for (int i = 0; i < 200; i++) {
+      try (Statement stmt = dbConn.createStatement();
+           ResultSet rs = stmt.executeQuery(
+               "SELECT state FROM pg_stat_activity WHERE pid = " + pid)) {
+        if (!rs.next()) {
+          // false implies no database process with the given pid exists, ie the backend terminated
+          return;
+        }
+        // save the current operational state
+        lastState = rs.getString(1);
+      }
+      TimeUnit.MILLISECONDS.sleep(25);
+    }
+    fail("backend " + pid + " did not terminate; its last pg_stat_activity state was " + lastState);
+  }
+
+  /**
+   * Kills the backend between {@code prepare()} and {@code rollback()}. The branch
+   * survives in {@code pg_prepared_xacts}, so its outcome is in doubt and the driver
+   * must answer {@code XAER_RMFAIL} so that the transaction manager can retry through recovery.
+   * If it were to answer with {@code XAER_RMERR} the transaction manager would interpret it as
+   * "the branch is finished" which would result in the prepared transaction left as an orphan
+   * on the server, holding its locks and pinning the xmin horizon.
+   */
+  @Test
+  void rollbackPreparedAfterBackendTerminationMustReportRmfail() throws Exception {
+    Xid xid = new CustomXid(3);
+    int pid = prepareBranch(xid);
+
+    terminateBackendAndWait(pid);
+
+    try {
+      xaRes.rollback(xid);
+      fail("rollback should not have succeeded on a terminated backend");
+    } catch (XAException xae) {
+      assertInstanceOf(SQLException.class, xae.getCause(), "Expected an SQLException");
+
+      assertTrue(isPrepared(xid),
+          "the branch should still be prepared on the server, so its outcome is in doubt");
+      assertEquals(XAException.XAER_RMFAIL, xae.errorCode,
+          "the branch is still in pg_prepared_xacts, so the driver must report XAER_RMFAIL"
+              + " and let recovery retry it");
+    }
+  }
+
+  /**
+   * The server ends the session itself rather than being told to. {@code idle_session_timeout}
+   * fires in exactly the window this change is about, between {@code prepare()} and
+   * {@code commit()}, and it is the shape far more likely to be met in production than someone
+   * running {@code pg_terminate_backend()}. Its SQLSTATE is {@code 57P05}, which no list of
+   * connection-error SQLSTATEs covers, so a driver that classifies by SQLSTATE alone abandons a
+   * branch that is still prepared.
+   */
+  @Test
+  void commitPreparedAfterIdleSessionTimeoutMustReportRmfail() throws Exception {
+    // use dbConn, not conn, to lookup the server version since haveMinimumServerVersion returns
+    // false for anything that is not a PgConnection
+    assumeTrue(TestUtil.haveMinimumServerVersion(dbConn, ServerVersion.v14),
+        "idle_session_timeout requires PostgreSQL 14");
+    Xid xid = new CustomXid(4);
+    int pid = prepareBranch(xid);
+    try (Statement stmt = conn.createStatement()) {
+      stmt.execute("SET idle_session_timeout = '1s'");
+    }
+
+    waitForBackendExit(pid);
+
+    XAException xae = assertThrows(XAException.class, () -> xaRes.commit(xid, false));
+    assertTrue(isPrepared(xid),
+        "the branch should still be prepared on the server, so its outcome is in doubt");
+    assertEquals(XAException.XAER_RMFAIL, xae.errorCode,
+        "the session idled out between prepare() and commit(), so the branch is still prepared"
+            + " and the driver must report XAER_RMFAIL");
+  }
+
+  /**
+   * The same defect as {@link #rollbackPreparedAfterBackendTerminationMustReportRmfail} but on
+   * the commit path.
+   */
+  @Test
+  void commitPreparedAfterBackendTerminationMustReportRmfail() throws Exception {
+    Xid xid = new CustomXid(1);
+    int pid = prepareBranch(xid);
+
+    terminateBackendAndWait(pid);
+
+    try {
+      xaRes.commit(xid, false);
+      fail("commit should not have succeeded on a terminated backend");
+    } catch (XAException xae) {
+      assertTrue(isPrepared(xid),
+          "the branch should still be prepared on the server, so its outcome is in doubt");
+      assertEquals(XAException.XAER_RMFAIL, xae.errorCode,
+          "the branch is still in pg_prepared_xacts, so the outcome of COMMIT PREPARED is"
+              + " unknown and the driver must report XAER_RMFAIL so recovery retries it");
+    }
+  }
+
+  /**
+   * The same problem, with the branch already committed by someone else. The driver sees what it
+   * sees in {@link #commitPreparedAfterBackendTerminationMustReportRmfail}, a dead connection, and
+   * has no way to tell the two apart, so it must answer the same way. {@code XAER_RMERR} here would
+   * send the transaction manager down its failure path over data the server has committed.
+   */
+  @Test
+  void commitPreparedAfterBackendTerminationOfACommittedBranchMustReportRmfail() throws Exception {
+    Xid xid = new CustomXid(2);
+    int pid = prepareBranch(xid);
+
+    // Another session commits the branch; the driver never learns about it.
+    try (Statement stmt = dbConn.createStatement()) {
+      stmt.executeUpdate("COMMIT PREPARED '" + gidOf(xid) + "'");
+    }
+
+    terminateBackendAndWait(pid);
+
+    try {
+      xaRes.commit(xid, false);
+      fail("commit should not have succeeded on a terminated backend");
+    } catch (XAException xae) {
+      assertEquals(XAException.XAER_RMFAIL, xae.errorCode,
+          "the connection died before the driver could learn anything about the branch, so it"
+              + " must report XAER_RMFAIL and let recovery establish the outcome");
     }
   }
 }
