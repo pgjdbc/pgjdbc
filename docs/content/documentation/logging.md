@@ -24,6 +24,15 @@ to enable logging that it is replaced by the use of `java.util.logging` in curre
 > Please note that while most people asked the use of a Logging Framework for a long time, this support is mainly to
 > debug the driver itself and not for general SQL query debug.
 
+> **NOTE**
+>
+> The FINEST `FE=> Bind(...)`, `FE=> Parse(...)` and `FE=> SimpleQuery(...)` traces are limited to
+> `maxLogMessageLength` characters (default `16384`). Other traces, such as the server
+> `ErrorMessage`, `NoticeResponse`, `AsyncNotify` or `ParameterStatus` traces, or
+> `Constructing object from type=...` in `PgConnection.getObject`, are not. Set
+> `maxLogMessageLength` to `0` for no limit.
+> See [maxLogMessageLength](/documentation/use/#connection-parameters).
+
 ## Configuration
 
 The Logging APIs offer both static and dynamic configuration control. Static control enables field service staff to set
