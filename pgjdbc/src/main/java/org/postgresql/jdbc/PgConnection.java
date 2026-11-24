@@ -750,6 +750,27 @@ public class PgConnection implements BaseConnection {
   private @Nullable LargeObjectManager largeobject;
 
   /**
+   * Converts a value in binary format to text, for types without a {@link PGBinaryObject}
+   * implementation.
+   *
+   * @param type the type name
+   * @param byteValue the value in binary format
+   * @return the text representation of the value
+   * @throws SQLException if the binary format of the type can't be decoded
+   */
+  private String binaryToText(String type, byte[] byteValue) throws SQLException {
+    String text = TextualBinaryDecoding.decode(typeCache.getPGType(type), byteValue, getEncoding());
+
+    if (text == null) {
+      throw new PSQLException(
+          GT.tr("Cannot decode the binary format of type {0}. Remove the type from binaryTransferEnable, or register a PGBinaryObject implementation for it with addDataType.", type),
+          PSQLState.NOT_IMPLEMENTED);
+    }
+
+    return text;
+  }
+
+  /**
    * This method is used internally to return an object based around org.postgresql's more unique
    * data types.
    *
@@ -797,14 +818,14 @@ public class PgConnection implements BaseConnection {
           PGBinaryObject binObj = (PGBinaryObject) obj;
           binObj.setByteValue(byteValue, 0);
         } else {
-          obj.setValue(value);
+          obj.setValue(value == null && byteValue != null ? binaryToText(type, byteValue) : value);
         }
       } else {
         // If className is null, then the type is unknown.
         // so return a PGobject with the type set, and the value set
         obj = new PGobject();
         obj.setType(type);
-        obj.setValue(value);
+        obj.setValue(value == null && byteValue != null ? binaryToText(type, byteValue) : value);
       }
 
       return obj;
