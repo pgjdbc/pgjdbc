@@ -22,17 +22,19 @@ import java.util.Properties;
 import javax.net.SocketFactory;
 
 /**
- * This {@link SocketFactory} implementation creates {@link Socket} instances that on call to
- * {@link Socket#connect(SocketAddress, int)} would record given timeout value in {@link #TIMEOUTS}
- * map then sleep for that given amount of milliseconds and finally throw
- * {@link SocketTimeoutException} never actually trying to establish a real socket connection.
+ * Creates sockets that never connect. {@link Socket#connect(SocketAddress, int)} records the
+ * timeout in {@link #TIMEOUTS}, sleeps for that many milliseconds, and throws
+ * {@link SocketTimeoutException}, as a connect to a host that does not respond does. The sleep
+ * makes each attempt use up its timeout, so a timeout the driver does not restart for each host
+ * leaves the next host only what remains of it, and the test sees the shortened value.
  */
 public class RecordSleepAndTimeoutSocketFactory extends SocketFactory {
+  /**
+   * Timeouts, in milliseconds, passed to each connect call, keyed by {@code host:port} with the host
+   * as given in the URL ({@link InetSocketAddress#getHostString()}). Shared by all tests that use
+   * this factory; clear it before each test.
+   */
   public static final Map<String, List<Integer>> TIMEOUTS = new HashMap<>();
-
-  public RecordSleepAndTimeoutSocketFactory() {
-    this(null);
-  }
 
   public RecordSleepAndTimeoutSocketFactory(@Nullable Properties ignored) {
     super();
@@ -40,7 +42,7 @@ public class RecordSleepAndTimeoutSocketFactory extends SocketFactory {
 
   @Override
   public Socket createSocket() {
-    return new TimeoutRecordingThrowingSocket();
+    return new RecordSleepAndTimeoutSocket();
   }
 
   @Override
@@ -63,7 +65,7 @@ public class RecordSleepAndTimeoutSocketFactory extends SocketFactory {
     throw new UnsupportedOperationException();
   }
 
-  private static class TimeoutRecordingThrowingSocket extends Socket {
+  private static class RecordSleepAndTimeoutSocket extends Socket {
     @Override
     public void connect(SocketAddress endpoint, int timeout) throws IOException {
       if (endpoint instanceof InetSocketAddress) {

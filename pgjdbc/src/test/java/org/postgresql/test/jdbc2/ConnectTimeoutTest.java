@@ -59,7 +59,9 @@ class ConnectTimeoutTest {
         () -> "Unexpected " + e + " with cause " + e.getCause());
 
     final long connectTimeoutMillis = CONNECT_TIMEOUT * 1000;
-    final long maxDeviation = connectTimeoutMillis / 10;
+    // A host left with what remains of a shared timeout gets 1 ms; a lower limit of half the
+    // timeout still fails on that and leaves room for a slow CI runner.
+    final long maxDeviation = connectTimeoutMillis / 2;
 
     assertAll(
         Arrays.stream(hostList.split(",")).map(host -> () -> {
@@ -71,12 +73,12 @@ class ConnectTimeoutTest {
               () -> "Exactly one connection attempt is expected per each host, but "
                   + host + " was tried " + timeouts.size() + " times");
           final int actualTimeout = timeouts.get(0);
-          // check that it was not a default system timeout, an approximate value is used
-          assertTrue(connectTimeoutMillis - actualTimeout < maxDeviation,
-              () -> "Connection timeout for " + host + " host should be ~"
-                  + connectTimeoutMillis + " ms, but was " + actualTimeout
-                  + " ms (deviation " + (connectTimeoutMillis - actualTimeout)
-                  + " ms exceeds maximum allowed " + maxDeviation + " ms)");
+          assertTrue(
+              actualTimeout > connectTimeoutMillis - maxDeviation
+                  && actualTimeout <= connectTimeoutMillis,
+              () -> "Socket.connect timeout for " + host + " should be in ("
+                  + (connectTimeoutMillis - maxDeviation) + ", " + connectTimeoutMillis
+                  + "] ms, but was " + actualTimeout + " ms");
         })
     );
   }

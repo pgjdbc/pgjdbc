@@ -314,7 +314,7 @@ An optional String argument passed to the constructor of the `connectExecutor` c
 * **`connectTimeout (`*int*`)`** *Default `10`*\
 The timeout value used for socket connect operations. If connecting to the server takes longer than this value, the connection is broken. 
 The timeout is specified in seconds max(2147484) and a value of zero means that it is disabled. With several hosts in the URL,
-each host gets its own `connectTimeout`, so failing over N unreachable hosts takes N times `connectTimeout`; use `loginTimeout` to limit the total.
+each host gets its own `connectTimeout`, so failing over N hosts that do not respond can take up to N times `connectTimeout`; use `loginTimeout` to limit the total.
 
 * **`socketTimeout (`*int*`)`** *Default `0`*\
 The timeout value used for socket read operations. If reading from the server takes longer than this value, the connection is closed. 
