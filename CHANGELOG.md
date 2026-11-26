@@ -1,5 +1,5 @@
 # Changelog
-Notable changes since version 42.0.0, read the complete [History of Changes](https://jdbc.postgresql.org/documentation/changelog.html).
+Notable changes since version 42.0.0, read the complete [History of Changes](https://jdbc.postgresql.org/changelogs/).
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
