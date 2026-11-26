@@ -69,11 +69,13 @@ import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -699,6 +701,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       case Types.TIMESTAMP_WITH_TIMEZONE:
         if (in instanceof OffsetDateTime) {
           setTimestamp(parameterIndex, (OffsetDateTime) in);
+        } else if (in instanceof ZonedDateTime) {
+          setTimestamp(parameterIndex, ((ZonedDateTime) in).toOffsetDateTime());
+        } else if (in instanceof Instant) {
+          setTimestamp(parameterIndex, (Instant) in);
         } else if (in instanceof PGTimestamp) {
           setObject(parameterIndex, in);
         } else {
@@ -1079,6 +1085,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setTimestamp(parameterIndex, (LocalDateTime) x);
     } else if (x instanceof OffsetDateTime) {
       setTimestamp(parameterIndex, (OffsetDateTime) x);
+    } else if (x instanceof ZonedDateTime) {
+      setTimestamp(parameterIndex, ((ZonedDateTime) x).toOffsetDateTime());
+    } else if (x instanceof Instant) {
+      setTimestamp(parameterIndex, (Instant) x);
     } else if (x instanceof Map) {
       setMap(parameterIndex, (Map<?, ?>) x);
     } else if (x instanceof Number) {
@@ -1572,6 +1582,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       throws SQLException {
     int oid = Oid.TIMESTAMPTZ;
     bindString(i, getTimestampUtils().toString(offsetDateTime), oid);
+  }
+
+  private void setTimestamp(@Positive int i, Instant instant)
+      throws SQLException {
+    int oid = Oid.TIMESTAMPTZ;
+    bindString(i, getTimestampUtils().toString(instant), oid);
   }
 
   public ParameterMetaData createParameterMetaData(BaseConnection conn, int[] oids)
