@@ -51,6 +51,10 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
     stmt.execute(
         "CREATE OR REPLACE FUNCTION mysum(a int, b int) returns int AS 'BEGIN return a + b; END;' LANGUAGE plpgsql");
     stmt.execute(
+        "CREATE OR REPLACE FUNCTION mypartialnames(int, b int) returns int AS 'BEGIN return $1 * 10 + b; END;' LANGUAGE plpgsql");
+    stmt.execute(
+        "CREATE OR REPLACE FUNCTION myresultarg(result int) returns int AS 'BEGIN return result + 1; END;' LANGUAGE plpgsql");
+    stmt.execute(
         "CREATE OR REPLACE FUNCTION myiofunc(a INOUT int, b OUT int) AS 'BEGIN b := a; a := 1; END;' LANGUAGE plpgsql");
     stmt.execute(
         "CREATE OR REPLACE FUNCTION myif(a INOUT int, b IN int) AS 'BEGIN a := b; END;' LANGUAGE plpgsql");
@@ -129,6 +133,8 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
     stmt.execute("drop function test_somein_someout(int4)");
     stmt.execute("drop function test_allinout( inout int4, inout varchar, inout int8)");
     stmt.execute("drop function mysum(a int, b int)");
+    stmt.execute("drop function mypartialnames(int, int)");
+    stmt.execute("drop function myresultarg(int)");
     stmt.execute("drop function myiofunc(a INOUT int, b OUT int) ");
     stmt.execute("drop function myif(a INOUT int, b IN int)");
     stmt.execute("drop function mynoparams()");
@@ -1054,6 +1060,88 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
     cs.setInt(3, 3);
     cs.execute();
     assertEquals(5, cs.getInt(1), "2+3 should be 5 when executed via {?= call mysum(?, ?)}");
+  }
+
+  @Test
+  public void testSumByParameterName() throws SQLException {
+    CallableStatement cs = con.prepareCall("{?= call mysum(?, ?)}");
+    cs.registerOutParameter(1, Types.INTEGER);
+    cs.setInt("a", 2);
+    cs.setInt("b", 3);
+    cs.execute();
+    assertEquals(5, cs.getInt(1), "named IN parameters a=2, b=3 should sum to 5");
+    TestUtil.closeQuietly(cs);
+  }
+
+  @Test
+  public void testNamedParameterAfterUnnamedResolvesToCorrectIndex() throws SQLException {
+    // mypartialnames(int, b int): the first argument is unnamed, so "b" must resolve to JDBC
+    // index 3, not 2. Binding index 2 would overwrite the first argument and skew the result.
+    CallableStatement cs = con.prepareCall("{?= call mypartialnames(?, ?)}");
+    cs.registerOutParameter(1, Types.INTEGER);
+    cs.setInt(2, 5);
+    cs.setInt("b", 3);
+    cs.execute();
+    assertEquals(53, cs.getInt(1), "5*10 + 3 should be 53; 'b' must bind index 3, not 2");
+    TestUtil.closeQuietly(cs);
+  }
+
+  @Test
+  public void testOutParameterByNameInCallForm() throws SQLException {
+    // { call f(?,?,?) } over test_somein_someout(pa IN, pb OUT, pc OUT): every argument keeps
+    // its declaration-order JDBC position, so pa -> 1, pb -> 2, pc -> 3 by name.
+    CallableStatement cs = con.prepareCall("{ call test_somein_someout(?, ?, ?) }");
+    cs.setInt("pa", 10);
+    cs.registerOutParameter("pb", Types.VARCHAR);
+    cs.registerOutParameter("pc", Types.BIGINT);
+    cs.execute();
+    assertEquals("out", cs.getString("pb"));
+    assertEquals(11, cs.getLong("pc"));
+    TestUtil.closeQuietly(cs);
+  }
+
+  @Test
+  public void testNamedParameterMapInvalidatedAfterDdl() throws SQLException {
+    // The catalog-derived name->index map is cached per SQL; a DDL change to the routine's
+    // signature bumps the connection's type-cache epoch and must rebuild it.
+    Statement ddl = con.createStatement();
+    try {
+      ddl.execute("CREATE OR REPLACE FUNCTION myreparse(a int) returns int "
+          + "AS 'BEGIN return a; END;' LANGUAGE plpgsql");
+      try (CallableStatement cs = con.prepareCall("{?= call myreparse(?)}")) {
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.setInt("a", 7);
+        cs.execute();
+        assertEquals(7, cs.getInt(1));
+      }
+      // Redefine with a different parameter name. CREATE/DROP are DDL, so the type-cache epoch
+      // advances and the cached {a->2} mapping for the identical SQL must not be reused.
+      ddl.execute("DROP FUNCTION myreparse(int)");
+      ddl.execute("CREATE OR REPLACE FUNCTION myreparse(z int) returns int "
+          + "AS 'BEGIN return z + 1; END;' LANGUAGE plpgsql");
+      try (CallableStatement cs = con.prepareCall("{?= call myreparse(?)}")) {
+        cs.registerOutParameter(1, Types.INTEGER);
+        cs.setInt("z", 7);
+        cs.execute();
+        assertEquals(8, cs.getInt(1), "the map must be rebuilt against the new signature");
+      }
+    } finally {
+      ddl.execute("DROP FUNCTION IF EXISTS myreparse(int)");
+      ddl.close();
+    }
+  }
+
+  @Test
+  public void testInputParameterNamedLikeReturnAlias() throws SQLException {
+    // The scalar { ? = call ... } form aliases the return column as "result"; an input
+    // parameter that is itself named "result" must still bind its own index (2), not the
+    // synthetic return placeholder at index 1.
+    CallableStatement cs = con.prepareCall("{?= call myresultarg(?)}");
+    cs.registerOutParameter(1, Types.INTEGER);
+    cs.setInt("result", 41);
+    cs.execute();
+    assertEquals(42, cs.getInt(1), "input 'result'=41 -> return 42; 'result' must bind index 2");
+    TestUtil.closeQuietly(cs);
   }
 
   @Test
