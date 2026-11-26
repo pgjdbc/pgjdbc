@@ -19,6 +19,12 @@ Environment variables
    See the [list of available tags](https://github.com/docker-library/docs/blob/master/postgres/README.md#supported-tags-and-respective-dockerfile-links) at the official page.
 * `SCRAM=yes|no` (default: `yes`). Configures `password_encryption=scram-sha-256`
 * `SSL=yes|no` (default: `yes`). Configures SSL
+* `GSS=yes|no` (default: `no`). Configures GSSAPI authentication for `pgjdbc-gss-test`. Requires PostgreSQL 12 or later
+  and the KDC of the `gss` profile, which listens on port 88. The roles and databases are created only with a new data
+  directory, so remove a container started without `GSS` first:
+
+      docker compose down && GSS=yes docker compose --profile gss up -d --wait
+      ./gradlew :pgjdbc-gss-test:test -PgssTests
 
 Example usages
 ==============

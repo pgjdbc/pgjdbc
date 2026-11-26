@@ -150,11 +150,13 @@ jobs:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
       TZ: ${{ matrix.tz }}
+      # Starts, logs, and stops the KDC of docker/postgres-server along with PostgreSQL
+      COMPOSE_PROFILES: ${{ matrix.gss == 'yes' && 'gss' || '' }}
     steps:
     - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
       with:
         fetch-depth: 50
-    - name: Start PostgreSQL PGV=${{ matrix.pg_version }} TZ=${{ matrix.server_tz }} XA=${{ matrix.xa }} SSL=${{ matrix.ssl }} SCRAM=${{ matrix.scram }} CREATE_REPLICAS=${{ matrix.replication }} STANDARD_CONFORMING_STRINGS=${{ matrix.standard_conforming_strings }}
+    - name: Start PostgreSQL PGV=${{ matrix.pg_version }} TZ=${{ matrix.server_tz }} XA=${{ matrix.xa }} SSL=${{ matrix.ssl }} SCRAM=${{ matrix.scram }} CREATE_REPLICAS=${{ matrix.replication }} STANDARD_CONFORMING_STRINGS=${{ matrix.standard_conforming_strings }} GSS=${{ matrix.gss }}
       if: ${{ runner.os == 'Linux' }}
       working-directory: docker/postgres-server
       env:
@@ -167,10 +169,11 @@ jobs:
         PG_IMAGE: ${{ matrix.pg_version == 'HEAD' && 'pgjdbc/postgres-devel:ci-head' || '' }}
         PG_PULL_POLICY: ${{ matrix.pg_version == 'HEAD' && 'build' || 'missing' }}
         STANDARD_CONFORMING_STRINGS: ${{ matrix.standard_conforming_strings }}
+        GSS: ${{ matrix.gss }}
       # The below run command is long, however, it is intentional, and it makes the output nicer in GitHub UI
       # language=bash
       run: |
-        echo "Starting PostgreSQL via docker compose down; PGV=$PGV TZ=$TZ XA=$XA SSL=$SSL SCRAM=$SCRAM CREATE_REPLICAS=$CREATE_REPLICAS STANDARD_CONFORMING_STRINGS=$STANDARD_CONFORMING_STRINGS docker compose up"
+        echo "Starting PostgreSQL via docker compose down; PGV=$PGV TZ=$TZ XA=$XA SSL=$SSL SCRAM=$SCRAM CREATE_REPLICAS=$CREATE_REPLICAS STANDARD_CONFORMING_STRINGS=$STANDARD_CONFORMING_STRINGS GSS=$GSS COMPOSE_PROFILES=$COMPOSE_PROFILES docker compose up"
 
         docker compose down -v --rmi local || true
         docker compose up -d --wait || { docker compose logs; exit 1; }
@@ -298,21 +301,6 @@ jobs:
         privilegedPassword=postgres
         EOF
         fi
-
-    - name: 'Install krb5 for GSS tests'
-      if: ${{ matrix.gss == 'yes' }}
-      # language=bash
-      run: |
-        sudo apt -y update
-        sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
-        sudo apt -y install postgresql-16
-        sudo apt -y install krb5-kdc krb5-admin-server libkrb5-dev postgresql
-    - name: 'Update hosts for GSS tests'
-      if: ${{ matrix.gss == 'yes' }}
-      # language=bash
-      run: |
-        sudo sed -i '/^127\.0\.0\.1/c\127.0.0.1 auth-test-localhost.postgresql.example.com localhost' /etc/hosts
-        cat /etc/hosts
 
     - uses: burrunan/gradle-cache-action@404534c34a2faa40430357a3183522a845b04f3b # v3.0.3
       name: Test
