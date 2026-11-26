@@ -18,7 +18,12 @@ import java.nio.ByteBuffer;
 import java.sql.SQLException;
 
 /**
- * This implements a basic output stream that writes to a LargeObject.
+ * Output stream that writes to a {@link LargeObject} through a buffer.
+ *
+ * <p>A caller that seeks, reads, or writes the large object directly while the stream is open
+ * must call {@link #flush()} first. Bytes still buffered at that point are written at the new
+ * position, and a stream that has already read the large object offset keeps aligning its writes
+ * to the old position.</p>
  */
 public class BlobOutputStream extends OutputStream {
   static final int DEFAULT_MAX_BUFFER_SIZE = 512 * 1024;
@@ -45,6 +50,30 @@ public class BlobOutputStream extends OutputStream {
   private int bufferPosition;
 
   /**
+   * Step, in bytes, of the large object offsets the stream ends its writes at, or {@code 0} when
+   * the stream does not align.
+   *
+   * <p>The server stores a large object in rows of {@code LOBLKSIZE} bytes, which is
+   * {@code BLCKSZ / 4}: 2KiB by default and 8KiB at the largest {@code BLCKSZ}, and 8KiB is a
+   * multiple of every row size. The remainder the stream holds back is shorter than the alignment
+   * and has to fit in the buffer, so a buffer of at least 8KiB aligns on 8KiB, a buffer of at least
+   * 2KiB aligns on 2KiB, and a smaller one does not align.</p>
+   */
+  private final int alignment;
+
+  /**
+   * Large object offset that {@code buf[0]} is written to, or {@code -1} when the stream has to
+   * read it from the server before its next aligned write.
+   *
+   * <p>The large object may be at any offset when the stream is created
+   * ({@link java.sql.Blob#setBinaryStream(long)} seeks before it returns one), so the stream reads
+   * the offset before its first aligned write. Each aligned write then advances it by the bytes
+   * sent. {@link #flush()} resets it to {@code -1}, because a caller may seek the large object
+   * after a flush.</p>
+   */
+  private long writePosition = -1;
+
+  /**
    * Create an OutputStream to a large object.
    *
    * @param lo LargeObject
@@ -57,12 +86,14 @@ public class BlobOutputStream extends OutputStream {
    * Create an OutputStream to a large object.
    *
    * @param lo LargeObject
-   * @param bufferSize The size of the buffer for single-byte writes
+   * @param bufferSize the largest buffer size, rounded down to a power of two. A buffer of at
+   *     least 2048 bytes also makes the stream end its writes on large object row boundaries
    */
   public BlobOutputStream(LargeObject lo, int bufferSize) {
     this.lo = lo;
     // Avoid "0" buffer size, and ensure the bufferSize will always be a power of two
     this.maxBufferSize = Integer.highestOneBit(Math.max(bufferSize, 1));
+    this.alignment = maxBufferSize >= 8192 ? 8192 : (maxBufferSize >= 2048 ? 2048 : 0);
   }
 
   /**
@@ -96,8 +127,18 @@ public class BlobOutputStream extends OutputStream {
       loId = lo.getLongOID();
       byte[] buf = growBuffer(16);
       if (bufferPosition >= buf.length) {
-        lo.write(buf);
-        bufferPosition = 0;
+        // Hold back the bytes past the last multiple of alignment, as write(byte[], int, int)
+        // does. buf[0] may sit off a row boundary, at the start or after a flush, and writing
+        // whole buffers would keep every write there.
+        long startOffset = alignment == 0 ? 0 : currentWritePosition(lo);
+        int tailLength =
+            alignment == 0 ? 0 : (int) ((startOffset + bufferPosition) % alignment);
+        lo.write(buf, 0, bufferPosition - tailLength);
+        if (alignment != 0) {
+          writePosition = startOffset + bufferPosition - tailLength;
+        }
+        System.arraycopy(buf, bufferPosition - tailLength, buf, 0, tailLength);
+        bufferPosition = tailLength;
       }
       buf[bufferPosition++] = (byte) b;
     } catch (SQLException e) {
@@ -120,18 +161,13 @@ public class BlobOutputStream extends OutputStream {
       // 1) Data in buf at positions [0, bufferPosition)
       // 2) Data in b at positions [off, off + len)
       // If the new data fits into the buffer, we just copy it there.
-      // Otherwise, it might sound nice idea to just write them to the database, unfortunately,
-      // it is not optimal, as PostgreSQL chunks LargeObjects into 2KiB rows.
-      // That is why we would like to avoid writing a part of 2KiB chunk, and then issue overwrite
-      // causing DB to load and update the row.
-      //
-      // In fact, LOBLKSIZE is BLCKSZ/4, so users might have different values, so we use
-      // 8KiB write alignment for larger buffer sizes just in case.
+      // Otherwise we write them, but end the write on a multiple of alignment: a write that ends
+      // inside a large object row makes the server read that row back and update it.
       //
       //  | buf[0] ... buf[bufferPosition] | b[off] ... b[off + len] |
       //  |<----------------- totalData ---------------------------->|
-      // If the total data does not align with 2048, we might have some remainder that we will
-      // copy to the beginning of the buffer and write later.
+      // If the large object offset of buf[0] plus totalData is not a multiple of alignment, we
+      // copy the remainder to the beginning of the buffer and write it later.
       // The remainder can fall into either b (e.g. if the requested len is big enough):
       //
       //  | buf[0] ... buf[bufferPosition] | b[off] ........ b[off + len] |
@@ -145,13 +181,12 @@ public class BlobOutputStream extends OutputStream {
       //  |<-------writeFromBuf---------------->|<--------tailLength---------------->|
       // "writeFromB" will be zero in that case
 
-      // We want aligned writes, so the write requests chunk nicely into large object rows
-      int tailLength =
-          maxBufferSize >= 8192 ? totalData % 8192 : (
-              maxBufferSize >= 2048 ? totalData % 2048 : 0
-          );
-
       if (totalData >= maxBufferSize) {
+        // buf[0] need not sit on a row boundary: the stream may start anywhere, and a flush sends
+        // whatever the buffer held. The remainder is taken from the large object offset.
+        long startOffset = alignment == 0 ? 0 : currentWritePosition(lo);
+        int tailLength = alignment == 0 ? 0 : (int) ((startOffset + totalData) % alignment);
+
         // The resulting data won't fit into the buffer, so we flush the data to the database
         int writeFromBuffer = Math.min(bufferPosition, totalData - tailLength);
         int writeFromB = Math.max(0, totalData - writeFromBuffer - tailLength);
@@ -177,6 +212,9 @@ public class BlobOutputStream extends OutputStream {
             bufferPosition -= writeFromBuffer;
           }
         }
+        if (alignment != 0) {
+          writePosition = startOffset + writeFromBuffer + writeFromB;
+        }
         len -= writeFromB;
         off += writeFromB;
       }
@@ -191,6 +229,22 @@ public class BlobOutputStream extends OutputStream {
               loId, len),
           e);
     }
+  }
+
+  /**
+   * Returns {@link #writePosition}, reading it from the server when it is {@code -1}.
+   *
+   * @param lo the large object being written to
+   * @return the large object offset that {@code buf[0]} is written to
+   * @throws SQLException if the server cannot report the offset
+   */
+  private long currentWritePosition(LargeObject lo) throws SQLException {
+    long writePosition = this.writePosition;
+    if (writePosition < 0) {
+      writePosition = lo.supports64BitOffsets() ? lo.tell64() : lo.tell();
+      this.writePosition = writePosition;
+    }
+    return writePosition;
   }
 
   /**
@@ -212,6 +266,7 @@ public class BlobOutputStream extends OutputStream {
         lo.write(buf, 0, bufferPosition);
       }
       bufferPosition = 0;
+      writePosition = -1;
     } catch (SQLException e) {
       throw new IOException(
           GT.tr("Can not flush large object {0}",
