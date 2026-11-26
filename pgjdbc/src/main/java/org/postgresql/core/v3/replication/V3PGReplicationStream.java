@@ -58,7 +58,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
    *                         completely, although an update will still be sent when requested by the
    *                         server, to avoid timeout disconnect.
    * @param replicationType  LOGICAL or PHYSICAL
-   * @param connectionSettings the socket settings to put back when the stream ends
+   * @param connectionSettings the socket settings to put back when the stream is closed
    */
   V3PGReplicationStream(CopyDual copyDual, LogSequenceNumber startLSN, long updateIntervalMs,
       boolean automaticFlush, ReplicationType replicationType,

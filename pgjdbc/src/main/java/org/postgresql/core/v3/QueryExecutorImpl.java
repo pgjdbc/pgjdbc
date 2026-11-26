@@ -346,11 +346,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   /**
-  /**
    * Gives up on the connection after an I/O failure during COPY. A copy that holds the lock keeps
-   * it, since a desynchronized protocol stream is not free for anyone else to use; closing the
-   * connection is what lets threads waiting in {@link #waitOnLock()} fail instead of waiting for a
-   * copy that can no longer end.
+   * it, since a protocol stream that is out of sync is not free for anyone else to use. Closing the
+   * connection lets threads waiting in {@link #waitOnLock()} fail instead of waiting for a copy
+   * that can no longer end.
    *
    * <p>The COPY methods call this for every I/O failure except one: a read timeout in
    * {@link #readFromCopy}, the only failure a caller can resume from by reading again. A failed
@@ -1712,14 +1711,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             // boundary. Report it as the connection failure it is rather than as something the
             // caller can resume from, which would read the middle of this message as the start
             // of the next one
-            IOException desynchronized = new IOException(GT.tr(
+            IOException outOfSync = new IOException(GT.tr(
                 "Read timed out inside a backend message, so the copy stream is out of step"), ste);
             if (errors != null) {
               // The backend had already reported this copy failed. That is why the copy is over;
               // losing the message boundary is only why the connection goes with it
-              desynchronized.addSuppressed(errors);
+              outOfSync.addSuppressed(errors);
             }
-            throw desynchronized;
+            throw outOfSync;
           }
 
           // Collect errors into a neat chain for completeness

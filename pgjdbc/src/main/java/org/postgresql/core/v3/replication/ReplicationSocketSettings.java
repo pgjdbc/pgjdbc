@@ -15,7 +15,7 @@ import org.postgresql.core.PGStream;
  * standby status update. That wait is a {@linkplain PGStream#setReadWakeupTimeout(int) read
  * wake-up} rather than the connection's socket timeout, so it covers only the byte that starts a
  * message: there the driver has consumed nothing yet and giving up costs nothing, while partway
- * through a message it would drop the bytes already taken and desynchronize the stream.
+ * through a message it would drop the bytes already taken and take the stream out of sync.
  *
  * <p>The connection's own timeout is left alone, so it stays in charge of the
  * {@code START_REPLICATION} handshake, of the body of every message, and of every operation that
@@ -52,7 +52,7 @@ final class ReplicationSocketSettings {
     return previous;
   }
 
-  /** Puts the captured settings back, so the connection reads the way it did before the stream. */
+  /** Puts the recorded settings back, so the connection reads the way it did before the stream. */
   void restore() {
     pgStream.setReadWakeupTimeout(readWakeupTimeout);
     pgStream.setMinStreamAvailableCheckDelay(streamAvailableCheckDelay);

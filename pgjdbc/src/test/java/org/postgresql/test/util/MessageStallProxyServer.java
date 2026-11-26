@@ -109,7 +109,7 @@ public class MessageStallProxyServer implements Closeable {
    * Sends the bytes to the driver ahead of the next real backend message, so a test can put a
    * message on the wire that the server would not send. The driver reads it as if the backend had.
    *
-   * @param raw a complete v3 message: the type byte, a self-inclusive four-byte length, the body
+   * @param raw a complete v3 message: the type byte, a four-byte length that counts itself, the body
    */
   public void injectBeforeNextMessage(byte[] raw) {
     injection.set(raw.clone());

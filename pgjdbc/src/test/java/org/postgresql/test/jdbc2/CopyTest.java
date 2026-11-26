@@ -738,7 +738,7 @@ class CopyTest {
             String.valueOf(proxyServer.getServerPort()));
         // Without socketTimeout the driver retries the read instead of reporting the timeout
         PGProperty.SOCKET_TIMEOUT.set(props, 1);
-        // The cancel request goes through the same dead proxy, so do not wait 10s for its EOF
+        // The cancel request goes through the same dead proxy, so do not wait 10s for its end of stream
         PGProperty.CANCEL_SIGNAL_TIMEOUT.set(props, 1);
         // The proxy reads the v3 framing to find a message boundary, so it needs plain traffic
         PGProperty.SSL_MODE.set(props, "disable");
@@ -1146,7 +1146,7 @@ class CopyTest {
     }
   }
 
-  /** Builds a CopyData message: the type byte, a self-inclusive length, then the payload. */
+  /** Builds a CopyData message: the type byte, a length that counts itself, then the payload. */
   private static byte[] copyDataMessage(String payload) {
     byte[] body = payload.getBytes(StandardCharsets.UTF_8);
     ByteBuffer message = ByteBuffer.allocate(1 + 4 + body.length);
