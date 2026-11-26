@@ -27,7 +27,7 @@ import java.util.Properties;
 @ParameterizedClass
 @MethodSource("data")
 public class TransactionRoundtripTest extends BaseTest4 {
-  private CountingSocketFactory.Counters socketCounters = CountingSocketFactory.register();
+  private final CountingSocketFactory.Counters socketCounters = CountingSocketFactory.register();
   private final AutoSave autosave;
   private final boolean cleanupSavepoints;
 
@@ -56,15 +56,6 @@ public class TransactionRoundtripTest extends BaseTest4 {
     PGProperty.CLEANUP_SAVEPOINTS.set(props, cleanupSavepoints);
     PGProperty.SOCKET_FACTORY.set(props, CountingSocketFactory.class.getName());
     PGProperty.SOCKET_FACTORY_ARG.set(props, socketCounters.key());
-  }
-
-  @Override
-  protected void tearDown() throws SQLException {
-    try {
-      super.tearDown();
-    } finally {
-      CountingSocketFactory.unregister(socketCounters);
-    }
   }
 
   @Test
