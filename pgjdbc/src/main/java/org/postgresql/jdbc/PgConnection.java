@@ -217,6 +217,8 @@ public class PgConnection implements BaseConnection {
   private final boolean bindStringAsVarchar;
   // Convert boolean values to numeric types?
   private final boolean convertBooleanToNumeric;
+  // Throw from commit() when the server rolls the transaction back instead of committing it?
+  private final boolean raiseExceptionOnSilentRollback;
 
   // Current warnings; there might be more on queryExecutor too.
   private @Nullable SQLWarning firstWarning;
@@ -391,6 +393,8 @@ public class PgConnection implements BaseConnection {
       this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
       this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
       this.convertBooleanToNumeric = PGProperty.CONVERT_BOOLEAN_TO_NUMERIC.getBoolean(info);
+      this.raiseExceptionOnSilentRollback =
+          PGProperty.RAISE_EXCEPTION_ON_SILENT_ROLLBACK.getBoolean(info);
 
       if (haveMinimumServerVersion(ServerVersion.v8_3)) {
         typeCache.addCoreType("uuid", Oid.UUID, Types.OTHER, "java.util.UUID", Oid.UUID_ARRAY);
@@ -1011,15 +1015,16 @@ public class PgConnection implements BaseConnection {
     return this.autoCommit;
   }
 
-  private void executeTransactionCommand(Query query) throws SQLException {
+  private TransactionCommandHandler executeTransactionCommand(Query query) throws SQLException {
     int flags = QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_NO_RESULTS
         | QueryExecutor.QUERY_SUPPRESS_BEGIN;
     if (prepareThreshold == 0) {
       flags |= QueryExecutor.QUERY_ONESHOT;
     }
 
+    TransactionCommandHandler handler = new TransactionCommandHandler();
     try {
-      getQueryExecutor().execute(query, null, new TransactionCommandHandler(), 0, 0, flags);
+      getQueryExecutor().execute(query, null, handler, 0, 0, flags);
     } catch (SQLException e) {
       // Don't retry composite queries as it might get partially executed
       if (query.getSubqueries() != null || !queryExecutor.willHealOnRetry(e)) {
@@ -1027,8 +1032,10 @@ public class PgConnection implements BaseConnection {
       }
       query.close();
       // retry
-      getQueryExecutor().execute(query, null, new TransactionCommandHandler(), 0, 0, flags);
+      handler = new TransactionCommandHandler();
+      getQueryExecutor().execute(query, null, handler, 0, 0, flags);
     }
+    return handler;
   }
 
   @Override
@@ -1040,8 +1047,16 @@ public class PgConnection implements BaseConnection {
           PSQLState.NO_ACTIVE_SQL_TRANSACTION);
     }
 
-    if (queryExecutor.getTransactionState() != TransactionState.IDLE) {
-      executeTransactionCommand(commitQuery);
+    if (queryExecutor.getTransactionState() == TransactionState.IDLE) {
+      return;
+    }
+    // ReadyForQuery after COMMIT clears the cause in the executor, so read it first
+    SQLException failCause = queryExecutor.getTransactionFailCause();
+    TransactionCommandHandler handler = executeTransactionCommand(commitQuery);
+    if (raiseExceptionOnSilentRollback && "ROLLBACK".equals(handler.commandStatus)) {
+      throw new PSQLException(
+          GT.tr("The server rolled back the transaction instead of committing it, because an earlier statement in the transaction failed."),
+          PSQLState.IN_FAILED_SQL_TRANSACTION, failCause);
     }
   }
 
@@ -1276,6 +1291,17 @@ public class PgConnection implements BaseConnection {
    * Handler for transaction queries.
    */
   private class TransactionCommandHandler extends ResultHandlerBase {
+    /**
+     * The {@code CommandComplete} tag of the command, such as {@code ROLLBACK} for a
+     * {@code COMMIT} that ended a failed transaction.
+     */
+    @Nullable String commandStatus;
+
+    @Override
+    public void handleCommandStatus(String status, long updateCount, long insertOID) {
+      commandStatus = status;
+    }
+
     @Override
     public void handleWarning(SQLWarning warning) {
       PgConnection.this.addWarning(warning);
