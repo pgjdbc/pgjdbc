@@ -245,26 +245,20 @@ public class TypeInfoCache implements TypeInfo {
     // People can name their own types starting with _.
     // Other types use typelem that aren't actually arrays, like box.
     //
-    // in case of multiple records (in different schemas) choose the one from the current
-    // schema,
+    // in case of multiple records (in different schemas) choose the one the server resolves the
+    // unqualified name to,
     // otherwise take the last version of a type that is at least more deterministic then before
     // (keeping old behaviour of finding types, that should not be found without correct search
     // path)
     StringBuilder sql = new StringBuilder();
-    sql.append("SELECT typinput='pg_catalog.array_in'::regproc as is_array, typtype, typname, pg_type.oid ");
+    // pg_catalog has no operator for regproc = regproc or oid = int8, so an unqualified = could
+    // resolve to an operator in another schema of the search_path.
+    sql.append("SELECT typinput OPERATOR(pg_catalog.=) 'pg_catalog.array_in'::regproc as is_array, typtype, typname, pg_type.oid ");
     sql.append("  FROM pg_catalog.pg_type ");
-    sql.append("  LEFT JOIN (select ns.oid as nspoid, ns.nspname, r.r ");
-    sql.append("          from pg_namespace as ns ");
-    // -- go with older way of unnesting array to be compatible with 8.0
-    sql.append("          join ( select s.r, (current_schemas(false))[s.r] as nspname ");
-    sql.append("                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r ");
-    sql.append("         using ( nspname ) ");
-    sql.append("       ) as sp ");
-    sql.append("    ON sp.nspoid = typnamespace ");
     if (typoidParam) {
-      sql.append(" WHERE pg_type.oid = ? ");
+      sql.append(" WHERE pg_type.oid OPERATOR(pg_catalog.=) ? ");
     }
-    sql.append(" ORDER BY sp.r, pg_type.oid DESC;");
+    sql.append(" ORDER BY pg_catalog.pg_type_is_visible(pg_type.oid) DESC, pg_type.oid DESC;");
     return sql.toString();
   }
 
@@ -412,19 +406,11 @@ public class TypeInfoCache implements TypeInfo {
       if (getOidStatementSimple == null) {
         String sql;
         // see comments in @getSQLType()
-        // -- go with older way of unnesting array to be compatible with 8.0
+        // The temporary types of other sessions are never visible to this one.
         sql = "SELECT pg_type.oid, typname "
               + "  FROM pg_catalog.pg_type "
-              + "  LEFT "
-              + "  JOIN (select ns.oid as nspoid, ns.nspname, r.r "
-              + "          from pg_namespace as ns "
-              + "          join ( select s.r, (current_schemas(false))[s.r] as nspname "
-              + "                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r "
-              + "         using ( nspname ) "
-              + "       ) as sp "
-              + "    ON sp.nspoid = typnamespace "
-              + " WHERE typname = ? "
-              + " ORDER BY sp.r, pg_type.oid DESC LIMIT 1;";
+              + " WHERE typname OPERATOR(pg_catalog.=) ? AND NOT pg_catalog.pg_is_other_temp_schema(typnamespace)"
+              + " ORDER BY pg_catalog.pg_type_is_visible(pg_type.oid) DESC, pg_type.oid DESC LIMIT 1;";
         this.getOidStatementSimple = getOidStatementSimple = conn.prepareStatement(sql);
       }
       // coerce to lower case to handle upper case type names
@@ -444,7 +430,8 @@ public class TypeInfoCache implements TypeInfo {
               + "  FROM pg_catalog.pg_type t"
               + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
               + "  JOIN pg_catalog.pg_type arr ON arr.oid = t.typarray"
-              + " WHERE t.typname = ? AND (n.nspname = ? OR ? AND n.nspname = ANY (current_schemas(true)))"
+              + " WHERE t.typname OPERATOR(pg_catalog.=) ?"
+              + " AND (n.nspname OPERATOR(pg_catalog.=) ? OR ? AND pg_catalog.pg_type_is_visible(t.oid))"
               + " ORDER BY t.oid DESC LIMIT 1";
         } else {
           sql = "SELECT t.oid, t.typname "
@@ -464,7 +451,8 @@ public class TypeInfoCache implements TypeInfo {
         String sql = "SELECT t.oid, t.typname "
             + "  FROM pg_catalog.pg_type t"
             + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
-            + " WHERE t.typname = ? AND (n.nspname = ? OR ? AND n.nspname = ANY (current_schemas(true)))"
+            + " WHERE t.typname OPERATOR(pg_catalog.=) ?"
+            + " AND (n.nspname OPERATOR(pg_catalog.=) ? OR ? AND pg_catalog.pg_type_is_visible(t.oid))"
             + " ORDER BY t.oid DESC LIMIT 1";
         this.getOidStatementComplexNonArray = getOidStatementComplexNonArray = conn.prepareStatement(sql);
       }
@@ -599,9 +587,9 @@ public class TypeInfoCache implements TypeInfo {
     PreparedStatement getNameStatement = this.getNameStatement;
     if (getNameStatement == null) {
       String sql;
-      sql = "SELECT n.nspname = ANY(current_schemas(true)), n.nspname, t.typname "
+      sql = "SELECT pg_catalog.pg_type_is_visible(t.oid), n.nspname, t.typname "
             + "FROM pg_catalog.pg_type t "
-            + "JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = ?";
+            + "JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid WHERE t.oid OPERATOR(pg_catalog.=) ?";
 
       this.getNameStatement = getNameStatement = conn.prepareStatement(sql);
     }
@@ -676,7 +664,7 @@ public class TypeInfoCache implements TypeInfo {
     if (getArrayDelimiterStatement == null) {
       String sql;
       sql = "SELECT e.typdelim FROM pg_catalog.pg_type t, pg_catalog.pg_type e "
-            + "WHERE t.oid = ? and t.typelem = e.oid";
+            + "WHERE t.oid OPERATOR(pg_catalog.=) ? and t.typelem = e.oid";
       this.getArrayDelimiterStatement = getArrayDelimiterStatement = conn.prepareStatement(sql);
     }
     return getArrayDelimiterStatement;
@@ -735,9 +723,9 @@ public class TypeInfoCache implements TypeInfo {
     PreparedStatement getArrayElementOidStatement = this.getArrayElementOidStatement;
     if (getArrayElementOidStatement == null) {
       String sql;
-      sql = "SELECT e.oid, n.nspname = ANY(current_schemas(true)), n.nspname, e.typname "
+      sql = "SELECT e.oid, pg_catalog.pg_type_is_visible(e.oid), n.nspname, e.typname "
             + "FROM pg_catalog.pg_type t JOIN pg_catalog.pg_type e ON t.typelem = e.oid "
-            + "JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = ?";
+            + "JOIN pg_catalog.pg_namespace n ON e.typnamespace = n.oid WHERE t.oid OPERATOR(pg_catalog.=) ?";
       this.getArrayElementOidStatement = getArrayElementOidStatement = conn.prepareStatement(sql);
     }
     return getArrayElementOidStatement;

@@ -119,7 +119,7 @@ functions and escaped values. The appendix C of the JDBC specification describes
 
 Some functions in the following tables are translated but reported as not supported because they are duplicating or changing
 their order of the arguments. While this is harmless for literal values or columns, it will cause problems when using prepared
-statements. For example " `{fn right(?,?)}` " will be translated to " `substring(? from (length(?)+1-?))` ". As you can
+statements. For example " `{fn right(?,?)}` " will be translated to " `substring(? from (length(?)+1-(?)))` ". As you can
 see the translated SQL requires more parameters than before the translation but the driver will not automatically handle this.
 
 ##### Table 8.1. Supported escaped numeric functions
@@ -168,7 +168,7 @@ see the translated SQL requires more parameters than before the translation but 
 |ltrim(arg1)| yes                   |trim(leading from arg1)||
 |repeat(arg1, arg2)| yes                   |repeat(arg1, arg2)||
 |replace(arg1, arg2, arg3)| yes                   |replace(arg1, arg2, arg3)|Only reported as supported by 7.3 and above servers.|
-|right(arg1, arg2)| no                    |substring(arg1 from (length(arg1)+1-arg2))|Not supported since arg2 is duplicated.|
+|right(arg1, arg2)| no                    |substring(arg1 from (length(arg1)+1-(arg2)))|Not supported since arg2 is duplicated.|
 |rtrim(arg1)| yes                   |trim(trailing from arg1)||
 |space(arg1)| yes                   |repeat(' ', arg1)||
 |substring(arg1, arg2)| yes                   |substr(arg1, arg2)||
@@ -197,7 +197,7 @@ see the translated SQL requires more parameters than before the translation but 
 |week(arg1)|yes| extract(week from arg1)                                            ||
 |year(arg1)|yes| extract(year from arg1)                                            ||
 |timestampadd(argIntervalType, argCount, argTimeStamp)|yes| ((interval according to argIntervalType and argCount)+argTimeStamp)| an argIntervalType value of SQL_TSI_FRAC_SECOND is rejected with an explicit error: the unit has no portable size (nanoseconds in ODBC/SQL Server, microseconds in MySQL), so it is not mapped. Use SQL_TSI_SECOND with a fractional value instead. |
-|timestampdiff(argIntervalType, argTimeStamp1, argTimeStamp2)|not| extract((interval according to argIntervalType) from argTimeStamp2-argTimeStamp1 ) | supported for SQL_TSI_SECOND, SQL_TSI_MINUTE, SQL_TSI_HOUR and SQL_TSI_DAY; SQL_TSI_FRAC_SECOND is rejected with an explicit error, as for timestampadd |
+|timestampdiff(argIntervalType, argTimeStamp1, argTimeStamp2)|not| extract((interval according to argIntervalType) from (argTimeStamp2)-(argTimeStamp1)) | supported for SQL_TSI_SECOND, SQL_TSI_MINUTE, SQL_TSI_HOUR and SQL_TSI_DAY; SQL_TSI_FRAC_SECOND is rejected with an explicit error, as for timestampadd |
 
 ##### Table 8.4. Supported escaped misc functions
 

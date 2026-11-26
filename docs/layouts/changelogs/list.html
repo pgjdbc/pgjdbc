@@ -7,7 +7,7 @@
     {{ range .Data.Pages.ByDate.Reverse }}
     <ul>
         <li>
-            <a href="{{.Permalink}}"> {{.Params.Version}}</a>
+            <a href="{{.RelPermalink}}"> {{.Params.Version}}</a>
         </li>
     </ul>
     {{ end }}

@@ -65,6 +65,11 @@ final class ArrayDecoding {
      */
     int dimensionsCount = 1;
 
+    /**
+     * How many sub-arrays and values the whole value holds. Only set on the outermost list.
+     */
+    int entries;
+
   }
 
   private interface ArrayDecoder<A extends @NonNull Object> {
@@ -640,6 +645,7 @@ final class ArrayDecoding {
           PgArrayList a = new PgArrayList();
           PgArrayList p = dims.get(dims.size() - 1);
           p.add(a);
+          arrayList.entries++;
           dims.add(a);
         }
         curArray = dims.get(dims.size() - 1);
@@ -678,6 +684,7 @@ final class ArrayDecoding {
         // add element to current array
         if (b != null && (!b.isEmpty() || wasInsideString)) {
           curArray.add(!wasInsideString && "NULL".equals(b) ? null : b);
+          arrayList.entries++;
         }
 
         wasInsideString = false;
@@ -775,6 +782,18 @@ final class ArrayDecoding {
         if (i != dims - 1) {
           tmpList = (List) tmpList.get(0);
         }
+      }
+    }
+
+    // The lengths come from the first sub-array of each level, so a value with shorter sub-arrays
+    // could ask for far more than it holds. A rectangular value never needs more at a level.
+    long size = 1;
+    for (int length : dimensionLengths) {
+      size *= length;
+      if (size > list.entries) {
+        throw new PSQLException(
+            GT.tr("Multidimensional arrays must have sub-arrays with matching dimensions."),
+            PSQLState.DATA_ERROR);
       }
     }
 

@@ -5,6 +5,7 @@
 
 package org.postgresql.gss;
 
+import org.postgresql.util.GT;
 import org.postgresql.util.internal.PgBufferedOutputStream;
 
 import org.ietf.jgss.GSSContext;
@@ -19,7 +20,8 @@ import java.io.IOException;
 public class GSSOutputStream extends PgBufferedOutputStream {
   private final PgBufferedOutputStream pgOut;
   private final GSSContext gssContext;
-  private final MessageProp messageProp;
+  private final int qop;
+  private final boolean privacy;
 
   /**
    * Creates GSS output stream.
@@ -32,7 +34,9 @@ public class GSSOutputStream extends PgBufferedOutputStream {
     super(out, getBufferSize(gssContext, messageProp, maxTokenSize));
     this.pgOut = out;
     this.gssContext = gssContext;
-    this.messageProp = messageProp;
+    // unwrap writes the flags of each incoming token into its MessageProp, so keep a copy.
+    this.qop = messageProp.getQOP();
+    this.privacy = messageProp.getPrivacy();
   }
 
   private static int getBufferSize(GSSContext gssContext, MessageProp messageProp, int maxTokenSize) throws GSSException {
@@ -49,7 +53,11 @@ public class GSSOutputStream extends PgBufferedOutputStream {
 
   private void writeWrapped(byte[] b, int off, int len) throws IOException {
     try {
+      MessageProp messageProp = new MessageProp(qop, privacy);
       byte[] token = gssContext.wrap(b, off, len, messageProp);
+      if (privacy && !messageProp.getPrivacy()) {
+        throw new IOException(GT.tr("Outgoing GSS message would not use confidentiality."));
+      }
       pgOut.writeInt4(token.length);
       pgOut.write(token, 0, token.length);
     } catch (GSSException ex) {

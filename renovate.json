@@ -23,6 +23,17 @@
       "matchStrings": [
         "// renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+) versioning=(?<versioning>\\S+)\\s+const MAX_PG = '(?<currentValue>\\d+)'"
       ]
+    },
+    {
+      "customType": "regex",
+      "description": "Track the actionlint image that docs.yml runs with docker run. The github-actions manager does not read images in run steps.",
+      "managerFilePatterns": [
+        "/\\.github/workflows/docs\\.yml$/"
+      ],
+      "matchStrings": [
+        "(?<depName>rhysd/actionlint):(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]{64})"
+      ],
+      "datasourceTemplate": "docker"
     }
   ],
   "packageRules": [

@@ -6,10 +6,12 @@
 package org.postgresql.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -102,5 +104,17 @@ public class BigDecimalByteConverterTest {
     assertEquals(Double.POSITIVE_INFINITY, pinf);
     Number ninf = ByteConverter.numeric(new byte[]{0, 0, 0, 0, (byte) 0xF0, 0, 0, 0});
     assertEquals(Double.NEGATIVE_INFINITY, ninf);
+  }
+
+  @Test
+  void largestScaleAndWeightThatFit() {
+    testBinaryConversion(new BigDecimal("1e-16383"));
+    testBinaryConversion(new BigDecimal("1e131071"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"999999.99e-262144", "1e131072", "1e-200000000", "0e-16384", "-1e-16384"})
+  void valueOutsideTheBinaryFormatIsRefused(String value) {
+    assertThrows(IllegalArgumentException.class, () -> ByteConverter.numeric(new BigDecimal(value)));
   }
 }

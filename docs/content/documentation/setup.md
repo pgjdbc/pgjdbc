@@ -59,7 +59,7 @@ This section describes the steps you need to take before you can write or run pr
 
 ## Getting the Driver
 
-Precompiled versions of the driver can be downloaded from the [PostgreSQL® JDBC web site](https://jdbc.postgresql.org).
+Precompiled versions of the driver can be downloaded from the [PostgreSQL® JDBC web site](/).
 
 Alternatively you can build the driver from source, but you should only need to do this if you are making changes to the source code. To build the JDBC driver, you need gradle and a JDK (currently at least jdk1.8).
 

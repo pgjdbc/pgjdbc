@@ -78,7 +78,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     private final String key;
     private final String value;
 
-    StartupParam(String key, String value) {
+    StartupParam(String key, String value) throws PSQLException {
+      // A NUL would end the value early and turn the rest into further parameters. The server
+      // keeps the last assignment of a name, so an injected one overrides what came before.
+      if (key.indexOf(0) >= 0 || value.indexOf(0) >= 0) {
+        throw new PSQLException(
+            GT.tr("The startup parameter {0} must not contain a NUL character.", key),
+            PSQLState.INVALID_PARAMETER_VALUE);
+      }
       this.key = key;
       this.value = value;
     }
@@ -466,7 +473,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         PSQLState.CONNECTION_UNABLE_TO_CONNECT);
   }
 
-  private static List<StartupParam> getParametersForStartup(String user, String database, Properties info) {
+  private static List<StartupParam> getParametersForStartup(String user, String database,
+      Properties info) throws PSQLException {
     List<StartupParam> paramList = new ArrayList<>();
     paramList.add(new StartupParam("user", user));
     paramList.add(new StartupParam("database", database));
@@ -1040,6 +1048,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
               case AUTH_REQ_SASL:
                 AuthMethod.checkAuth(authMethods, AuthMethod.SCRAM_SHA_256);
+                // Each new exchange derives the salted password again, so refuse a repeat as libpq does.
+                if (scramAuthenticator != null) {
+                  throw new PSQLException(
+                      GT.tr("Backend sent a duplicate SASL authentication request."),
+                      PSQLState.PROTOCOL_VIOLATION);
+                }
                 int scramMaxIterations = PGProperty.SCRAM_MAX_ITERATIONS.getInt(info);
                 if (scramMaxIterations < 0) {
                   throw new PSQLException(

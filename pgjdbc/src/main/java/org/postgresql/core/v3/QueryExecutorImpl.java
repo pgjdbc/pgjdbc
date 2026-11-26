@@ -448,6 +448,26 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
+  /**
+   * Simple query mode puts parameter values into the SQL text, so the string literals must end at
+   * the same positions for the backend as for the parser.
+   */
+  private void checkStandardConformingStrings(Query query, int flags) throws SQLException {
+    if ((flags & QUERY_EXECUTE_AS_SIMPLE) == 0) {
+      return;
+    }
+    Query[] subqueries = query.getSubqueries();
+    if (subqueries != null) {
+      for (Query subquery : subqueries) {
+        checkStandardConformingStrings(subquery, flags);
+      }
+    } else if (!((SimpleQuery) query).getNativeQuery().isParsedFor(getStandardConformingStrings())) {
+      throw new PSQLException(
+          GT.tr("standard_conforming_strings has changed since the statement was prepared. Prepare the statement again."),
+          PSQLState.OBJECT_NOT_IN_STATE);
+    }
+  }
+
   @Override
   public void execute(Query query, @Nullable ParameterList parameters,
       ResultHandler handler,
@@ -471,6 +491,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
 
       flags = updateQueryMode(flags);
+      checkStandardConformingStrings(query, flags);
 
       boolean describeOnly = (QUERY_DESCRIBE_ONLY & flags) != 0;
 
@@ -525,6 +546,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         handler.handleError(
             new PSQLException(GT.tr("An I/O error occurred while sending to the backend."),
                 PSQLState.CONNECTION_FAILURE, e));
+      } catch (Throwable e) {
+        // The send buffer can hold part of a message, or the reply can be partly unread.
+        abort();
+        throw e;
       }
 
       try {
@@ -706,6 +731,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
 
       flags = updateQueryMode(flags);
+      for (Query query : queries) {
+        checkStandardConformingStrings(query, flags);
+      }
 
       boolean describeOnly = (QUERY_DESCRIBE_ONLY & flags) != 0;
       // Check parameters and resolve OIDs.
@@ -759,6 +787,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         handler.handleError(
             new PSQLException(GT.tr("An I/O error occurred while sending to the backend."),
                 PSQLState.CONNECTION_FAILURE, e));
+      } catch (Throwable e) {
+        // The send buffer can hold part of a message, or the reply can be partly unread.
+        abort();
+        throw e;
       }
 
       try {
@@ -927,17 +959,25 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // + 2 (result format)
 
     int paramCount = params.getParameterCount();
-    int encodedSize = 0;
+    long encodedSize = 0;
     for (int i = 1; i <= paramCount; i++) {
       if (params.isNull(i)) {
         encodedSize += 4;
       } else {
-        encodedSize += 4 + params.getV3Length(i);
+        encodedSize += 4L + params.getV3Length(i);
       }
+    }
+    encodedSize += 4 + 4 + 2 + 2L * paramCount + 2 + 2;
+
+    // The backend does not accept a message larger than MaxAllocSize, see sendBind.
+    if (encodedSize > 0x3fffffff) {
+      throw new PSQLException(GT.tr(
+          "FunctionCall message length {0} too long.  This can be caused by very large or incorrect length specifications on fastpath arguments.",
+          encodedSize), PSQLState.INVALID_PARAMETER_VALUE);
     }
 
     pgStream.sendChar(PgMessageType.FUNCTION_CALL_REQ);
-    pgStream.sendInteger4(4 + 4 + 2 + 2 * paramCount + 2 + encodedSize + 2);
+    pgStream.sendInteger4((int) encodedSize);
     pgStream.sendInteger4(fnid);
     pgStream.sendInteger2(paramCount);
     for (int i = 1; i <= paramCount; i++) {
@@ -1253,6 +1293,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
                 e.setNextException(error);
               }
               error = se;
+              // A backend answers CopyFail with one ErrorResponse and ReadyForQuery, which one call
+              // reads. After a second failure the stream cannot be trusted to reach ReadyForQuery.
+              if (errors > 1) {
+                abort();
+                break;
+              }
             }
           } while (hasLock(op));
         }
@@ -2354,9 +2400,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       sendSync();
     }
 
-    String nativeSql = query.toString(
-        params,
-        SqlSerializationContext.of(getStandardConformingStrings(), false));
+    String nativeSql;
+    try {
+      nativeSql = query.toString(
+          params,
+          SqlSerializationContext.of(getStandardConformingStrings(), false));
+    } catch (Exception e) {
+      // Report it like a failed Bind, so the caller reads the replies to what was already sent.
+      Throwable cause = e.getCause();
+      throw new PGBindException(cause instanceof IOException ? (IOException) cause : new IOException(e));
+    }
 
     LOGGER.log(Level.FINEST, " FE=> SimpleQuery(query=\"{0}\")", nativeSql);
     Encoding encoding = pgStream.getEncoding();
@@ -2989,6 +3042,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         handler.handleError(
             new PSQLException(GT.tr("An I/O error occurred while sending to the backend."),
                 PSQLState.CONNECTION_FAILURE, e));
+      } catch (Throwable e) {
+        // The send buffer can hold part of a message, or the reply can be partly unread.
+        abort();
+        throw e;
       }
 
       handler.handleCompletion();

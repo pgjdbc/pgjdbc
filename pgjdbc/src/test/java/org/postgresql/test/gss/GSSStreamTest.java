@@ -18,6 +18,8 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.Random;
 
 public class GSSStreamTest {
@@ -73,5 +75,45 @@ public class GSSStreamTest {
     byte[] unwrapResult = unwrapResults.toByteArray();
     assertArrayEquals(testMessage, unwrapResult,
         "the message should be intact after wrap and unwrap");
+  }
+
+  /**
+   * {@link GSSOutputStream} inherits {@code writeZeros}. {@code write} sends 100 bytes or more
+   * written into an empty buffer straight from the caller's array, so the data goes in as 3 bytes
+   * and then 97: the 97-byte write fills the buffer exactly, {@code write} sends it and leaves the
+   * 0xff bytes in the array, and {@code writeZeros} starts on an empty buffer that is not zeroed.
+   * It used to send those bytes in place of the zeros.
+   */
+  @Test
+  void writeZerosAfterDataEndingAtBufferBoundarySendsZeros() throws Exception {
+    ByteArrayOutputStream wrappedContents = new ByteArrayOutputStream();
+    MockGSSContext gssContext = new MockGSSContext(0, messageProp);
+    // MockGSSContext.getWrapSizeLimit returns 100, so the GSSOutputStream buffer holds 100 bytes
+    GSSOutputStream out = new GSSOutputStream(
+        new PgBufferedOutputStream(wrappedContents, 20), gssContext, messageProp, 20);
+    byte[] data = new byte[100];
+    Arrays.fill(data, (byte) 0xff);
+    out.write(data, 0, 3);
+    out.write(data, 3, 97);
+
+    out.writeZeros(103);
+    out.flush();
+
+    byte[] expected = new byte[203];
+    Arrays.fill(expected, 0, 100, (byte) 0xff);
+    assertArrayEquals(expected, unwrap(wrappedContents.toByteArray(), gssContext),
+        "100 bytes of 0xff written as 3 + 97, then writeZeros(103)");
+  }
+
+  private byte[] unwrap(byte[] wrapped, MockGSSContext gssContext) throws IOException {
+    GSSInputStream in =
+        new GSSInputStream(new ByteArrayInputStream(wrapped), gssContext, messageProp);
+    ByteArrayOutputStream unwrapped = new ByteArrayOutputStream();
+    byte[] tmp = new byte[256];
+    int n;
+    while ((n = in.read(tmp)) != -1) {
+      unwrapped.write(tmp, 0, n);
+    }
+    return unwrapped.toByteArray();
   }
 }

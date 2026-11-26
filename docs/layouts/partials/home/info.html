@@ -14,16 +14,27 @@
         <h2>
             Latest Releases
         </h2>
+        {{- $homeReleaseCount := 5 }}
+        {{- $rel := partialCached "releases.html" site }}
+        {{- with $rel.current }}
         <p>
-            Current release is 42.7.13. This is a maintenance release with numerous bug fixes and new connection properties (flushCacheOnDdl, connectExecutor, classLoaderStrategy). It follows the 42.7.12 security release, which fixed a silent channel-binding authentication downgrade (CVE-2026-54291).
-            See the <a href="https://jdbc.postgresql.org/changelogs/2026-07-06-42.7.13-release/">Changelog</a> for details
+            Current release is {{ .version }}.
+            {{- with .page.Params.summary }} {{ . }}{{ end }}
+            See the <a href="{{ .page.RelPermalink }}">Changelog</a> for details
         </p>
         <ul role="list">
-            {{ range $.Site.Data.homepagedata.info }}
+            {{ range first $homeReleaseCount $rel.releases }}
             <li role="listitem">
-                <strong>{{ .version }}</strong> · {{ .date }} · <a href="{{ .url }}">Notes</a>
+                {{- $date := .page.Date.Format "2 January 2006" }}
+                <strong>{{ .version }}</strong> &middot; {{ $date }} &middot;
+                {{- " " }}<a href="{{ .page.RelPermalink }}">Notes</a>
             </li>
             {{ end}}
         </ul>
+        <p>
+            {{- $changelogs := (site.GetPage "/changelogs").RelPermalink }}
+            <a href="{{ $changelogs }}">All changelogs</a>
+        </p>
+        {{- end }}
     </article>
 </section>

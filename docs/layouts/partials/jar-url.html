@@ -1,0 +1,7 @@
+{{- /*
+  Returns the URL of the jar of .version under the downloadBaseURL param. The
+  file name includes .suffix, such as jre7, when .suffix is not empty.
+*/ -}}
+{{- $name := .version -}}
+{{- with .suffix }}{{ $name = printf "%s.%s" $name . }}{{ end -}}
+{{- return printf "%spostgresql-%s.jar" site.Params.downloadBaseURL $name -}}

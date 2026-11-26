@@ -250,10 +250,14 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
       }
       oidSet.add(String.valueOf(field.getTableOid()));
     }
-    sql.append(") vals ON (c.oid = vals.oid AND a.attnum = vals.attnum) ");
+    // The table oids are int4 literals. pg_catalog has no oid = int4 operator, so an unqualified =
+    // could resolve to an operator in another schema of the search_path.
+    sql.append(") vals ON (c.oid OPERATOR(pg_catalog.=) vals.oid AND a.attnum = vals.attnum) ");
 
     if (!oidSet.isEmpty()) {
-      sql.append("where c.oid in (").append(String.join(",", oidSet)).append(")");
+      sql.append("where c.oid OPERATOR(pg_catalog.=) ANY (ARRAY[")
+          .append(String.join(",", oidSet))
+          .append("]::pg_catalog.oid[])");
     }
 
     if (!hasSourceInfo) {

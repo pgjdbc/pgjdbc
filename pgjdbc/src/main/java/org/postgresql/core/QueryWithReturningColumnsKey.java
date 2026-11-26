@@ -22,8 +22,8 @@ class QueryWithReturningColumnsKey extends BaseQueryKey {
   private int size; // query length cannot exceed MAX_INT
 
   QueryWithReturningColumnsKey(String sql, boolean isParameterized, boolean escapeProcessing,
-      String @Nullable [] columnNames) {
-    super(sql, isParameterized, escapeProcessing);
+      boolean standardConformingStrings, String @Nullable [] columnNames) {
+    super(sql, isParameterized, escapeProcessing, standardConformingStrings);
     if (columnNames == null) {
       // TODO: teach parser to fetch key columns somehow when no column names were given
       columnNames = new String[]{"*"};
@@ -54,6 +54,7 @@ class QueryWithReturningColumnsKey extends BaseQueryKey {
         + "sql='" + sql + '\''
         + ", isParameterized=" + isParameterized
         + ", escapeProcessing=" + escapeProcessing
+        + ", standardConformingStrings=" + standardConformingStrings
         + ", columnNames=" + Arrays.toString(columnNames)
         + '}';
   }

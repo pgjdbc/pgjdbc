@@ -68,11 +68,25 @@ public class GSSInputStream extends InputStream {
     return res == -1 ? -1 : int1Buf[0] & 0xFF;
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * <p>Counts the decrypted bytes that have not been read yet. A packet can decrypt to more bytes
+   * than one read asks for, and the rest stays in this stream until the next read. Encrypted bytes
+   * are not counted, because the decrypted length of a packet is unknown until the packet is
+   * decrypted. So a read can return more bytes than this method reports.</p>
+   */
+  @Override
+  public int available() throws IOException {
+    byte[] unencrypted = this.unencrypted;
+    return unencrypted == null ? 0 : unencrypted.length - unencryptedPos;
+  }
+
   @Override
   public int read(byte[] buffer, int pos, int len) throws IOException {
     int n = 0;
-    // Server makes 16KiB frames, so we attempt several reads from the underlying stream
-    // so we don't have to store the unencrypted buffer across GSSInputStream.read calls
+    // A packet holds up to 16 KiB, so keep unwrapping packets while the wrapped stream has bytes,
+    // and fill as much of the caller's buffer as one call can
     while (true) {
       // 1. Reading length from the wrapped stream
       if (lenPos < 4) {
@@ -165,11 +179,22 @@ public class GSSInputStream extends InputStream {
         return 0;
       }
     }
+    byte[] unencrypted;
     try {
-      this.unencrypted = gssContext.unwrap(encrypted, 0, encryptedLength, messageProp);
+      unencrypted = gssContext.unwrap(encrypted, 0, encryptedLength, messageProp);
     } catch (GSSException e) {
       throw new IOException(e);
     }
+    // unwrap does not throw for a replayed, reordered or missing token, or one that is only
+    // signed. It reports them in the MessageProp.
+    if (messageProp.isDuplicateToken() || messageProp.isOldToken()
+        || messageProp.isUnseqToken() || messageProp.isGapToken()) {
+      throw new IOException(GT.tr("Backend sent a GSS packet out of sequence."));
+    }
+    if (!messageProp.getPrivacy()) {
+      throw new IOException(GT.tr("Backend sent a GSS packet that is not encrypted."));
+    }
+    this.unencrypted = unencrypted;
     unencryptedPos = 0;
     return 1;
   }

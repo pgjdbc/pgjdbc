@@ -26,4 +26,13 @@ public class PSQLWarning extends SQLWarning {
   public ServerErrorMessage getServerErrorMessage() {
     return serverError;
   }
+
+  /**
+   * A server warning is not raised by the driver, so the stack of the thread that read it is not
+   * recorded. The server can send any number of notices.
+   */
+  @Override
+  public synchronized Throwable fillInStackTrace() {
+    return this;
+  }
 }

@@ -630,6 +630,11 @@ public class Driver implements java.sql.Driver {
       }
     }
 
+    // The service can also be given in the Properties, the URL takes precedence.
+    if (serviceName == null && defaults != null) {
+      serviceName = PGProperty.SERVICE.getOrDefault(defaults);
+    }
+
     // load pg_service.conf
     if (serviceName != null) {
       LOGGER.log(Level.FINE, "Processing option [?service={0}]", serviceName);

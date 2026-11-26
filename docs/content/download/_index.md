@@ -9,7 +9,7 @@ Source versions are also available here for recent driver versions. Latest [SNAP
 
 ## Latest Versions
 
-This is the current version of the driver. Unless you have unusual requirements (running old applications or JVMs), this is the driver you should be using. It supports PostgreSQL 8.4 or newer and requires Java 6 or newer. It contains support for SSL and the javax.sql package.
+This is the current version of the driver. Unless you have unusual requirements (running old applications or JVMs), this is the driver you should be using. It supports PostgreSQL 8.4 or newer and requires Java 8 or newer. It contains support for SSL and the javax.sql package.
 
 > **Note:**
 >
@@ -19,6 +19,6 @@ This is the current version of the driver. Unless you have unusual requirements 
 
 ## Older Versions
 
-Many other versions of the JDBC driver are available. This includes development versions, compatibility with older JDKs, and previous versions of the driver.
+Many other versions of the JDBC driver are available. This includes development versions, compatibility with older JDKs, and previous versions of the driver. Every 42.x release is on Maven Central, including the jre6 and jre7 builds.
 
 {{< past-versions >}}

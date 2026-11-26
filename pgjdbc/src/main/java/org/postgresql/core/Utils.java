@@ -20,6 +20,8 @@ import java.sql.SQLException;
  * Collection of utilities used by the protocol-level code.
  */
 public class Utils {
+  private static final char YEN_SIGN = '\u00a5'; // yen sign
+
   /**
    * Turn a bytearray into a printable form, representing each byte in hex.
    *
@@ -82,15 +84,18 @@ public class Utils {
         // single-quotes, but still escape single-quotes by doubling, to
         // avoid a security hazard if the reported value of
         // standard_conforming_strings is incorrect, or an error if
-        // backslash_quote is off.
+        // backslash_quote is off. The EUC_JP and Shift_JIS charsets encode the yen sign as a
+        // backslash, so it gets a backslash before it as well.
         for (int i = 0; i < value.length(); i++) {
           char ch = value.charAt(i);
           if (ch == '\0') {
             throw new PSQLException(GT.tr("Zero bytes may not occur in string parameters."),
                 PSQLState.INVALID_PARAMETER_VALUE);
           }
-          if (ch == '\\' || ch == '\'') {
-            sbuf.append(ch);
+          if (ch == '\\' || ch == YEN_SIGN) {
+            sbuf.append('\\');
+          } else if (ch == '\'') {
+            sbuf.append('\'');
           }
           sbuf.append(ch);
         }

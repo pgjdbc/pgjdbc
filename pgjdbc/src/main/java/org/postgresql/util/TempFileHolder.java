@@ -5,8 +5,6 @@
 
 package org.postgresql.util;
 
-import static org.postgresql.util.internal.Nullness.castNonNull;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
@@ -33,7 +31,11 @@ class TempFileHolder implements LazyCleaner.CleaningAction<IOException> {
   public InputStream getStream() throws IOException {
     InputStream stream = this.stream;
     if (stream == null) {
-      stream = Files.newInputStream(castNonNull(tempFile));
+      Path tempFile = this.tempFile;
+      if (tempFile == null) {
+        throw new IOException(GT.tr("The stream data has already been sent and released."));
+      }
+      stream = Files.newInputStream(tempFile);
       this.stream = stream;
     }
     return stream;

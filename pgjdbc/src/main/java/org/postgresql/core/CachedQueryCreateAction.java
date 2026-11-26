@@ -38,14 +38,16 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
       queryKey = null;
       parsedSql = (String) key;
     }
+    // A String key is only used for standard_conforming_strings=on.
+    boolean standardConformingStrings =
+        key instanceof String || castNonNull(queryKey).standardConformingStrings;
     if (key instanceof String || castNonNull(queryKey).escapeProcessing) {
-      parsedSql =
-          Parser.replaceProcessing(parsedSql, true, queryExecutor.getStandardConformingStrings());
+      parsedSql = Parser.replaceProcessing(parsedSql, true, standardConformingStrings);
     }
     boolean isFunction;
     if (key instanceof CallableQueryKey) {
       JdbcCallParseInfo callInfo =
-          Parser.modifyJdbcCall(parsedSql, queryExecutor.getStandardConformingStrings(),
+          Parser.modifyJdbcCall(parsedSql, standardConformingStrings,
               queryExecutor.getServerVersionNum(), queryExecutor.getEscapeSyntaxCallMode());
       parsedSql = callInfo.getSql();
       isFunction = callInfo.isFunction();
@@ -63,7 +65,7 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
     }
 
     List<NativeQuery> queries = Parser.parseJdbcSql(parsedSql,
-        queryExecutor.getStandardConformingStrings(), isParameterized, splitStatements,
+        standardConformingStrings, isParameterized, splitStatements,
         queryExecutor.isReWriteBatchedInsertsEnabled(), queryExecutor.getQuoteReturningIdentifiers(),
         returningColumns
         );
