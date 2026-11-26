@@ -4,6 +4,9 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
+### Added
+* feat: implement `PreparedStatement.setCharacterStream(int, Reader, long)`, which threw `SQLFeatureNotSupportedException`. It behaves like the `int` overload: the driver reads at most `length` characters from the `Reader` into memory and binds them as a string, and a `length` above 2147483647 fails with `Object is too large to send over the protocol.` [PR #706](https://github.com/pgjdbc/pgjdbc/pull/706)
+
 ### Fixed
 * fix: with GSS encryption, `GSSInputStream.available()` now returns the number of decrypted bytes that have not been read yet. Before, it always returned 0. `PGConnection.getNotifications()` and reads during a non-blocking `COPY` now see those bytes at once [PR #4383](https://github.com/pgjdbc/pgjdbc/pull/4383)
 * fix: `PGStream.skip` no longer loops forever when the connection ends while the driver is discarding bytes, and no longer mistakes a stream that skips zero bytes for one that has ended. `InputStream.skip` may return zero with more data still coming, which a stream supplied through the `socketFactory` property is free to do; the driver now reads a byte in that case and treats only `-1` as the end [PR #4358](https://github.com/pgjdbc/pgjdbc/pull/4358)
