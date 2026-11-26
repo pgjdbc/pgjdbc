@@ -103,7 +103,7 @@ class GssHandshakeLoopTest {
 
   @Test
   @Timeout(value = 30, unit = TimeUnit.SECONDS)
-  void stopsTheAuthenticationHandshakeAtTheRoundCap() throws Exception {
+  void stopsTheAuthenticationHandshakeAtTheRoundLimit() throws Exception {
     CannedSocketFactory[] factory = new CannedSocketFactory[1];
     PGStream stream = streamOf(continueMessages(MAX_ROUNDS + 10), factory);
     GssAction action = new GssAction(stream, null, "localhost", "test", "postgres", false, false,
@@ -122,7 +122,7 @@ class GssHandshakeLoopTest {
 
   @Test
   @Timeout(value = 30, unit = TimeUnit.SECONDS)
-  void stopsTheEncryptionHandshakeAtTheRoundCap() throws Exception {
+  void stopsTheEncryptionHandshakeAtTheRoundLimit() throws Exception {
     CannedSocketFactory[] factory = new CannedSocketFactory[1];
     PGStream stream = streamOf(rawTokens(MAX_ROUNDS + 10), factory);
     GssEncAction action = new GssEncAction(stream, null, "localhost", "test", "postgres", false,
