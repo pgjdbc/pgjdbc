@@ -244,13 +244,22 @@ The PostgreSQL® JDBC driver implements native support for the [Java 8 Date and 
 |DATE|LocalDate|
 |TIME [ WITHOUT TIME ZONE ]|LocalTime|
 |TIMESTAMP [ WITHOUT TIME ZONE ]|LocalDateTime|
+|TIME WITH TIME ZONE|OffsetTime|
 |TIMESTAMP WITH TIME ZONE|OffsetDateTime|
 
 This is closely aligned with tables B-4 and B-5 of the JDBC 4.2 specification.
 
 > **Note**
 >
-> `ZonedDateTime` , `Instant` and `OffsetTime / TIME WITH TIME ZONE` are not supported. Also note that all `OffsetDateTime` instances will have be in UTC (have offset 0). This is because the backend stores them as UTC.
+> `ZonedDateTime` and `Instant` are not supported.
+
+`getObject(..., OffsetDateTime.class)` returns a `TIMESTAMP WITH TIME ZONE` value with offset 0 (UTC). PostgreSQL
+stores the value as an instant and does not keep the offset it was written with. Neither the session `TimeZone`
+setting nor the JVM default time zone changes the returned offset. To get the value in another zone, convert it, for
+example with `offsetDateTime.atZoneSameInstant(ZoneId.systemDefault())`.
+
+PostgreSQL stores the offset of a `TIME WITH TIME ZONE` value, and `getObject(..., OffsetTime.class)` returns it
+unchanged.
 
 **Example 5.2. Reading Java 8 Date and Time values using JDBC**
 
