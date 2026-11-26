@@ -1770,6 +1770,66 @@ public class PreparedStatementTest extends BaseTest4 {
   }
 
   @Test
+  public void testGetMetaDataRetriesInvalidatedPlan() throws SQLException {
+    assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE,
+        "simple protocol does not support describe requests");
+    String table = "metadata_retry_" + binaryMode;
+    try (Connection other = TestUtil.openDB(); Statement ddl = other.createStatement()) {
+      TestUtil.createTable(other, table, "value int");
+      try (PreparedStatement pstmt = con.prepareStatement("select * from " + table)) {
+        ((PGStatement) pstmt).setPrepareThreshold(1);
+        ddl.executeUpdate("insert into " + table + " values (42)");
+        try (ResultSet rs = pstmt.executeQuery()) {
+          assertEquals(Types.INTEGER, rs.getMetaData().getColumnType(1));
+        }
+        ddl.executeUpdate("alter table " + table + " alter value type text");
+        assertEquals(Types.VARCHAR, pstmt.getMetaData().getColumnType(1));
+        try (ResultSet rs = pstmt.executeQuery()) {
+          assertTrue(rs.next());
+          assertEquals("42", rs.getString(1));
+        }
+      } finally {
+        TestUtil.dropTable(other, table);
+      }
+    }
+  }
+
+  @Test
+  public void testGetMetaDataDoesNotRetryFailedTransaction() throws SQLException {
+    assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE,
+        "simple protocol does not support describe requests");
+    String table = "metadata_failed_" + binaryMode;
+    try (Connection other = TestUtil.openDB(); Statement ddl = other.createStatement()) {
+      TestUtil.createTable(other, table, "value int");
+      try (PreparedStatement pstmt = con.prepareStatement("select * from " + table)) {
+        ((PGStatement) pstmt).setPrepareThreshold(1);
+        try (ResultSet rs = pstmt.executeQuery()) {
+          assertEquals(Types.INTEGER, rs.getMetaData().getColumnType(1));
+        }
+        ddl.executeUpdate("alter table " + table + " alter value type text");
+        con.setAutoCommit(false);
+        try (Statement begin = con.createStatement()) {
+          begin.execute("select 1");
+        }
+        assertEquals("0A000", assertThrows(SQLException.class, pstmt::getMetaData).getSQLState());
+      } finally {
+        con.rollback();
+        con.setAutoCommit(true);
+        TestUtil.dropTable(other, table);
+      }
+    }
+  }
+
+  @Test
+  public void testGetMetaDataPreservesSyntaxError() throws SQLException {
+    assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE,
+        "simple protocol does not support describe requests");
+    try (PreparedStatement pstmt = con.prepareStatement("select from")) {
+      assertEquals("42601", assertThrows(SQLException.class, pstmt::getMetaData).getSQLState());
+    }
+  }
+
+  @Test
   public void testInappropriateStatementSharing() throws SQLException {
     PreparedStatement ps = con.prepareStatement("SELECT ?::timestamp");
     assertFirstParameterTypeName("after prepare ?::timestamp bind type should be timestamp", "timestamp", ps);
