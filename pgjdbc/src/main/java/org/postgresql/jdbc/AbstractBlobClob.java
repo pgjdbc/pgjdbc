@@ -126,7 +126,6 @@ public abstract class AbstractBlobClob {
       checkFreed();
       LargeObject subLO = getLo(false).copy();
       addSubLO(subLO);
-      subLO.seek(0, LargeObject.SEEK_SET);
       return subLO.getInputStream();
     }
   }
