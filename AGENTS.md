@@ -12,6 +12,7 @@ commit messages, and pull request descriptions.
 | desync, desynced | out of sync | |
 | end-of-stream, end of the stream, EOF, end of file; the stream ends, has ended, is exhausted | end of stream | The state an `InputStream` reports by returning -1. |
 | envelope | message | Name the part: the message, its header, or its body. |
+| frame, for a length-prefixed unit of GSS-encrypted data | packet | PostgreSQL's word, as in `PQ_GSS_MAX_PACKET_SIZE`. Keep `frame` for a stack frame, and the verb: the handshake is framed. |
 | hard cap, soft cap | say what the limit does | Not `hard limit` or `soft limit` either. |
 | legal | valid | |
 | self-inclusive | say what the field counts | |
