@@ -426,6 +426,13 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
           PSQLState.NO_DATA);
     }
 
+    if (parameterIndex < 1 || parameterIndex > callResult.length) {
+      throw new PSQLException(
+          GT.tr("The column index is out of range: {0}, number of columns: {1}.",
+              parameterIndex, callResult.length),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+
     lastIndex = parameterIndex;
     return callResult[parameterIndex - 1];
   }
