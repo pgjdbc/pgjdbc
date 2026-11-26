@@ -976,6 +976,56 @@ public class UpdateableResultTest extends BaseTest4 {
     assertEquals(value, updateRowAndReselect("t", value, LocalTime.class));
   }
 
+  /**
+   * Updating a "time without time zone" column with an {@link OffsetTime} drops the offset on the
+   * server, so the in-memory row buffer must store the offset-stripped local time. The persisted
+   * value was already correct; before this fix the buffer disagreed with the database until the
+   * row was refreshed. See https://github.com/pgjdbc/pgjdbc/pull/3848.
+   */
+  @Test
+  public void testUpdateRowWithOffsetTimeIntoTimeColumn() throws SQLException {
+    OffsetTime value = OffsetTime.of(LocalTime.of(12, 34, 56, 123_456_000), ZoneOffset.ofHours(5));
+    LocalTime expected = value.toLocalTime();
+
+    try (Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = st.executeQuery("SELECT id, t FROM datetimetable WHERE id = 1")) {
+      assertTrue(rs.next(), "datetimetable must contain the seeded row with id = 1");
+      rs.updateObject("t", value);
+      rs.updateRow();
+      // A time column has no offset to keep, so the row buffer must drop it to match the database
+      assertEquals(expected, rs.getObject("t", LocalTime.class),
+          "row buffer must drop the offset for a time column");
+    }
+
+    try (Statement st = con.createStatement();
+        ResultSet rs = st.executeQuery("SELECT t FROM datetimetable WHERE id = 1")) {
+      assertTrue(rs.next());
+      assertEquals(expected, rs.getObject(1, LocalTime.class),
+          "persisted time column value must match the offset-stripped local time");
+    }
+  }
+
+  /**
+   * Regression guard for {@link #testUpdateRowWithOffsetTimeIntoTimeColumn()}: a timetz column does
+   * carry an offset, so the row buffer must keep it rather than strip it.
+   */
+  @Test
+  public void testUpdateRowWithOffsetTimeIntoTimeTzColumnKeepsOffset() throws SQLException {
+    OffsetTime value = OffsetTime.of(LocalTime.of(12, 34, 56, 123_456_000), ZoneOffset.ofHours(5));
+
+    try (Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = st.executeQuery("SELECT id, ttz FROM datetimetable WHERE id = 1")) {
+      assertTrue(rs.next(), "datetimetable must contain the seeded row with id = 1");
+      rs.updateObject("ttz", value);
+      rs.updateRow();
+      OffsetTime fromBuffer = rs.getObject("ttz", OffsetTime.class);
+      assertNotNull(fromBuffer, "row buffer value must not be null after updateRow()");
+      assertTrue(value.isEqual(fromBuffer), "expected " + value + " to equal " + fromBuffer);
+    }
+  }
+
   @Test
   public void testInsertRowWithJavaTimeValues() throws SQLException {
     OffsetTime ttz = OffsetTime.of(LocalTime.of(1, 2, 3, 456_000_000), ZoneOffset.ofHours(-8));
