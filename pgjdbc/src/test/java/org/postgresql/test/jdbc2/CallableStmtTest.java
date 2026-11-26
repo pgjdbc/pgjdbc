@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import org.junit.jupiter.api.AfterAll;
@@ -23,11 +24,17 @@ import java.math.BigDecimal;
 import java.sql.Array;
 import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 /**
  * CallableStatement tests.
@@ -110,6 +117,18 @@ public class CallableStmtTest extends BaseTest4 {
   final String pkgName = "testspg__";
 
   @Test
+  public void testGetDate() throws Throwable {
+    assumeMinimumServerVersion(ServerVersion.v9_4);
+    try (CallableStatement call = con.prepareCall("{? = call make_date(2026, 10, 17)}")) {
+
+      call.registerOutParameter(1, Types.DATE);
+      call.execute();
+
+      assertEquals(Date.valueOf(LocalDate.of(2026, 10, 17)), call.getDate(1));
+    }
+  }
+
+  @Test
   public void testGetUpdateCount() throws SQLException {
     CallableStatement call = con.prepareCall(func + pkgName + "getDouble (?) }");
     call.setDouble(2, 3.04);
@@ -171,6 +190,32 @@ public class CallableStmtTest extends BaseTest4 {
     call.registerOutParameter(1, Types.SMALLINT);
     call.execute();
     assertEquals(42, call.getShort(1));
+  }
+
+  @Test
+  public void testGetTime() throws Throwable {
+    assumeMinimumServerVersion(ServerVersion.v9_4);
+    try (CallableStatement call = con.prepareCall("{? = call make_time(15, 51, 23)}")) {
+
+      call.registerOutParameter(1, Types.TIME);
+      call.execute();
+
+      assertEquals(Time.valueOf(LocalTime.of(15, 51, 23)), call.getTime(1));
+    }
+  }
+
+  @Test
+  public void testGetTimestamp() throws Throwable {
+    assumeMinimumServerVersion(ServerVersion.v9_4);
+    try (CallableStatement call = con.prepareCall("{? = call make_timestamp(2026, 10, 17, 15, 51, 23)}")) {
+
+      call.registerOutParameter(1, Types.TIMESTAMP);
+      call.execute();
+
+      LocalDate date = LocalDate.of(2026, 10, 17);
+      LocalTime time = LocalTime.of(15, 51, 23);
+      assertEquals(Timestamp.valueOf(LocalDateTime.of(date, time)), call.getTimestamp(1));
+    }
   }
 
   @Test
