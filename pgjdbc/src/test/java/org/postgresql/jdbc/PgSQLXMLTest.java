@@ -73,6 +73,15 @@ public class PgSQLXMLTest extends BaseTest4 {
     SQLXML result = rs.getSQLXML(1);
     assertNotNull(result);
     assertEquals(example, result.getString());
+    assertEquals(example, result.toString());
+  }
+
+  @Test
+  public void testToString() throws Exception {
+    String example = "<x>value</x>";
+    SQLXML pgSQLXML = con.createSQLXML();
+    pgSQLXML.setString(example);
+    assertEquals(example, pgSQLXML.toString());
   }
 
   private static final String LICENSE_URL =
