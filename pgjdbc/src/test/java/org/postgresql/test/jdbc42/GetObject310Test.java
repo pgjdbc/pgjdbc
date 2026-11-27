@@ -422,6 +422,56 @@ public class GetObject310Test extends BaseTest4 {
     }
   }
 
+  /**
+   * BC years of era whose proleptic year is a leap year. The year of era
+   * itself is not a leap year in each case, so February 29 is valid only
+   * when the driver reads it as a BC date.
+   */
+  private static final int[] BC_LEAP_YEARS_OF_ERA = {1, 5, 401};
+
+  @Test
+  public void testBcLeapDayDate() throws SQLException {
+    for (int yearOfEra : BC_LEAP_YEARS_OF_ERA) {
+      String sql = String.format("SELECT '%04d-02-29 BC'::date", yearOfEra);
+      try (Statement stmt = con.createStatement();
+          ResultSet rs = stmt.executeQuery(sql)) {
+        assertTrue(rs.next());
+        assertEquals(ISO.date(IsoEra.BCE, yearOfEra, 2, 29),
+            rs.getObject(1, LocalDate.class), sql);
+      }
+    }
+  }
+
+  @Test
+  public void testBcLeapDayTimestamp() throws SQLException {
+    for (int yearOfEra : BC_LEAP_YEARS_OF_ERA) {
+      String sql = String.format(
+          "SELECT '%04d-02-29 12:34:56 BC'::timestamp", yearOfEra);
+      try (Statement stmt = con.createStatement();
+          ResultSet rs = stmt.executeQuery(sql)) {
+        assertTrue(rs.next());
+        assertEquals(ISO.date(IsoEra.BCE, yearOfEra, 2, 29).atTime(12, 34, 56),
+            rs.getObject(1, LocalDateTime.class), sql);
+      }
+    }
+  }
+
+  @Test
+  public void testBcLeapDayTimestamptz() throws SQLException {
+    TestUtil.execute(con, "SET TIME ZONE 'UTC'");
+    for (int yearOfEra : BC_LEAP_YEARS_OF_ERA) {
+      String sql = String.format(
+          "SELECT '%04d-02-29 12:34:56+00 BC'::timestamptz", yearOfEra);
+      try (Statement stmt = con.createStatement();
+          ResultSet rs = stmt.executeQuery(sql)) {
+        assertTrue(rs.next());
+        assertEquals(ISO.date(IsoEra.BCE, yearOfEra, 2, 29)
+                .atTime(OffsetTime.of(12, 34, 56, 0, UTC)),
+            rs.getObject(1, OffsetDateTime.class), sql);
+      }
+    }
+  }
+
   @Test
   public void testProlepticCalendarTimestamp() throws SQLException {
     // date time ranges and CTEs are both new with 8.4

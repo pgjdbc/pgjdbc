@@ -183,6 +183,16 @@ public class TimestampUtils {
 
     boolean hasOffset;
     ZoneOffset offset = ZoneOffset.UTC;
+
+    /**
+     * java.time checks the day of month against the year it is given, so it
+     * must get the proleptic year, not the year of era. The two disagree on
+     * leap years: 1 BC is proleptic year 0, a leap year, while year 1 is not.
+     * Given the year of era, java.time rejects every BC February 29.
+     */
+    int prolepticYear() {
+      return era == GregorianCalendar.BC ? 1 - year : year;
+    }
   }
 
   private static class ParsedBinaryTimestamp {
@@ -602,12 +612,8 @@ public class TimestampUtils {
 
     // intentionally ignore time zone
     // 2004-10-19 10:23:54+03:00 is 2004-10-19 10:23:54 locally
-    LocalDateTime result = LocalDateTime.of(ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.nanos);
-    if (ts.era == GregorianCalendar.BC) {
-      return result.with(ChronoField.ERA, IsoEra.BCE.getValue());
-    } else {
-      return result;
-    }
+    return LocalDateTime.of(ts.prolepticYear(), ts.month, ts.day, ts.hour, ts.minute, ts.second,
+        ts.nanos);
   }
 
   /**
@@ -664,13 +670,8 @@ public class TimestampUtils {
     }
 
     final ParsedTimestamp ts = parseBackendTimestamp(bytes);
-    OffsetDateTime result =
-        OffsetDateTime.of(ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.nanos, ts.offset);
-    if (ts.era == GregorianCalendar.BC) {
-      return result.with(ChronoField.ERA, IsoEra.BCE.getValue());
-    } else {
-      return result;
-    }
+    return OffsetDateTime.of(ts.prolepticYear(), ts.month, ts.day, ts.hour, ts.minute, ts.second,
+        ts.nanos, ts.offset);
   }
 
   /**
@@ -819,12 +820,7 @@ public class TimestampUtils {
         return LocalDateTime.MIN.toLocalDate();
       }
       ParsedTimestamp pt = parseDate(dateBytes);
-      LocalDateTime ldt = LocalDateTime.of(pt.year, pt.month, pt.day, pt.hour, pt.minute, pt.second, pt.nanos);
-      if (pt.era == GregorianCalendar.BC) {
-        return ldt.toLocalDate().with(ChronoField.ERA, IsoEra.BCE.getValue());
-      } else {
-        return ldt.toLocalDate();
-      }
+      return LocalDate.of(pt.prolepticYear(), pt.month, pt.day);
     }
   }
 
