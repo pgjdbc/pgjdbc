@@ -11,6 +11,8 @@ set -euo pipefail
 #    SSL   = "yes" | "no"                   - Whether to enable SSL
 #    XA    = "yes" | "no"                   - Whether to enable XA for prepared transactions
 #    SCRAM = "yes" | "no"                   - Whether to enable SCRAM authentication
+#    OAUTH = "no" | "smoke" | "all"         - OAuth mode: off, add the testoauth role, or also switch
+#                                             the test role to OAuth (PG 18 only)
 #    TZ    = "Etc/UTC" | ...                - Override server timezone (default Etc/UTC)
 #    CREATE_REPLICAS = "yes" | "no"         - Whether to create two streaming replicas (defaults to off)
 #
@@ -40,6 +42,19 @@ set -euo pipefail
 # To start the default (latest) version with read only replicas:
 #
 #     CREATE_REPLICAS=on docker/bin/postgres-server
+#
+# To start a PostgreSQL 18 server with Keycloak for OAuth testing:
+#
+#     PGV=18 OAUTH=smoke docker/bin/postgres-server
+#
+# To also switch the test role to OAuth, for running the suite with -DauthMode=oauth:
+#
+#     PGV=18 OAUTH=all docker/bin/postgres-server
+#
+# Any OAuth mode other than "no" starts a Keycloak container that binds
+# 127.0.0.1:8080 on the host, and runs the server as linux/amd64, since
+# pg_oidc_validator is published for amd64 only. On an arm64 host that means
+# emulation, which is noticeably slower.
 
 log () {
     echo "$@" 1>&2
@@ -53,6 +68,14 @@ main () {
     # Determine our current directory and change to be in the same directory as the compose file
     local script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
     cd "${script_dir}/../postgres-server"
+
+    if [ "${OAUTH:-no}" != "no" ]; then
+        export COMPOSE_PROFILES=oauth
+        # pg_oidc_validator is published for amd64 only, so OAuth runs emulate amd64 on arm64 hosts.
+        # TODO: Drop PG_PLATFORM once arm64 builds are available: https://github.com/pgdg-packaging/apt.postgresql.org-issues/issues/2
+        export PG_PLATFORM="linux/amd64"
+        log "Using oauth compose profile"
+    fi
 
     log "Starting Postgres server and mapping to local port ${publish_port}"
     exec docker compose run \

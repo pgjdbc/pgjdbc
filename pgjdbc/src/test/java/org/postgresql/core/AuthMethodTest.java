@@ -7,9 +7,12 @@ package org.postgresql.core;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.postgresql.PGProperty;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -18,7 +21,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.List;
+import java.util.Locale;
 
 /**
  * An unset {@code requireAuth} allows every authentication method, and a
@@ -116,6 +122,16 @@ class AuthMethodTest {
     assertDoesNotThrow(() -> AuthMethod.checkAuth(null, method));
   }
 
+  @ParameterizedTest(name = "isAllowed({0})")
+  @EnumSource(AuthMethod.class)
+  void isAllowedChecksTheMethodAgainstTheAllowedSet(AuthMethod method) {
+    assertTrue(AuthMethod.isAllowed(null, method), "an unset requireAuth");
+    assertTrue(AuthMethod.isAllowed(EnumSet.of(method), method), "a set of only " + method);
+    assertFalse(AuthMethod.isAllowed(EnumSet.complementOf(EnumSet.of(method)), method),
+        "a set of every other method");
+    assertFalse(AuthMethod.isAllowed(EnumSet.noneOf(AuthMethod.class), method), "an empty set");
+  }
+
   @ParameterizedTest(name = "requireAuth={0}")
   @ValueSource(strings = {"password,!md5", "!password,md5"})
   void positiveAndNegativeFormsCannotBeMixed(String requireAuth) {
@@ -163,5 +179,42 @@ class AuthMethodTest {
         () -> AuthMethod.parseRequireAuth(requireAuth));
     assertEquals(PSQLState.INVALID_PARAMETER_VALUE.getState(), e.getSQLState(),
         "SQLState of the parse error");
+  }
+
+  /** The name {@code requireAuth} uses for a method, as {@code SCRAM_SHA_256} is scram-sha-256. */
+  private static String requireAuthName(AuthMethod method) {
+    return method.name().toLowerCase(Locale.ROOT).replace('_', '-');
+  }
+
+  @ParameterizedTest
+  @EnumSource(AuthMethod.class)
+  void everyMethodIsParsedFromItsRequireAuthName(AuthMethod method) throws Exception {
+    assertEquals(method, AuthMethod.fromString(requireAuthName(method)));
+  }
+
+  @ParameterizedTest
+  @EnumSource(AuthMethod.class)
+  void everyMethodIsOfferedByRequireAuthInBothForms(AuthMethod method) {
+    List<String> choices = Arrays.asList(PGProperty.REQUIRE_AUTH.getChoices());
+    String name = requireAuthName(method);
+
+    assertTrue(choices.contains(name), name + " is missing from the requireAuth choices " + choices);
+    assertTrue(choices.contains("!" + name),
+        "!" + name + " is missing from the requireAuth choices " + choices);
+  }
+
+  @Test
+  void requireAuthOffersNothingBeyondTheMethods() {
+    List<String> choices = Arrays.asList(PGProperty.REQUIRE_AUTH.getChoices());
+
+    assertEquals(2 * AuthMethod.values().length, choices.size(),
+        "requireAuth should offer each method and its negation, and nothing else: " + choices);
+  }
+
+  @Test
+  void anUnknownMethodIsRejected() {
+    PSQLException ex = assertThrows(PSQLException.class, () -> AuthMethod.fromString("oauth2"));
+
+    assertEquals(PSQLState.INVALID_PARAMETER_VALUE.getState(), ex.getSQLState());
   }
 }

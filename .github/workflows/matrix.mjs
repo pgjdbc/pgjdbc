@@ -194,6 +194,19 @@ matrix.addAxis({
   ]
 });
 
+// oauth: no    - no Keycloak, OauthTest skipped
+//        smoke - start Keycloak and run OauthTest
+//        all   - smoke, plus the test role authenticates through OAuth for the whole suite
+matrix.addAxis({
+  name: 'oauth',
+  title: x => x.value === 'no' ? '' : 'oauth_' + x.value,
+  values: [
+    {value: 'no', weight: 10},
+    {value: 'smoke', weight: 2},
+    {value: 'all', weight: 1},
+  ]
+});
+
 matrix.addAxis({
   name: 'xa',
   title: x => (x.value === 'yes' ? '' : 'no_') + 'xa',
@@ -322,7 +335,7 @@ function lessThan(minVersion) {
 matrix.setNamePattern([
     'java_version', 'java_distribution', 'pg_version', 'query_mode', 'scram', 'ssl', 'hash', 'os',
     'server_tz', 'tz', 'locale',
-    'gss', 'replication', 'slow_tests',
+    'gss', 'oauth', 'replication', 'slow_tests',
     'adaptive_fetch', 'rewrite_batch_inserts', 'query_timeout', 'socket_timeout',
     'login_timeout', 'connect_timeout',
     'autosave', 'cleanupSavepoints', 'cpu_count', 'assertions', 'standard_conforming_strings'
@@ -344,6 +357,16 @@ matrix.imply({java_distribution: {value: 'oracle'}}, {java_version: v => v === e
 // TODO: Semeru does not ship Java 21 builds yet
 matrix.exclude({java_distribution: {value: 'semeru'}, java_version: '21'})
 matrix.imply({gss: {value: 'yes'}}, {os: {value: 'ubuntu-latest'}})
+// The pg_oidc_validator package is available for PostgreSQL 18 only.
+matrix.imply({oauth: {value: ['smoke', 'all']}}, {pg_version: '18'})
+// OAuth tests require the Keycloak container, which only the Linux setup starts.
+matrix.imply({oauth: {value: ['smoke', 'all']}}, {os: {value: 'ubuntu-latest'}})
+// Some OAuth tests require SSL to be enabled.
+matrix.imply({oauth: {value: ['smoke', 'all']}}, {ssl: {value: 'yes'}})
+// oauth=all switches the test role to OAuth, but the GSS and replication tests authenticate it
+// another way.
+matrix.exclude({oauth: {value: 'all'}, gss: {value: 'yes'}})
+matrix.exclude({oauth: {value: 'all'}, replication: {value: 'yes'}})
 // ikalnytskyi/action-setup-postgres supports PostgreSQL 14+ only
 matrix.exclude({os: {value: ['windows-latest', 'macos-latest']}, pg_version: lessThan('14')});
 // HEAD is built from pgdg-snapshot inside Docker, which only runs on Linux.
@@ -356,7 +379,7 @@ matrix.imply({autosave: {value: 'never'}}, {cleanupSavepoints: {value: 'false'}}
 matrix.imply({standard_conforming_strings: {value: 'no'}}, {pg_version: lessThan('19')});
 
 // Collect coverage from a single job that turns on every feature that moves coverage (ssl,
-// scram, xa, replication, the latest stable server, one query mode). The other flags add at
+// scram, xa, replication, gss, oauth, the latest stable server, one query mode). The other flags add at
 // most a line or two to line/branch coverage, so leaving them to the random fill keeps the
 // corpus stable between builds without a fixed seed.
 // Latest non-EA Java from the axis, so this need not be bumped when Java versions change.
@@ -383,6 +406,8 @@ const include = matrix.generateRows(Number(process.env.MATRIX_JOBS || 6), {
         // slow tests add ~0 coverage but cost runtime; GSS exercises the driver's encryption
         // paths and the krb5 setup runs anyway on this Linux job, so keep it on.
         slow_tests: {value: 'no'}, gss: {value: 'yes'},
+        // Run the OAuth smoke tests on the coverage job so OAuth code earns PR diff coverage.
+        oauth: {value: 'smoke'},
       },
       tag: row => { row.collectCoverage = true; },
     },
@@ -415,6 +440,7 @@ const include = matrix.generateRows(Number(process.env.MATRIX_JOBS || 6), {
     ...matrix.allAxisValues('os'),
     ...matrix.allAxisValues('cpu_count'),
     ...matrix.allAxisValues('assertions'),
+    ...matrix.allAxisValues('oauth'),
   ],
 });
 if (include.length === 0) {
@@ -471,6 +497,7 @@ include.forEach(v => {
   v.slow_tests = v.slow_tests.value;
   v.xa = v.xa.value;
   v.gss = v.gss.value;
+  v.oauth = v.oauth.value;
   v.ssl = v.ssl.value;
   v.scram = v.scram.value;
   v.query_mode = v.query_mode.value;
@@ -573,6 +600,13 @@ include.forEach(v => {
       testJvmArgs.push('-ea');
   }
   delete v.assertions;
+  if (v.oauth !== 'no') {
+      jvmArgs.push('-Denable_oauth_tests=true');
+  }
+  if (v.oauth === 'all') {
+      // Redirect connections of the default user to OAuth, see TestUtil.addOauthProperties
+      jvmArgs.push('-DauthMode=oauth');
+  }
   v.extraJvmArgs = jvmArgs.join(' ');
   v.testExtraJvmArgs = testJvmArgs.join(' ::: ');
   delete v.hash;

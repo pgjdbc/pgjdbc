@@ -110,8 +110,9 @@ class AuthenticationPluginManager {
     byte [] encodedPassword = AuthenticationPluginManager.<byte[]>withPassword(type, info, password -> {
       if (password == null) {
         throw new PSQLException(
-            GT.tr("The server requested password-based authentication, but no password was provided by plugin {0}",
-                PGProperty.AUTHENTICATION_PLUGIN_CLASS_NAME.getOrDefault(info)),
+            OauthAuthenticator.withOauthHint(info,
+                GT.tr("The server requested password-based authentication, but no password was provided by plugin {0}",
+                    PGProperty.AUTHENTICATION_PLUGIN_CLASS_NAME.getOrDefault(info))),
             PSQLState.CONNECTION_REJECTED);
       }
       ByteBuffer buf = StandardCharsets.UTF_8.encode(CharBuffer.wrap(password));
