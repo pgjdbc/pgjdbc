@@ -497,7 +497,8 @@ public enum PGProperty {
       "password",
       null,
       "Password to use when authenticating.",
-      false),
+      false,
+      true),
 
   /**
    * Algorithm for the PEM key.
@@ -849,7 +850,9 @@ public enum PGProperty {
   SSL_PASSWORD(
       "sslpassword",
       null,
-      "The password for the client's ssl key (ignored if sslpasswordcallback is set)"),
+      "The password for the client's ssl key (ignored if sslpasswordcallback is set)",
+      false,
+      true),
 
   /**
    * The classname instantiating {@link javax.security.auth.callback.CallbackHandler} to use.
@@ -959,6 +962,7 @@ public enum PGProperty {
   private final String name;
   private final @Nullable String defaultValue;
   private final boolean required;
+  private final boolean sensitive;
   private final String description;
   @SuppressWarnings("ImmutableEnumChecker")
   private final String @Nullable [] choices;
@@ -972,10 +976,21 @@ public enum PGProperty {
   }
 
   PGProperty(String name, @Nullable String defaultValue, String description, boolean required,
+      boolean sensitive) {
+    this(name, defaultValue, description, required, sensitive, null);
+  }
+
+  PGProperty(String name, @Nullable String defaultValue, String description, boolean required,
       String @Nullable [] choices) {
+    this(name, defaultValue, description, required, false, choices);
+  }
+
+  PGProperty(String name, @Nullable String defaultValue, String description, boolean required,
+      boolean sensitive, String @Nullable [] choices) {
     this.name = name;
     this.defaultValue = defaultValue;
     this.required = required;
+    this.sensitive = sensitive;
     this.description = description;
     this.choices = choices;
   }
@@ -1016,6 +1031,17 @@ public enum PGProperty {
    */
   public boolean isRequired() {
     return required;
+  }
+
+  /**
+   * Returns whether the value of this parameter is a secret, such as a password or the passphrase of
+   * a key. The driver replaces the value of such a parameter with {@code ***} where it logs a JDBC URL
+   * or puts one in an exception message.
+   *
+   * @return {@code true} if the value of this parameter must not be disclosed
+   */
+  public boolean isSensitive() {
+    return sensitive;
   }
 
   /**

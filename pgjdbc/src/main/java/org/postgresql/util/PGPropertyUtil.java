@@ -24,19 +24,27 @@ public class PGPropertyUtil {
   /**
    * converts PGPORT String to Integer
    *
+   * <p>The warnings name the position of the port in the list, not its value: the value may be a
+   * part of a password, as in {@code jdbc:postgresql://user:pass/word@host}, which the driver reads
+   * as host {@code user} and port {@code pass}.</p>
+   *
    * @param portStr value of port
+   * @param position position of the port in the list of ports, starting from 1
+   * @param count number of ports in the list
    * @return value of port or null
    */
-  private static @Nullable Integer convertPgPortToInt(String portStr) {
+  private static @Nullable Integer convertPgPortToInt(String portStr, int position, int count) {
     try {
       int port = Integer.parseInt(portStr);
       if (port < 1 || port > 65535) {
-        LOGGER.log(Level.WARNING, "JDBC URL port: {0} not valid (1:65535) ", portStr);
+        LOGGER.log(Level.WARNING, "Invalid port number: port {0} of {1} is not in 1..65535",
+            new Object[]{position, count});
         return null;
       }
       return port;
     } catch (NumberFormatException ignore) {
-      LOGGER.log(Level.WARNING, "JDBC URL invalid port number: {0}", portStr);
+      LOGGER.log(Level.WARNING, "Invalid port number: port {0} of {1} is not a number",
+          new Object[]{position, count});
       return null;
     }
   }
@@ -61,8 +69,9 @@ public class PGPropertyUtil {
     }
 
     // check port values
-    for (String portStr : ports.split(",")) {
-      if (PGPropertyUtil.convertPgPortToInt(portStr) == null) {
+    String[] portList = ports.split(",");
+    for (int i = 0; i < portList.length; i++) {
+      if (PGPropertyUtil.convertPgPortToInt(portList[i], i + 1, portList.length) == null) {
         return false;
       }
     }
