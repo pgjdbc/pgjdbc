@@ -137,8 +137,7 @@ Connection conn = DriverManager.getConnection(url);
 ```
 
 * **`ssl (`*boolean*`)`** *Default `false`*\
-Connect using SSL. The server must have been compiled with SSL support. This property does not need a value associated with it. The mere presence of it specifies an SSL connection. 
-However, for compatibility with future versions, the value "true" is preferred. For more information see [Using SSL](/documentation/ssl/).\
+Connect using SSL, the same as `sslmode=verify-full`, which checks the server certificate and host name. The value can be `true` or empty, as in `?ssl`, and `false` is the same as not setting the property. Any other value is refused. This property is ignored when `sslmode` is set. For more information see [Using SSL](/documentation/ssl/).\
 Setting up the certificates and keys for ssl connection can be tricky see [The test documentation](https://github.com/pgjdbc/pgjdbc/blob/master/certdir/README.md) for detailed examples.
 
 * **`sslfactory(`*String*`)`** *Default `org.postgresql.ssl.LibPQFactory`*\

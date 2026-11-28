@@ -236,9 +236,10 @@ public class PgServiceConfParser {
             // log list of allowed keys
             String allowedValuesCommaSeparated =
                 allowedServiceKeys.stream().sorted().collect(Collectors.joining(","));
-            LOGGER.log(Level.SEVERE, "Got invalid key: line number [{0}], value [{1}], allowed "
+            // The value can be a password, so only the key is logged.
+            LOGGER.log(Level.SEVERE, "Got invalid key: line number [{0}], key [{1}], allowed "
                     + "values [{2}]",
-                new Object[]{lineNumber, originalLine, allowedValuesCommaSeparated});
+                new Object[]{lineNumber, key, allowedValuesCommaSeparated});
             // stop processing because of invalid key
             return null;
           }
@@ -249,8 +250,7 @@ public class PgServiceConfParser {
           }
         } else {
           // if not equal sign then stop processing because of invalid syntax
-          LOGGER.log(Level.WARNING, "Not valid line: line number [{0}], value [{1}]",
-              new Object[]{lineNumber, originalLine});
+          LOGGER.log(Level.WARNING, "Not valid line: line number [{0}]", lineNumber);
           return null;
         }
       }

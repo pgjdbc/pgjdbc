@@ -143,6 +143,131 @@ class ParserTest {
   }
 
   @Test
+  void escapeEndsAtBraceOutsideOfLiterals() throws Exception {
+    assertEquals("TIMESTAMP '2024-01-01}{fn user()}--'",
+        Parser.replaceProcessing("{ts '2024-01-01}{fn user()}--'}", true, true));
+    assertEquals("DATE '}'", Parser.replaceProcessing("{d '}'}", true, true));
+    assertEquals("TIME '}'", Parser.replaceProcessing("{t '}'}", true, true));
+    assertEquals("a LIKE 'a}%' ESCAPE '}'", Parser.replaceProcessing("a LIKE 'a}%' {escape '}'}", true, true));
+    assertEquals("a LEFT OUTER JOIN b ON b.\"}\" = '}' /* } */ AND $$}$$ = $q$}$q$ -- }\n",
+        Parser.replaceProcessing("{oj a LEFT OUTER JOIN b ON b.\"}\" = '}' /* } */ AND $$}$$ = $q$}$q$ -- }\n}",
+            true, true));
+    String since = "2024-01-01 }{fn locate($$ */ $$,$$ is null)::int))) UNION SELECT token FROM api_keys --$$,{oj (/*";
+    assertEquals("SELECT 1 WHERE now() >= TIMESTAMP '" + since + "' AND 1 = 1",
+        Parser.replaceProcessing("SELECT 1 WHERE now() >= {ts '" + since + "'} AND 1 = 1", true, true));
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> Parser.replaceProcessing("{d '2020-01-01}", true, true));
+    assertEquals(PSQLState.SYNTAX_ERROR.getState(), e.getSQLState());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "q",
+      "\u00e9", // e with acute accent
+      "\u00a7", // section sign
+      "\u00a0", // no-break space
+      "\u2003", // em space
+      "\ud840\udc00", // CJK letter outside the BMP
+      "q\u00d7", // q and multiplication sign
+  })
+  void dollarQuoteTagWithNonAsciiCharacter(String tag) throws SQLException {
+    String sql = "SELECT $" + tag + "${oj x$" + tag + "}$ || ? ; --$" + tag + "$";
+    assertEquals(sql, Parser.replaceProcessing(sql, true, true));
+    List<NativeQuery> queries = Parser.parseJdbcSql(sql, true, true, true, true, true);
+    assertEquals(1, queries.size());
+    assertEquals(0, queries.get(0).bindPositions.length);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "\u00a7", // section sign
+      "\u00e9", // e with acute accent
+      "\ud840\udc00", // CJK letter outside the BMP
+  })
+  void dollarsAfterNonAsciiCharacterDoNotStartString(String c) throws SQLException {
+    String sql = "SELECT 1 AS a" + c + "$$, ? AS b, 2 AS c$$";
+    List<NativeQuery> queries = Parser.parseJdbcSql(sql, true, true, true, true, true);
+    assertEquals(1, queries.get(0).bindPositions.length);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "\ud800", // high surrogate without a low surrogate
+      "\udc00", // low surrogate without a high surrogate
+  })
+  void unpairedSurrogateIsNotAnIdentifierCharacter(String c) throws SQLException {
+    // The driver sends an unpaired surrogate as ?, an operator character for the backend.
+    String sql = "SELECT x" + c + "$$k{oj b$}$ AS a, ? AS b --$$";
+    assertEquals(sql, Parser.replaceProcessing(sql, true, true));
+    assertEquals(0, Parser.parseJdbcSql(sql, true, true, true, true, true).get(0).bindPositions.length);
+    for (String tag : new String[]{"$" + c + "$", "$q" + c + "$"}) {
+      sql = "SELECT " + tag + " ? " + tag;
+      assertEquals(1, Parser.parseJdbcSql(sql, true, true, true, true, true).get(0).bindPositions.length,
+          sql);
+    }
+  }
+
+  @Test
+  void functionEscapeEndsAtBraceOutsideOfLiterals() throws Exception {
+    assertEquals("SELECT lower(name) || '}{fn ucase(x)} --' AS v",
+        Parser.replaceProcessing("SELECT {fn lcase(name) || '}{fn ucase(x)} --'} AS v", true, true));
+    assertEquals("lower(a) || \"}\" /* } */ || $$}$$ || $q$}$q$ -- }\n",
+        Parser.replaceProcessing("{fn lcase(a) || \"}\" /* } */ || $$}$$ || $q$}$q$ -- }\n}", true, true));
+    assertEquals("SELECT lower(a) || 'x', 1",
+        Parser.replaceProcessing("SELECT {fn lcase(a) || 'x'}, 1", true, true));
+    PSQLException e = assertThrows(PSQLException.class,
+        () -> Parser.replaceProcessing("{fn lcase(a) || '}", true, true));
+    assertEquals(PSQLState.SYNTAX_ERROR.getState(), e.getSQLState());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "SELECT E'a''b\\' ?? {fn ucase(x)} ; \\'c'",
+      "SELECT E'a'\n'b\\' ?? {fn ucase(x)} ; \\'c'",
+      "SELECT E'a' -- comment\n  'b\\' ?? {fn ucase(x)} ; \\'c'",
+      "SELECT 'a''b'' ?? {fn ucase(x)} ; '",
+  })
+  void quoteContinuationKeepsStringMode(String sql) throws SQLException {
+    assertEquals(sql, Parser.replaceProcessing(sql, true, true));
+    List<NativeQuery> queries = Parser.parseJdbcSql(sql, true, true, true, true, true);
+    assertEquals(1, queries.size());
+    assertEquals(0, queries.get(0).bindPositions.length);
+    assertEquals(sql, queries.get(0).nativeSql);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "SELECT 'a' 'b', ?",
+      "SELECT 'a' -- 'b'\n, ?",
+      "SELECT 'a'\n- 'b', ?",
+  })
+  void quoteWithoutContinuationEndsString(String sql) throws SQLException {
+    List<NativeQuery> queries = Parser.parseJdbcSql(sql, true, true, true, true, true);
+    assertEquals(1, queries.get(0).bindPositions.length);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      " ",
+      "\u000b", // vertical tab, whitespace for the backend since PostgreSQL 17
+      "x\ud800", // unpaired surrogate, sent as ?
+  })
+  void escapeStringAfterSeparator(String separator) throws SQLException {
+    String sql = "SELECT" + separator + "E'\\' ? --' AS note WHERE 'a' = ?";
+    NativeQuery query = Parser.parseJdbcSql(sql, true, true, true, true, true).get(0);
+    assertEquals(1, query.bindPositions.length);
+    assertEquals(sql.substring(0, sql.length() - 1) + "$1", query.nativeSql);
+  }
+
+  @Test
+  void escapedFunctionSubtractsArgumentInParentheses() throws Exception {
+    assertEquals("substring(c from (length(c)+1-(-1)))",
+        Parser.replaceProcessing("{fn right(c,-1)}", true, true));
+    assertEquals("extract( day from ((d)-(-1)))",
+        Parser.replaceProcessing("{fn timestampdiff(SQL_TSI_DAY,-1,d)}", true, true));
+  }
+
+  @Test
   void timestampAddDiffFracSecondIsRejected() throws Exception {
     // SQL_TSI_FRAC_SECOND has no portable size across databases (nanoseconds in ODBC/SQL Server,
     // microseconds in MySQL), so pgjdbc rejects it with an explicit error rather than risk

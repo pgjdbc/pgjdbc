@@ -175,7 +175,8 @@ public class Parser {
                     SqlCommand.createStatementTypeInfo(
                         currentCommandType, isBatchedReWriteConfigured, valuesParenthesisOpenPosition,
                         valuesParenthesisClosePosition,
-                        isReturningPresent, nativeQueries.size())));
+                        isReturningPresent, nativeQueries.size()),
+                    standardConformingStrings));
               }
             }
             prevCommandType = currentCommandType;
@@ -318,7 +319,8 @@ public class Parser {
         toIntArray(bindPositions), !splitStatements,
         SqlCommand.createStatementTypeInfo(currentCommandType,
             isBatchedReWriteConfigured, valuesParenthesisOpenPosition, valuesParenthesisClosePosition,
-            isReturningPresent, (nativeQueries == null ? 0 : nativeQueries.size())));
+            isReturningPresent, (nativeQueries == null ? 0 : nativeQueries.size())),
+        standardConformingStrings);
 
     if (nativeQueries == null) {
       return Collections.singletonList(lastQuery);
@@ -419,9 +421,8 @@ public class Parser {
   /**
    * Find the end of the single-quoted string starting at the given offset.
    *
-   * <p>Note: for {@code 'single '' quote in string'}, this method currently returns the offset of
-   * first {@code '} character after the initial one. The caller must call the method a second time
-   * for the second part of the quoted string.</p>
+   * <p>A doubled quote and a continuation on a new line do not end the string. The rest of the
+   * string follows the rules of its first part, as in the backend.</p>
    *
    * @param query                     query
    * @param offset                    start offset
@@ -434,7 +435,8 @@ public class Parser {
     if (standardConformingStrings
         && offset >= 2
         && (query[offset - 1] == 'e' || query[offset - 1] == 'E')
-        && charTerminatesIdentifier(query[offset - 2])) {
+        && (charTerminatesIdentifier(query[offset - 2])
+            || isUnpairedSurrogate(query, offset - 2))) {
       standardConformingStrings = false;
     }
 
@@ -442,7 +444,11 @@ public class Parser {
       // do NOT treat backslashes as escape characters
       while (++offset < query.length) {
         if (query[offset] == '\'') {
-          return offset;
+          int continuation = findQuoteContinuation(query, offset + 1);
+          if (continuation == -1) {
+            return offset;
+          }
+          offset = continuation;
         }
       }
     } else {
@@ -453,7 +459,12 @@ public class Parser {
             ++offset;
             break;
           case '\'':
-            return offset;
+            int continuation = findQuoteContinuation(query, offset + 1);
+            if (continuation == -1) {
+              return offset;
+            }
+            offset = continuation;
+            break;
           default:
             break;
         }
@@ -461,6 +472,40 @@ public class Parser {
     }
 
     return query.length;
+  }
+
+  /**
+   * Find the quote that continues a single-quoted string after its closing quote. That is a
+   * second quote right after it, or a quote after whitespace and {@code --} comments with at
+   * least one newline, see {@code xqdouble} and {@code quotecontinue} in scan.l.
+   *
+   * @param query  query
+   * @param offset position after the closing quote
+   * @return position of the quote that continues the string, or -1 if the string ends
+   */
+  private static int findQuoteContinuation(final char[] query, int offset) {
+    if (offset < query.length && query[offset] == '\'') {
+      return offset;
+    }
+    boolean newline = false;
+    for (; offset < query.length; offset++) {
+      char c = query[offset];
+      if (c == '-') {
+        offset = parseLineComment(query, offset);
+        c = query[offset];
+        if (c != '\n' && c != '\r') {
+          return -1;
+        }
+      }
+      if (c == '\n' || c == '\r') {
+        newline = true;
+      } else if (c == '\'') {
+        return newline ? offset : -1;
+      } else if (!isSpace(c)) {
+        return -1;
+      }
+    }
+    return -1;
   }
 
   /**
@@ -491,16 +536,18 @@ public class Parser {
    */
   public static int parseDollarQuotes(final char[] query, int offset) {
     if (offset + 1 < query.length
-        && (offset == 0 || !isIdentifierContChar(query[offset - 1]))) {
+        && (offset == 0 || !isIdentifierContChar(query[offset - 1])
+            || isUnpairedSurrogate(query, offset - 1))) {
       int endIdx = -1;
       if (query[offset + 1] == '$') {
         endIdx = offset + 1;
-      } else if (isDollarQuoteStartChar(query[offset + 1])) {
+      } else if (isDollarQuoteStartChar(query[offset + 1])
+          && !isUnpairedSurrogate(query, offset + 1)) {
         for (int d = offset + 2; d < query.length; d++) {
           if (query[d] == '$') {
             endIdx = d;
             break;
-          } else if (!isDollarQuoteContChar(query[d])) {
+          } else if (!isDollarQuoteContChar(query[d]) || isUnpairedSurrogate(query, d)) {
             break;
           }
         }
@@ -890,7 +937,8 @@ public class Parser {
    * @return true if the character is a whitespace character as defined in the backend's parser
    */
   public static boolean isSpace(char c) {
-    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f';
+    // The backend counts a vertical tab as whitespace since PostgreSQL 17.
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == 0x0B;
   }
 
   /**
@@ -927,8 +975,7 @@ public class Parser {
 
   /**
    * Checks if a character is valid as the start of an identifier.
-   * PostgreSQL 9.4 allows column names like _, ‿, ⁀, ⁔, ︳, ︴, ﹍, ﹎, ﹏, ＿, so
-   * it is assumed isJavaIdentifierPart is good enough for PostgreSQL.
+   * The backend treats every non-ASCII character as an identifier character.
    *
    * @param c the character to check
    * @return true if valid as first character of an identifier; false if not
@@ -940,9 +987,8 @@ public class Parser {
      * pgsql/src/backend/parser/scan.l:
      * ident_start    [A-Za-z\200-\377_]
      * ident_cont     [A-Za-z\200-\377_0-9\$]
-     * however it is not clear how that interacts with unicode, so we just use Java's implementation.
      */
-    return Character.isJavaIdentifierStart(c);
+    return c >= 0x80 || c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
   }
 
   /**
@@ -952,7 +998,7 @@ public class Parser {
    * @return true if valid as second or later character of an identifier; false if not
    */
   public static boolean isIdentifierContChar(char c) {
-    return Character.isJavaIdentifierPart(c);
+    return isIdentifierStartChar(c) || c == '$' || (c >= '0' && c <= '9');
   }
 
   /**
@@ -962,6 +1008,21 @@ public class Parser {
    */
   public static boolean charTerminatesIdentifier(char c) {
     return c == '"' || isSpace(c) || isOperatorChar(c);
+  }
+
+  /**
+   * Returns true if the character at the given index is a surrogate without its other half. The
+   * driver encodes such a character as {@code ?}, which the backend reads as an operator character.
+   */
+  private static boolean isUnpairedSurrogate(char[] query, int index) {
+    char c = query[index];
+    if (Character.isHighSurrogate(c)) {
+      return index + 1 >= query.length || !Character.isLowSurrogate(query[index + 1]);
+    }
+    if (Character.isLowSurrogate(c)) {
+      return index == 0 || !Character.isHighSurrogate(query[index - 1]);
+    }
+    return false;
   }
 
   /**
@@ -1352,6 +1413,13 @@ public class Parser {
       state_switch:
       switch (state) {
         case IN_SQLCODE:
+        case ESC_DATE:
+        case ESC_TIME:
+        case ESC_TIMESTAMP:
+        case ESC_FUNCTION_END:
+        case ESC_OUTERJOIN:
+        case ESC_ESCAPECHAR:
+          // A brace inside a literal, quoted identifier or comment does not end an escape.
           if (c == '$') {
             int i0 = i;
             i = parseDollarQuotes(sql, i);
@@ -1387,6 +1455,11 @@ public class Parser {
             i = parseLineComment(sql, i);
             newsql.append(sql, i0, i - i0 + 1);
             break;
+          } else if (state != SqlParseState.IN_SQLCODE) {
+            if (c == '}') {
+              state = SqlParseState.IN_SQLCODE; // end of escape code.
+              break;
+            }
           } else if (c == '(') { // begin nested sql
             nestedParenthesis++;
           } else if (c == ')') { // end of nested sql
@@ -1423,18 +1496,7 @@ public class Parser {
         case ESC_FUNCTION:
           // extract function name
           i = escapeFunction(sql, i, newsql, stdStrings);
-          state = SqlParseState.IN_SQLCODE; // end of escaped function (or query)
-          break;
-        case ESC_DATE:
-        case ESC_TIME:
-        case ESC_TIMESTAMP:
-        case ESC_OUTERJOIN:
-        case ESC_ESCAPECHAR:
-          if (c == '}') {
-            state = SqlParseState.IN_SQLCODE; // end of escape code.
-          } else {
-            newsql.append(c);
-          }
+          state = SqlParseState.ESC_FUNCTION_END;
           break;
       } // end switch
     }
@@ -1468,11 +1530,6 @@ public class Parser {
       // extract arguments
       i = argPos + 1;// we start the scan after the first (
       i = escapeFunctionArguments(newsql, functionName, sql, i, stdStrings);
-    }
-    // go to the end of the function copying anything found
-    i++;
-    while (i < sql.length && sql[i] != '}') {
-      newsql.append(sql[i++]);
     }
     return i;
   }
@@ -1541,6 +1598,8 @@ public class Parser {
 
     ESC_TIMESTAMP("ts", SINGLE_QUOTE, "TIMESTAMP "),
     ESC_FUNCTION("fn", QUOTE_OR_ALPHABETIC_MARKER, null),
+    // The text after the arguments of {fn ...}, up to the closing brace.
+    ESC_FUNCTION_END,
     ESC_OUTERJOIN("oj", QUOTE_OR_ALPHABETIC_MARKER_OR_PARENTHESIS, null),
     ESC_ESCAPECHAR("escape", SINGLE_QUOTE, "ESCAPE ");
 
@@ -1576,6 +1635,10 @@ public class Parser {
     }
 
     private int getMatchedPosition(char[] sql, int pos) {
+      // IN_SQLCODE and ESC_FUNCTION_END have no keyword, so a brace never enters them.
+      if (escapeKeyword.length == 0) {
+        return 0;
+      }
       // check for the keyword
       if (!startMatches(sql, pos)) {
         return 0;

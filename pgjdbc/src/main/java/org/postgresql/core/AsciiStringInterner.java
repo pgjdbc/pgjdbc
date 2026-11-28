@@ -35,102 +35,59 @@ import java.util.concurrent.ConcurrentMap;
  */
 final class AsciiStringInterner {
 
-  private abstract static class BaseKey {
-    private final int hash;
-
-    BaseKey(int hash) {
-      this.hash = hash;
-    }
-
-    @Override
-    public final int hashCode() {
-      return hash;
-    }
-
-    @Override
-    public final boolean equals(@Nullable Object obj) {
-      if (obj == this) {
-        return true;
-      }
-      if (!(obj instanceof BaseKey)) {
-        return false;
-      }
-      final BaseKey other = (BaseKey) obj;
-      return equalsBytes(other);
-    }
-
-    abstract boolean equalsBytes(BaseKey other);
-
-    abstract boolean equals(byte[] other, int offset, int length);
-
-    abstract void appendString(StringBuilder sb);
-  }
-
   /**
-   * Only used for lookups, never to actually store entries.
+   * Key for lookups and for stored entries. A stored key owns a copy of the bytes that is never
+   * changed. The labels come from the server, so many of them can have the same hash.
+   * {@link ConcurrentHashMap} keeps a bin of equal hashes ordered only for a key class that
+   * implements {@code Comparable} of its own type.
    */
-  private static class TempKey extends BaseKey {
+  private static final class Key implements Comparable<Key> {
+    private final int hash;
     final byte[] bytes;
     final int offset;
     final int length;
 
-    TempKey(int hash, byte[] bytes, int offset, int length) {
-      super(hash);
+    Key(int hash, byte[] bytes, int offset, int length) {
+      this.hash = hash;
       this.bytes = bytes;
       this.offset = offset;
       this.length = length;
     }
 
     @Override
-    boolean equalsBytes(BaseKey other) {
-      return other.equals(bytes, offset, length);
+    public int hashCode() {
+      return hash;
     }
 
     @Override
-    public boolean equals(byte[] other, int offset, int length) {
-      return arrayEquals(this.bytes, this.offset, this.length, other, offset, length);
+    public boolean equals(@Nullable Object obj) {
+      if (obj == this) {
+        return true;
+      }
+      if (!(obj instanceof Key)) {
+        return false;
+      }
+      final Key other = (Key) obj;
+      return arrayEquals(bytes, offset, length, other.bytes, other.offset, other.length);
     }
 
     @Override
+    public int compareTo(Key other) {
+      if (length != other.length) {
+        return length < other.length ? -1 : 1;
+      }
+      for (int i = 0; i < length; i++) {
+        final int diff = bytes[offset + i] - other.bytes[other.offset + i];
+        if (diff != 0) {
+          return diff;
+        }
+      }
+      return 0;
+    }
+
     void appendString(StringBuilder sb) {
       for (int i = offset, j = offset + length; i < j; i++) {
         sb.append((char) bytes[i]);
-      }
-    }
-  }
-
-  /**
-   * Instance used for inserting values into the cache. The {@code byte[]} must be a copy
-   * that will never be mutated.
-   */
-  private static final class Key extends BaseKey {
-    final byte[] key;
-
-    Key(byte[] key, int hash) {
-      super(hash);
-      this.key = key;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    boolean equalsBytes(BaseKey other) {
-      return other.equals(key, 0, key.length);
-    }
-
-    @Override
-    public boolean equals(byte[] other, int offset, int length) {
-      return arrayEquals(this.key, 0, this.key.length, other, offset, length);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    void appendString(StringBuilder sb) {
-      for (int i = 0; i < key.length; i++) {
-        sb.append((char) key[i]);
       }
     }
   }
@@ -141,9 +98,9 @@ final class AsciiStringInterner {
    */
   private final class StringReference extends SoftReference<String> {
 
-    private final BaseKey key;
+    private final Key key;
 
-    StringReference(BaseKey key, String referent) {
+    StringReference(Key key, String referent) {
       super(referent, refQueue);
       this.key = key;
     }
@@ -156,7 +113,7 @@ final class AsciiStringInterner {
   /**
    * Contains the canonicalized values, keyed by the ascii {@code byte[]}.
    */
-  final ConcurrentMap<BaseKey, SoftReference<String>> cache = new ConcurrentHashMap<>(128);
+  final ConcurrentMap<Key, SoftReference<String>> cache = new ConcurrentHashMap<>(128);
 
   /**
    * Used for {@link Reference} as values in {@code cache}.
@@ -178,7 +135,7 @@ final class AsciiStringInterner {
     if (hash == 0) {
       return false;
     }
-    final Key key = new Key(copy, hash);
+    final Key key = new Key(hash, copy, 0, copy.length);
     //we are assuming this is a java interned string from , so this is unlikely to ever be
     //reclaimed. so there is no value in using the custom StringReference or hand off to
     //the refQueue.
@@ -216,8 +173,8 @@ final class AsciiStringInterner {
       return encoding.decode(bytes, offset, length);
     }
     cleanQueue();
-    // create a TempKey with the byte[] given
-    final TempKey tempKey = new TempKey(hash, bytes, offset, length);
+    // create a lookup key with the byte[] given
+    final Key tempKey = new Key(hash, bytes, offset, length);
     SoftReference<String> ref = cache.get(tempKey);
     if (ref != null) {
       final String val = ref.get();
@@ -227,7 +184,7 @@ final class AsciiStringInterner {
     }
     // in order to insert we need to create a "real" key with copy of bytes that will not be changed
     final byte[] copy = Arrays.copyOfRange(bytes, offset, offset + length);
-    final Key key = new Key(copy, hash);
+    final Key key = new Key(hash, copy, 0, copy.length);
     final String value = new String(copy, StandardCharsets.US_ASCII);
 
     // handle case where a concurrent thread has populated the map or existing value has cleared reference
@@ -273,8 +230,8 @@ final class AsciiStringInterner {
       return encoding.decode(bytes, offset, length);
     }
     cleanQueue();
-    // create a TempKey with the byte[] given
-    final TempKey tempKey = new TempKey(hash, bytes, offset, length);
+    // create a lookup key with the byte[] given
+    final Key tempKey = new Key(hash, bytes, offset, length);
     SoftReference<String> ref = cache.get(tempKey);
     if (ref != null) {
       final String val = ref.get();

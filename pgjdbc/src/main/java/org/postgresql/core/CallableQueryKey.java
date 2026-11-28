@@ -14,8 +14,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 class CallableQueryKey extends BaseQueryKey {
 
-  CallableQueryKey(String sql) {
-    super(sql, true, true);
+  CallableQueryKey(String sql, boolean standardConformingStrings) {
+    super(sql, true, true, standardConformingStrings);
   }
 
   @Override
@@ -24,6 +24,7 @@ class CallableQueryKey extends BaseQueryKey {
         + "sql='" + sql + '\''
         + ", isParameterized=" + isParameterized
         + ", escapeProcessing=" + escapeProcessing
+        + ", standardConformingStrings=" + standardConformingStrings
         + '}';
   }
 

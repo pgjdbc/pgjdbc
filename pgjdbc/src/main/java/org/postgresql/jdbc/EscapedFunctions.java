@@ -342,9 +342,9 @@ public class EscapedFunctions {
     buf.append(parsedArgs.get(0))
         .append(" from (length(")
         .append(parsedArgs.get(0))
-        .append(")+1-")
+        .append(")+1-(")
         .append(parsedArgs.get(1));
-    return buf.append("))").toString();
+    return buf.append(")))").toString();
   }
 
   /**
@@ -644,11 +644,11 @@ public class EscapedFunctions {
     StringBuilder buf = new StringBuilder();
     buf.append("extract( ")
         .append(datePart)
-        .append(" from (")
+        .append(" from ((")
         .append(parsedArgs.get(2))
-        .append("-")
+        .append(")-(")
         .append(parsedArgs.get(1))
-        .append("))");
+        .append(")))");
     return buf.toString();
   }
 

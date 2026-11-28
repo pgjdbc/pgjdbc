@@ -1465,7 +1465,14 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       if (i > 0) {
         url.append(",");
       }
-      url.append(serverNames[i]);
+      String serverName = serverNames[i];
+      // Driver.parseURL does not decode the host part, so a '/' or '?' cannot be encoded and would
+      // end the host part early.
+      if (serverName.indexOf('/') != -1 || serverName.indexOf('?') != -1) {
+        throw new IllegalArgumentException(
+            String.format("Invalid argument: serverName %s must not contain '/' or '?'", serverName));
+      }
+      url.append(serverName);
       if (portNumbers != null) {
         if (serverNames.length != portNumbers.length) {
           throw new IllegalArgumentException(
@@ -1525,10 +1532,9 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     if (p == null) {
       throw new IllegalArgumentException("URL invalid " + url);
     }
+    // setProperty ignores null, so a property that the URL does not set keeps its value.
     for (PGProperty property : PGProperty.values()) {
-      if (!this.properties.containsKey(property.getName())) {
-        setProperty(property, property.getOrDefault(p));
-      }
+      setProperty(property, property.getOrNull(p));
     }
   }
 

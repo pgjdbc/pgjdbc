@@ -107,6 +107,12 @@ public enum ServerVersion implements Version {
   }
 
   /**
+   * The parser reads at most three parts and two dots, and a part of more than 10 digits does not
+   * fit an int.
+   */
+  private static final int PARSED_PREFIX_LENGTH = 3 * 10 + 2;
+
+  /**
    * Attempt to parse the server version string into an XXYYZZ form version number.
    *
    * <p>Returns 0 if the version could not be parsed.</p>
@@ -120,6 +126,8 @@ public enum ServerVersion implements Version {
    * <p>The yy or zz version parts may be larger than 99. A NumberFormatException is thrown if a
    * version part is out of range.</p>
    *
+   * <p>Only the first 32 characters are parsed.</p>
+   *
    * @param serverVersion server version in a XXYYZZ form
    * @return server version in number form
    */
@@ -128,6 +136,12 @@ public enum ServerVersion implements Version {
       return 0;
     }
 
+    // NumberFormat takes time quadratic in the length of a run of digits, and the server sends
+    // the string.
+    String text = serverVersion.length() > PARSED_PREFIX_LENGTH
+        ? serverVersion.substring(0, PARSED_PREFIX_LENGTH)
+        : serverVersion;
+
     NumberFormat numformat = NumberFormat.getIntegerInstance();
     numformat.setGroupingUsed(false);
     ParsePosition parsepos = new ParsePosition(0);
@@ -135,13 +149,12 @@ public enum ServerVersion implements Version {
     int[] parts = new int[3];
     int versionParts;
     for (versionParts = 0; versionParts < 3; versionParts++) {
-      Number part = (Number) numformat.parseObject(serverVersion, parsepos);
+      Number part = (Number) numformat.parseObject(text, parsepos);
       if (part == null) {
         break;
       }
       parts[versionParts] = part.intValue();
-      if (parsepos.getIndex() == serverVersion.length()
-          || serverVersion.charAt(parsepos.getIndex()) != '.') {
+      if (parsepos.getIndex() == text.length() || text.charAt(parsepos.getIndex()) != '.') {
         break;
       }
       // Skip .

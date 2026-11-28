@@ -20,6 +20,7 @@ import org.postgresql.util.PGbytea;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.StreamWrapper;
+import org.postgresql.util.internal.SourceStreamIOException;
 
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.index.qual.Positive;
@@ -210,11 +211,17 @@ class SimpleParameterList implements V3ParameterList {
    * {}
    * </pre>
    **/
-  private static String quoteAndCast(String text, @Nullable String type, boolean standardConformingStrings) {
+  private static String quoteAndCast(String text, @Nullable String type) {
     StringBuilder sb = new StringBuilder((text.length() + 10) / 10 * 11); // Add 10% for escaping.
-    sb.append("('");
+    // The driver's standard_conforming_strings can be out of date when the backend parses the
+    // literal, so a value with a backslash is sent as E'', which the backend reads the same way
+    // under either setting.
+    // The EUC_JP and Shift_JIS charsets encode the yen sign as a backslash.
+    boolean hasBackslash = text.indexOf('\\') >= 0
+        || text.indexOf('\u00a5') >= 0; // yen sign
+    sb.append(hasBackslash ? "(E'" : "('");
     try {
-      Utils.escapeLiteral(sb, text, standardConformingStrings);
+      Utils.escapeLiteral(sb, text, !hasBackslash);
     } catch (SQLException e) {
       // This should only happen if we have an embedded null
       // and there's not much we can do if we do hit one.
@@ -256,12 +263,10 @@ class SimpleParameterList implements V3ParameterList {
     if (paramTypes[index] == Oid.BYTEA) {
       if (paramValue instanceof String && !((String) paramValue).startsWith("\\x")) {
         // A bytea value supplied as text in the escape format. Quote and cast it
-        // like any other literal: quoteAndCast escapes quotes and backslashes per
-        // standard_conforming_strings, which keeps the literal valid and safe from
-        // SQL injection. Hex-format strings (\x...) and byte[] values fall through
-        // to PGbytea.toPGLiteral below.
-        return quoteAndCast((String) paramValue, "bytea",
-            context.getStandardConformingStrings());
+        // like any other literal: quoteAndCast escapes quotes and backslashes, which
+        // keeps the literal valid and safe from SQL injection. Hex-format strings
+        // (\x...) and byte[] values fall through to PGbytea.toPGLiteral below.
+        return quoteAndCast((String) paramValue, "bytea");
       }
       try {
         return PGbytea.toPGLiteral(paramValue, context);
@@ -406,7 +411,7 @@ class SimpleParameterList implements V3ParameterList {
           type = null;
       }
     }
-    return quoteAndCast(textValue, type, context.getStandardConformingStrings());
+    return quoteAndCast(textValue, type);
   }
 
   @Override
@@ -440,7 +445,14 @@ class SimpleParameterList implements V3ParameterList {
       return;
     }
 
-    pgStream.sendStream(wrapper.getStream(), wrapper.getLength());
+    InputStream stream;
+    try {
+      stream = wrapper.getStream();
+    } catch (IOException e) {
+      // Nothing of the value is written yet, so the whole length has to be padded.
+      throw new SourceStreamIOException(wrapper.getLength(), e);
+    }
+    pgStream.sendStream(stream, wrapper.getLength());
   }
 
   //

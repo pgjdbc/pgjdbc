@@ -385,11 +385,17 @@ public class ByteConverter {
    * Converts a non-null {@link BigDecimal} to binary format for {@link org.postgresql.core.Oid#NUMERIC}.
    * @param nbr The instance to represent in binary.
    * @return The binary representation of <i>nbr</i>.
+   * @throws IllegalArgumentException if the weight of <i>nbr</i> does not fit a short or its scale
+   *     does not fit 14 bits
    */
   public static byte[] numeric(BigDecimal nbr) {
     final PositiveShorts shorts = new PositiveShorts();
     BigInteger unscaled = nbr.unscaledValue().abs();
     int scale = nbr.scale();
+    // int2 below keeps only the low 16 bits, so a larger scale would be sent as a different number.
+    if (scale > NUMERIC_DSCALE_MASK) {
+      throw new IllegalArgumentException("invalid scale for binary \"numeric\" value");
+    }
     if (unscaled.equals(BigInteger.ZERO)) {
       final byte[] bytes = new byte[]{0, 0, -1, -1, 0, 0, 0, 0};
       ByteConverter.int2(bytes, 6, Math.max(0, scale));
@@ -470,6 +476,10 @@ public class ByteConverter {
           shorts.push(shortValue);
         }
       }
+    }
+
+    if (weight < Short.MIN_VALUE || weight > Short.MAX_VALUE) {
+      throw new IllegalArgumentException("invalid weight for binary \"numeric\" value");
     }
 
     //8 bytes for "header" and then 2 for each short

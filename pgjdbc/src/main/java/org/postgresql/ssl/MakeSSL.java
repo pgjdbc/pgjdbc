@@ -16,6 +16,8 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.internal.Nullness;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.util.Properties;
 import java.util.logging.Level;
@@ -35,13 +37,15 @@ public class MakeSSL extends ObjectFactory {
     LOGGER.log(Level.FINE, "converting regular socket connection to ssl");
 
     SSLSocketFactory factory = SocketFactoryFactory.getSslSocketFactory(info);
+    boolean direct = SslNegotiation.of(Nullness.castNonNull(PGProperty.SSL_NEGOTIATION.getOrDefault(info)))
+        == SslNegotiation.DIRECT;
     SSLSocket newConnection;
     try {
       newConnection = (SSLSocket) factory.createSocket(stream.getSocket(),
           stream.getHostSpec().getHost(), stream.getHostSpec().getPort(), true);
       int connectTimeoutSeconds = PGProperty.CONNECT_TIMEOUT.getInt(info);
       newConnection.setSoTimeout(connectTimeoutSeconds * 1000);
-      if (SslNegotiation.of(Nullness.castNonNull(PGProperty.SSL_NEGOTIATION.getOrDefault(info))) == SslNegotiation.DIRECT ) {
+      if (direct) {
         SSLParameters sslParameters = newConnection.getSSLParameters();
         sslParameters.setApplicationProtocols(new String[]{"postgresql"});
         newConnection.setSSLParameters(sslParameters);
@@ -52,6 +56,13 @@ public class MakeSSL extends ObjectFactory {
     } catch (IOException ex) {
       throw new PSQLException(GT.tr("SSL error: {0}", ex.getMessage()),
           PSQLState.CONNECTION_FAILURE, ex);
+    }
+    // A peer that ignores the ALPN offer still completes the handshake. Without the SSLRequest
+    // exchange, ALPN is the only way to tell a PostgreSQL server from another TLS service.
+    if (direct && !"postgresql".equals(getApplicationProtocol(newConnection))) {
+      throw new PSQLException(
+          GT.tr("Direct SSL connection was established without ALPN protocol negotiation extension."),
+          PSQLState.CONNECTION_FAILURE);
     }
     if (factory instanceof LibPQFactory) { // throw any KeyManager exception
       ((LibPQFactory) factory).throwKeyManagerException();
@@ -65,6 +76,14 @@ public class MakeSSL extends ObjectFactory {
     int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info);
     newConnection.setSoTimeout(socketTimeout * 1000);
     stream.changeSocket(newConnection);
+  }
+
+  private static @Nullable String getApplicationProtocol(SSLSocket socket) {
+    try {
+      return socket.getApplicationProtocol();
+    } catch (UnsupportedOperationException e) {
+      return null;
+    }
   }
 
   private static void verifyPeerName(PGStream stream, Properties info, SSLSocket newConnection)
